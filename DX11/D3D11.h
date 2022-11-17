@@ -11,6 +11,8 @@
 #include <d3d11.h>
 #include <d3dx10math.h>
 
+//D:\DirectxSDK\Include;$(IncludePath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;$(IncludePath)
+//D:\DirectxSDK\Lib\x64;$(LibraryPath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x64;$(LibraryPath)
 class CD3D11
 {
 	struct VertexType
@@ -22,7 +24,7 @@ class CD3D11
 	struct ConstantBufferType
 	{
 		D3DXMATRIX world;
-		//D3DXMATRIX view;
+		D3DXMATRIX view;
 		D3DXMATRIX projection;
 	};
 
@@ -52,6 +54,7 @@ private:
 	D3DXMATRIX m_projectionMatrix;
 	D3DXMATRIX m_worldMatrix;
 	D3DXMATRIX m_orthoMatrix;
+	D3DXMATRIX m_viewMatrix;
 
 	ID3D11Buffer* m_pVertexBuffer, * m_pIndexBuffer;
 	int m_vertexCount, m_indexCount;

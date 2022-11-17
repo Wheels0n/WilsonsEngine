@@ -128,8 +128,8 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
 
 	swapChainDesc.BufferCount = 1;
-	swapChainDesc.BufferDesc.Width = screenHeight;
-	swapChainDesc.BufferDesc.Height = screenWidth;
+	swapChainDesc.BufferDesc.Width = screenWidth;
+	swapChainDesc.BufferDesc.Height = screenHeight;
 	swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 
@@ -288,6 +288,11 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	D3DXMatrixIdentity(&m_worldMatrix);
 	D3DXMatrixOrthoLH(&m_orthoMatrix, static_cast<float>(screenWidth), static_cast<float>(screenHeight), fScreenNear, fScreenDepth);
 
+	D3DXVECTOR3 vPos = { 0.0f,0.0f,0.0f };
+	D3DXVECTOR3 vLookat = { 0.0f, 0.0f, 1.0f };
+	D3DXVECTOR3 vUp = {0.0f, 1.0f, 0.0f};
+	
+	D3DXMatrixLookAtLH(&m_viewMatrix, &vPos, &vLookat, &vUp);
 
 
 
@@ -337,7 +342,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	vertexDesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	vertexDesc[0].InstanceDataStepRate = 0;
 	vertexDesc[1].SemanticName = "COLOR";
-	vertexDesc[1].SemanticIndex = 1;
+	vertexDesc[1].SemanticIndex = 0;
 	vertexDesc[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	vertexDesc[1].InputSlot = 0;
 	vertexDesc[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
@@ -347,6 +352,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCount;
 	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertexBufferDesc.CPUAccessFlags = 0;
 	vertexBufferDesc.MiscFlags = 0;
 	vertexBufferDesc.StructureByteStride = 0;
 
@@ -409,7 +415,6 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 		return false;
 	}
 	m_pDevice->CreateVertexShader(pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), nullptr, &m_pVertexShader);
-	m_pContext->VSSetShader(m_pVertexShader, 0, 0);
 
 	hr = D3DX10CompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_DEBUG, 0, nullptr, &pPsBlob, &pErrorBlob, nullptr);
 	if (FAILED(hr))
@@ -417,19 +422,20 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 		return false;
 	}
 	m_pDevice->CreatePixelShader(pPsBlob->GetBufferPointer(), pPsBlob->GetBufferSize(), nullptr, &m_pPixelShader);
-	m_pContext->PSSetShader(m_pPixelShader, 0, 0);
 
 	m_pDevice->CreateInputLayout(vertexDesc, sizeof(vertexDesc) / sizeof(vertexDesc[0]), pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), &m_pInputLayout);
-	m_pContext->IASetInputLayout(m_pInputLayout);
-
+	
 	pPsBlob->Release();
 	pPsBlob = nullptr;
 
 	pVsBlob->Release();
 	pVsBlob = nullptr;
 
-	pErrorBlob->Release();
-	pErrorBlob = nullptr;
+	if (pErrorBlob != nullptr)
+	{
+		pErrorBlob->Release();
+		pErrorBlob = nullptr;
+	}
 	return true;
 }
 
@@ -506,6 +512,11 @@ void CD3D11::Shutdown()
 		m_pPixelShader = nullptr;
 	}
 
+	if (m_pInputLayout != nullptr)
+	{
+		m_pInputLayout->Release();
+		m_pInputLayout = nullptr;
+	}
 	return;
 }
 
@@ -514,7 +525,6 @@ void CD3D11::UpdateScene()
 {
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	D3DXMATRIX worldMatrix, projectionMatrix;
 	ConstantBufferType* pMatrices;
 	unsigned int stride;
 	unsigned int offset;
@@ -525,20 +535,20 @@ void CD3D11::UpdateScene()
 	
 	
 	//ROW-MAJOR(CPU) TO COL-MAJOR(GPU)
-	D3DXMatrixTranspose(&worldMatrix, &worldMatrix);
-	//D3DXMatrixTranspose(&viewMatrix, &viewMatrix);
-	D3DXMatrixTranspose(&projectionMatrix, &projectionMatrix);
+	D3DXMatrixTranspose(&m_worldMatrix, &m_worldMatrix);
+    D3DXMatrixTranspose(&m_viewMatrix, &m_viewMatrix);
+	D3DXMatrixTranspose(&m_projectionMatrix, &m_projectionMatrix);
 
-	hr = m_pContext->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE, 0, &mappedResource);
+	hr = m_pContext->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if (FAILED(hr))
 	{
 		return;
 	}
 
 	pMatrices = reinterpret_cast<ConstantBufferType*>(mappedResource.pData);
-	pMatrices->world = worldMatrix;
-	//pMatrices->view = viewMatrix;
-	pMatrices->projection = projectionMatrix;
+	pMatrices->world = m_worldMatrix;
+	pMatrices->view = m_viewMatrix;
+	pMatrices->projection = m_projectionMatrix;
 
 	m_pContext->Unmap(m_pConstantBuffer, 0);
 	m_pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
@@ -549,6 +559,10 @@ void CD3D11::UpdateScene()
 	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
 	m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ);
+	
+	m_pContext->IASetInputLayout(m_pInputLayout);
+	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
+	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
 	m_pContext->DrawIndexed(3, 0, 0);
 
 	return;
