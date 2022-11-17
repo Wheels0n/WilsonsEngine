@@ -288,7 +288,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	D3DXMatrixIdentity(&m_worldMatrix);
 	D3DXMatrixOrthoLH(&m_orthoMatrix, static_cast<float>(screenWidth), static_cast<float>(screenHeight), fScreenNear, fScreenDepth);
 
-	D3DXVECTOR3 vPos = { 0.0f,0.0f,0.0f };
+	D3DXVECTOR3 vPos = { 0.0f,0.0f,-10.0f };
 	D3DXVECTOR3 vLookat = { 0.0f, 0.0f, 1.0f };
 	D3DXVECTOR3 vUp = {0.0f, 1.0f, 0.0f};
 	
@@ -558,7 +558,7 @@ void CD3D11::UpdateScene()
 
 	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
 	m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ);
+	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	
 	m_pContext->IASetInputLayout(m_pInputLayout);
 	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
