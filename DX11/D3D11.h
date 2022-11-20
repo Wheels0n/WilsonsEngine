@@ -42,7 +42,8 @@ public:
 	float dx, dy, dz = 0;
 private:
 	long long currtime, frequency;
-	
+	D3DXVECTOR3 m_vScale = { 1.0f, 1.0f,1.0f };
+	float ds = 0.001f;
 
 	bool m_bVsync_enabled;
 	IDXGISwapChain* m_pSwapChain;

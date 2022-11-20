@@ -486,6 +486,19 @@ void CD3D11::UpdateScene()
 {  
 	QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&currtime));
 
+	//Scale WorldMatirx 
+
+	if (m_vScale.x <= 0||m_vScale.x>5)
+	{
+		ds *= -1;
+	}
+	m_vScale.x += ds;
+	m_vScale.y += ds;
+	m_vScale.z += ds;
+
+	D3DXMatrixScaling(&m_worldMatrix, m_vScale.x, m_vScale.y, m_vScale.z);
+
+	//Rotate ViewMatrix
 	D3DXVECTOR3 m_vPos = { 0.0f,0.0f,-10.0f };  //Translation
 	D3DXVECTOR3 m_vLookat = {0.0f, 0.0f, 1.0f };//camera look-at target
 	D3DXVECTOR3 m_vUp = { 0.0f, 1.0f, 0.0f };   //which axis is upward
@@ -500,7 +513,7 @@ void CD3D11::UpdateScene()
 	D3DXVec3TransformCoord(&m_vPos, &m_vPos, &m_rotationMatrix);
 	D3DXVec3TransformCoord(&m_vUp, &m_vUp, &m_rotationMatrix);
 	D3DXMatrixLookAtLH(&m_viewMatrix, &m_vPos, &m_vLookat, &m_vUp);
-
+	//clear views
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	ConstantBufferType* pMatrices;
