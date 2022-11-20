@@ -17,15 +17,16 @@ CD3D11::CD3D11()
 	m_pPixelShader = nullptr;
 	m_pInputLayout = nullptr;
 	m_pConstantBuffer = nullptr;
+
 }
 
 CD3D11::~CD3D11()
 {
 }
 
-bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bool bFullscreen,
+bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
 	float fScreenDepth, float fScreenNear)
-{   
+{
 
 	HRESULT hr;
 	IDXGIFactory* pFactory;
@@ -45,13 +46,14 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	D3D11_RASTERIZER_DESC rasterDesc;
 	D3D11_VIEWPORT viewport;
 	float fFOV, fScreenAspect;
+	m_bVsync_enabled = bVsync;
 
 	hr = CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&pFactory));
 	if (FAILED(hr))
 	{
 		return false;
 	}
-	
+
 	//Enumerates video cards
 	hr = pFactory->EnumAdapters(0, &pAdapter);
 	if (FAILED(hr))
@@ -66,7 +68,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 		return false;
 	}
 
-   //Each monitor has a set of display modes it supports. A display mode refers to the following data in DXGI_MODE_DESC
+	//Each monitor has a set of display modes it supports. A display mode refers to the following data in DXGI_MODE_DESC
 	hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, nullptr);
 	if (FAILED(hr))
 	{
@@ -86,32 +88,12 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 		return false;
 	}
 
-	for (i = 0; i < numModes; ++i)
-	{
-		if (pDisplayModeList[i].Width == static_cast<unsigned int>(screenWidth))
-		{
-			if (pDisplayModeList[i].Height == static_cast<unsigned int>(screenWidth))
-			{
-				numerator = pDisplayModeList[i].RefreshRate.Numerator;
-				denominator = pDisplayModeList[i].RefreshRate.Denominator;
-			}
-		}
-	}
-
-
 	hr = pAdapter->GetDesc(&adapterDesc);
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
-	m_iVideoCardMemory = static_cast<int>(adapterDesc.DedicatedVideoMemory / 1024 / 1024);
-
-	iError = wcstombs_s(&strLen, m_chVideoCardDescription, 128, adapterDesc.Description, 128);
-	if (iError != 0)
-	{
-		return false;
-	}
 
 	delete[] pDisplayModeList;
 	pDisplayModeList = nullptr;
@@ -133,10 +115,10 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 
-	if (m_bVsync_enabled==true)
+	if (m_bVsync_enabled == true)
 	{
-		swapChainDesc.BufferDesc.RefreshRate.Numerator = numerator;
-		swapChainDesc.BufferDesc.RefreshRate.Denominator = denominator;
+		swapChainDesc.BufferDesc.RefreshRate.Numerator = 75;
+		swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
 	}
 	else
 	{
@@ -146,7 +128,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.OutputWindow = hWnd;
-	
+
 	swapChainDesc.SampleDesc.Count = 1;
 	swapChainDesc.SampleDesc.Quality = 0;
 
@@ -163,7 +145,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	swapChainDesc.Flags = 0;
-	
+
 	featureLevel = D3D_FEATURE_LEVEL_11_0;
 
 
@@ -220,11 +202,11 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	depthStencilDesc.StencilReadMask = 0xFF;
 	depthStencilDesc.StencilWriteMask = 0xFF;
 	depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
 	depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 	depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 	depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
 	depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 	depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
@@ -242,7 +224,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Texture2D.MipSlice = 0;
 	depthStencilViewDesc.Flags = 0;
-	
+
 	hr = m_pDevice->CreateDepthStencilView(m_pDepthStencilBuffer, &depthStencilViewDesc, &m_pDepthStencilView);
 	if (FAILED(hr))
 	{
@@ -252,7 +234,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
 
 	rasterDesc.AntialiasedLineEnable = false;
-	rasterDesc.CullMode = D3D11_CULL_BACK;
+	rasterDesc.CullMode =D3D11_CULL_NONE;
 	rasterDesc.DepthBias = 0;
 	rasterDesc.DepthBiasClamp = 0.0f;
 	rasterDesc.DepthClipEnable = true;
@@ -288,47 +270,35 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	D3DXMatrixIdentity(&m_worldMatrix);
 	D3DXMatrixOrthoLH(&m_orthoMatrix, static_cast<float>(screenWidth), static_cast<float>(screenHeight), fScreenNear, fScreenDepth);
 
-	D3DXVECTOR3 vPos = { 0.0f,0.0f,-10.0f };
-	D3DXVECTOR3 vLookat = { 0.0f, 0.0f, 1.0f };
-	D3DXVECTOR3 vUp = {0.0f, 1.0f, 0.0f};
-	
-	D3DXMatrixLookAtLH(&m_viewMatrix, &vPos, &vLookat, &vUp);
 
-
-
-	VertexType* vertices;
-	unsigned long* indices;
 	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc, constantBufferDesc;
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[2];
 	D3D11_SUBRESOURCE_DATA vertexData, indexData;
 	ID3DBlob* pVsBlob, * pPsBlob, * pErrorBlob;
+
+
+	VertexType vertices[] = { 
+	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f),D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f)},//front-upper-left  0
+	{D3DXVECTOR3(1.0f,   1.0f, 0.0f),D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f)},//front-upper-right 1
+	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f),D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f)},//front-down-right  2
+	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f),D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f)},//front-down-left   3
+	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f),D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f)},//back-upper-left   4
+	{D3DXVECTOR3(1.0f,   1.0f, 2.0f),D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f)},//back-upper-right  5
+	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f),D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f)},//back-down-right   6
+	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f),D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f)},//back-down-left    7
+	};
+
+	unsigned long indices[] = { 0,1,2 ,0,2,3,  //front 
+		                        1,5,6 ,1,6,2, //right
+	                            0,4,7, 0,7,3, //left
+	                            4,5,6, 4,6,7, //back
+	                            0,4,5, 0,5,1, //up
+	                            3,7,6, 3,6,2 //bottom	
+	                            };
 	
+	m_vertexCount = sizeof(vertices) / sizeof(VertexType);
+	m_indexCount = sizeof(indices) / sizeof(unsigned long);
 
-
-	m_vertexCount = 3;
-	m_indexCount = 3;
-
-	vertices = new VertexType[m_vertexCount];
-	if (vertices == nullptr)
-	{
-		return false;
-	}
-
-	indices = new unsigned long[m_indexCount];
-	if (indices == nullptr)
-	{
-		return false;
-	}
-
-	//vertices data itself
-	vertices[0].position = D3DXVECTOR3(-1.0f, -1.0f, 0.0f);
-	vertices[0].color = D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f);
-
-	vertices[1].position = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
-	vertices[1].color = D3DXVECTOR4(0.0F, 1.0f, 0.0f, 1.0f);
-
-	vertices[2].position = D3DXVECTOR3(1.0f, -1.0f, 0.0f);
-	vertices[2].color = D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f);
 
 	vertexData.pSysMem = vertices;
 	vertexData.SysMemPitch = 0;
@@ -341,6 +311,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	vertexDesc[0].AlignedByteOffset = 0;
 	vertexDesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	vertexDesc[0].InstanceDataStepRate = 0;
+	
 	vertexDesc[1].SemanticName = "COLOR";
 	vertexDesc[1].SemanticIndex = 0;
 	vertexDesc[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -363,11 +334,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 		return false;
 	}
 
-	//indices data itself
-	indices[0] = 0;
-	indices[1] = 1;
-	indices[2] = 2;
-
+	
 	//describe our indice
 	indexData.pSysMem = indices;
 	indexData.SysMemPitch = 0;
@@ -387,12 +354,6 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 		return false;
 	}
 
-	delete[] vertices;
-	vertices = nullptr;
-
-	delete[] indices;
-	indices = nullptr;
-
 
 	//create cbDesc
 	constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -409,14 +370,14 @@ bool CD3D11::Init(int screenWidth, int screenHeight,  bool bVsync, HWND hWnd, bo
 	}
 
 	//Load VS to VS variable
-	hr = D3DX10CompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_DEBUG, 0, nullptr, &pVsBlob, &pErrorBlob, nullptr);
+	hr = D3DX10CompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pVsBlob, &pErrorBlob, nullptr);
 	if (FAILED(hr))
 	{
 		return false;
 	}
 	m_pDevice->CreateVertexShader(pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), nullptr, &m_pVertexShader);
 
-	hr = D3DX10CompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_DEBUG, 0, nullptr, &pPsBlob, &pErrorBlob, nullptr);
+	hr = D3DX10CompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPsBlob, &pErrorBlob, nullptr);
 	if (FAILED(hr))
 	{
 		return false;
@@ -522,17 +483,40 @@ void CD3D11::Shutdown()
 
 
 void CD3D11::UpdateScene()
-{
+{  
+	QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&currtime));
+
+	D3DXVECTOR3 m_vPos = { 0.0f,0.0f,-10.0f };  //Translation
+	D3DXVECTOR3 m_vLookat = {0.0f, 0.0f, 1.0f };//camera look-at target
+	D3DXVECTOR3 m_vUp = { 0.0f, 1.0f, 0.0f };   //which axis is upward
+	float yaw, pitch, roll;
+	
+
+	pitch =  dx;//x-axis
+	yaw   =  dy;//y-axis
+	roll  =  dz;//z-axis
+	D3DXMatrixRotationYawPitchRoll(&m_rotationMatrix, yaw, pitch, roll);
+	D3DXVec3TransformCoord(&m_vLookat, &m_vLookat, &m_rotationMatrix);
+	D3DXVec3TransformCoord(&m_vPos, &m_vPos, &m_rotationMatrix);
+	D3DXVec3TransformCoord(&m_vUp, &m_vUp, &m_rotationMatrix);
+	D3DXMatrixLookAtLH(&m_viewMatrix, &m_vPos, &m_vLookat, &m_vUp);
+
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	ConstantBufferType* pMatrices;
 	unsigned int stride;
 	unsigned int offset;
-	float color[4] = { 0, };
+	float color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
 	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-	
+
+	stride = sizeof(VertexType);
+	offset = 0;
+
+	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+	m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	
 	//ROW-MAJOR(CPU) TO COL-MAJOR(GPU)
 	D3DXMatrixTranspose(&m_worldMatrix, &m_worldMatrix);
@@ -553,17 +537,12 @@ void CD3D11::UpdateScene()
 	m_pContext->Unmap(m_pConstantBuffer, 0);
 	m_pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
 
-	stride = sizeof(VertexType);
-	offset = 0;
-
-	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
-	m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	
 	m_pContext->IASetInputLayout(m_pInputLayout);
 	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
 	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
-	m_pContext->DrawIndexed(3, 0, 0);
+	m_pContext->DrawIndexed(m_indexCount, 0, 0);
+
+
 
 	return;
 }

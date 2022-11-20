@@ -101,6 +101,23 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	  case WM_KEYDOWN:
 	  {   
 		  m_pInputHandler->KeyDown(static_cast<unsigned int>(wParam));
+		  switch (wParam)
+		  {
+		  case VK_UP:
+			  m_pRenderer->RotateUP();
+			  break;
+		  case VK_DOWN:
+			  m_pRenderer->RotateDown();
+			  break;
+		  case VK_RIGHT:
+			  m_pRenderer->RotateRight();
+			  break;
+		  case VK_LEFT:
+			  m_pRenderer->RotateLeft();
+			  break;
+		  default:
+			  break;
+		  }
 		  return 0;
 	  }
 	  case WM_KEYUP:
@@ -221,7 +238,7 @@ void CEngine::ShutdownWindows()
 	return;
 }
 
-LRESULT WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{

@@ -3,7 +3,7 @@
 
 #include "D3D.h"
 
-const bool g_bFULL_SCREEN = false;
+const bool g_bFULL_SCREEN = true;
 const bool g_bVSYNC_ENABLED = true;
 const float g_fSCREEN_DEPTH = 1000.0f;
 const float g_fSCREEN_NEAR = 0.1f;

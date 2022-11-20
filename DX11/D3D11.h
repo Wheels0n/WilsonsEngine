@@ -10,7 +10,7 @@
 #include <d3dcommon.h>
 #include <d3d11.h>
 #include <d3dx10math.h>
-
+#include <Windows.h>
 //D:\DirectxSDK\Include;$(IncludePath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;$(IncludePath)
 //D:\DirectxSDK\Lib\x64;$(LibraryPath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x64;$(LibraryPath)
 class CD3D11
@@ -28,6 +28,7 @@ class CD3D11
 		D3DXMATRIX projection;
 	};
 
+	float mTheta, mPhi, mRadius;
 public:
 	CD3D11();
 	CD3D11(const CD3D11&) = delete;
@@ -38,11 +39,12 @@ public:
 
 	void UpdateScene();
 	void DrawScene();
-
+	float dx, dy, dz = 0;
 private:
+	long long currtime, frequency;
+	
+
 	bool m_bVsync_enabled;
-	int m_iVideoCardMemory;
-	char m_chVideoCardDescription[128];
 	IDXGISwapChain* m_pSwapChain;
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pContext;
@@ -55,6 +57,7 @@ private:
 	D3DXMATRIX m_worldMatrix;
 	D3DXMATRIX m_orthoMatrix;
 	D3DXMATRIX m_viewMatrix;
+	D3DXMATRIX m_rotationMatrix;
 
 	ID3D11Buffer* m_pVertexBuffer, * m_pIndexBuffer;
 	int m_vertexCount, m_indexCount;

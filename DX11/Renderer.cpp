@@ -56,6 +56,44 @@ bool CRenderer::Frame()
 	return true;
 }
 
+void CRenderer::RotateUP()
+{
+	m_pD3D11->dx+= 0.1f;
+	if (m_pD3D11->dx > 360.0f)
+	{
+		m_pD3D11->dx = 0u;
+	}
+}
+
+void CRenderer::RotateDown()
+{
+	m_pD3D11->dx -= 0.1f;
+	if (m_pD3D11->dx < -360.0f)
+	{
+		m_pD3D11->dx = 0u;
+	}
+}
+
+void CRenderer::RotateLeft()
+{
+	m_pD3D11->dy-= 0.1f;
+	if (m_pD3D11->dy < -360.0f)
+	{
+		m_pD3D11->dy = 0u;
+	}
+}
+
+void CRenderer::RotateRight()
+{
+	m_pD3D11->dy+= 0.1f;
+	if (m_pD3D11->dy > 360.0f)
+	{
+		m_pD3D11->dy = 0u;
+	}
+}
+
+
+
 bool CRenderer::Render()
 {   
 	//버퍼 내용지우기
