@@ -17,6 +17,7 @@ CD3D11::CD3D11()
 	m_pPixelShader = nullptr;
 	m_pInputLayout = nullptr;
 	m_pConstantBuffer = nullptr;
+	m_pConstantBuffer2 = nullptr;
 
 }
 
@@ -268,6 +269,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 	D3DXMatrixPerspectiveFovLH(&m_projectionMatrix, fFOV, fScreenAspect, fScreenNear, fScreenDepth);
 	D3DXMatrixIdentity(&m_worldMatrix);
+	D3DXMatrixIdentity(&m_worldMatrix2);
 	D3DXMatrixOrthoLH(&m_orthoMatrix, static_cast<float>(screenWidth), static_cast<float>(screenHeight), fScreenNear, fScreenDepth);
 
 
@@ -293,7 +295,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	                            0,4,7, 0,7,3, //left
 	                            4,5,6, 4,6,7, //back
 	                            0,4,5, 0,5,1, //up
-	                            3,7,6, 3,6,2 //bottom	
+	                            3,7,6, 3,6,2, //bottom
 	                            };
 	
 	m_vertexCount = sizeof(vertices) / sizeof(VertexType);
@@ -364,6 +366,12 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	constantBufferDesc.StructureByteStride = 0;
 
 	hr = m_pDevice->CreateBuffer(&constantBufferDesc, nullptr, &m_pConstantBuffer);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	hr = m_pDevice->CreateBuffer(&constantBufferDesc, nullptr, &m_pConstantBuffer2);
 	if (FAILED(hr))
 	{
 		return false;
@@ -478,6 +486,18 @@ void CD3D11::Shutdown()
 		m_pInputLayout->Release();
 		m_pInputLayout = nullptr;
 	}
+
+	if (m_pConstantBuffer != nullptr)
+	{
+		m_pConstantBuffer->Release();
+		m_pConstantBuffer = nullptr;
+	}
+
+	if (m_pConstantBuffer2 != nullptr)
+	{
+		m_pConstantBuffer2->Release();
+		m_pConstantBuffer2 = nullptr;
+	}
 	return;
 }
 
@@ -485,6 +505,17 @@ void CD3D11::Shutdown()
 void CD3D11::UpdateScene()
 {  
 	QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&currtime));
+
+	//clear views
+	HRESULT hr;
+	D3D11_MAPPED_SUBRESOURCE mappedResource;
+	ConstantBufferType* pMatrices;
+	unsigned int stride;
+	unsigned int offset;
+	float color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
+	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	//Scale WorldMatirx 
 
@@ -513,16 +544,7 @@ void CD3D11::UpdateScene()
 	D3DXVec3TransformCoord(&m_vPos, &m_vPos, &m_rotationMatrix);
 	D3DXVec3TransformCoord(&m_vUp, &m_vUp, &m_rotationMatrix);
 	D3DXMatrixLookAtLH(&m_viewMatrix, &m_vPos, &m_vLookat, &m_vUp);
-	//clear views
-	HRESULT hr;
-	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	ConstantBufferType* pMatrices;
-	unsigned int stride;
-	unsigned int offset;
-	float color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
-	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	
 
 	stride = sizeof(VertexType);
 	offset = 0;
@@ -541,7 +563,6 @@ void CD3D11::UpdateScene()
 	{
 		return;
 	}
-
 	pMatrices = reinterpret_cast<ConstantBufferType*>(mappedResource.pData);
 	pMatrices->world = m_worldMatrix;
 	pMatrices->view = m_viewMatrix;
@@ -550,12 +571,25 @@ void CD3D11::UpdateScene()
 	m_pContext->Unmap(m_pConstantBuffer, 0);
 	m_pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
 
+	//do it again for second cb
+
+	D3DXMatrixTranslation(&m_worldMatrix2, 3, 0, 0);
+	D3DXMatrixTranspose(&m_worldMatrix2, &m_worldMatrix2);
+	hr = m_pContext->Map(m_pConstantBuffer2, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	pMatrices = reinterpret_cast<ConstantBufferType*>(mappedResource.pData);
+	pMatrices->world = m_worldMatrix2;
+	pMatrices->view = m_viewMatrix;
+	pMatrices->projection = m_projectionMatrix;
+	m_pContext->Unmap(m_pConstantBuffer2, 0);
+
+	//draw
 	m_pContext->IASetInputLayout(m_pInputLayout);
 	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
 	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
 	m_pContext->DrawIndexed(m_indexCount, 0, 0);
-
-
+	
+	m_pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer2);
+	m_pContext->DrawIndexed(m_indexCount, 0, 0);
 
 	return;
 }

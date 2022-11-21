@@ -4,7 +4,7 @@
 #include<Windows.h>
 #include "D3D11.h"
 
-const bool g_bFull_SCREEN = true;
+const bool g_bFull_SCREEN = false;
 const bool g_bVSYNC_ENABLE = true;
 const float g_fSCREEN_DEPTH = 1000.0f;
 const float g_fSCREEN_NEAR = 0.1f;

@@ -55,7 +55,7 @@ private:
 	ID3D11DepthStencilView* m_pDepthStencilView;
 	ID3D11RasterizerState* m_pRasterstate;
 	D3DXMATRIX m_projectionMatrix;
-	D3DXMATRIX m_worldMatrix;
+	D3DXMATRIX m_worldMatrix, m_worldMatrix2;
 	D3DXMATRIX m_orthoMatrix;
 	D3DXMATRIX m_viewMatrix;
 	D3DXMATRIX m_rotationMatrix;
@@ -66,6 +66,6 @@ private:
 	ID3D11VertexShader* m_pVertexShader;
 	ID3D11PixelShader* m_pPixelShader;
 	ID3D11InputLayout* m_pInputLayout;
-	ID3D11Buffer* m_pConstantBuffer;
+	ID3D11Buffer* m_pConstantBuffer, * m_pConstantBuffer2;
 };
 #endif // !_D3D11_H_
