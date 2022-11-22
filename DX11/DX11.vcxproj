@@ -22,6 +22,7 @@
     <ClCompile Include="D3D11.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="InputHandler.cpp" />
+    <ClCompile Include="Object.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
@@ -29,6 +30,7 @@
     <ClInclude Include="D3D11.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="InputHandler.h" />
+    <ClInclude Include="Object.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

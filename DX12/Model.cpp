@@ -14,12 +14,12 @@ CModel::~CModel()
 {
 }
 
-bool CModel::Initialize(ID3D12Device* pDevice)
+bool CModel::Initialize(ID3D12Device* m_pDevice)
 {  
 
     bool result;
 
-    result = InitializeBuffers(pDevice);
+    result = InitializeBuffers(m_pDevice);
 
     if (result == false)
     {
@@ -37,7 +37,7 @@ void CModel::Shutdown()
 
 }
 
-void CModel::Render(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCmdList)
+void CModel::Render(ID3D12Device* m_pDevice, ID3D12GraphicsCommandList* pCmdList)
 {   
     D3D12_RESOURCE_BARRIER barrier[2];
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
@@ -85,7 +85,7 @@ void CModel::Render(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCmdList)
     //create constant buffer view and its table for root signature 
     cbvDesc.BufferLocation = m_constantBuffer->GetGPUVirtualAddress();
     cbvDesc.SizeInBytes = max(256,sizeof(XMFLOAT4X4)); // 버퍼 초기화 당시 크기만큼 가상메모리 공간이 할당되니 주의
-    pDevice->CreateConstantBufferView(&cbvDesc, m_cbvHeap->GetCPUDescriptorHandleForHeapStart());
+    m_pDevice->CreateConstantBufferView(&cbvDesc, m_cbvHeap->GetCPUDescriptorHandleForHeapStart());
     
     cbvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
     cbvTable.NumDescriptors = 1;
@@ -105,7 +105,7 @@ void CModel::Render(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCmdList)
     rootSigDesc.pStaticSamplers = nullptr;
     rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
     D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &m_serializedBlob, &m_errorBlob); 
-    pDevice->CreateRootSignature(0, m_serializedBlob->GetBufferPointer(), m_serializedBlob->GetBufferSize(), __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(&m_RootSignature));
+    m_pDevice->CreateRootSignature(0, m_serializedBlob->GetBufferPointer(), m_serializedBlob->GetBufferSize(), __uuidof(ID3D12RootSignature), reinterpret_cast<void**>(&m_RootSignature));
 
     pCmdList->SetGraphicsRootSignature(m_RootSignature);
     pCmdList->SetDescriptorHeaps(1, descriptorHeaps);
@@ -187,7 +187,7 @@ void CModel::Render(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCmdList)
     pCmdList->DrawInstanced(3, 1, 0, 0);
 }
 
-bool CModel::InitializeBuffers(ID3D12Device* pDevice)
+bool CModel::InitializeBuffers(ID3D12Device* m_pDevice)
 {
     HRESULT hr;
     D3D12_INPUT_ELEMENT_DESC vertexDesc[2];
@@ -268,7 +268,7 @@ bool CModel::InitializeBuffers(ID3D12Device* pDevice)
     defaultHeapProps.CreationNodeMask = 1;
     defaultHeapProps.VisibleNodeMask = 1;
 
-    pDevice->CreateCommittedResource(&defaultHeapProps, D3D12_HEAP_FLAG_NONE, &vertexBufferDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**> (&m_vertexBuffer));
+    m_pDevice->CreateCommittedResource(&defaultHeapProps, D3D12_HEAP_FLAG_NONE, &vertexBufferDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**> (&m_vertexBuffer));
 
 
     uploadHeapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -277,7 +277,7 @@ bool CModel::InitializeBuffers(ID3D12Device* pDevice)
     uploadHeapProps.CreationNodeMask = 1;
     uploadHeapProps.VisibleNodeMask = 1;
 
-    pDevice->CreateCommittedResource(&uploadHeapProps, D3D12_HEAP_FLAG_NONE, &vertexBufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&m_uploadBuffer));
+    m_pDevice->CreateCommittedResource(&uploadHeapProps, D3D12_HEAP_FLAG_NONE, &vertexBufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&m_uploadBuffer));
 
     subResourceData.pData = vertices;
   
@@ -293,12 +293,12 @@ bool CModel::InitializeBuffers(ID3D12Device* pDevice)
     constantBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
     constantBufferDesc.Format = DXGI_FORMAT_UNKNOWN;
 
-    pDevice->CreateCommittedResource(&uploadHeapProps, D3D12_HEAP_FLAG_NONE, &constantBufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**> (&m_constantBuffer));
+    m_pDevice->CreateCommittedResource(&uploadHeapProps, D3D12_HEAP_FLAG_NONE, &constantBufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**> (&m_constantBuffer));
 
     cbvHeapDesc.NumDescriptors = 1;
     cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     cbvHeapDesc.NodeMask = 0;
 
-    pDevice->CreateDescriptorHeap(&cbvHeapDesc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&m_cbvHeap));
+    m_pDevice->CreateDescriptorHeap(&cbvHeapDesc, __uuidof(ID3D12DescriptorHeap), reinterpret_cast<void**>(&m_cbvHeap));
 }

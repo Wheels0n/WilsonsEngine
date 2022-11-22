@@ -16,8 +16,6 @@ CD3D11::CD3D11()
 	m_pVertexShader = nullptr;
 	m_pPixelShader = nullptr;
 	m_pInputLayout = nullptr;
-	m_pConstantBuffer = nullptr;
-	m_pConstantBuffer2 = nullptr;
 
 }
 
@@ -264,16 +262,19 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 	m_pContext->RSSetViewports(1, &viewport);
 
+	//Set projectionMatrix, viewMatrix;
 	fFOV = static_cast<float>(D3DX_PI / 4.0f);
 	fScreenAspect = static_cast<float>(screenWidth) / static_cast<float>(screenHeight);
-
 	D3DXMatrixPerspectiveFovLH(&m_projectionMatrix, fFOV, fScreenAspect, fScreenNear, fScreenDepth);
-	D3DXMatrixIdentity(&m_worldMatrix);
-	D3DXMatrixIdentity(&m_worldMatrix2);
-	D3DXMatrixOrthoLH(&m_orthoMatrix, static_cast<float>(screenWidth), static_cast<float>(screenHeight), fScreenNear, fScreenDepth);
+	
+	D3DXVECTOR3 m_vPos = { 0.0f,0.0f,-10.0f };  //Translation
+	D3DXVECTOR3 m_vLookat = { 0.0f, 0.0f, 1.0f };//camera look-at target
+	D3DXVECTOR3 m_vUp = { 0.0f, 1.0f, 0.0f };   //which axis is upward
+	D3DXMatrixLookAtLH(&m_viewMatrix, &m_vPos, &m_vLookat, &m_vUp);
 
 
-	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc, constantBufferDesc;
+	//Set vertexData, indexData
+	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[2];
 	D3D11_SUBRESOURCE_DATA vertexData, indexData;
 	ID3DBlob* pVsBlob, * pPsBlob, * pErrorBlob;
@@ -349,29 +350,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	indexBufferDesc.CPUAccessFlags = 0;
 	indexBufferDesc.MiscFlags = 0;
 	indexBufferDesc.StructureByteStride = 0;
-
 	hr = m_pDevice->CreateBuffer(&indexBufferDesc, &indexData, &m_pIndexBuffer);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-
-	//create cbDesc
-	constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	constantBufferDesc.ByteWidth = sizeof(ConstantBufferType);
-	constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	constantBufferDesc.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
-	constantBufferDesc.MiscFlags = 0;
-	constantBufferDesc.StructureByteStride = 0;
-
-	hr = m_pDevice->CreateBuffer(&constantBufferDesc, nullptr, &m_pConstantBuffer);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	hr = m_pDevice->CreateBuffer(&constantBufferDesc, nullptr, &m_pConstantBuffer2);
 	if (FAILED(hr))
 	{
 		return false;
@@ -394,6 +373,16 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 	m_pDevice->CreateInputLayout(vertexDesc, sizeof(vertexDesc) / sizeof(vertexDesc[0]), pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), &m_pInputLayout);
 	
+	for (int i = 0; i < 3; ++i)
+	{
+		Objects[i] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
+		Objects[i]->Init();
+		Objects[i]->UpdateWorld();
+		m_pConstantBuffers[i] = Objects[i]->getCB();
+	}
+
+	
+
 	pPsBlob->Release();
 	pPsBlob = nullptr;
 
@@ -487,17 +476,6 @@ void CD3D11::Shutdown()
 		m_pInputLayout = nullptr;
 	}
 
-	if (m_pConstantBuffer != nullptr)
-	{
-		m_pConstantBuffer->Release();
-		m_pConstantBuffer = nullptr;
-	}
-
-	if (m_pConstantBuffer2 != nullptr)
-	{
-		m_pConstantBuffer2->Release();
-		m_pConstantBuffer2 = nullptr;
-	}
 	return;
 }
 
@@ -517,80 +495,22 @@ void CD3D11::UpdateScene()
 	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
 	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	//Scale WorldMatirx 
-
-	if (m_vScale.x <= 0||m_vScale.x>5)
-	{
-		ds *= -1;
-	}
-	m_vScale.x += ds;
-	m_vScale.y += ds;
-	m_vScale.z += ds;
-
-	D3DXMatrixScaling(&m_worldMatrix, m_vScale.x, m_vScale.y, m_vScale.z);
-
-	//Rotate ViewMatrix
-	D3DXVECTOR3 m_vPos = { 0.0f,0.0f,-10.0f };  //Translation
-	D3DXVECTOR3 m_vLookat = {0.0f, 0.0f, 1.0f };//camera look-at target
-	D3DXVECTOR3 m_vUp = { 0.0f, 1.0f, 0.0f };   //which axis is upward
-	float yaw, pitch, roll;
-	
-
-	pitch =  dx;//x-axis
-	yaw   =  dy;//y-axis
-	roll  =  dz;//z-axis
-	D3DXMatrixRotationYawPitchRoll(&m_rotationMatrix, yaw, pitch, roll);
-	D3DXVec3TransformCoord(&m_vLookat, &m_vLookat, &m_rotationMatrix);
-	D3DXVec3TransformCoord(&m_vPos, &m_vPos, &m_rotationMatrix);
-	D3DXVec3TransformCoord(&m_vUp, &m_vUp, &m_rotationMatrix);
-	D3DXMatrixLookAtLH(&m_viewMatrix, &m_vPos, &m_vLookat, &m_vUp);
-	
-
 	stride = sizeof(VertexType);
 	offset = 0;
 
-	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
-	m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	
-	//ROW-MAJOR(CPU) TO COL-MAJOR(GPU)
-	D3DXMatrixTranspose(&m_worldMatrix, &m_worldMatrix);
-    D3DXMatrixTranspose(&m_viewMatrix, &m_viewMatrix);
-	D3DXMatrixTranspose(&m_projectionMatrix, &m_projectionMatrix);
-
-	hr = m_pContext->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	if (FAILED(hr))
-	{
-		return;
-	}
-	pMatrices = reinterpret_cast<ConstantBufferType*>(mappedResource.pData);
-	pMatrices->world = m_worldMatrix;
-	pMatrices->view = m_viewMatrix;
-	pMatrices->projection = m_projectionMatrix;
-
-	m_pContext->Unmap(m_pConstantBuffer, 0);
-	m_pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
-
-	//do it again for second cb
-
-	D3DXMatrixTranslation(&m_worldMatrix2, 3, 0, 0);
-	D3DXMatrixTranspose(&m_worldMatrix2, &m_worldMatrix2);
-	hr = m_pContext->Map(m_pConstantBuffer2, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	pMatrices = reinterpret_cast<ConstantBufferType*>(mappedResource.pData);
-	pMatrices->world = m_worldMatrix2;
-	pMatrices->view = m_viewMatrix;
-	pMatrices->projection = m_projectionMatrix;
-	m_pContext->Unmap(m_pConstantBuffer2, 0);
-
-	//draw
-	m_pContext->IASetInputLayout(m_pInputLayout);
 	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
 	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
-	m_pContext->DrawIndexed(m_indexCount, 0, 0);
-	
-	m_pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer2);
-	m_pContext->DrawIndexed(m_indexCount, 0, 0);
-
+	m_pContext->IASetInputLayout(m_pInputLayout);
+	//draw all objects;
+	for (int i = 0; i < 3; ++i)
+	{
+		m_pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffers[i]);
+		Objects[i]->UpdateWorld();
+		m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+		m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		m_pContext->DrawIndexed(m_indexCount, 0, 0);
+	}
 	return;
 }
 

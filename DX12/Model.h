@@ -21,7 +21,7 @@ public:
 
 	bool Initialize(ID3D12Device*);
 	void Shutdown();
-	void Render(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCmdlist);
+	void Render(ID3D12Device* m_pDevice, ID3D12GraphicsCommandList* pCmdlist);
 
 private:
 	bool InitializeBuffers(ID3D12Device*);
