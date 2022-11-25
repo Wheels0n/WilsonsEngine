@@ -1,13 +1,27 @@
 #include "Object.h"
 
 CObject::CObject(ID3D11Device* device, ID3D11DeviceContext* context, D3DXMATRIX* projectionMatrix, D3DXMATRIX* viewMatrix)
-	:x(dist(rng)), y(dist(rng)), z(dist(rng)), pitch(dist(rng)), yaw(dist(rng)), roll(dist(rng))
 {
  	m_pContext = context;
 	m_pDevice = device;
 	m_pConstantBuffer = nullptr;
 	m_projectionMatrix = *projectionMatrix;
 	m_viewMatrix = *viewMatrix;
+
+	std::random_device rd;
+	std::mt19937 rng(rd());
+	std::uniform_real_distribution<float> rotation(0,3.1415f*2.0f);
+	std::uniform_real_distribution<float> dist(5.0f, 20.0f);
+	r = dist(rng);
+	x = dist(rng);
+	y = dist(rng);
+	z = dist(rng);
+	pitch = rotation(rng);
+	yaw = rotation(rng);
+	roll = rotation(rng);
+	dtheta = rotation(rng);
+	dpsi = rotation(rng);
+	dphi = rotation(rng);
 
 }
 
@@ -36,7 +50,6 @@ bool CObject::Init()
 		return false;
 	}
 
-	D3DXMatrixIdentity(&m_worldMatrix);
 	D3DXMatrixTranslation(&m_worldMatrix, x, y, z);
 
 	return true;
@@ -53,27 +66,17 @@ void CObject::ShutDown()
 
 void CObject::UpdateWorld()
 {  
-	float dt = 0.001f;
+	float dt = 1.0f/750.0*3.1415f*2.0f;
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	ConstantBufferType* pMatrices;
 
-	pitch += dt;
-	yaw += dt;
-	roll += dt;
+	pitch += dtheta*dt;
+	yaw += dpsi*dt;
+	roll += dphi*dt;
 
-	if (pitch > 360);
-	{
-		pitch = 0u;
-	}
-	if (yaw > 360);
-	{
-		yaw = 0u;
-	}
-	if (roll > 360);
-	{
-		roll = 0u;
-	}
+	
+	D3DXMatrixTranslation(&m_worldMatrix, r, 0.0f, 0.0f);
 	D3DXMatrixRotationYawPitchRoll(&m_rotationMatrix, yaw, pitch, roll);
 	D3DXMatrixMultiply(&m_worldMatrix, &m_worldMatrix, &m_rotationMatrix);
 	//ROW-MAJOR(CPU) TO COL-MAJOR(GPU)
@@ -92,6 +95,6 @@ void CObject::UpdateWorld()
 	pMatrices->view = m_viewMatrix;
 	pMatrices->projection = m_projectionMatrix;
 	m_pContext->Unmap(m_pConstantBuffer, 0);
-
+	//D3DXMatrixIdentity(&m_worldMatrix);
 	return;
 }

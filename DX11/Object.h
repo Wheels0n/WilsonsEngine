@@ -48,9 +48,8 @@ private:
 	D3DXMATRIX m_rotationMatrix;
 	ID3D11Buffer* m_pConstantBuffer;
 	
-	std::mt19937 rng(std::random_device());
-	std::uniform_real_distribution<float> dist;
-	float x, y, z, yaw, pitch, roll;
+	float r, x, y, z, pitch, yaw, roll,
+		           dtheta, dpsi, dphi;
 };
 
 #endif

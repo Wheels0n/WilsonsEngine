@@ -50,7 +50,7 @@ private:
 	ID3D11PixelShader* m_pPixelShader;
 	ID3D11InputLayout* m_pInputLayout;
 	
-	CObject* Objects[3];
+	CObject* Objects[4];
 	ID3D11Buffer* m_pConstantBuffers[3];
 	D3DXMATRIX m_worldMatrix;
 	D3DXMATRIX m_viewMatrix;

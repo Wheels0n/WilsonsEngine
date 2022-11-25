@@ -116,7 +116,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 	if (m_bVsync_enabled == true)
 	{
-		swapChainDesc.BufferDesc.RefreshRate.Numerator = 75;
+		swapChainDesc.BufferDesc.RefreshRate.Numerator = 60;
 		swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
 	}
 	else
@@ -281,10 +281,10 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 
 	VertexType vertices[] = { 
-	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f),D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f)},//front-upper-left  0
-	{D3DXVECTOR3(1.0f,   1.0f, 0.0f),D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f)},//front-upper-right 1
-	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f),D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f)},//front-down-right  2
-	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f),D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f)},//front-down-left   3
+	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f),D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f)},//front-upper-left  0
+	{D3DXVECTOR3(1.0f,   1.0f, 0.0f),D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f)},//front-upper-right 1
+	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f),D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f)},//front-down-right  2
+	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f),D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f)},//front-down-left   3
 	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f),D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f)},//back-upper-left   4
 	{D3DXVECTOR3(1.0f,   1.0f, 2.0f),D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f)},//back-upper-right  5
 	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f),D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f)},//back-down-right   6
@@ -373,7 +373,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 	m_pDevice->CreateInputLayout(vertexDesc, sizeof(vertexDesc) / sizeof(vertexDesc[0]), pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), &m_pInputLayout);
 	
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		Objects[i] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
 		Objects[i]->Init();
@@ -502,13 +502,13 @@ void CD3D11::UpdateScene()
 	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
 	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
 	m_pContext->IASetInputLayout(m_pInputLayout);
+	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+	m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	//draw all objects;
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		m_pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffers[i]);
 		Objects[i]->UpdateWorld();
-		m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
-		m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 		m_pContext->DrawIndexed(m_indexCount, 0, 0);
 	}
 	return;
