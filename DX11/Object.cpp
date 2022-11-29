@@ -8,21 +8,6 @@ CObject::CObject(ID3D11Device* device, ID3D11DeviceContext* context, D3DXMATRIX*
 	m_projectionMatrix = *projectionMatrix;
 	m_viewMatrix = *viewMatrix;
 
-	std::random_device rd;
-	std::mt19937 rng(rd());
-	std::uniform_real_distribution<float> rotation(0,3.1415f*2.0f);
-	std::uniform_real_distribution<float> dist(5.0f, 20.0f);
-	r = dist(rng);
-	x = dist(rng);
-	y = dist(rng);
-	z = dist(rng);
-	pitch = rotation(rng);
-	yaw = rotation(rng);
-	roll = rotation(rng);
-	dtheta = rotation(rng);
-	dpsi = rotation(rng);
-	dphi = rotation(rng);
-
 }
 
 CObject::CObject(const CObject&)
@@ -72,7 +57,7 @@ void CObject::UpdateWorld()
 	ConstantBufferType* pMatrices;
 
 	
-	yaw += dpsi*dt;
+	yaw += dt;
 	
 	D3DXMatrixTranslation(&m_worldMatrix, r, 0.0f, 0.0f);
 	D3DXMatrixRotationYawPitchRoll(&m_rotationMatrix, yaw, pitch, roll);
