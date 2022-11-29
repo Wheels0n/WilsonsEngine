@@ -16,7 +16,7 @@
 struct VertexType
 {
 	D3DXVECTOR3 position;
-	D3DXVECTOR4 color;
+	D3DXVECTOR2 tex;
 };
 
 struct ConstantBufferType

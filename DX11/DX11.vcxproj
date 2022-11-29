@@ -38,6 +38,7 @@
     <ResourceCompile Include="DX11.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="seafloor.dds" />
     <Image Include="Wilson_The_Volleyball.ico" />
   </ItemGroup>
   <ItemGroup>

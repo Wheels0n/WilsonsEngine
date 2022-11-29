@@ -63,6 +63,9 @@
     <Image Include="Wilson_The_Volleyball.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="seafloor.dds">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PS.hlsl">

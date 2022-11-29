@@ -16,7 +16,8 @@ CD3D11::CD3D11()
 	m_pVertexShader = nullptr;
 	m_pPixelShader = nullptr;
 	m_pInputLayout = nullptr;
-
+	m_pShaderResourceView = nullptr;
+	m_pSampleState = nullptr;
 }
 
 CD3D11::~CD3D11()
@@ -281,23 +282,57 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 
 	VertexType vertices[] = { 
-	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f),D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f)},//front-upper-left  0
-	{D3DXVECTOR3(1.0f,   1.0f, 0.0f),D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f)},//front-upper-right 1
-	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f),D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f)},//front-down-right  2
-	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f),D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f)},//front-down-left   3
-	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f),D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f)},//back-upper-left   4
-	{D3DXVECTOR3(1.0f,   1.0f, 2.0f),D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f)},//back-upper-right  5
-	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f),D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f)},//back-down-right   6
-	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f),D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f)},//back-down-left    7
+	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f)},//front-upper-left  0
+	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f)},//front-upper-right 1
+	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(1.0f, 1.0f)},//front-down-right  2
+	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(1.0f, 0.0f)},//front-down-left   3
+
+	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(0.0f, 0.0f)},//back-upper-left   4
+	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(0.0f, 1.0f)},//back-upper-right  5
+	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f)},//back-down-right   6
+	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f)},//back-down-left    7
+
+	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f)},//front-upper-left  8
+	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f)},//front-down-left   9
+	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f)},//back-upper-left   10
+	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f)},//back-down-left    11
+
+	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f)},//front-upper-right 12
+	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f)},//front-down-right  13
+	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f)},//back-upper-right  14
+	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f)},//back-down-right   15
+
+	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f)},//front-upper-left  16
+	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f)},//front-upper-right 17
+	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f)},//back-upper-left   18
+	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f)},//back-upper-right  19
+
+	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f)},//front-down-right  20
+	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f)},//front-down-left   21
+	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f)},//back-down-right   22
+	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f)},//back-down-left    23
 	};
 
-	unsigned long indices[] = { 0,1,2 ,0,2,3,  //front 
-		                        1,5,6 ,1,6,2, //right
-	                            0,4,7, 0,7,3, //left
-	                            4,5,6, 4,6,7, //back
-	                            0,4,5, 0,5,1, //up
-	                            3,7,6, 3,6,2, //bottom
-	                            };
+	unsigned long indices[] = { 
+		0,1,2,
+		0,2,3,
+
+		4,5,6,
+		4,6,7,
+
+		8,10,11,
+		8,11,9,
+
+		12,14,15,
+		12,15,13,
+
+		16,18,19,
+		16,19,17,
+
+		21,23,22,
+		21,22,20
+	                          
+	};
 	
 	m_vertexCount = sizeof(vertices) / sizeof(VertexType);
 	m_indexCount = sizeof(indices) / sizeof(unsigned long);
@@ -315,9 +350,9 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	vertexDesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	vertexDesc[0].InstanceDataStepRate = 0;
 	
-	vertexDesc[1].SemanticName = "COLOR";
+	vertexDesc[1].SemanticName = "TEXTURE";
 	vertexDesc[1].SemanticIndex = 0;
-	vertexDesc[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	vertexDesc[1].Format = DXGI_FORMAT_R32G32_FLOAT;
 	vertexDesc[1].InputSlot = 0;
 	vertexDesc[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 	vertexDesc[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
@@ -381,7 +416,23 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 		m_pConstantBuffers[i] = Objects[i]->getCB();
 	}
 
+	hr = D3DX11CreateShaderResourceViewFromFileW(
+		m_pDevice, L"seafloor.dds", nullptr, nullptr, &m_pShaderResourceView, nullptr);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+	D3D11_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	
+	hr = m_pDevice->CreateSamplerState(&samplerDesc, &m_pSampleState);
+	if (FAILED(hr))
+	{
+		return false;
+	}
 
 	pPsBlob->Release();
 	pPsBlob = nullptr;
@@ -476,6 +527,18 @@ void CD3D11::Shutdown()
 		m_pInputLayout = nullptr;
 	}
 
+	if (m_pShaderResourceView != nullptr)
+	{
+		m_pShaderResourceView->Release();
+		m_pShaderResourceView = nullptr;
+	}
+
+	if (m_pSampleState != nullptr)
+	{
+		m_pSampleState->Release();
+		m_pSampleState = nullptr;
+	}
+
 	return;
 }
 
@@ -501,6 +564,8 @@ void CD3D11::UpdateScene()
 	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
 	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
+	m_pContext->PSGetSamplers(0, 1, &m_pSampleState);
+	m_pContext->PSSetShaderResources(0, 1, &m_pShaderResourceView);
 	m_pContext->IASetInputLayout(m_pInputLayout);
 	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
 	m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);

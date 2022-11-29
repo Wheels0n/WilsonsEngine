@@ -9,6 +9,7 @@
 #include <dxgi.h>
 #include <d3dcommon.h>
 #include <d3d11.h>
+#include <D3DX11tex.h>
 #include <d3dx10math.h>
 #include <Windows.h>
 #include "Object.h"
@@ -42,6 +43,8 @@ private:
 	ID3D11DepthStencilState* m_pDepthStencilState;
 	ID3D11DepthStencilView* m_pDepthStencilView;
 	ID3D11RasterizerState* m_pRasterstate;
+	ID3D11ShaderResourceView* m_pShaderResourceView;
+	ID3D11SamplerState* m_pSampleState;
 
 	ID3D11Buffer* m_pVertexBuffer, * m_pIndexBuffer;
 	int m_vertexCount, m_indexCount;
