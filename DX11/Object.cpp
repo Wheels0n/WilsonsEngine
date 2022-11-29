@@ -50,7 +50,7 @@ bool CObject::Init()
 		return false;
 	}
 
-	D3DXMatrixTranslation(&m_worldMatrix, x, y, z);
+	D3DXMatrixIdentity(&m_worldMatrix);
 
 	return true;
 }
@@ -66,15 +66,13 @@ void CObject::ShutDown()
 
 void CObject::UpdateWorld()
 {  
-	float dt = 1.0f/750.0*3.1415f*2.0f;
+	float dt = 1.0f/750.0*3.1415f;
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	ConstantBufferType* pMatrices;
 
-	pitch += dtheta*dt;
+	
 	yaw += dpsi*dt;
-	roll += dphi*dt;
-
 	
 	D3DXMatrixTranslation(&m_worldMatrix, r, 0.0f, 0.0f);
 	D3DXMatrixRotationYawPitchRoll(&m_rotationMatrix, yaw, pitch, roll);

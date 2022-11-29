@@ -48,8 +48,9 @@ private:
 	D3DXMATRIX m_rotationMatrix;
 	ID3D11Buffer* m_pConstantBuffer;
 	
-	float r, x, y, z, pitch, yaw, roll,
-		           dtheta, dpsi, dphi;
+	float r, x, y, z, 
+		pitch = 0, yaw = 0, roll = 0,
+	    dtheta, dpsi, dphi;
 };
 
 #endif
