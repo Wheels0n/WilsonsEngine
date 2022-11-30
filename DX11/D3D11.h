@@ -54,7 +54,7 @@ private:
 	ID3D11InputLayout* m_pInputLayout;
 	
 	CObject* Objects[4];
-	ID3D11Buffer* m_pConstantBuffers[3];
+	ID3D11Buffer* m_pConstantBuffers[3], *m_LightBuffer;
 	D3DXMATRIX m_worldMatrix;
 	D3DXMATRIX m_viewMatrix;
 	D3DXMATRIX m_projectionMatrix;

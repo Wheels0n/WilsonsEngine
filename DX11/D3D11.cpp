@@ -18,6 +18,7 @@ CD3D11::CD3D11()
 	m_pInputLayout = nullptr;
 	m_pShaderResourceView = nullptr;
 	m_pSampleState = nullptr;
+	m_LightBuffer = nullptr;
 }
 
 CD3D11::~CD3D11()
@@ -117,7 +118,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 	if (m_bVsync_enabled == true)
 	{
-		swapChainDesc.BufferDesc.RefreshRate.Numerator = 60;
+		swapChainDesc.BufferDesc.RefreshRate.Numerator = 75;
 		swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
 	}
 	else
@@ -276,41 +277,41 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 	//Set vertexData, indexData
 	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
-	D3D11_INPUT_ELEMENT_DESC vertexDesc[2];
+	D3D11_INPUT_ELEMENT_DESC vertexDesc[3];
 	D3D11_SUBRESOURCE_DATA vertexData, indexData;
 	ID3DBlob* pVsBlob, * pPsBlob, * pErrorBlob;
 
 
 	VertexType vertices[] = { 
-	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f)},//front-upper-left  0
-	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f)},//front-upper-right 1
-	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(1.0f, 1.0f)},//front-down-right  2
-	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(1.0f, 0.0f)},//front-down-left   3
+	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//front-upper-left  0
+	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//front-upper-right 1
+	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//front-down-right  2
+	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//front-down-left   3
 
-	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(0.0f, 0.0f)},//back-upper-left   4
-	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(0.0f, 1.0f)},//back-upper-right  5
-	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f)},//back-down-right   6
-	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f)},//back-down-left    7
+	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//back-upper-left   4
+	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//back-upper-right  5
+	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//back-down-right   6
+	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//back-down-left    7
 
-	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f)},//front-upper-left  8
-	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f)},//front-down-left   9
-	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f)},//back-upper-left   10
-	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f)},//back-down-left    11
+	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//front-upper-left  8
+	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//front-down-left   9
+	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//back-upper-left   10
+	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//back-down-left    11
 
-	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f)},//front-upper-right 12
-	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f)},//front-down-right  13
-	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f)},//back-upper-right  14
-	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f)},//back-down-right   15
+	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//front-upper-right 12
+	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//front-down-right  13
+	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//back-upper-right  14
+	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//back-down-right   15
 
-	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f)},//front-upper-left  16
-	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f)},//front-upper-right 17
-	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f)},//back-upper-left   18
-	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f)},//back-upper-right  19
+	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//front-upper-left  16
+	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//front-upper-right 17
+	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//back-upper-left   18
+	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//back-upper-right  19
 
-	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f)},//front-down-right  20
-	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f)},//front-down-left   21
-	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f)},//back-down-right   22
-	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f)},//back-down-left    23
+	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//front-down-right  20
+	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//front-down-left   21
+	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//back-down-right   22
+	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//back-down-left    23
 	};
 
 	unsigned long indices[] = { 
@@ -357,6 +358,14 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	vertexDesc[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 	vertexDesc[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	vertexDesc[1].InstanceDataStepRate = 0;
+
+	vertexDesc[2].SemanticName = "NORMAL";
+	vertexDesc[2].SemanticIndex = 0;
+	vertexDesc[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	vertexDesc[2].InputSlot = 0;
+	vertexDesc[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+	vertexDesc[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	vertexDesc[2].InstanceDataStepRate = 0;
 
 	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCount;
@@ -414,6 +423,15 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	Objects[0]->UpdateWorld();
 	m_pConstantBuffers[0] = Objects[0]->getCB();
 	
+	D3D11_BUFFER_DESC lightCbd;
+	lightCbd.Usage = D3D11_USAGE_DYNAMIC;
+	lightCbd.ByteWidth = sizeof(Light);
+	lightCbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	lightCbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	lightCbd.MiscFlags = 0;
+	lightCbd.StructureByteStride = 0;
+	m_pDevice->CreateBuffer(&lightCbd, nullptr, &m_LightBuffer);
+
 
 	hr = D3DX11CreateShaderResourceViewFromFileW(
 		m_pDevice, L"seafloor.dds", nullptr, nullptr, &m_pShaderResourceView, nullptr);
@@ -549,7 +567,7 @@ void CD3D11::UpdateScene()
 	//clear views
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	ConstantBufferType* pMatrices;
+	Light* pLight;
 	unsigned int stride;
 	unsigned int offset;
 	float color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -560,6 +578,12 @@ void CD3D11::UpdateScene()
 	stride = sizeof(VertexType);
 	offset = 0;
 
+	m_pContext->Map(m_LightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	pLight = reinterpret_cast<Light*>(mappedResource.pData);
+	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 0.5f);
+	pLight->direction = D3DXVECTOR3(0.0f,0.0f,-1.0f);
+	m_pContext->Unmap(m_LightBuffer, 0);
+
 	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
 	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
@@ -569,8 +593,8 @@ void CD3D11::UpdateScene()
 	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
 	m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	//draw all objects;
-	
 	m_pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffers[0]);
+	m_pContext->PSSetConstantBuffers(0, 1, &m_LightBuffer);
 	Objects[0]->UpdateWorld();
 	m_pContext->DrawIndexed(m_indexCount, 0, 0);
 	

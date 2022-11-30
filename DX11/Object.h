@@ -11,12 +11,18 @@
 #include <d3dx10math.h>
 #include<random>
 
-
-
 struct VertexType
 {
 	D3DXVECTOR3 position;
 	D3DXVECTOR2 tex;
+	D3DXVECTOR3 norm;
+};
+
+struct Light
+{
+	D3DXVECTOR4 diffuse;
+	D3DXVECTOR3 direction;
+	float padding;
 };
 
 struct ConstantBufferType
