@@ -283,15 +283,15 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 
 	VertexType vertices[] = { 
-	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//front-upper-left  0
-	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//front-upper-right 1
-	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//front-down-right  2
-	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//front-down-left   3
+	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-upper-left  0
+	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-upper-right 1
+	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-down-right  2
+	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-down-left   3
 
-	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//back-upper-left   4
-	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//back-upper-right  5
-	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//back-down-right   6
-	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//back-down-left    7
+	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-upper-left   4
+	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-upper-right  5
+	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-down-right   6
+	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-down-left    7
 
 	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//front-upper-left  8
 	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//front-down-left   9
@@ -581,7 +581,7 @@ void CD3D11::UpdateScene()
 	m_pContext->Map(m_LightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	pLight = reinterpret_cast<Light*>(mappedResource.pData);
 	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 0.5f);
-	pLight->direction = D3DXVECTOR3(0.0f,0.0f,-1.0f);
+	pLight->direction = D3DXVECTOR3(1.0f,0.0f, 0.0f);
 	m_pContext->Unmap(m_LightBuffer, 0);
 
 	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

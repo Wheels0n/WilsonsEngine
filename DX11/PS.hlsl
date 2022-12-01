@@ -17,14 +17,15 @@ cbuffer Light
 float4 main(PixelInputType input) : SV_TARGET
 {
 	float4 outputColor, lightColor;
-    float  lightAmount;
+    float  lightIntensity;
     
 	outputColor = shaderTexture.Sample(SampleType, input.tex);
-	lightAmount = dot(direction, input.normal);
 	lightColor  = diffuse;
-	lightColor *= lightAmount;
-	outputColor = mul(outputColor, lightColor);
-	
+
+	lightIntensity = dot(input.normal, -direction);
+	lightColor *= lightIntensity;
+
+	outputColor = outputColor* lightColor;
 
 	return outputColor;
 }

@@ -51,7 +51,7 @@ void CObject::ShutDown()
 
 void CObject::UpdateWorld()
 {  
-	float dt = 1.0f/750.0*3.1415f;
+	float dt = 1.0f/75.0*3.1415f;
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	ConstantBufferType* pMatrices;
@@ -59,7 +59,7 @@ void CObject::UpdateWorld()
 	
 	yaw += dt;
 	
-	D3DXMatrixTranslation(&m_worldMatrix, r, 0.0f, 0.0f);
+	D3DXMatrixTranslation(&m_worldMatrix, 0.0, 0.0f, 0.0f);
 	D3DXMatrixRotationYawPitchRoll(&m_rotationMatrix, yaw, pitch, roll);
 	D3DXMatrixMultiply(&m_worldMatrix, &m_worldMatrix, &m_rotationMatrix);
 	//ROW-MAJOR(CPU) TO COL-MAJOR(GPU)
