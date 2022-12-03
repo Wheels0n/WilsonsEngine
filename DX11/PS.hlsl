@@ -23,7 +23,11 @@ float4 main(PixelInputType input) : SV_TARGET
 	lightColor  = diffuse;
 
 	lightIntensity = dot(input.normal, -direction);
-	lightColor *= lightIntensity;
+	if (lightIntensity > 0.0f)
+	{
+		lightColor *= lightIntensity;
+	}
+
 
 	outputColor = outputColor* lightColor;
 

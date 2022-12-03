@@ -207,7 +207,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 	depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 	depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
 	depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 	depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
@@ -219,12 +219,12 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 	m_pContext->OMSetDepthStencilState(m_pDepthStencilState, 1);
 
-	ZeroMemory(&depthStencilDesc, sizeof(depthStencilViewDesc));
+	ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
 
 	depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Texture2D.MipSlice = 0;
-	depthStencilViewDesc.Flags = 0;
+
 
 	hr = m_pDevice->CreateDepthStencilView(m_pDepthStencilBuffer, &depthStencilViewDesc, &m_pDepthStencilView);
 	if (FAILED(hr))
@@ -235,7 +235,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
 
 	rasterDesc.AntialiasedLineEnable = false;
-	rasterDesc.CullMode =D3D11_CULL_NONE;
+	rasterDesc.CullMode =D3D11_CULL_BACK;
 	rasterDesc.DepthBias = 0;
 	rasterDesc.DepthBiasClamp = 0.0f;
 	rasterDesc.DepthClipEnable = true;
@@ -265,12 +265,12 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	m_pContext->RSSetViewports(1, &viewport);
 
 	//Set projectionMatrix, viewMatrix;
-	fFOV = static_cast<float>(D3DX_PI / 4.0f);
-	fScreenAspect = static_cast<float>(screenWidth) / static_cast<float>(screenHeight);
+	fFOV = static_cast<float>(D3DX_PI) / 4.0f;
+	fScreenAspect = screenWidth / static_cast<float>(screenHeight);
 	D3DXMatrixPerspectiveFovLH(&m_projectionMatrix, fFOV, fScreenAspect, fScreenNear, fScreenDepth);
 	
-	D3DXVECTOR3 m_vPos = { 0.0f,0.0f,-10.0f };  //Translation
-	D3DXVECTOR3 m_vLookat = { 0.0f, 0.0f, 1.0f };//camera look-at target
+	D3DXVECTOR3 m_vPos = { 0.0f,-3.0f,-6.0f };  //Translation
+	D3DXVECTOR3 m_vLookat = { 0.0f, 1.0f, 0.0f };//camera look-at target
 	D3DXVECTOR3 m_vUp = { 0.0f, 1.0f, 0.0f };   //which axis is upward
 	D3DXMatrixLookAtLH(&m_viewMatrix, &m_vPos, &m_vLookat, &m_vUp);
 
@@ -283,46 +283,46 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 
 	VertexType vertices[] = { 
-	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-upper-left  0
-	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-upper-right 1
-	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-down-right  2
-	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-down-left   3
+	{D3DXVECTOR3(-1.0f,  1.0f, -1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-upper-left  0
+	{D3DXVECTOR3(1.0f,   1.0f, -1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-upper-right 1  WORK
+	{D3DXVECTOR3(1.0f,  -1.0f, -1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-down-right  2
+	{D3DXVECTOR3(-1.0f, -1.0f, -1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-down-left   3
 
-	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-upper-left   4
-	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-upper-right  5
-	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-down-right   6
-	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-down-left    7
+	{D3DXVECTOR3(-1.0f,  1.0f, 1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-upper-left   4
+	{D3DXVECTOR3(1.0f,   1.0f, 1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-upper-right  5
+	{D3DXVECTOR3(1.0f,  -1.0f, 1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-down-right   6
+	{D3DXVECTOR3(-1.0f, -1.0f, 1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-down-left    7  WORK
 
-	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//front-upper-left  8
-	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//front-down-left   9
-	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//back-upper-left   10
-	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//back-down-left    11
+	{D3DXVECTOR3(-1.0f,  1.0f, -1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//front-upper-left  8
+	{D3DXVECTOR3(-1.0f, -1.0f, -1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//front-down-left   9  WORK
+	{D3DXVECTOR3(-1.0f,  1.0f, 1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//back-upper-left   10
+	{D3DXVECTOR3(-1.0f, -1.0f, 1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//back-down-left    11
 
-	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//front-upper-right 12
-	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//front-down-right  13
-	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//back-upper-right  14
-	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//back-down-right   15
+	{D3DXVECTOR3(1.0f,   1.0f, -1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//front-upper-right 12
+	{D3DXVECTOR3(1.0f,  -1.0f, -1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//front-down-right  13 WORK
+	{D3DXVECTOR3(1.0f,   1.0f, 1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//back-upper-right  14
+	{D3DXVECTOR3(1.0f,  -1.0f, 1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//back-down-right   15
 
-	{D3DXVECTOR3(-1.0f,  1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//front-upper-left  16
-	{D3DXVECTOR3(1.0f,   1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//front-upper-right 17
-	{D3DXVECTOR3(-1.0f,  1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//back-upper-left   18
-	{D3DXVECTOR3(1.0f,   1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//back-upper-right  19
+	{D3DXVECTOR3(-1.0f,  1.0f, -1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//front-upper-left  16
+	{D3DXVECTOR3(1.0f,   1.0f, -1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//front-upper-right 17
+	{D3DXVECTOR3(-1.0f,  1.0f, 1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//back-upper-left   18
+	{D3DXVECTOR3(1.0f,   1.0f, 1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//back-upper-right  19
 
-	{D3DXVECTOR3(1.0f,  -1.0f, 0.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//front-down-right  20
-	{D3DXVECTOR3(-1.0f, -1.0f, 0.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//front-down-left   21
-	{D3DXVECTOR3(1.0f,  -1.0f, 2.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//back-down-right   22
-	{D3DXVECTOR3(-1.0f, -1.0f, 2.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//back-down-left    23
+	{D3DXVECTOR3(-1.0f,-1.0f, -1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//front-down-left   20
+	{D3DXVECTOR3(1.0f, -1.0f, -1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//front-down-right  21
+	{D3DXVECTOR3(1.0f,  -1.0f, 1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//back-down-right   22
+	{D3DXVECTOR3(-1.0f, -1.0f, 1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//back-down-left    23
 	};
 
 	unsigned long indices[] = { 
 		0,1,2,
 		0,2,3,
 
-		4,5,6,
-		4,6,7,
+		5,4,7,
+		5,7,6,
 
-		8,10,11,
-		8,11,9,
+		10,8,9,
+		10,9,11,
 
 		12,14,15,
 		12,15,13,
@@ -330,8 +330,8 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 		16,18,19,
 		16,19,17,
 
-		21,23,22,
-		21,22,20
+		20,21,22,
+		20,22,23
 	                          
 	};
 	
@@ -420,7 +420,6 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	
 	Objects[0] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
 	Objects[0]->Init();
-	Objects[0]->UpdateWorld();
 	m_pConstantBuffers[0] = Objects[0]->getCB();
 	
 	D3D11_BUFFER_DESC lightCbd;
@@ -441,10 +440,11 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	}
 	D3D11_SAMPLER_DESC samplerDesc = {};
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+
+
 	hr = m_pDevice->CreateSamplerState(&samplerDesc, &m_pSampleState);
 	if (FAILED(hr))
 	{
@@ -580,8 +580,9 @@ void CD3D11::UpdateScene()
 
 	m_pContext->Map(m_LightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	pLight = reinterpret_cast<Light*>(mappedResource.pData);
-	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 0.5f);
-	pLight->direction = D3DXVECTOR3(1.0f,0.0f, 0.0f);
+	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
+	pLight->direction = D3DXVECTOR3(0.0f,0.0f, 1.0f);
+	pLight->padding = 0.0f;
 	m_pContext->Unmap(m_LightBuffer, 0);
 
 	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
