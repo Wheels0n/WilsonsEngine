@@ -19,6 +19,10 @@ CD3D11::CD3D11()
 	m_pShaderResourceView = nullptr;
 	m_pSampleState = nullptr;
 	m_LightBuffer = nullptr;
+
+	vertices = nullptr;
+	m_vertexCount = 0;
+	m_indexCount = 0;
 }
 
 CD3D11::~CD3D11()
@@ -30,6 +34,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 {
 
 	HRESULT hr;
+	bool result;
 	IDXGIFactory* pFactory;
 	IDXGIAdapter* pAdapter;
 	IDXGIOutput* pAdapterOutput;
@@ -282,37 +287,11 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	ID3DBlob* pVsBlob, * pPsBlob, * pErrorBlob;
 
 
-	VertexType vertices[] = { 
-	{D3DXVECTOR3(-1.0f,  1.0f, -1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-upper-left  0
-	{D3DXVECTOR3(1.0f,   1.0f, -1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-upper-right 1  WORK
-	{D3DXVECTOR3(1.0f,  -1.0f, -1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-down-right  2
-	{D3DXVECTOR3(-1.0f, -1.0f, -1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, 1.0f)},//front-down-left   3
-
-	{D3DXVECTOR3(-1.0f,  1.0f, 1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-upper-left   4
-	{D3DXVECTOR3(1.0f,   1.0f, 1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-upper-right  5
-	{D3DXVECTOR3(1.0f,  -1.0f, 1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-down-right   6
-	{D3DXVECTOR3(-1.0f, -1.0f, 1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 0.0f, -1.0f)},//back-down-left    7  WORK
-
-	{D3DXVECTOR3(-1.0f,  1.0f, -1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//front-upper-left  8
-	{D3DXVECTOR3(-1.0f, -1.0f, -1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//front-down-left   9  WORK
-	{D3DXVECTOR3(-1.0f,  1.0f, 1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//back-upper-left   10
-	{D3DXVECTOR3(-1.0f, -1.0f, 1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(-1.0f, 0.0f, 0.0f)},//back-down-left    11
-
-	{D3DXVECTOR3(1.0f,   1.0f, -1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//front-upper-right 12
-	{D3DXVECTOR3(1.0f,  -1.0f, -1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//front-down-right  13 WORK
-	{D3DXVECTOR3(1.0f,   1.0f, 1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//back-upper-right  14
-	{D3DXVECTOR3(1.0f,  -1.0f, 1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(1.0f, 0.0f, 0.0f)},//back-down-right   15
-
-	{D3DXVECTOR3(-1.0f,  1.0f, -1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//front-upper-left  16
-	{D3DXVECTOR3(1.0f,   1.0f, -1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//front-upper-right 17
-	{D3DXVECTOR3(-1.0f,  1.0f, 1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//back-upper-left   18
-	{D3DXVECTOR3(1.0f,   1.0f, 1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, 1.0f, 0.0f)},//back-upper-right  19
-
-	{D3DXVECTOR3(-1.0f,-1.0f, -1.0f), D3DXVECTOR2(0.0f, 0.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//front-down-left   20
-	{D3DXVECTOR3(1.0f, -1.0f, -1.0f), D3DXVECTOR2(0.0f, 1.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//front-down-right  21
-	{D3DXVECTOR3(1.0f,  -1.0f, 1.0f), D3DXVECTOR2(1.0f, 1.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//back-down-right   22
-	{D3DXVECTOR3(-1.0f, -1.0f, 1.0f), D3DXVECTOR2(1.0f, 0.0f), D3DXVECTOR3(0.0f, -1.0f, 0.0f)},//back-down-left    23
-	};
+	result = LoadFile(L"./teapot/teapot.txt");
+	if (result == false)
+	{
+		return false;
+	}
 
 	unsigned long indices[] = { 
 		0,1,2,
@@ -556,6 +535,12 @@ void CD3D11::Shutdown()
 		m_pSampleState = nullptr;
 	}
 
+	if (vertices != nullptr)
+	{
+		delete[] vertices;
+		vertices = nullptr;
+	}
+
 	return;
 }
 
@@ -612,4 +597,64 @@ void CD3D11::DrawScene()
 	{
 		m_pSwapChain->Present(0, 0);
 	}
+}
+
+bool CD3D11::LoadFile(LPCWSTR fileName)
+{   
+	std::ifstream fin;
+	fin.open(fileName);
+
+	if (fin.fail())
+	{
+		return false;
+	}
+
+
+	std::string line;
+	while (!fin.eof())
+	{   
+
+		std::getline(fin, line, ' ');
+		if (line.length()==1&&line[0] == 'v' )
+		{
+			++m_vertexCount;
+		}
+		std::getline(fin,line);
+	}
+	fin.close();
+	vertices = new VertexType[m_vertexCount];
+	ZeroMemory(vertices, sizeof(VertexType) * m_vertexCount);
+
+	fin.open(fileName);
+	if (fin.fail())
+	{
+		return false;
+	}
+
+	int vCnt = 0, vtCnt = 0, vnCnt = 0;
+	while (!fin.eof())
+	{
+		fin >> line;
+
+		if (line.compare("v")==0)
+		{
+			fin >> vertices[vCnt].position.x >> vertices[vCnt].position.y >> vertices[vCnt].position.z;
+			++vCnt;
+		}
+
+		else if (line.compare("vt") == 0)
+		{   
+			fin >> vertices[vtCnt].tex.x >> vertices[vtCnt].tex.y;
+			++vtCnt;
+		}
+
+		else if (line.compare("vn") == 0)
+		{  
+			fin >> vertices[vnCnt].norm.x >> vertices[vnCnt].norm.y >> vertices[vnCnt].norm.z;
+			++vnCnt;
+		}
+	}
+
+	fin.close();
+	return true;
 }
