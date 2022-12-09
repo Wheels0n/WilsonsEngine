@@ -56,14 +56,18 @@ private:
 	ID3D11SamplerState* m_pSampleState;
 
 	ID3D11Buffer* m_pVertexBuffer, * m_pIndexBuffer;
+	D3DXVECTOR3* verticeCoordinates, *normalVectors;
+	D3DXVECTOR2* texCoordinates;
 	VertexType* vertices;
-	int m_vertexCount, m_indexCount;
+	unsigned long* indices;
+	int m_vertexCount,m_vertexCoordCount, m_texCoordCount, m_normalVectorCount, m_indexCount;
+
 
 
 	ID3D11VertexShader* m_pVertexShader;
 	ID3D11PixelShader* m_pPixelShader;
 	ID3D11InputLayout* m_pInputLayout;
-	
+
 	CObject* Objects[4];
 	ID3D11Buffer* m_pConstantBuffers[3], *m_LightBuffer;
 	D3DXMATRIX m_worldMatrix;

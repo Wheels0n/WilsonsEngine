@@ -20,8 +20,15 @@ CD3D11::CD3D11()
 	m_pSampleState = nullptr;
 	m_LightBuffer = nullptr;
 
+	verticeCoordinates = nullptr;
+	texCoordinates = nullptr;
+	normalVectors = nullptr;
 	vertices = nullptr;
+
 	m_vertexCount = 0;
+	m_vertexCoordCount = 0;
+	m_texCoordCount = 0;
+	m_normalVectorCount = 0;
 	m_indexCount = 0;
 }
 
@@ -287,35 +294,11 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	ID3DBlob* pVsBlob, * pPsBlob, * pErrorBlob;
 
 
-	result = LoadFile(L"./teapot/teapot.txt");
+	result = LoadFile(L"./teapot/teapot.obj");
 	if (result == false)
 	{
 		return false;
 	}
-
-	unsigned long indices[] = { 
-		0,1,2,
-		0,2,3,
-
-		5,4,7,
-		5,7,6,
-
-		10,8,9,
-		10,9,11,
-
-		12,14,15,
-		12,15,13,
-
-		16,18,19,
-		16,19,17,
-
-		20,21,22,
-		20,22,23
-	                          
-	};
-	
-	m_vertexCount = sizeof(vertices) / sizeof(VertexType);
-	m_indexCount = sizeof(indices) / sizeof(unsigned long);
 
 
 	vertexData.pSysMem = vertices;
@@ -368,7 +351,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 
 	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_indexCount;
+	indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_vertexCount;
 	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	indexBufferDesc.CPUAccessFlags = 0;
 	indexBufferDesc.MiscFlags = 0;
@@ -535,6 +518,24 @@ void CD3D11::Shutdown()
 		m_pSampleState = nullptr;
 	}
 
+	if (verticeCoordinates != nullptr)
+	{
+		delete[] verticeCoordinates;
+		verticeCoordinates = nullptr;
+	}
+
+	if (texCoordinates != nullptr)
+	{
+		delete[] texCoordinates;
+		texCoordinates = nullptr;
+	}
+
+	if (normalVectors != nullptr)
+	{
+		delete[] normalVectors;
+		normalVectors = nullptr;
+	}
+
 	if (vertices != nullptr)
 	{
 		delete[] vertices;
@@ -608,21 +609,54 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 	{
 		return false;
 	}
-
-
+	char ch;
 	std::string line;
 	while (!fin.eof())
 	{   
-
 		std::getline(fin, line, ' ');
-		if (line.length()==1&&line[0] == 'v' )
+		if (line.compare("v")==0)
 		{
+			++m_vertexCoordCount;
+		}
+		else if (line.compare("vt") == 0)
+		{
+			++m_texCoordCount;
+		}
+
+		else if (line.compare("vn") == 0)
+		{
+			++m_normalVectorCount;
+		}
+
+		else if (line.compare("f") == 0)
+		{   
+			fin.get(ch);
 			++m_vertexCount;
+			while (ch!='\n')
+			{   
+				if (ch == ' ')
+				{
+					++m_vertexCount;
+				}
+				fin.get(ch);
+			
+			}
+			continue;
 		}
 		std::getline(fin,line);
 	}
 	fin.close();
+	ch = ' ';
+
+	verticeCoordinates = new D3DXVECTOR3[m_vertexCoordCount];
+	texCoordinates = new D3DXVECTOR2[m_texCoordCount];
+	normalVectors = new D3DXVECTOR3[m_normalVectorCount];
 	vertices = new VertexType[m_vertexCount];
+	indices = new unsigned long[m_vertexCount];
+
+	ZeroMemory(verticeCoordinates, sizeof(D3DXVECTOR3) * m_vertexCoordCount);
+	ZeroMemory(texCoordinates, sizeof(D3DXVECTOR2) * m_texCoordCount);
+	ZeroMemory(normalVectors, sizeof(D3DXVECTOR3) * m_normalVectorCount);
 	ZeroMemory(vertices, sizeof(VertexType) * m_vertexCount);
 
 	fin.open(fileName);
@@ -631,27 +665,50 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 		return false;
 	}
 
-	int vCnt = 0, vtCnt = 0, vnCnt = 0;
+	int cnt=0, vCnt = 0, vtCnt = 0, vnCnt = 0;
 	while (!fin.eof())
 	{
 		fin >> line;
 
 		if (line.compare("v")==0)
 		{
-			fin >> vertices[vCnt].position.x >> vertices[vCnt].position.y >> vertices[vCnt].position.z;
+			fin >> verticeCoordinates[vCnt].x >> verticeCoordinates[vCnt].y >> verticeCoordinates[vCnt].z;
 			++vCnt;
 		}
 
 		else if (line.compare("vt") == 0)
 		{   
-			fin >> vertices[vtCnt].tex.x >> vertices[vtCnt].tex.y;
+			fin >> texCoordinates[vtCnt].x >> texCoordinates[vtCnt].y;
 			++vtCnt;
 		}
 
 		else if (line.compare("vn") == 0)
 		{  
-			fin >> vertices[vnCnt].norm.x >> vertices[vnCnt].norm.y >> vertices[vnCnt].norm.z;
+			fin >> normalVectors[vnCnt].x >> normalVectors[vnCnt].y >> normalVectors[vnCnt].z;
 			++vnCnt;
+		}
+
+		else if (line.compare("f")==0)
+		{   
+			int v, vt, vn;
+			
+			while (!fin.fail())
+			{   
+				fin >> v  >> ch;
+				fin >> vt >> ch;
+				fin >> vn;
+				if (!fin.fail())
+				{
+					vertices[cnt].position = verticeCoordinates[v];
+					vertices[cnt].tex = texCoordinates[vt];
+					vertices[cnt].norm = normalVectors[vn];
+					
+					indices[cnt] = cnt;
+					++cnt;
+				}
+				
+			}
+			fin.clear();
 		}
 	}
 
