@@ -665,50 +665,57 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 		return false;
 	}
 
-	int cnt=0, vCnt = 0, vtCnt = 0, vnCnt = 0;
+	char type;
+	int vCnt = 0, vtCnt = 0, vnCnt = 0;
 	while (!fin.eof())
 	{
-		fin >> line;
+		fin.get(type);
 
-		if (line.compare("v")==0)
-		{
-			fin >> verticeCoordinates[vCnt].x >> verticeCoordinates[vCnt].y >> verticeCoordinates[vCnt].z;
-			++vCnt;
-		}
-
-		else if (line.compare("vt") == 0)
-		{   
-			fin >> texCoordinates[vtCnt].x >> texCoordinates[vtCnt].y;
-			++vtCnt;
-		}
-
-		else if (line.compare("vn") == 0)
+		if (type=='v')
 		{  
-			fin >> normalVectors[vnCnt].x >> normalVectors[vnCnt].y >> normalVectors[vnCnt].z;
-			++vnCnt;
+			fin.get(type);
+			if (type == ' ')
+			{
+				fin >> verticeCoordinates[vCnt].x >> verticeCoordinates[vCnt].y >> verticeCoordinates[vCnt].z;
+				++vCnt;
+			}
+			else if (type == 't')
+			{
+				fin >> texCoordinates[vtCnt].x >> texCoordinates[vtCnt].y;
+				++vtCnt;
+			}
+			else if (type == 'n')
+			{
+				fin >> normalVectors[vnCnt].x >> normalVectors[vnCnt].y >> normalVectors[vnCnt].z;
+				++vnCnt;
+			}
 		}
 
-		else if (line.compare("f")==0)
+		else if (type ==  'f')
 		{   
-			int v, vt, vn;
-			
-			while (!fin.fail())
-			{   
-				fin >> v  >> ch;
-				fin >> vt >> ch;
-				fin >> vn;
-				if (!fin.fail())
+			fin.get(type);
+			if (type == ' ')
+			{
+				int v, vt, vn;
+
+				while (!fin.fail())
 				{
-					vertices[cnt].position = verticeCoordinates[v];
-					vertices[cnt].tex = texCoordinates[vt];
-					vertices[cnt].norm = normalVectors[vn];
-					
-					indices[cnt] = cnt;
-					++cnt;
+					fin >> v >> ch;
+					fin >> vt >> ch;
+					fin >> vn;
+					if (!fin.fail())
+					{
+						vertices[m_indexCount].position = verticeCoordinates[v];
+						vertices[m_indexCount].tex = texCoordinates[vt];
+						vertices[m_indexCount].norm = normalVectors[vn];
+
+						indices[m_indexCount] = m_vertexCount - m_indexCount;
+						++m_indexCount;
+					}
+
 				}
-				
+				fin.clear();
 			}
-			fin.clear();
 		}
 	}
 
