@@ -19,10 +19,12 @@ public:
 	bool Init(int, int, HWND);
 	void Shutdown();
 	bool Frame();
-	void RotateUP();
-	void RotateDown();
-	void RotateLeft();
-	void RotateRight();
+	void TranslateRight();
+	void TranslateLeft();
+	void TranslateDown();
+	void TranslateUp();
+	void ZoomIn();
+	void ZoomOut();
 	
 private:
 	bool Render();

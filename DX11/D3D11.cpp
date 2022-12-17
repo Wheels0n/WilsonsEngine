@@ -281,7 +281,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	fScreenAspect = screenWidth / static_cast<float>(screenHeight);
 	D3DXMatrixPerspectiveFovLH(&m_projectionMatrix, fFOV, fScreenAspect, fScreenNear, fScreenDepth);
 	
-	D3DXVECTOR3 m_vPos = { 0.0f,-3.0f,-6.0f };  //Translation
+	D3DXVECTOR3 m_vPos = { 0.0f,10.0f,-120.0f };  //Translation
 	D3DXVECTOR3 m_vLookat = { 0.0f, 1.0f, 0.0f };//camera look-at target
 	D3DXVECTOR3 m_vUp = { 0.0f, 1.0f, 0.0f };   //which axis is upward
 	D3DXMatrixLookAtLH(&m_viewMatrix, &m_vPos, &m_vLookat, &m_vUp);
@@ -582,6 +582,10 @@ void CD3D11::UpdateScene()
 	//draw all objects;
 	m_pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffers[0]);
 	m_pContext->PSSetConstantBuffers(0, 1, &m_LightBuffer);
+	
+	Objects[0]->x = dx;
+	Objects[0]->y = dy;
+	Objects[0]->z = dz;
 	Objects[0]->UpdateWorld();
 	m_pContext->DrawIndexed(m_indexCount, 0, 0);
 	
@@ -677,16 +681,19 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 			if (type == ' ')
 			{
 				fin >> verticeCoordinates[vCnt].x >> verticeCoordinates[vCnt].y >> verticeCoordinates[vCnt].z;
+				verticeCoordinates[vCnt].z *= -1;
 				++vCnt;
 			}
 			else if (type == 't')
 			{
 				fin >> texCoordinates[vtCnt].x >> texCoordinates[vtCnt].y;
+				texCoordinates[vtCnt].y = 1 - texCoordinates[vtCnt].y;
 				++vtCnt;
 			}
 			else if (type == 'n')
 			{
 				fin >> normalVectors[vnCnt].x >> normalVectors[vnCnt].y >> normalVectors[vnCnt].z;
+				normalVectors[vnCnt].z *= -1;
 				++vnCnt;
 			}
 		}
@@ -705,11 +712,11 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 					fin >> vn;
 					if (!fin.fail())
 					{
-						vertices[m_indexCount].position = verticeCoordinates[v];
-						vertices[m_indexCount].tex = texCoordinates[vt];
-						vertices[m_indexCount].norm = normalVectors[vn];
+						vertices[m_indexCount].position = verticeCoordinates[v-1];
+						vertices[m_indexCount].tex = texCoordinates[vt-1];
+						vertices[m_indexCount].norm = normalVectors[vn-1];
 
-						indices[m_indexCount] = m_vertexCount - m_indexCount;
+						indices[m_indexCount] = m_vertexCount - m_indexCount-1;
 						++m_indexCount;
 					}
 

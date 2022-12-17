@@ -56,42 +56,38 @@ bool CRenderer::Frame()
 	return true;
 }
 
-void CRenderer::RotateUP()
+void CRenderer::TranslateRight()
 {
 	m_pD3D11->dx+= 0.1f;
-	if (m_pD3D11->dx > 360.0f)
-	{
-		m_pD3D11->dx = 0u;
-	}
+	
 }
 
-void CRenderer::RotateDown()
+void CRenderer::TranslateLeft()
 {
 	m_pD3D11->dx -= 0.1f;
-	if (m_pD3D11->dx < -360.0f)
-	{
-		m_pD3D11->dx = 0u;
-	}
 }
 
-void CRenderer::RotateLeft()
+void CRenderer::TranslateDown()
 {
 	m_pD3D11->dy-= 0.1f;
-	if (m_pD3D11->dy < -360.0f)
-	{
-		m_pD3D11->dy = 0u;
-	}
+	
 }
 
-void CRenderer::RotateRight()
+void CRenderer::TranslateUp()
 {
 	m_pD3D11->dy+= 0.1f;
-	if (m_pD3D11->dy > 360.0f)
-	{
-		m_pD3D11->dy = 0u;
-	}
+	
 }
 
+void CRenderer::ZoomIn()
+{
+	m_pD3D11->dz += 0.1f;
+}
+
+void CRenderer::ZoomOut()
+{
+	m_pD3D11->dz -= 0.1f;
+}
 
 
 bool CRenderer::Render()

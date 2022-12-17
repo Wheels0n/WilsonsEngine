@@ -35,8 +35,6 @@ bool CObject::Init()
 		return false;
 	}
 
-	D3DXMatrixIdentity(&m_worldMatrix);
-	D3DXMatrixTranspose(&m_viewMatrix, &m_viewMatrix);
 	D3DXMatrixTranspose(&m_projectionMatrix, &m_projectionMatrix);
 	return true;
 }
@@ -64,9 +62,10 @@ void CObject::UpdateWorld()
 		yaw -= 360.0f;
 	}
 	D3DXMatrixRotationY(&m_worldMatrix, yaw);
+	D3DXMatrixTranslation(&m_viewMatrix, x, y, z);
 	//ROW-MAJOR(CPU) TO COL-MAJOR(GPU)
 	D3DXMatrixTranspose(&m_worldMatrix, &m_worldMatrix);
-
+	D3DXMatrixTranspose(&m_viewMatrix, &m_viewMatrix);
 	//write CPU data into GPU mem;
 	hr = m_pContext->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if (FAILED(hr))

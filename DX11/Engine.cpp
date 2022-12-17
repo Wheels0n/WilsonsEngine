@@ -104,16 +104,22 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		  switch (wParam)
 		  {
 		  case VK_UP:
-			  m_pRenderer->RotateUP();
+			  m_pRenderer->TranslateUp();
 			  break;
 		  case VK_DOWN:
-			  m_pRenderer->RotateDown();
+			  m_pRenderer->TranslateDown();
 			  break;
 		  case VK_RIGHT:
-			  m_pRenderer->RotateRight();
+			  m_pRenderer->TranslateRight();
 			  break;
 		  case VK_LEFT:
-			  m_pRenderer->RotateLeft();
+			  m_pRenderer->TranslateLeft();
+			  break;
+		  case VK_ADD:
+			  m_pRenderer->ZoomIn();
+			  break;
+		  case VK_SUBTRACT:
+			  m_pRenderer->ZoomOut();
 			  break;
 		  default:
 			  break;

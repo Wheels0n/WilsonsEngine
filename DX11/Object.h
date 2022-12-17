@@ -45,6 +45,9 @@ public:
 	{
 		return m_pConstantBuffer;
 	};
+	float r, x, y, z,
+		pitch = 0, yaw = 0, roll = 0,
+		dtheta, dpsi, dphi;
 private:
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pContext;
@@ -54,9 +57,6 @@ private:
 	D3DXMATRIX m_rotationMatrix;
 	ID3D11Buffer* m_pConstantBuffer;
 	
-	float r, x, y, z, 
-		pitch = 0, yaw = 0, roll = 0,
-	    dtheta, dpsi, dphi;
 };
 
 #endif
