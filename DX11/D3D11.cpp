@@ -16,9 +16,11 @@ CD3D11::CD3D11()
 	m_pVertexShader = nullptr;
 	m_pPixelShader = nullptr;
 	m_pInputLayout = nullptr;
-	m_pShaderResourceView = nullptr;
 	m_pSampleState = nullptr;
 	m_LightBuffer = nullptr;
+
+	m_pShaderResourceView = nullptr;
+	m_texture = nullptr;
 
 	verticeCoordinates = nullptr;
 	texCoordinates = nullptr;
@@ -30,6 +32,9 @@ CD3D11::CD3D11()
 	m_texCoordCount = 0;
 	m_normalVectorCount = 0;
 	m_indexCount = 0;
+
+	m_plte = nullptr;
+	m_pngData = nullptr;
 }
 
 CD3D11::~CD3D11()
@@ -281,7 +286,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	fScreenAspect = screenWidth / static_cast<float>(screenHeight);
 	D3DXMatrixPerspectiveFovLH(&m_projectionMatrix, fFOV, fScreenAspect, fScreenNear, fScreenDepth);
 	
-	D3DXVECTOR3 m_vPos = { 0.0f,10.0f,-120.0f };  //Translation
+	D3DXVECTOR3 m_vPos = { 0.0f,10.0f,-150.0f };  //Translation
 	D3DXVECTOR3 m_vLookat = { 0.0f, 1.0f, 0.0f };//camera look-at target
 	D3DXVECTOR3 m_vUp = { 0.0f, 1.0f, 0.0f };   //which axis is upward
 	D3DXMatrixLookAtLH(&m_viewMatrix, &m_vPos, &m_vLookat, &m_vUp);
@@ -393,13 +398,55 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	lightCbd.StructureByteStride = 0;
 	m_pDevice->CreateBuffer(&lightCbd, nullptr, &m_LightBuffer);
 
+	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./teapot/teapot1.png", nullptr, nullptr, &m_pShaderResourceView, nullptr);
+	if(FAILED(hr))
+	{
+		return false;
+	}
+	/*
+	unsigned int textureWidth=0, textureHeight=0;
 
-	hr = D3DX11CreateShaderResourceViewFromFileW(
-		m_pDevice, L"seafloor.dds", nullptr, nullptr, &m_pShaderResourceView, nullptr);
+	result = LoadPNG(L"./teapot/teapot1.png", &textureWidth, &textureHeight);
+	if (result==false)
+	{
+		return false;
+	}
+
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.Width = textureWidth;
+	textureDesc.Height = textureHeight;
+	textureDesc.MipLevels = 1;
+	textureDesc.ArraySize = 1;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.CPUAccessFlags = 0;
+	textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+
+	hr = m_pDevice->CreateTexture2D(&textureDesc, nullptr, &m_texture);
 	if (FAILED(hr))
 	{
 		return false;
 	}
+
+	unsigned int rowPitch = (textureWidth * 4) * sizeof(unsigned char); 
+	m_pContext->UpdateSubresource(m_texture, 0, nullptr, m_pngData, rowPitch, 0);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+	srvDesc.Format = textureDesc.Format;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = -1;
+
+	hr = m_pDevice->CreateShaderResourceView(m_texture, &srvDesc, &m_pShaderResourceView);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+	*/
+
 	D3D11_SAMPLER_DESC samplerDesc = {};
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -540,6 +587,30 @@ void CD3D11::Shutdown()
 	{
 		delete[] vertices;
 		vertices = nullptr;
+	}
+
+	if (m_plte != nullptr)
+	{
+		delete[] m_plte;
+		m_plte = nullptr;
+	}
+
+	if (m_pngData != nullptr)
+	{
+		delete[] m_pngData;
+		m_pngData = nullptr;
+	}
+
+	if (m_texture != nullptr)
+	{
+		m_texture->Release();
+		m_texture = nullptr;
+	}
+
+	if (m_pShaderResourceView != nullptr)
+	{
+		m_pShaderResourceView->Release();
+		m_pShaderResourceView = nullptr;
 	}
 
 	return;
@@ -724,6 +795,71 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 				fin.clear();
 			}
 		}
+	}
+
+	fin.close();
+	return true;
+}
+
+bool CD3D11::LoadPNG(LPCWSTR fileName, unsigned int* width, unsigned int* height)
+{  
+	std::ifstream fin;
+
+	unsigned int len=0;
+	unsigned char buffer[4];
+	char data[38];
+	char chunkType[5];
+	char bitsPerPixel, colorType, compressionMethod, filterMethod;
+	chunkType[4] = '\0';
+
+	fin.open(fileName, std::ifstream::binary);
+	if (fin.fail())
+	{
+		return false;
+	}
+
+	fin.seekg(8, std::ios::cur);//discard PNG signature;
+	
+	while (!fin.fail())
+	{   
+		fin.read(reinterpret_cast<char*>(buffer), 4);
+		len = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+
+		fin.read(chunkType, 4);
+		if (strcmp("IHDR", chunkType) == 0)
+		{
+			fin.read(reinterpret_cast<char*>(buffer), 4);
+			*width  = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+			fin.read(reinterpret_cast<char*>(buffer), 4);
+			*height = buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+			fin.read(&bitsPerPixel, 1);
+			fin.read(&colorType, 1);
+			fin.read(&compressionMethod, 1);
+			fin.read(&filterMethod, 1);
+			
+			fin.seekg(len - 12, std::ios::cur);
+		}
+
+		else if (strcmp("PLTE", chunkType) == 0)
+		{   
+			m_plte = new char[len];
+			fin.read(m_plte, len);
+		}
+		else if (strcmp("IDAT", chunkType) == 0)
+		{  
+			fin.seekg(2, std::ios::cur);
+			m_pngData = new char[len];
+			fin.read(m_pngData, len);
+		}
+		else if (strcmp("IEND", chunkType) == 0)
+		{
+			break;
+		}
+		else
+		{
+			fin.seekg(len, std::ios::cur);
+		}
+		fin.seekg(4, std::ios::cur); // discard CRC;
 	}
 
 	fin.close();

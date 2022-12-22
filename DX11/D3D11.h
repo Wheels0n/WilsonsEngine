@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <iostream>
 #include "Object.h"
 
 //D:\DirectxSDK\Include;$(IncludePath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;$(IncludePath)
@@ -35,6 +36,7 @@ public:
 
 private:
 	bool LoadFile(LPCWSTR);
+	bool LoadPNG(LPCWSTR fileName, unsigned int* width, unsigned int* height);
 
 public:
 	float dx, dy, dz = 0;
@@ -52,7 +54,6 @@ private:
 	ID3D11DepthStencilState* m_pDepthStencilState;
 	ID3D11DepthStencilView* m_pDepthStencilView;
 	ID3D11RasterizerState* m_pRasterstate;
-	ID3D11ShaderResourceView* m_pShaderResourceView;
 	ID3D11SamplerState* m_pSampleState;
 
 	ID3D11Buffer* m_pVertexBuffer, * m_pIndexBuffer;
@@ -73,5 +74,10 @@ private:
 	D3DXMATRIX m_worldMatrix;
 	D3DXMATRIX m_viewMatrix;
 	D3DXMATRIX m_projectionMatrix;
+
+	ID3D11Texture2D* m_texture;
+	ID3D11ShaderResourceView* m_pShaderResourceView;
+	char* m_plte;
+	char* m_pngData;
 };
 #endif // !_D3D11_H_

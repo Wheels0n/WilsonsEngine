@@ -58,35 +58,35 @@ bool CRenderer::Frame()
 
 void CRenderer::TranslateRight()
 {
-	m_pD3D11->dx+= 0.1f;
+	m_pD3D11->dx+= 1.0f;
 	
 }
 
 void CRenderer::TranslateLeft()
 {
-	m_pD3D11->dx -= 0.1f;
+	m_pD3D11->dx -= 1.0f;
 }
 
 void CRenderer::TranslateDown()
 {
-	m_pD3D11->dy-= 0.1f;
+	m_pD3D11->dy+= 1.0f;
 	
 }
 
 void CRenderer::TranslateUp()
 {
-	m_pD3D11->dy+= 0.1f;
+	m_pD3D11->dy-= 1.0f;
 	
 }
 
 void CRenderer::ZoomIn()
 {
-	m_pD3D11->dz += 0.1f;
+	m_pD3D11->dz += 1.0f;
 }
 
 void CRenderer::ZoomOut()
 {
-	m_pD3D11->dz -= 0.1f;
+	m_pD3D11->dz -= 1.0f;
 }
 
 
