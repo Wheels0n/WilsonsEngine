@@ -286,7 +286,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	fScreenAspect = screenWidth / static_cast<float>(screenHeight);
 	D3DXMatrixPerspectiveFovLH(&m_projectionMatrix, fFOV, fScreenAspect, fScreenNear, fScreenDepth);
 	
-	D3DXVECTOR3 m_vPos = { 0.0f,10.0f,-150.0f };  //Translation
+	D3DXVECTOR3 m_vPos = { 0.0f,0.0f,-10.0f };  //Translation
 	D3DXVECTOR3 m_vLookat = { 0.0f, 1.0f, 0.0f };//camera look-at target
 	D3DXVECTOR3 m_vUp = { 0.0f, 1.0f, 0.0f };   //which axis is upward
 	D3DXMatrixLookAtLH(&m_viewMatrix, &m_vPos, &m_vLookat, &m_vUp);
@@ -299,7 +299,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	ID3DBlob* pVsBlob, * pPsBlob, * pErrorBlob;
 
 
-	result = LoadFile(L"./teapot/teapot.obj");
+	result = LoadFile(L"./Models/sphere/Sphere.obj");
 	if (result == false)
 	{
 		return false;
@@ -398,7 +398,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	lightCbd.StructureByteStride = 0;
 	m_pDevice->CreateBuffer(&lightCbd, nullptr, &m_LightBuffer);
 
-	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./teapot/teapot1.png", nullptr, nullptr, &m_pShaderResourceView, nullptr);
+	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Models/sphere/Sphere.png", nullptr, nullptr, &m_pShaderResourceView, nullptr);
 	if(FAILED(hr))
 	{
 		return false;
@@ -638,7 +638,8 @@ void CD3D11::UpdateScene()
 	m_pContext->Map(m_LightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	pLight = reinterpret_cast<Light*>(mappedResource.pData);
 	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
-	pLight->direction = D3DXVECTOR3(0.0f,0.0f, 1.0f);
+	pLight->direction = D3DXVECTOR3(1.0f,0.0f, 0.0f);
+	pLight->ambient = D3DXVECTOR4(0.1f, 0.1f, 0.1f, 1.0f);
 	pLight->padding = 0.0f;
 	m_pContext->Unmap(m_LightBuffer, 0);
 

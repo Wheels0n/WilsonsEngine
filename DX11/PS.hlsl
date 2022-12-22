@@ -8,7 +8,8 @@ struct PixelInputType
 	float3 normal : NORMAL;
 };
 cbuffer Light
-{
+{   
+	float4 ambient;
 	float4 diffuse;
 	float3 direction;
 	float  padding;
@@ -23,13 +24,9 @@ float4 main(PixelInputType input) : SV_TARGET
 	lightColor  = diffuse;
 
 	lightIntensity = dot(input.normal, -direction);
-	if (lightIntensity > 0.0f)
-	{
-		lightColor *= lightIntensity;
-	}
-
+	lightColor *= lightIntensity;
 
 	outputColor = outputColor* lightColor;
 
-	return outputColor;
+	return outputColor + ambient;
 }
