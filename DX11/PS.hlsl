@@ -4,13 +4,29 @@ SamplerState SampleType;
 struct PixelInputType
 {
 	float4 position : SV_POSITION;
-	float2 tex    : TEXTRUE;
+	float2 tex    : TEXTURE;
+	float3 normal : NORMAL;
+};
+cbuffer Light
+{   
+	float4 ambient;
+	float4 diffuse;
+	float3 direction;
+	float  padding;
 };
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	float4 textureColor;
-    textureColor = shaderTexture.Sample(SampleType, input.tex);
+	float4 outputColor, lightColor;
+    float  lightIntensity;
+    
+	outputColor = shaderTexture.Sample(SampleType, input.tex);
+	lightColor  = diffuse;
 
-	return textureColor;
+	lightIntensity = dot(input.normal, -direction);
+	lightColor *= lightIntensity;
+
+	outputColor = outputColor* lightColor;
+
+	return outputColor + ambient;
 }

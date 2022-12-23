@@ -197,15 +197,15 @@ bool CModel::InitializeBuffers(ID3D12Device* m_pDevice)
     D3D12_HEAP_PROPERTIES uploadHeapProps, defaultHeapProps;
     D3D12_SUBRESOURCE_DATA subResourceData = { 0, };
 
-    Vertex* vertices;
+    Vertex* verticeCoordinates;
     unsigned long* indices;
 
 
     m_vertexCnt = 3;
     m_indexCnt = 3;
 
-    vertices = new Vertex[m_vertexCnt];
-    if (vertices == nullptr)
+    verticeCoordinates = new Vertex[m_vertexCnt];
+    if (verticeCoordinates == nullptr)
     {
         return false;
     }
@@ -217,14 +217,14 @@ bool CModel::InitializeBuffers(ID3D12Device* m_pDevice)
     }
 
 
-    vertices[0].position = XMFLOAT3(-1.0f, -1.0f, 0.0f);
-    vertices[0].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+    verticeCoordinates[0].position = XMFLOAT3(-1.0f, -1.0f, 0.0f);
+    verticeCoordinates[0].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-    vertices[1].position = XMFLOAT3(0.0f, 1.0f, 0.0f);
-    vertices[1].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+    verticeCoordinates[1].position = XMFLOAT3(0.0f, 1.0f, 0.0f);
+    verticeCoordinates[1].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
-    vertices[2].position = XMFLOAT3(1.0f, -1.0f, 0.0f);
-    vertices[2].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+    verticeCoordinates[2].position = XMFLOAT3(1.0f, -1.0f, 0.0f);
+    verticeCoordinates[2].color = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 
     indices[0] = 0;
     indices[1] = 1;
@@ -279,7 +279,7 @@ bool CModel::InitializeBuffers(ID3D12Device* m_pDevice)
 
     m_pDevice->CreateCommittedResource(&uploadHeapProps, D3D12_HEAP_FLAG_NONE, &vertexBufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&m_uploadBuffer));
 
-    subResourceData.pData = vertices;
+    subResourceData.pData = verticeCoordinates;
   
 
     constantBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;

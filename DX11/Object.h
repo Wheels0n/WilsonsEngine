@@ -11,12 +11,19 @@
 #include <d3dx10math.h>
 #include<random>
 
-
-
 struct VertexType
 {
 	D3DXVECTOR3 position;
 	D3DXVECTOR2 tex;
+	D3DXVECTOR3 norm;
+};
+
+struct Light
+{   
+	D3DXVECTOR4 ambient;
+	D3DXVECTOR4 diffuse;
+	D3DXVECTOR3 direction;
+	float padding;
 };
 
 struct ConstantBufferType
@@ -39,6 +46,9 @@ public:
 	{
 		return m_pConstantBuffer;
 	};
+	float r, x, y, z,
+		pitch = 0, yaw = 0, roll = 0,
+		dtheta, dpsi, dphi;
 private:
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pContext;
@@ -48,8 +58,6 @@ private:
 	D3DXMATRIX m_rotationMatrix;
 	ID3D11Buffer* m_pConstantBuffer;
 	
-	float r, x, y, z, pitch, yaw, roll,
-		           dtheta, dpsi, dphi;
 };
 
 #endif
