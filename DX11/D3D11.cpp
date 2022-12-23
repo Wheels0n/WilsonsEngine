@@ -468,7 +468,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
 	pLight->direction = D3DXVECTOR3(1.0f, 0.0f, 0.0f);
 	pLight->ambient = D3DXVECTOR4(0.1f, 0.1f, 0.1f, 1.0f);
-	pLight->specPow = 20.0f;
+	pLight->specPow = 32.0f;
 	m_pContext->Unmap(m_pLightBuffer, 0);
 
 

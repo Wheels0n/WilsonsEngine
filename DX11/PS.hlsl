@@ -20,25 +20,29 @@ cbuffer Light
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	float4 texColor, diffuseColor, view, specularColor;
-    float3 lightDir, reflectV;
-	float  diffuseIntensity;
-    
+	float4 specularColor, texColor, diffuseColor, outputColor;
+	float3 lightDir, reflection, viewDirection;
+	float  lightIntensity;
+
 	texColor = shaderTexture.Sample(SampleType, input.tex);
-
 	lightDir = -direction;
-	reflectV = normalize(reflect(lightDir, input.normal));
 
-	diffuseIntensity = dot(input.normal, lightDir);
-	diffuseColor = diffuse * diffuseIntensity;
-	diffuseColor *= texColor;
-	
+	lightIntensity = saturate(dot(input.normal, lightDir));
+	diffuseColor = diffuse * lightIntensity;
+	diffuseColor = saturate(diffuseColor);
+
 	specularColor = specular;
-	if (diffuseColor.x > 0.0f)
+	if (lightIntensity > 0)
 	{
-		specularColor = pow(saturate(dot(reflectV, input.viewDir)), specPow);
+		reflection = reflect(input.normal, lightDir);
+		reflection = normalize(reflection);
+		viewDirection = normalize(input.viewDir);
+		specularColor = pow(saturate(dot(reflection, -viewDirection)), specPow);
+		specularColor = saturate(specularColor);
+		diffuseColor = diffuseColor * texColor;
 	}
-	
 
-	return diffuseColor + ambient + specularColor;
+	outputColor = saturate(ambient + diffuseColor + specularColor);
+	return outputColor;
+	
 }
