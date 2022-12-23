@@ -126,6 +126,22 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		  }
 		  return 0;
 	  }
+	  case WM_CHAR:
+	  {  
+		  switch (wParam)
+		  {
+		  case 'e':
+			  m_pRenderer->RotateRight();
+			  break;
+		  case 'q':
+			  m_pRenderer->RotateLeft();
+			  break;
+		  default:
+			  break;
+		  }
+	   
+	  }
+
 	  case WM_KEYUP:
 	  { 
 		  m_pInputHandler->KeyUp(static_cast<unsigned int>(wParam));

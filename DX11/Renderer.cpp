@@ -79,14 +79,24 @@ void CRenderer::TranslateUp()
 	
 }
 
+void CRenderer::RotateLeft()
+{
+	m_pD3D11->dphi -= 1.0f;
+}
+
+void CRenderer::RotateRight()
+{
+	m_pD3D11->dphi += 1.0f;
+}
+
 void CRenderer::ZoomIn()
 {
-	m_pD3D11->dz += 1.0f;
+	m_pD3D11->dz -= 0.1f;
 }
 
 void CRenderer::ZoomOut()
 {
-	m_pD3D11->dz -= 1.0f;
+	m_pD3D11->dz += 0.1f;
 }
 
 

@@ -20,10 +20,16 @@ struct VertexType
 
 struct Light
 {   
+	D3DXVECTOR4 specular;
 	D3DXVECTOR4 ambient;
 	D3DXVECTOR4 diffuse;
 	D3DXVECTOR3 direction;
-	float padding;
+	float specPow;
+};
+
+struct camBuffer
+{
+	D3DXVECTOR4 camPos;
 };
 
 struct ConstantBufferType
@@ -42,13 +48,18 @@ public:
 	bool Init();
 	void ShutDown();
 	void UpdateWorld();
+	ID3D11Buffer* getMB()
+	{
+		return m_pMatrixBuffer;
+	};
+
 	ID3D11Buffer* getCB()
 	{
-		return m_pConstantBuffer;
-	};
+		return m_pCamBuffer;
+	};	
 	float r, x, y, z,
 		pitch = 0, yaw = 0, roll = 0,
-		dtheta, dpsi, dphi;
+		dtheta = 0, dphi = 0, dchi = 0;
 private:
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pContext;
@@ -56,8 +67,8 @@ private:
 	D3DXMATRIX m_projectionMatrix;
 	D3DXMATRIX m_viewMatrix;
 	D3DXMATRIX m_rotationMatrix;
-	ID3D11Buffer* m_pConstantBuffer;
-	
+	ID3D11Buffer* m_pMatrixBuffer;
+	ID3D11Buffer* m_pCamBuffer;
 };
 
 #endif

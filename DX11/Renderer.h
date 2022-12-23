@@ -23,6 +23,8 @@ public:
 	void TranslateLeft();
 	void TranslateDown();
 	void TranslateUp();
+	void RotateLeft();
+	void RotateRight();
 	void ZoomIn();
 	void ZoomOut();
 	

@@ -17,7 +17,7 @@ CD3D11::CD3D11()
 	m_pPixelShader = nullptr;
 	m_pInputLayout = nullptr;
 	m_pSampleState = nullptr;
-	m_LightBuffer = nullptr;
+	m_pLightBuffer = nullptr;
 
 	m_pShaderResourceView = nullptr;
 	m_texture = nullptr;
@@ -286,7 +286,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	fScreenAspect = screenWidth / static_cast<float>(screenHeight);
 	D3DXMatrixPerspectiveFovLH(&m_projectionMatrix, fFOV, fScreenAspect, fScreenNear, fScreenDepth);
 	
-	D3DXVECTOR3 m_vPos = { 0.0f,0.0f,-10.0f };  //Translation
+	D3DXVECTOR3 m_vPos = { 0.0f,0.0f,-1.0f };  //Translation
 	D3DXVECTOR3 m_vLookat = { 0.0f, 1.0f, 0.0f };//camera look-at target
 	D3DXVECTOR3 m_vUp = { 0.0f, 1.0f, 0.0f };   //which axis is upward
 	D3DXMatrixLookAtLH(&m_viewMatrix, &m_vPos, &m_vLookat, &m_vUp);
@@ -387,7 +387,8 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	
 	Objects[0] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
 	Objects[0]->Init();
-	m_pConstantBuffers[0] = Objects[0]->getCB();
+	m_pMatrixBuffers[0] = Objects[0]->getMB();
+	m_pCamBuffer = Objects[0]->getCB();
 	
 	D3D11_BUFFER_DESC lightCbd;
 	lightCbd.Usage = D3D11_USAGE_DYNAMIC;
@@ -396,7 +397,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	lightCbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	lightCbd.MiscFlags = 0;
 	lightCbd.StructureByteStride = 0;
-	m_pDevice->CreateBuffer(&lightCbd, nullptr, &m_LightBuffer);
+	m_pDevice->CreateBuffer(&lightCbd, nullptr, &m_pLightBuffer);
 
 	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Models/sphere/Sphere.png", nullptr, nullptr, &m_pShaderResourceView, nullptr);
 	if(FAILED(hr))
@@ -453,12 +454,23 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 
-
 	hr = m_pDevice->CreateSamplerState(&samplerDesc, &m_pSampleState);
 	if (FAILED(hr))
 	{
 		return false;
 	}
+
+	D3D11_MAPPED_SUBRESOURCE mappedResource;
+	Light* pLight;
+	m_pContext->Map(m_pLightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	pLight = reinterpret_cast<Light*>(mappedResource.pData);
+	pLight->specular = D3DXVECTOR4(0.0f, 0.0f, 0.0f, 0.0f);
+	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
+	pLight->direction = D3DXVECTOR3(1.0f, 0.0f, 0.0f);
+	pLight->ambient = D3DXVECTOR4(0.1f, 0.1f, 0.1f, 1.0f);
+	pLight->specPow = 20.0f;
+	m_pContext->Unmap(m_pLightBuffer, 0);
+
 
 	pPsBlob->Release();
 	pPsBlob = nullptr;
@@ -624,24 +636,15 @@ void CD3D11::UpdateScene()
 	//clear views
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	Light* pLight;
 	unsigned int stride;
 	unsigned int offset;
 	float color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
+	
 	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
 	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	stride = sizeof(VertexType);
 	offset = 0;
-
-	m_pContext->Map(m_LightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	pLight = reinterpret_cast<Light*>(mappedResource.pData);
-	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
-	pLight->direction = D3DXVECTOR3(1.0f,0.0f, 0.0f);
-	pLight->ambient = D3DXVECTOR4(0.1f, 0.1f, 0.1f, 1.0f);
-	pLight->padding = 0.0f;
-	m_pContext->Unmap(m_LightBuffer, 0);
 
 	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
@@ -652,12 +655,14 @@ void CD3D11::UpdateScene()
 	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
 	m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	//draw all objects;
-	m_pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffers[0]);
-	m_pContext->PSSetConstantBuffers(0, 1, &m_LightBuffer);
+	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[0]);
+	m_pContext->VSSetConstantBuffers(1, 1, &m_pCamBuffer);
+	m_pContext->PSSetConstantBuffers(0, 1, &m_pLightBuffer);
 	
 	Objects[0]->x = dx;
 	Objects[0]->y = dy;
 	Objects[0]->z = dz;
+	Objects[0]->dphi = dphi;
 	Objects[0]->UpdateWorld();
 	m_pContext->DrawIndexed(m_indexCount, 0, 0);
 	

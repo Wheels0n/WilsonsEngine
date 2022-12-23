@@ -39,7 +39,7 @@ private:
 	bool LoadPNG(LPCWSTR fileName, unsigned int* width, unsigned int* height);
 
 public:
-	float dx, dy, dz = 0;
+	float dx, dy, dz = 0, dtheta, dphi=0, dchi;
 
 private:
 	long long currtime, frequency;
@@ -70,7 +70,7 @@ private:
 	ID3D11InputLayout* m_pInputLayout;
 
 	CObject* Objects[4];
-	ID3D11Buffer* m_pConstantBuffers[3], *m_LightBuffer;
+	ID3D11Buffer* m_pMatrixBuffers[3], *m_pLightBuffer, *m_pCamBuffer;
 	D3DXMATRIX m_worldMatrix;
 	D3DXMATRIX m_viewMatrix;
 	D3DXMATRIX m_projectionMatrix;
@@ -79,5 +79,7 @@ private:
 	ID3D11ShaderResourceView* m_pShaderResourceView;
 	char* m_plte;
 	char* m_pngData;
+
+
 };
 #endif // !_D3D11_H_

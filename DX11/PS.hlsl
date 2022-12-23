@@ -6,27 +6,39 @@ struct PixelInputType
 	float4 position : SV_POSITION;
 	float2 tex    : TEXTURE;
 	float3 normal : NORMAL;
+	float3 viewDir : VIEW;
 };
 cbuffer Light
 {   
+	float4 specular;
 	float4 ambient;
 	float4 diffuse;
 	float3 direction;
-	float  padding;
+	float  specPow;
 };
+
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	float4 outputColor, lightColor;
-    float  lightIntensity;
+	float4 texColor, diffuseColor, view, specularColor;
+    float3 lightDir, reflectV;
+	float  diffuseIntensity;
     
-	outputColor = shaderTexture.Sample(SampleType, input.tex);
-	lightColor  = diffuse;
+	texColor = shaderTexture.Sample(SampleType, input.tex);
 
-	lightIntensity = dot(input.normal, -direction);
-	lightColor *= lightIntensity;
+	lightDir = -direction;
+	reflectV = normalize(reflect(lightDir, input.normal));
 
-	outputColor = outputColor* lightColor;
+	diffuseIntensity = dot(input.normal, lightDir);
+	diffuseColor = diffuse * diffuseIntensity;
+	diffuseColor *= texColor;
+	
+	specularColor = specular;
+	if (diffuseColor.x > 0.0f)
+	{
+		specularColor = pow(saturate(dot(reflectV, input.viewDir)), specPow);
+	}
+	
 
-	return outputColor + ambient;
+	return diffuseColor + ambient + specularColor;
 }
