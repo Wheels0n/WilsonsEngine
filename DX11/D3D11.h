@@ -15,7 +15,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <iostream>
+#include <vector>
 #include "Object.h"
 
 //D:\DirectxSDK\Include;$(IncludePath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;$(IncludePath)
@@ -56,15 +56,16 @@ private:
 	ID3D11RasterizerState* m_pRasterstate;
 	ID3D11SamplerState* m_pSampleState;
 
-	ID3D11Buffer* m_pVertexBuffer, * m_pIndexBuffer;
-	D3DXVECTOR3* verticeCoordinates, *normalVectors;
-	D3DXVECTOR2* texCoordinates;
-	VertexType* vertices;
-	unsigned long* indices;
-	int m_vertexCount,m_vertexCoordCount, m_texCoordCount, m_normalVectorCount, m_indexCount;
+	ID3D11Buffer** m_pVertexBuffers, **m_pIndexBuffers;
+	std::vector<D3DXVECTOR3*> m_pVertexCoordinates, m_pNormalVectors;
+	std::vector<D3DXVECTOR2*> m_pTexCoordinates;
+	std::vector<VertexType*> m_pVertices;
+	std::vector<unsigned long*> m_pIndices;
+	std::vector<int> m_vertexCounts, m_vertexCoordCounts, m_texCoordCounts, m_normalVectorCounts, m_indexCounts;
+	unsigned int m_objectCount;
+	unsigned int m_texCount;
 
-
-
+	ID3D11ShaderResourceView** m_pShaderResourceViews;
 	ID3D11VertexShader* m_pVertexShader;
 	ID3D11PixelShader* m_pPixelShader;
 	ID3D11InputLayout* m_pInputLayout;
@@ -76,7 +77,6 @@ private:
 	D3DXMATRIX m_projectionMatrix;
 
 	ID3D11Texture2D* m_texture;
-	ID3D11ShaderResourceView* m_pShaderResourceView;
 	char* m_plte;
 	char* m_pngData;
 

@@ -11,28 +11,19 @@ CD3D11::CD3D11()
 	m_pDepthStencilView = nullptr;
 	m_pRasterstate = nullptr;
 
-	m_pVertexBuffer = nullptr;
-	m_pIndexBuffer = nullptr;
 	m_pVertexShader = nullptr;
 	m_pPixelShader = nullptr;
 	m_pInputLayout = nullptr;
 	m_pSampleState = nullptr;
 	m_pLightBuffer = nullptr;
 
-	m_pShaderResourceView = nullptr;
+	m_pVertexBuffers = nullptr;
+	m_pIndexBuffers = nullptr;
+	m_pShaderResourceViews = nullptr;
+	m_objectCount = 0;
+	m_texCount = 0;
+
 	m_texture = nullptr;
-
-	verticeCoordinates = nullptr;
-	texCoordinates = nullptr;
-	normalVectors = nullptr;
-	vertices = nullptr;
-
-	m_vertexCount = 0;
-	m_vertexCoordCount = 0;
-	m_texCoordCount = 0;
-	m_normalVectorCount = 0;
-	m_indexCount = 0;
-
 	m_plte = nullptr;
 	m_pngData = nullptr;
 }
@@ -270,8 +261,6 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 	m_pContext->RSSetState(m_pRasterstate);
 
-
-
 	viewport.Width = static_cast<float>(screenWidth);
 	viewport.Height = static_cast<float>(screenHeight);
 	viewport.MinDepth = 0.0f;
@@ -280,6 +269,9 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	viewport.TopLeftY = 0.0f;
 
 	m_pContext->RSSetViewports(1, &viewport);
+	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
 
 	//Set projectionMatrix, viewMatrix;
 	fFOV = static_cast<float>(D3DX_PI) / 4.0f;
@@ -305,10 +297,84 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 		return false;
 	}
 
+	result = LoadFile(L"./Models/tile/tile.obj");
+	if (result == false)
+	{
+		return false;
+	}
 
-	vertexData.pSysMem = vertices;
+	result = LoadFile(L"./Models/wall/wall.obj");
+	if (result == false)
+	{
+		return false;
+	}
+
+	m_pVertexBuffers = new ID3D11Buffer*[m_objectCount];
+
 	vertexData.SysMemPitch = 0;
 	vertexData.SysMemSlicePitch = 0;
+
+	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertexBufferDesc.CPUAccessFlags = 0;
+	vertexBufferDesc.MiscFlags = 0;
+	vertexBufferDesc.StructureByteStride = 0;
+
+	for (int i = 0; i < m_objectCount; ++i)
+	{  
+		vertexData.pSysMem = m_pVertices[i];
+		vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCounts[i];
+		hr = m_pDevice->CreateBuffer(&vertexBufferDesc, &vertexData, &m_pVertexBuffers[i]);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
+	}
+	//describe our indice
+	m_pIndexBuffers = new ID3D11Buffer*[m_objectCount];
+
+	indexData.SysMemPitch = 0;
+	indexData.SysMemSlicePitch = 0;
+
+
+	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBufferDesc.CPUAccessFlags = 0;
+	indexBufferDesc.MiscFlags = 0;
+	indexBufferDesc.StructureByteStride = 0;
+
+	for (int i = 0; i < m_objectCount; ++i)
+	{   
+		indexData.pSysMem = m_pIndices[i];
+		indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_indexCounts[i];
+		hr = m_pDevice->CreateBuffer(&indexBufferDesc, &indexData, &m_pIndexBuffers[i]);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+	}
+	
+
+	//Load VS to VS variable
+	hr = D3DX10CompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pVsBlob, &pErrorBlob, nullptr);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+	m_pDevice->CreateVertexShader(pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), nullptr, &m_pVertexShader);
+	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
+
+
+	hr = D3DX10CompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPsBlob, &pErrorBlob, nullptr);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+	m_pDevice->CreatePixelShader(pPsBlob->GetBufferPointer(), pPsBlob->GetBufferSize(), nullptr, &m_pPixelShader);
+	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
+
+
 
 	vertexDesc[0].SemanticName = "POSITION";
 	vertexDesc[0].SemanticIndex = 0;
@@ -317,7 +383,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	vertexDesc[0].AlignedByteOffset = 0;
 	vertexDesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	vertexDesc[0].InstanceDataStepRate = 0;
-	
+
 	vertexDesc[1].SemanticName = "TEXTURE";
 	vertexDesc[1].SemanticIndex = 0;
 	vertexDesc[1].Format = DXGI_FORMAT_R32G32_FLOAT;
@@ -333,74 +399,28 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	vertexDesc[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 	vertexDesc[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	vertexDesc[2].InstanceDataStepRate = 0;
-
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCount;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc.CPUAccessFlags = 0;
-	vertexBufferDesc.MiscFlags = 0;
-	vertexBufferDesc.StructureByteStride = 0;
-
-
-	hr = m_pDevice->CreateBuffer(&vertexBufferDesc, &vertexData, &m_pVertexBuffer);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	
-	//describe our indice
-	indexData.pSysMem = indices;
-	indexData.SysMemPitch = 0;
-	indexData.SysMemSlicePitch = 0;
-
-
-	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_vertexCount;
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBufferDesc.CPUAccessFlags = 0;
-	indexBufferDesc.MiscFlags = 0;
-	indexBufferDesc.StructureByteStride = 0;
-	hr = m_pDevice->CreateBuffer(&indexBufferDesc, &indexData, &m_pIndexBuffer);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	//Load VS to VS variable
-	hr = D3DX10CompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pVsBlob, &pErrorBlob, nullptr);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-	m_pDevice->CreateVertexShader(pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), nullptr, &m_pVertexShader);
-
-	hr = D3DX10CompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPsBlob, &pErrorBlob, nullptr);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-	m_pDevice->CreatePixelShader(pPsBlob->GetBufferPointer(), pPsBlob->GetBufferSize(), nullptr, &m_pPixelShader);
-
 	m_pDevice->CreateInputLayout(vertexDesc, sizeof(vertexDesc) / sizeof(vertexDesc[0]), pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), &m_pInputLayout);
-	
-	
-	Objects[0] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
-	Objects[0]->Init();
-	m_pMatrixBuffers[0] = Objects[0]->getMB();
-	m_pCamBuffer = Objects[0]->getCB();
-	
-	D3D11_BUFFER_DESC lightCbd;
-	lightCbd.Usage = D3D11_USAGE_DYNAMIC;
-	lightCbd.ByteWidth = sizeof(Light);
-	lightCbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	lightCbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	lightCbd.MiscFlags = 0;
-	lightCbd.StructureByteStride = 0;
-	m_pDevice->CreateBuffer(&lightCbd, nullptr, &m_pLightBuffer);
+	m_pContext->IASetInputLayout(m_pInputLayout);
 
-	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Models/sphere/Sphere.png", nullptr, nullptr, &m_pShaderResourceView, nullptr);
-	if(FAILED(hr))
+
+
+	m_pShaderResourceViews = new ID3D11ShaderResourceView*[m_objectCount];
+	//당분간 모델당 1텍스쳐
+	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Models/sphere/Sphere.png", nullptr, nullptr, &m_pShaderResourceViews[m_texCount++], nullptr);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+
+	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Textures/brick01.dds", nullptr, nullptr, &m_pShaderResourceViews[m_texCount++], nullptr);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Textures/checkboard.dds", nullptr, nullptr, &m_pShaderResourceViews[m_texCount++], nullptr);
+	if (FAILED(hr))
 	{
 		return false;
 	}
@@ -459,6 +479,18 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	{
 		return false;
 	}
+	m_pContext->PSSetSamplers(0, 1, &m_pSampleState);
+
+
+	//Setting Constant Buffers
+	D3D11_BUFFER_DESC lightCbd;
+	lightCbd.Usage = D3D11_USAGE_DYNAMIC;
+	lightCbd.ByteWidth = sizeof(Light);
+	lightCbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	lightCbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	lightCbd.MiscFlags = 0;
+	lightCbd.StructureByteStride = 0;
+	m_pDevice->CreateBuffer(&lightCbd, nullptr, &m_pLightBuffer);
 
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	Light* pLight;
@@ -471,6 +503,11 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	pLight->specPow = 32.0f;
 	m_pContext->Unmap(m_pLightBuffer, 0);
 
+
+	Objects[0] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
+	Objects[0]->Init();
+	m_pMatrixBuffers[0] = Objects[0]->getMB();
+	m_pCamBuffer = Objects[0]->getCB();
 
 	pPsBlob->Release();
 	pPsBlob = nullptr;
@@ -535,18 +572,6 @@ void CD3D11::Shutdown()
 		m_pSwapChain = nullptr;
 	}
 
-	if (m_pIndexBuffer != nullptr)
-	{
-		m_pIndexBuffer->Release();
-		m_pIndexBuffer = nullptr;
-	}
-
-	if (m_pVertexBuffer != nullptr)
-	{
-		m_pVertexBuffer->Release();
-		m_pVertexBuffer = nullptr;
-	}
-
 	if (m_pVertexShader != nullptr)
 	{
 		m_pVertexShader->Release();
@@ -565,11 +590,6 @@ void CD3D11::Shutdown()
 		m_pInputLayout = nullptr;
 	}
 
-	if (m_pShaderResourceView != nullptr)
-	{
-		m_pShaderResourceView->Release();
-		m_pShaderResourceView = nullptr;
-	}
 
 	if (m_pSampleState != nullptr)
 	{
@@ -577,28 +597,100 @@ void CD3D11::Shutdown()
 		m_pSampleState = nullptr;
 	}
 
-	if (verticeCoordinates != nullptr)
+	for (int i = m_objectCount-1; i >=0; ++i)
 	{
-		delete[] verticeCoordinates;
-		verticeCoordinates = nullptr;
+		if (m_pVertexBuffers!= nullptr)
+		{
+			m_pVertexBuffers[i]->Release();
+		}
+
+		if (m_pIndexBuffers != nullptr)
+		{
+			m_pIndexBuffers[i]->Release();
+		}
+
+		if (m_pVertexCoordinates[i] != nullptr)
+		{
+			delete[] m_pVertexCoordinates[i];
+			m_pVertexCoordinates.pop_back();
+		}
+
+		if (m_pTexCoordinates[i] != nullptr)
+		{
+			delete[] m_pTexCoordinates[i];
+			m_pTexCoordinates.pop_back();
+		}
+
+		if (m_pNormalVectors[i] != nullptr)
+		{
+			delete[] m_pNormalVectors[i];
+			m_pNormalVectors.pop_back();
+		}
+
+		if (m_pVertices[i] != nullptr)
+		{
+			delete[] m_pVertices[i];
+			m_pVertices.pop_back();
+		}
+
+		if (m_pIndices[i] != nullptr)
+		{
+			delete[] m_pIndices[i];
+			m_pIndices.pop_back();
+		}
+
+		if (m_pShaderResourceViews != nullptr)
+		{
+			m_pShaderResourceViews[i]->Release();
+		}
 	}
 
-	if (texCoordinates != nullptr)
-	{
-		delete[] texCoordinates;
-		texCoordinates = nullptr;
+	if (m_pVertexBuffers != nullptr)
+	{  
+		delete[] m_pVertexBuffers;
+		m_pVertexBuffers = nullptr;
 	}
 
-	if (normalVectors != nullptr)
+	if (m_pIndexBuffers != nullptr)
 	{
-		delete[] normalVectors;
-		normalVectors = nullptr;
+		delete[] m_pIndexBuffers;
+		m_pIndexBuffers = nullptr;
 	}
 
-	if (vertices != nullptr)
+	if (m_pShaderResourceViews != nullptr)
+	{   
+		delete[] m_pShaderResourceViews;
+		m_pShaderResourceViews = nullptr;
+	}
+
+	if (m_vertexCounts.size() > 0)
 	{
-		delete[] vertices;
-		vertices = nullptr;
+		m_vertexCounts.clear();
+		m_vertexCounts.shrink_to_fit();
+	}
+
+	if (m_indexCounts.size() > 0)
+	{
+		m_indexCounts.clear();
+		m_indexCounts.shrink_to_fit();
+	}
+
+	if (m_vertexCoordCounts.size() > 0)
+	{
+		m_vertexCoordCounts.clear();
+		m_vertexCoordCounts.shrink_to_fit();
+	}
+
+	if (m_texCoordCounts.size() > 0)
+	{
+		m_texCoordCounts.clear();
+		m_texCoordCounts.shrink_to_fit();
+	}
+
+	if (m_normalVectorCounts.size() > 0)
+	{
+		m_normalVectorCounts.clear();
+		m_normalVectorCounts.shrink_to_fit();
 	}
 
 	if (m_plte != nullptr)
@@ -617,12 +709,6 @@ void CD3D11::Shutdown()
 	{
 		m_texture->Release();
 		m_texture = nullptr;
-	}
-
-	if (m_pShaderResourceView != nullptr)
-	{
-		m_pShaderResourceView->Release();
-		m_pShaderResourceView = nullptr;
 	}
 
 	return;
@@ -646,26 +732,23 @@ void CD3D11::UpdateScene()
 	stride = sizeof(VertexType);
 	offset = 0;
 
-	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
-	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
-	m_pContext->PSSetSamplers(0, 1, &m_pSampleState);
-	m_pContext->PSSetShaderResources(0, 1, &m_pShaderResourceView);
-	m_pContext->IASetInputLayout(m_pInputLayout);
-	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
-	m_pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	//draw all objects;
-	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[0]);
-	m_pContext->VSSetConstantBuffers(1, 1, &m_pCamBuffer);
-	m_pContext->PSSetConstantBuffers(0, 1, &m_pLightBuffer);
-	
-	Objects[0]->x = dx;
-	Objects[0]->y = dy;
-	Objects[0]->z = dz;
-	Objects[0]->dphi = dphi;
-	Objects[0]->UpdateWorld();
-	m_pContext->DrawIndexed(m_indexCount, 0, 0);
-	
+	for (int i = 0; i < m_objectCount; ++i)
+	{
+		m_pContext->PSSetShaderResources(0, 1, &m_pShaderResourceViews[i]);
+		m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffers[i], &stride, &offset);
+		m_pContext->IASetIndexBuffer(m_pIndexBuffers[i], DXGI_FORMAT_R32_UINT, 0);
+		//draw all objects;
+		m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[0]);
+		m_pContext->VSSetConstantBuffers(1, 1, &m_pCamBuffer);
+		m_pContext->PSSetConstantBuffers(0, 1, &m_pLightBuffer);
+
+		Objects[0]->x = dx;
+		Objects[0]->y = dy;
+		Objects[0]->z = dz;
+		Objects[0]->dphi = dphi;
+		Objects[0]->UpdateWorld();
+		m_pContext->DrawIndexed(m_indexCounts[i], 0, 0);
+	}
 	return;
 }
 
@@ -692,32 +775,42 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 	}
 	char ch;
 	std::string line;
+	
+	m_vertexCoordCounts.reserve(m_objectCount + 1);
+	m_vertexCoordCounts.push_back(0);
+	m_texCoordCounts.reserve(m_objectCount + 1);
+	m_texCoordCounts.push_back(0);
+	m_normalVectorCounts.reserve(m_objectCount + 1);
+	m_normalVectorCounts.push_back(0);
+	m_vertexCounts.reserve(m_objectCount + 1);
+	m_vertexCounts.push_back(0);
+	
 	while (!fin.eof())
 	{   
 		std::getline(fin, line, ' ');
 		if (line.compare("v")==0)
 		{
-			++m_vertexCoordCount;
+			++m_vertexCoordCounts[m_objectCount];
 		}
 		else if (line.compare("vt") == 0)
 		{
-			++m_texCoordCount;
+			++m_texCoordCounts[m_objectCount];
 		}
 
 		else if (line.compare("vn") == 0)
 		{
-			++m_normalVectorCount;
+			++m_normalVectorCounts[m_objectCount];
 		}
 
 		else if (line.compare("f") == 0)
 		{   
 			fin.get(ch);
-			++m_vertexCount;
+			++m_vertexCounts[m_objectCount];
 			while (ch!='\n')
 			{   
 				if (ch == ' ')
 				{
-					++m_vertexCount;
+					++m_vertexCounts[m_objectCount];
 				}
 				fin.get(ch);
 			
@@ -729,16 +822,34 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 	fin.close();
 	ch = ' ';
 
-	verticeCoordinates = new D3DXVECTOR3[m_vertexCoordCount];
-	texCoordinates = new D3DXVECTOR2[m_texCoordCount];
-	normalVectors = new D3DXVECTOR3[m_normalVectorCount];
-	vertices = new VertexType[m_vertexCount];
-	indices = new unsigned long[m_vertexCount];
+	m_pVertexCoordinates.reserve(m_objectCount + 1);
+	m_pVertexCoordinates.push_back(nullptr);
+	m_pVertexCoordinates[m_objectCount] = new D3DXVECTOR3[m_vertexCoordCounts[m_objectCount]];
+	
+	m_pTexCoordinates.reserve(m_objectCount + 1);
+	m_pTexCoordinates.push_back(nullptr);
+	m_pTexCoordinates[m_objectCount] = new D3DXVECTOR2[m_texCoordCounts[m_objectCount]];
+	
+	m_pNormalVectors.reserve(m_objectCount + 1);
+	m_pNormalVectors.push_back(nullptr);
+	m_pNormalVectors[m_objectCount] = new D3DXVECTOR3[m_normalVectorCounts[m_objectCount]];
+	
+	m_pVertices.reserve(m_objectCount + 1);
+	m_pVertices.push_back(nullptr);
+	m_pVertices[m_objectCount] = new VertexType[m_vertexCounts[m_objectCount]];
+	
+	m_pIndices.reserve(m_objectCount + 1);
+	m_pIndices.push_back(nullptr);
+	m_pIndices[m_objectCount] = new unsigned long[m_vertexCounts[m_objectCount]];
 
-	ZeroMemory(verticeCoordinates, sizeof(D3DXVECTOR3) * m_vertexCoordCount);
-	ZeroMemory(texCoordinates, sizeof(D3DXVECTOR2) * m_texCoordCount);
-	ZeroMemory(normalVectors, sizeof(D3DXVECTOR3) * m_normalVectorCount);
-	ZeroMemory(vertices, sizeof(VertexType) * m_vertexCount);
+	m_indexCounts.reserve(m_objectCount + 1);
+	m_indexCounts.push_back(0);
+
+
+	ZeroMemory(m_pVertexCoordinates[m_objectCount], sizeof(D3DXVECTOR3) * m_vertexCoordCounts[m_objectCount]);
+	ZeroMemory(m_pTexCoordinates[m_objectCount], sizeof(D3DXVECTOR2) * m_texCoordCounts[m_objectCount]);
+	ZeroMemory(m_pNormalVectors[m_objectCount], sizeof(D3DXVECTOR3) * m_normalVectorCounts[m_objectCount]);
+	ZeroMemory(m_pVertices[m_objectCount], sizeof(VertexType) * m_vertexCounts[m_objectCount]);
 
 	fin.open(fileName);
 	if (fin.fail())
@@ -747,7 +858,7 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 	}
 
 	char type;
-	int vCnt = 0, vtCnt = 0, vnCnt = 0;
+	int vCnt = 0, vtCnt = 0, vnCnt = 0, i;
 	while (!fin.eof())
 	{
 		fin.get(type);
@@ -757,20 +868,25 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 			fin.get(type);
 			if (type == ' ')
 			{
-				fin >> verticeCoordinates[vCnt].x >> verticeCoordinates[vCnt].y >> verticeCoordinates[vCnt].z;
-				verticeCoordinates[vCnt].z *= -1;
+				fin >> m_pVertexCoordinates[m_objectCount][vCnt].x 
+					>> m_pVertexCoordinates[m_objectCount][vCnt].y 
+					>> m_pVertexCoordinates[m_objectCount][vCnt].z;
+				m_pVertexCoordinates[m_objectCount][vCnt].z *= -1;
 				++vCnt;
 			}
 			else if (type == 't')
 			{
-				fin >> texCoordinates[vtCnt].x >> texCoordinates[vtCnt].y;
-				texCoordinates[vtCnt].y = 1 - texCoordinates[vtCnt].y;
+				fin >> m_pTexCoordinates[m_objectCount][vtCnt].x 
+					>> m_pTexCoordinates[m_objectCount][vtCnt].y;
+				m_pTexCoordinates[m_objectCount][vtCnt].y = 1 - m_pTexCoordinates[m_objectCount][vtCnt].y;
 				++vtCnt;
 			}
 			else if (type == 'n')
 			{
-				fin >> normalVectors[vnCnt].x >> normalVectors[vnCnt].y >> normalVectors[vnCnt].z;
-				normalVectors[vnCnt].z *= -1;
+				fin >> m_pNormalVectors[m_objectCount][vnCnt].x 
+					>> m_pNormalVectors[m_objectCount][vnCnt].y 
+					>> m_pNormalVectors[m_objectCount][vnCnt].z;
+				m_pNormalVectors[m_objectCount][vnCnt].z *= -1;
 				++vnCnt;
 			}
 		}
@@ -788,13 +904,14 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 					fin >> vt >> ch;
 					fin >> vn;
 					if (!fin.fail())
-					{
-						vertices[m_indexCount].position = verticeCoordinates[v-1];
-						vertices[m_indexCount].tex = texCoordinates[vt-1];
-						vertices[m_indexCount].norm = normalVectors[vn-1];
-
-						indices[m_indexCount] = m_vertexCount - m_indexCount-1;
-						++m_indexCount;
+					{   
+						i = m_indexCounts[m_objectCount];
+						m_pVertices[m_objectCount][i].position = m_pVertexCoordinates[m_objectCount][v-1];
+						m_pVertices[m_objectCount][i].tex = m_pTexCoordinates[m_objectCount][vt-1];
+						m_pVertices[m_objectCount][i].norm = m_pNormalVectors[m_objectCount][vn-1];
+						//오른손좌표계에서 왼손좌표계로
+						m_pIndices[m_objectCount][i] = m_vertexCounts[m_objectCount] - i-1;
+						++m_indexCounts[m_objectCount];
 					}
 
 				}
@@ -804,6 +921,8 @@ bool CD3D11::LoadFile(LPCWSTR fileName)
 	}
 
 	fin.close();
+
+	++m_objectCount;
 	return true;
 }
 
