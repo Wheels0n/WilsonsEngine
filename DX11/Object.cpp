@@ -19,7 +19,7 @@ CObject::~CObject()
 {
 }
 
-bool CObject::Init()
+bool CObject::Init(D3DXVECTOR3 translation, D3DXVECTOR3 scale)
 {  
 	HRESULT hr;
 	D3D11_BUFFER_DESC mbDesc, cbDesc;
@@ -48,7 +48,13 @@ bool CObject::Init()
 		return false;
 	}
 
+	D3DXMatrixScaling(&m_scaleMatrix, scale.x, scale.y, scale.z);
+	D3DXMatrixTranslation(&m_translationMatrix, translation.x, translation.y, translation.z);
+	D3DXMatrixIdentity(&m_worldMatrix);
+	D3DXMatrixMultiply(&m_worldMatrix, &m_worldMatrix, &m_scaleMatrix);
+	D3DXMatrixMultiply(&m_worldMatrix, &m_worldMatrix, &m_translationMatrix);
 
+	D3DXMatrixTranspose(&m_worldMatrix, &m_worldMatrix);
 	D3DXMatrixTranspose(&m_projectionMatrix, &m_projectionMatrix);
 	return true;
 }
@@ -68,23 +74,22 @@ void CObject::ShutDown()
 	}
 }
 
-void CObject::UpdateWorld()
+void CObject::UpdateWorld(float wx, float wy, float wz, float vyaw)
 {  
 	float dt = (float)D3DX_PI * 0.005f;
+
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	ConstantBufferType* pMatrices;
-	D3DXMATRIX rotationMatrix;
+	D3DXMATRIX rotationMatrix, translationMatrix;
 	
-	yaw += dt;
-	if (yaw > 360.0f)
-	{
-		yaw -= 360.0f;
-	}
-	D3DXMatrixRotationY(&m_worldMatrix, yaw);
-	D3DXMatrixTranslation(&m_viewMatrix, x, y, z);
-	D3DXMatrixRotationY(&rotationMatrix, dphi);
+	
+	D3DXMatrixTranspose(&m_worldMatrix, &m_worldMatrix);
+	D3DXMatrixTranspose(&m_viewMatrix, &m_viewMatrix);
+	D3DXMatrixTranslation(&translationMatrix, wx, wy, wz);
+	D3DXMatrixRotationY(&rotationMatrix, vyaw);
 	D3DXMatrixMultiply(&m_viewMatrix, &m_viewMatrix, &rotationMatrix);
+	D3DXMatrixMultiply(&m_viewMatrix, &m_viewMatrix, &translationMatrix);
 	//ROW-MAJOR(CPU) TO COL-MAJOR(GPU)
 	D3DXMatrixTranspose(&m_worldMatrix, &m_worldMatrix);
 	D3DXMatrixTranspose(&m_viewMatrix, &m_viewMatrix);
@@ -108,7 +113,9 @@ void CObject::UpdateWorld()
 		return;
 	}
 	pCamBuffer = reinterpret_cast<camBuffer*>(mappedResource.pData);
-	pCamBuffer->camPos = D3DXVECTOR4(m_viewMatrix._11, m_viewMatrix._12, m_viewMatrix._13, m_viewMatrix._14);
+	pCamBuffer->camPos = D3DXVECTOR4(m_viewMatrix._11, m_viewMatrix._21, m_viewMatrix._31, m_viewMatrix._41);
 	m_pContext->Unmap(m_pCamBuffer, 0);
+
+
 	return;
 }

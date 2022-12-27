@@ -297,13 +297,13 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 		return false;
 	}
 
-	result = LoadFile(L"./Models/tile/tile.obj");
+	result = LoadFile(L"./Models/wall/wall.obj");
 	if (result == false)
 	{
 		return false;
 	}
 
-	result = LoadFile(L"./Models/wall/wall.obj");
+	result = LoadFile(L"./Models/tile/tile.obj");
 	if (result == false)
 	{
 		return false;
@@ -424,49 +424,6 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	{
 		return false;
 	}
-	/*
-	unsigned int textureWidth=0, textureHeight=0;
-
-	result = LoadPNG(L"./teapot/teapot1.png", &textureWidth, &textureHeight);
-	if (result==false)
-	{
-		return false;
-	}
-
-	D3D11_TEXTURE2D_DESC textureDesc = {};
-	textureDesc.Width = textureWidth;
-	textureDesc.Height = textureHeight;
-	textureDesc.MipLevels = 1;
-	textureDesc.ArraySize = 1;
-	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	textureDesc.SampleDesc.Count = 1;
-	textureDesc.SampleDesc.Quality = 0;
-	textureDesc.Usage = D3D11_USAGE_DEFAULT;
-	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-	textureDesc.CPUAccessFlags = 0;
-	textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
-
-	hr = m_pDevice->CreateTexture2D(&textureDesc, nullptr, &m_texture);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	unsigned int rowPitch = (textureWidth * 4) * sizeof(unsigned char); 
-	m_pContext->UpdateSubresource(m_texture, 0, nullptr, m_pngData, rowPitch, 0);
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-	srvDesc.Format = textureDesc.Format;
-	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = -1;
-
-	hr = m_pDevice->CreateShaderResourceView(m_texture, &srvDesc, &m_pShaderResourceView);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-	*/
 
 	D3D11_SAMPLER_DESC samplerDesc = {};
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -498,16 +455,26 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	pLight = reinterpret_cast<Light*>(mappedResource.pData);
 	pLight->specular = D3DXVECTOR4(0.0f, 0.0f, 0.0f, 0.0f);
 	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
-	pLight->direction = D3DXVECTOR3(1.0f, 0.0f, 0.0f);
+	pLight->direction = D3DXVECTOR3(0.0f, 1.0f, 1.0f);
 	pLight->ambient = D3DXVECTOR4(0.1f, 0.1f, 0.1f, 1.0f);
 	pLight->specPow = 32.0f;
 	m_pContext->Unmap(m_pLightBuffer, 0);
 
 
-	Objects[0] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
-	Objects[0]->Init();
-	m_pMatrixBuffers[0] = Objects[0]->getMB();
-	m_pCamBuffer = Objects[0]->getCB();
+		Objects[0] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
+		Objects[0]->Init(D3DXVECTOR3(0.0f, 0.0f, 0.0f), D3DXVECTOR3(0.5f, 0.5f, 0.5f));
+		m_pMatrixBuffers[0] = Objects[0]->getMB();
+		m_pCamBuffer = Objects[0]->getCB();
+	    
+		Objects[1] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
+		Objects[1]->Init(D3DXVECTOR3(0.0f, 0.0f, 0.0f), D3DXVECTOR3(1.0f, 1.0f, 1.0f));
+		m_pMatrixBuffers[1] = Objects[1]->getMB();
+		m_pCamBuffer = Objects[1]->getCB();
+
+		Objects[2] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
+		Objects[2]->Init(D3DXVECTOR3(0.0f, 0.0f, 0.0f), D3DXVECTOR3(1.0f, 1.0f, 1.0f));
+		m_pMatrixBuffers[2] = Objects[2]->getMB();
+		m_pCamBuffer = Objects[2]->getCB();
 
 	pPsBlob->Release();
 	pPsBlob = nullptr;
@@ -597,7 +564,7 @@ void CD3D11::Shutdown()
 		m_pSampleState = nullptr;
 	}
 
-	for (int i = m_objectCount-1; i >=0; ++i)
+	for (int i = m_objectCount-1; i >=0; --i)
 	{
 		if (m_pVertexBuffers!= nullptr)
 		{
@@ -738,17 +705,16 @@ void CD3D11::UpdateScene()
 		m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffers[i], &stride, &offset);
 		m_pContext->IASetIndexBuffer(m_pIndexBuffers[i], DXGI_FORMAT_R32_UINT, 0);
 		//draw all objects;
-		m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[0]);
+		m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[i]);
 		m_pContext->VSSetConstantBuffers(1, 1, &m_pCamBuffer);
 		m_pContext->PSSetConstantBuffers(0, 1, &m_pLightBuffer);
 
-		Objects[0]->x = dx;
-		Objects[0]->y = dy;
-		Objects[0]->z = dz;
-		Objects[0]->dphi = dphi;
-		Objects[0]->UpdateWorld();
+
+		
+		Objects[i]->UpdateWorld(dx, dy, dz , dphi);
 		m_pContext->DrawIndexed(m_indexCounts[i], 0, 0);
 	}
+	dx = 0.0f, dy = 0.0f, dz = 0.0f, dphi = 0.0f;
 	return;
 }
 

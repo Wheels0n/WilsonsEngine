@@ -39,7 +39,7 @@ private:
 	bool LoadPNG(LPCWSTR fileName, unsigned int* width, unsigned int* height);
 
 public:
-	float dx, dy, dz = 0, dtheta, dphi=0, dchi;
+	float dx=0.0f, dy=0.0f, dz = 0.0f, dtheta, dphi=0, dchi;
 
 private:
 	long long currtime, frequency;

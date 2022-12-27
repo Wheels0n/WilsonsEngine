@@ -45,9 +45,9 @@ public:
 	CObject(const CObject&);
 	~CObject();
 
-	bool Init();
+	bool Init(D3DXVECTOR3 translation, D3DXVECTOR3 scale);
 	void ShutDown();
-	void UpdateWorld();
+	void UpdateWorld(float wx, float wy, float wz, float vyaw);
 	ID3D11Buffer* getMB()
 	{
 		return m_pMatrixBuffer;
@@ -57,15 +57,16 @@ public:
 	{
 		return m_pCamBuffer;
 	};	
-	float r, x, y, z,
-		pitch = 0, yaw = 0, roll = 0,
-		dtheta = 0, dphi = 0, dchi = 0;
+
 private:
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pContext;
 	D3DXMATRIX m_worldMatrix;
 	D3DXMATRIX m_projectionMatrix;
 	D3DXMATRIX m_viewMatrix;
+
+	D3DXMATRIX m_translationMatrix;
+	D3DXMATRIX m_scaleMatrix;
 	D3DXMATRIX m_rotationMatrix;
 	ID3D11Buffer* m_pMatrixBuffer;
 	ID3D11Buffer* m_pCamBuffer;

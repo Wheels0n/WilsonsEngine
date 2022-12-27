@@ -43,6 +43,6 @@ float4 main(PixelInputType input) : SV_TARGET
 	}
 
 	outputColor = saturate(ambient + diffuseColor + specularColor);
-	return outputColor;
+	return  outputColor;
 	
 }

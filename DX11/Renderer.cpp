@@ -58,24 +58,24 @@ bool CRenderer::Frame()
 
 void CRenderer::TranslateRight()
 {
-	m_pD3D11->dx+= 1.0f;
+	m_pD3D11->dx+= 0.1f;
 	
 }
 
 void CRenderer::TranslateLeft()
 {
-	m_pD3D11->dx -= 1.0f;
+	m_pD3D11->dx -= 0.1f;
 }
 
 void CRenderer::TranslateDown()
 {
-	m_pD3D11->dy+= 1.0f;
+	m_pD3D11->dy+= 0.1f;
 	
 }
 
 void CRenderer::TranslateUp()
 {
-	m_pD3D11->dy-= 1.0f;
+	m_pD3D11->dy-= 0.1f;
 	
 }
 
