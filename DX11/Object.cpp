@@ -86,10 +86,10 @@ void CObject::UpdateWorld(float wx, float wy, float wz, float vyaw)
 	
 	D3DXMatrixTranspose(&m_worldMatrix, &m_worldMatrix);
 	D3DXMatrixTranspose(&m_viewMatrix, &m_viewMatrix);
-	D3DXMatrixTranslation(&translationMatrix, wx, wy, wz);
+	D3DXMatrixTranslation(&m_viewMatrix, wx, wy, wz);
 	D3DXMatrixRotationY(&rotationMatrix, vyaw);
 	D3DXMatrixMultiply(&m_viewMatrix, &m_viewMatrix, &rotationMatrix);
-	D3DXMatrixMultiply(&m_viewMatrix, &m_viewMatrix, &translationMatrix);
+	//D3DXMatrixMultiply(&m_viewMatrix, &m_viewMatrix, &translationMatrix);
 	//ROW-MAJOR(CPU) TO COL-MAJOR(GPU)
 	D3DXMatrixTranspose(&m_worldMatrix, &m_worldMatrix);
 	D3DXMatrixTranspose(&m_viewMatrix, &m_viewMatrix);

@@ -51,9 +51,9 @@ private:
 	ID3D11DeviceContext* m_pContext;
 	ID3D11RenderTargetView* m_pRenderTargetView;
 	ID3D11Texture2D* m_pDepthStencilBuffer;
-	ID3D11DepthStencilState* m_pDepthStencilState;
+	ID3D11DepthStencilState* m_pDefualtDDS, *m_pMirroMarkDDS, *m_pDrawReflectionDDS;
 	ID3D11DepthStencilView* m_pDepthStencilView;
-	ID3D11RasterizerState* m_pRasterstate;
+	ID3D11RasterizerState* m_pRasterstate, *m_pRasterStateCC;
 	ID3D11SamplerState* m_pSampleState;
 
 	ID3D11Buffer** m_pVertexBuffers, **m_pIndexBuffers;
@@ -70,8 +70,8 @@ private:
 	ID3D11PixelShader* m_pPixelShader;
 	ID3D11InputLayout* m_pInputLayout;
 
-	CObject* Objects[4];
-	ID3D11Buffer* m_pMatrixBuffers[3], *m_pLightBuffer, *m_pCamBuffer;
+	CObject* Objects[5];
+	ID3D11Buffer* m_pMatrixBuffers[5], *m_pLightBuffer, *m_pCamBuffer;
 	D3DXMATRIX m_worldMatrix;
 	D3DXMATRIX m_viewMatrix;
 	D3DXMATRIX m_projectionMatrix;
@@ -80,6 +80,6 @@ private:
 	char* m_plte;
 	char* m_pngData;
 
-
+	ID3D11BlendState* m_pNoRenderTargetWritesBS, *m_pTransparentBS;
 };
 #endif // !_D3D11_H_

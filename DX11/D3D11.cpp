@@ -7,9 +7,12 @@ CD3D11::CD3D11()
 	m_pContext = nullptr;
 	m_pRenderTargetView = nullptr;
 	m_pDepthStencilBuffer = nullptr;
-	m_pDepthStencilState = nullptr;
+	m_pDefualtDDS = nullptr;
+	m_pMirroMarkDDS = nullptr;
+	m_pDrawReflectionDDS = nullptr;
 	m_pDepthStencilView = nullptr;
 	m_pRasterstate = nullptr;
+	m_pRasterStateCC = nullptr;
 
 	m_pVertexShader = nullptr;
 	m_pPixelShader = nullptr;
@@ -26,6 +29,9 @@ CD3D11::CD3D11()
 	m_texture = nullptr;
 	m_plte = nullptr;
 	m_pngData = nullptr;
+
+	m_pNoRenderTargetWritesBS = nullptr;
+	m_pTransparentBS = nullptr;
 }
 
 CD3D11::~CD3D11()
@@ -54,6 +60,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
 	D3D11_RASTERIZER_DESC rasterDesc;
 	D3D11_VIEWPORT viewport;
+	D3D11_RENDER_TARGET_BLEND_DESC rtBlendDsc;
 	float fFOV, fScreenAspect;
 	m_bVsync_enabled = bVsync;
 
@@ -219,13 +226,30 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 	depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
-	hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDepthStencilState);
+	hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDefualtDDS);
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
-	m_pContext->OMSetDepthStencilState(m_pDepthStencilState, 1);
+
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pMirroMarkDDS);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+	hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDrawReflectionDDS);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+;
 
 	ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
 
@@ -404,7 +428,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 
 
-	m_pShaderResourceViews = new ID3D11ShaderResourceView*[m_objectCount];
+	m_pShaderResourceViews = new ID3D11ShaderResourceView*[4];
 	//당분간 모델당 1텍스쳐
 	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Models/sphere/Sphere.png", nullptr, nullptr, &m_pShaderResourceViews[m_texCount++], nullptr);
 	if (FAILED(hr))
@@ -420,6 +444,12 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	}
 
 	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Textures/checkboard.dds", nullptr, nullptr, &m_pShaderResourceViews[m_texCount++], nullptr);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Textures/ice.dds", nullptr, nullptr, &m_pShaderResourceViews[m_texCount++], nullptr);
 	if (FAILED(hr))
 	{
 		return false;
@@ -455,28 +485,58 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	pLight = reinterpret_cast<Light*>(mappedResource.pData);
 	pLight->specular = D3DXVECTOR4(0.0f, 0.0f, 0.0f, 0.0f);
 	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
-	pLight->direction = D3DXVECTOR3(0.0f, -1.0f, 1.0f);
+	pLight->direction = D3DXVECTOR3(-1.0f, -2.0f, 1.0f);
 	pLight->ambient = D3DXVECTOR4(0.1f, 0.1f, 0.1f, 1.0f);
 	pLight->specPow = 32.0f;
 	m_pContext->Unmap(m_pLightBuffer, 0);
 	m_pContext->PSSetConstantBuffers(0, 1, &m_pLightBuffer);
 
 		Objects[0] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
-		Objects[0]->Init(D3DXVECTOR3(0.0f, 0.0f, 0.0f), D3DXVECTOR3(0.6f, 0.6f, 0.6f));
+		Objects[0]->Init(D3DXVECTOR3(0.0f, -0.5f, -1.0f), D3DXVECTOR3(0.3f, 0.3f, 0.3f));
 		m_pMatrixBuffers[0] = Objects[0]->getMB();
 		m_pCamBuffer = Objects[0]->getCB();
 		m_pContext->VSSetConstantBuffers(1, 1, &m_pCamBuffer);
 
-
 		Objects[1] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
 		Objects[1]->Init(D3DXVECTOR3(0.0f, 0.0f, 0.0f), D3DXVECTOR3(1.0f, 1.0f, 1.0f));
 		m_pMatrixBuffers[1] = Objects[1]->getMB();
-		//m_pCamBuffer = Objects[1]->getCB();
 
 		Objects[2] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
-		Objects[2]->Init(D3DXVECTOR3(0.0f, 0.0f, 0.0f), D3DXVECTOR3(1.0f, 1.0f, 1.0f));
+		Objects[2]->Init(D3DXVECTOR3(0.0f, -1.0f, -1.0f), D3DXVECTOR3(1.0f, 1.0f, 1.0f));
 		m_pMatrixBuffers[2] = Objects[2]->getMB();
-		//m_pCamBuffer = Objects[2]->getCB();
+		
+		//mirror
+		Objects[3] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
+		Objects[3]->Init(D3DXVECTOR3(0.0f, 0.0f, -0.1f), D3DXVECTOR3(0.7f, 0.7f, 0.7f));
+		m_pMatrixBuffers[3] = Objects[3]->getMB();
+		//reflected
+		Objects[4] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
+		Objects[4]->Init(D3DXVECTOR3(0.0f, -0.5f, 1.0f), D3DXVECTOR3(0.3f, 0.3f, 0.3f));
+		m_pMatrixBuffers[4] = Objects[4]->getMB();
+
+		rtBlendDsc.BlendEnable = true;
+		rtBlendDsc.SrcBlend = D3D11_BLEND_BLEND_FACTOR;
+		rtBlendDsc.DestBlend = D3D11_BLEND_INV_BLEND_FACTOR;
+		rtBlendDsc.BlendOp = D3D11_BLEND_OP_ADD;
+		rtBlendDsc.SrcBlendAlpha = D3D11_BLEND_ONE;
+		rtBlendDsc.DestBlendAlpha = D3D11_BLEND_ZERO;
+		rtBlendDsc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		rtBlendDsc.RenderTargetWriteMask = 0;
+
+		D3D11_BLEND_DESC blendDsc= { false, false, rtBlendDsc };
+		hr = m_pDevice->CreateBlendState(&blendDsc, &m_pNoRenderTargetWritesBS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
+		rtBlendDsc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		blendDsc.RenderTarget[0] = rtBlendDsc;
+		hr = m_pDevice->CreateBlendState(&blendDsc, &m_pTransparentBS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
 
 	pPsBlob->Release();
 	pPsBlob = nullptr;
@@ -505,16 +565,34 @@ void CD3D11::Shutdown()
 		m_pRasterstate = nullptr;
 	}
 
+	if (m_pRasterStateCC != nullptr)
+	{
+		m_pRasterStateCC->Release();
+		m_pRasterStateCC = nullptr;
+	}
+
 	if (m_pDepthStencilView != nullptr)
 	{
 		m_pDepthStencilView->Release();
 		m_pDepthStencilView = nullptr;
 	}
 
-	if (m_pDepthStencilState != nullptr)
+	if (m_pDefualtDDS != nullptr)
 	{
-		m_pDepthStencilState->Release();
-		m_pDepthStencilState = nullptr;
+		m_pDefualtDDS->Release();
+		m_pDefualtDDS = nullptr;
+	}
+
+	if (m_pMirroMarkDDS != nullptr)
+	{
+		m_pMirroMarkDDS->Release();
+		m_pMirroMarkDDS = nullptr;
+	}
+
+	if (m_pDrawReflectionDDS != nullptr)
+	{
+		m_pDrawReflectionDDS->Release();
+		m_pDrawReflectionDDS = nullptr;
 	}
 
 	if (m_pRenderTargetView != nullptr)
@@ -608,10 +686,17 @@ void CD3D11::Shutdown()
 			m_pIndices.pop_back();
 		}
 
-		if (m_pShaderResourceViews != nullptr)
+		
+	}
+
+	if (m_pShaderResourceViews != nullptr)
+	{
+		for (int i = 0; i < 4; ++i)
 		{
 			m_pShaderResourceViews[i]->Release();
 		}
+		delete[] m_pShaderResourceViews;
+		m_pShaderResourceViews = nullptr;
 	}
 
 	if (m_pVertexBuffers != nullptr)
@@ -624,12 +709,6 @@ void CD3D11::Shutdown()
 	{
 		delete[] m_pIndexBuffers;
 		m_pIndexBuffers = nullptr;
-	}
-
-	if (m_pShaderResourceViews != nullptr)
-	{   
-		delete[] m_pShaderResourceViews;
-		m_pShaderResourceViews = nullptr;
 	}
 
 	if (m_vertexCounts.size() > 0)
@@ -680,39 +759,80 @@ void CD3D11::Shutdown()
 		m_texture = nullptr;
 	}
 
+	if (m_pNoRenderTargetWritesBS != nullptr)
+	{
+		m_pNoRenderTargetWritesBS->Release();
+		m_pNoRenderTargetWritesBS = nullptr;
+	}
+
+	if (m_pTransparentBS != nullptr)
+	{
+		m_pTransparentBS->Release();
+		m_pTransparentBS = nullptr;
+	}
 	return;
 }
 
 
 void CD3D11::UpdateScene()
 {  
-	QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&currtime));
-
 	//clear views
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	unsigned int stride;
 	unsigned int offset;
+	float blendV[4] = { 0.5f, 0.5f, 0.5f, 0.5f };
 	float color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	
 	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
-	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
+	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 0);
+ 	m_pContext->OMSetBlendState(nullptr, blendV, 0xf);
+	m_pContext->OMSetDepthStencilState(m_pDefualtDDS, 1);
 	stride = sizeof(VertexType);
 	offset = 0;
 
 	for (int i = 0; i < m_objectCount; ++i)
-	{
+	{   
+		if (i == 1)
+		{
+			continue;
+		}
 		m_pContext->PSSetShaderResources(0, 1, &m_pShaderResourceViews[i]);
 		m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffers[i], &stride, &offset);
 		m_pContext->IASetIndexBuffer(m_pIndexBuffers[i], DXGI_FORMAT_R32_UINT, 0);
-		//draw all objects;
 		m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[i]);
-		
-		Objects[i]->UpdateWorld(dx, dy, dz , dphi);
+		Objects[i]->UpdateWorld(dx, dy, dz, dphi);
 		m_pContext->DrawIndexed(m_indexCounts[i], 0, 0);
 	}
-	dx = 0.0f, dy = 0.0f, dz = 0.0f, dphi = 0.0f;
+
+	Objects[3]->UpdateWorld(dx, dy, dz, dphi);
+	Objects[4]->UpdateWorld(dx, dy, dz, dphi);
+	//dx = 0.0f, dy = 0.0f, dz = 0.0f, dphi = 0.0f;
+	//0 sphere 1 wall 2 tile 3 mirror 4 reflection 
+	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_STENCIL, 1.0f, 0);
+	m_pContext->OMSetBlendState(m_pNoRenderTargetWritesBS, blendV, 0xf);
+	m_pContext->OMSetDepthStencilState(m_pMirroMarkDDS, 1);
+	m_pContext->PSSetShaderResources(0, 1, &m_pShaderResourceViews[2]);
+	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffers[1], &stride, &offset);
+	m_pContext->IASetIndexBuffer(m_pIndexBuffers[1], DXGI_FORMAT_R32_UINT, 0);
+	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[3]);
+	m_pContext->DrawIndexed(m_indexCounts[1], 0, 0);
+	
+	m_pContext->OMSetBlendState(m_pTransparentBS, blendV, 0xf);
+	m_pContext->OMSetDepthStencilState(m_pDrawReflectionDDS, 1);
+	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffers[0], &stride, &offset);
+	m_pContext->IASetIndexBuffer(m_pIndexBuffers[0], DXGI_FORMAT_R32_UINT, 0);
+	m_pContext->PSSetShaderResources(0, 1, &m_pShaderResourceViews[0]);
+	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[4]);
+	m_pContext->DrawIndexed(m_indexCounts[0], 0, 0);
+
+	m_pContext->OMSetDepthStencilState(m_pDefualtDDS, 1);
+	m_pContext->PSSetShaderResources(0, 1, &m_pShaderResourceViews[3]);
+	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffers[1], &stride, &offset);
+	m_pContext->IASetIndexBuffer(m_pIndexBuffers[1], DXGI_FORMAT_R32_UINT, 0);
+	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[3]);
+	m_pContext->DrawIndexed(m_indexCounts[1], 0, 0);
+
 	return;
 }
 
