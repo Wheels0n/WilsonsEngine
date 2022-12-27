@@ -277,9 +277,9 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	fFOV = static_cast<float>(D3DX_PI) / 4.0f;
 	fScreenAspect = screenWidth / static_cast<float>(screenHeight);
 	D3DXMatrixPerspectiveFovLH(&m_projectionMatrix, fFOV, fScreenAspect, fScreenNear, fScreenDepth);
-	
-	D3DXVECTOR3 m_vPos = { 0.0f,0.0f,-1.0f };  //Translation
-	D3DXVECTOR3 m_vLookat = { 0.0f, 1.0f, 0.0f };//camera look-at target
+
+	D3DXVECTOR3 m_vPos = { 0.0f, 0.0f, -1.0f };  //Translation
+	D3DXVECTOR3 m_vLookat = { 0.0f, 0.0f, 0.0f };//camera look-at target
 	D3DXVECTOR3 m_vUp = { 0.0f, 1.0f, 0.0f };   //which axis is upward
 	D3DXMatrixLookAtLH(&m_viewMatrix, &m_vPos, &m_vLookat, &m_vUp);
 
@@ -455,26 +455,28 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	pLight = reinterpret_cast<Light*>(mappedResource.pData);
 	pLight->specular = D3DXVECTOR4(0.0f, 0.0f, 0.0f, 0.0f);
 	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
-	pLight->direction = D3DXVECTOR3(0.0f, 1.0f, 1.0f);
+	pLight->direction = D3DXVECTOR3(0.0f, -1.0f, 1.0f);
 	pLight->ambient = D3DXVECTOR4(0.1f, 0.1f, 0.1f, 1.0f);
 	pLight->specPow = 32.0f;
 	m_pContext->Unmap(m_pLightBuffer, 0);
-
+	m_pContext->PSSetConstantBuffers(0, 1, &m_pLightBuffer);
 
 		Objects[0] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
-		Objects[0]->Init(D3DXVECTOR3(0.0f, 0.0f, 0.0f), D3DXVECTOR3(0.5f, 0.5f, 0.5f));
+		Objects[0]->Init(D3DXVECTOR3(0.0f, 0.0f, 0.0f), D3DXVECTOR3(0.6f, 0.6f, 0.6f));
 		m_pMatrixBuffers[0] = Objects[0]->getMB();
 		m_pCamBuffer = Objects[0]->getCB();
-	    
+		m_pContext->VSSetConstantBuffers(1, 1, &m_pCamBuffer);
+
+
 		Objects[1] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
 		Objects[1]->Init(D3DXVECTOR3(0.0f, 0.0f, 0.0f), D3DXVECTOR3(1.0f, 1.0f, 1.0f));
 		m_pMatrixBuffers[1] = Objects[1]->getMB();
-		m_pCamBuffer = Objects[1]->getCB();
+		//m_pCamBuffer = Objects[1]->getCB();
 
 		Objects[2] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
 		Objects[2]->Init(D3DXVECTOR3(0.0f, 0.0f, 0.0f), D3DXVECTOR3(1.0f, 1.0f, 1.0f));
 		m_pMatrixBuffers[2] = Objects[2]->getMB();
-		m_pCamBuffer = Objects[2]->getCB();
+		//m_pCamBuffer = Objects[2]->getCB();
 
 	pPsBlob->Release();
 	pPsBlob = nullptr;
@@ -706,10 +708,6 @@ void CD3D11::UpdateScene()
 		m_pContext->IASetIndexBuffer(m_pIndexBuffers[i], DXGI_FORMAT_R32_UINT, 0);
 		//draw all objects;
 		m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[i]);
-		m_pContext->VSSetConstantBuffers(1, 1, &m_pCamBuffer);
-		m_pContext->PSSetConstantBuffers(0, 1, &m_pLightBuffer);
-
-
 		
 		Objects[i]->UpdateWorld(dx, dy, dz , dphi);
 		m_pContext->DrawIndexed(m_indexCounts[i], 0, 0);
