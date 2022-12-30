@@ -1,5 +1,5 @@
 # WilsonsEngine
-It's just a toy game engine to learn  DX11 and DX12. 
+It's just a toy game engine that I started as a project to learn graphics using DX11 and DX12. 
 
 ## Dependencies
   + [Dear ImGui (GUI)](https://github.com/neo-mashiro/sketchpad#dependencies)
