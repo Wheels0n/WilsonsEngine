@@ -1,4 +1,4 @@
-#include "Object.h"
+#include "ConstantBuffer.h"
 
 CObject::CObject(ID3D11Device* device, ID3D11DeviceContext* context, D3DXMATRIX* projectionMatrix, D3DXMATRIX* viewMatrix)
 {

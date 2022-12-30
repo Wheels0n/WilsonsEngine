@@ -6,8 +6,6 @@
 
 const bool g_bFull_SCREEN = false;
 const bool g_bVSYNC_ENABLE = true;
-const float g_fSCREEN_DEPTH = 100.0f;
-const float g_fSCREEN_NEAR = 0.01f;
 
 class CRenderer
 {

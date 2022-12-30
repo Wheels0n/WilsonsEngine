@@ -9,14 +9,6 @@
 #include <d3dcommon.h>
 #include <d3d11.h>
 #include <d3dx10math.h>
-#include<random>
-
-struct VertexType
-{
-	D3DXVECTOR3 position;
-	D3DXVECTOR2 tex;
-	D3DXVECTOR3 norm;
-};
 
 struct Light
 {   

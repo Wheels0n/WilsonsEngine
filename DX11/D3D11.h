@@ -10,13 +10,8 @@
 #include <d3dcommon.h>
 #include <d3d11.h>
 #include <D3DX11tex.h>
-#include <d3dx10math.h>
 #include <Windows.h>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
-#include "Object.h"
+#include "ConstantBuffer.h"
 
 //D:\DirectxSDK\Include;$(IncludePath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;$(IncludePath)
 //D:\DirectxSDK\Lib\x64;$(LibraryPath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x64;$(LibraryPath)
@@ -35,8 +30,6 @@ public:
 	void DrawScene();
 
 private:
-	bool LoadFile(LPCWSTR);
-	bool LoadPNG(LPCWSTR fileName, unsigned int* width, unsigned int* height);
 
 public:
 	float dx=0.0f, dy=0.0f, dz = 0.0f, dtheta, dphi=0, dchi;
@@ -57,13 +50,6 @@ private:
 	ID3D11SamplerState* m_pSampleState;
 
 	ID3D11Buffer** m_pVertexBuffers, **m_pIndexBuffers;
-	std::vector<D3DXVECTOR3*> m_pVertexCoordinates, m_pNormalVectors;
-	std::vector<D3DXVECTOR2*> m_pTexCoordinates;
-	std::vector<VertexType*> m_pVertices;
-	std::vector<unsigned long*> m_pIndices;
-	std::vector<int> m_vertexCounts, m_vertexCoordCounts, m_texCoordCounts, m_normalVectorCounts, m_indexCounts;
-	unsigned int m_objectCount;
-	unsigned int m_texCount;
 
 	ID3D11ShaderResourceView** m_pShaderResourceViews;
 	ID3D11VertexShader* m_pVertexShader;
@@ -72,13 +58,6 @@ private:
 
 	CObject* Objects[5];
 	ID3D11Buffer* m_pMatrixBuffers[5], *m_pLightBuffer, *m_pCamBuffer;
-	D3DXMATRIX m_worldMatrix;
-	D3DXMATRIX m_viewMatrix;
-	D3DXMATRIX m_projectionMatrix;
-
-	ID3D11Texture2D* m_texture;
-	char* m_plte;
-	char* m_pngData;
 
 	ID3D11BlendState* m_pNoRenderTargetWritesBS, *m_pTransparentBS;
 };
