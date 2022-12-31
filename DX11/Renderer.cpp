@@ -3,6 +3,7 @@
 CRenderer::CRenderer()
 {
 	m_pD3D11 = nullptr;
+	m_pCam = nullptr;
 }
 
 CRenderer::~CRenderer()
@@ -20,13 +21,14 @@ bool CRenderer::Init(int iScreenHeight, int iScreenWidth, HWND hWnd)
 		return false;
 	}
 
-	bResult = m_pD3D11->Init(iScreenWidth, iScreenHeight, g_bVSYNC_ENABLE, hWnd, g_bFull_SCREEN, g_fSCREEN_DEPTH, g_fSCREEN_NEAR);
+	bResult = m_pD3D11->Init(iScreenWidth, iScreenHeight, g_bVSYNC_ENABLE, hWnd, g_bFull_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
 	if (bResult == false)
 	{
 		MessageBox(hWnd, L"Could not initialize D3D", L"Error", MB_OK);
 		return false;
 	}
 
+	m_pCam = m_pD3D11->GetCam();
 	return true;
 }
 
@@ -58,45 +60,42 @@ bool CRenderer::Frame()
 
 void CRenderer::TranslateRight()
 {
-	m_pD3D11->dx+= 0.1f;
-	
+	m_pCam->translateRight();
 }
 
 void CRenderer::TranslateLeft()
 {
-	m_pD3D11->dx -= 0.1f;
+	m_pCam->translateLeft();
 }
 
-void CRenderer::TranslateDown()
+void CRenderer::TranslateDownward()
 {
-	m_pD3D11->dy+= 0.1f;
-	
+	m_pCam->translateDownWard();
 }
 
-void CRenderer::TranslateUp()
+void CRenderer::TranslateUpward()
 {
-	m_pD3D11->dy-= 0.1f;
-	
+	m_pCam->translateUpward();
 }
 
 void CRenderer::RotateLeft()
 {
-	m_pD3D11->dphi -= 0.1f;
+	m_pCam->RotateLeft();
 }
 
 void CRenderer::RotateRight()
 {
-	m_pD3D11->dphi += 0.1f;
+	m_pCam->RotateRight();
 }
 
 void CRenderer::ZoomIn()
 {
-	m_pD3D11->dz -= 0.1f;
+	m_pCam->ZoomIn();
 }
 
 void CRenderer::ZoomOut()
 {
-	m_pD3D11->dz += 0.1f;
+	m_pCam->ZoomOut();
 }
 
 

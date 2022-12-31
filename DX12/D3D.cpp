@@ -273,7 +273,7 @@ bool CD3D::Initialize(int iScreenHeight, int iScreenWidth, HWND hWnd, bool bVsyn
 
 	m_ullFenceValue = 1;
 
-	m_CModel = new CModel;
+	m_CModel = new Cmodel;
 	if (m_CModel == nullptr)
 	{
 		return false;

@@ -31,9 +31,13 @@
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="import.cpp" />
     <ClCompile Include="InputHandler.cpp" />
-    <ClCompile Include="ConstantBuffer.cpp" />
+    <ClCompile Include="Light.cpp" />
+    <ClCompile Include="MatrixBuffer.cpp" />
+    <ClCompile Include="Model.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="Shader.cpp" />
     <ClCompile Include="WinMain.cpp" />
+    <ClCompile Include="WorldTransformation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ImGui\imconfig.h" />
@@ -49,9 +53,13 @@
     <ClInclude Include="Engine.h" />
     <ClInclude Include="import.h" />
     <ClInclude Include="InputHandler.h" />
-    <ClInclude Include="ConstantBuffer.h" />
+    <ClInclude Include="Light.h" />
+    <ClInclude Include="MatrixBuffer.h" />
+    <ClInclude Include="Model.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="Shader.h" />
+    <ClInclude Include="WorldTransformation.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DX11.rc" />

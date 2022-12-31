@@ -14,18 +14,17 @@ CD3D11::CD3D11()
 	m_pRasterstate = nullptr;
 	m_pRasterStateCC = nullptr;
 
-	m_pVertexShader = nullptr;
-	m_pPixelShader = nullptr;
-	m_pInputLayout = nullptr;
 	m_pSampleState = nullptr;
-	m_pLightBuffer = nullptr;
-
-	m_pVertexBuffers = nullptr;
-	m_pIndexBuffers = nullptr;
-	m_pShaderResourceViews = nullptr;
 
 	m_pNoRenderTargetWritesBS = nullptr;
 	m_pTransparentBS = nullptr;
+
+	m_pCImporter = nullptr;
+	m_pCCam  = nullptr;
+	m_pCMBuffer = nullptr;
+	m_pCWMTransformation = nullptr;
+	m_pCLight = nullptr;
+	m_pCShader = nullptr;
 }
 
 CD3D11::~CD3D11()
@@ -33,7 +32,7 @@ CD3D11::~CD3D11()
 }
 
 bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
-	float fScreenDepth, float fScreenNear)
+	float fScreenFar, float fScreenNear)
 {
 
 	HRESULT hr;
@@ -287,160 +286,31 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	viewport.TopLeftY = 0.0f;
 
 	m_pContext->RSSetViewports(1, &viewport);
-	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-
 
 	//Set projectionMatrix, viewMatrix;
-
-
-
-	//Set vertexData, indexData
-	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
-	D3D11_INPUT_ELEMENT_DESC vertexDesc[3];
-	D3D11_SUBRESOURCE_DATA vertexData, indexData;
-	ID3DBlob* pVsBlob, * pPsBlob, * pErrorBlob;
-
-
-	result = LoadFile(L"./Models/sphere/Sphere.obj");
-	if (result == false)
-	{
-		return false;
-	}
-
-	result = LoadFile(L"./Models/wall/wall.obj");
-	if (result == false)
-	{
-		return false;
-	}
-
-	result = LoadFile(L"./Models/tile/tile.obj");
-	if (result == false)
-	{
-		return false;
-	}
-
-	m_pVertexBuffers = new ID3D11Buffer*[m_objectCount];
-
-	vertexData.SysMemPitch = 0;
-	vertexData.SysMemSlicePitch = 0;
-
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc.CPUAccessFlags = 0;
-	vertexBufferDesc.MiscFlags = 0;
-	vertexBufferDesc.StructureByteStride = 0;
-
-	for (int i = 0; i < m_objectCount; ++i)
-	{  
-		vertexData.pSysMem = m_pVertices[i];
-		vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCounts[i];
-		hr = m_pDevice->CreateBuffer(&vertexBufferDesc, &vertexData, &m_pVertexBuffers[i]);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-
-	}
-	//describe our indice
-	m_pIndexBuffers = new ID3D11Buffer*[m_objectCount];
-
-	indexData.SysMemPitch = 0;
-	indexData.SysMemSlicePitch = 0;
-
-
-	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBufferDesc.CPUAccessFlags = 0;
-	indexBufferDesc.MiscFlags = 0;
-	indexBufferDesc.StructureByteStride = 0;
-
-	for (int i = 0; i < m_objectCount; ++i)
-	{   
-		indexData.pSysMem = m_pIndices[i];
-		indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_indexCounts[i];
-		hr = m_pDevice->CreateBuffer(&indexBufferDesc, &indexData, &m_pIndexBuffers[i]);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-	}
+	m_pCCam = new CCamera(screenWidth, screenHeight, fScreenFar, fScreenNear);
+	m_pCCam->Init(m_pDevice);
+	m_pCCam->SetCamBuffer(m_pContext);
+	XMMATRIX* projection=  m_pCCam->GetProjectionMatrix();
+	XMMATRIX* view = m_pCCam->GetViewMatrix();
+	m_pCMBuffer = new CMBuffer(m_pDevice, m_pContext, projection, view);
+	m_pCMBuffer->Init();
+	m_pCWMTransformation = new CWMTransformation(m_pDevice, m_pContext);
 	
+	m_pCLight = new CLight(m_pDevice, m_pContext);
+	m_pCLight->Init();
+	m_pCLight->Update();
 
-	//Load VS to VS variable
-	hr = D3DX10CompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pVsBlob, &pErrorBlob, nullptr);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-	m_pDevice->CreateVertexShader(pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), nullptr, &m_pVertexShader);
-	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
+	m_pCImporter = new CImporter();
+	m_pCImporter->LoadOBJ(L"./Models/sphere/Sphere.obj");
+	m_ppCModels.push_back(m_pCImporter->GetModel());
+	m_pCImporter->LoadTex(m_ppCModels[0], L"./Models/sphere/Sphere.png", m_pDevice);
+	m_ppCModels[0]->Init(m_pDevice);
+	m_pCImporter->Clear();
+	
+	m_pCShader = new CShader(m_pDevice, m_pContext);
+	m_pCShader-> Init();
 
-
-	hr = D3DX10CompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPsBlob, &pErrorBlob, nullptr);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-	m_pDevice->CreatePixelShader(pPsBlob->GetBufferPointer(), pPsBlob->GetBufferSize(), nullptr, &m_pPixelShader);
-	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
-
-
-
-	vertexDesc[0].SemanticName = "POSITION";
-	vertexDesc[0].SemanticIndex = 0;
-	vertexDesc[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	vertexDesc[0].InputSlot = 0;
-	vertexDesc[0].AlignedByteOffset = 0;
-	vertexDesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-	vertexDesc[0].InstanceDataStepRate = 0;
-
-	vertexDesc[1].SemanticName = "TEXTURE";
-	vertexDesc[1].SemanticIndex = 0;
-	vertexDesc[1].Format = DXGI_FORMAT_R32G32_FLOAT;
-	vertexDesc[1].InputSlot = 0;
-	vertexDesc[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
-	vertexDesc[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-	vertexDesc[1].InstanceDataStepRate = 0;
-
-	vertexDesc[2].SemanticName = "NORMAL";
-	vertexDesc[2].SemanticIndex = 0;
-	vertexDesc[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	vertexDesc[2].InputSlot = 0;
-	vertexDesc[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
-	vertexDesc[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-	vertexDesc[2].InstanceDataStepRate = 0;
-	m_pDevice->CreateInputLayout(vertexDesc, sizeof(vertexDesc) / sizeof(vertexDesc[0]), pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), &m_pInputLayout);
-	m_pContext->IASetInputLayout(m_pInputLayout);
-
-
-
-	m_pShaderResourceViews = new ID3D11ShaderResourceView*[4];
-	//당분간 모델당 1텍스쳐
-	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Models/sphere/Sphere.png", nullptr, nullptr, &m_pShaderResourceViews[m_texCount++], nullptr);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-
-	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Textures/brick01.dds", nullptr, nullptr, &m_pShaderResourceViews[m_texCount++], nullptr);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Textures/checkboard.dds", nullptr, nullptr, &m_pShaderResourceViews[m_texCount++], nullptr);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Textures/ice.dds", nullptr, nullptr, &m_pShaderResourceViews[m_texCount++], nullptr);
-	if (FAILED(hr))
-	{
-		return false;
-	}
 
 	D3D11_SAMPLER_DESC samplerDesc = {};
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -454,52 +324,6 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 		return false;
 	}
 	m_pContext->PSSetSamplers(0, 1, &m_pSampleState);
-
-
-	//Setting Constant Buffers
-	D3D11_BUFFER_DESC lightCbd;
-	lightCbd.Usage = D3D11_USAGE_DYNAMIC;
-	lightCbd.ByteWidth = sizeof(Light);
-	lightCbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	lightCbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	lightCbd.MiscFlags = 0;
-	lightCbd.StructureByteStride = 0;
-	m_pDevice->CreateBuffer(&lightCbd, nullptr, &m_pLightBuffer);
-
-	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	Light* pLight;
-	m_pContext->Map(m_pLightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	pLight = reinterpret_cast<Light*>(mappedResource.pData);
-	pLight->specular = D3DXVECTOR4(0.0f, 0.0f, 0.0f, 0.0f);
-	pLight->diffuse = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
-	pLight->direction = D3DXVECTOR3(-1.0f, -2.0f, 1.0f);
-	pLight->ambient = D3DXVECTOR4(0.1f, 0.1f, 0.1f, 1.0f);
-	pLight->specPow = 32.0f;
-	m_pContext->Unmap(m_pLightBuffer, 0);
-	m_pContext->PSSetConstantBuffers(0, 1, &m_pLightBuffer);
-
-		Objects[0] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
-		Objects[0]->Init(D3DXVECTOR3(0.0f, -0.5f, -1.0f), D3DXVECTOR3(0.3f, 0.3f, 0.3f));
-		m_pMatrixBuffers[0] = Objects[0]->getMB();
-		m_pCamBuffer = Objects[0]->getCB();
-		m_pContext->VSSetConstantBuffers(1, 1, &m_pCamBuffer);
-
-		Objects[1] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
-		Objects[1]->Init(D3DXVECTOR3(0.0f, 0.0f, 0.0f), D3DXVECTOR3(1.0f, 1.0f, 1.0f));
-		m_pMatrixBuffers[1] = Objects[1]->getMB();
-
-		Objects[2] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
-		Objects[2]->Init(D3DXVECTOR3(0.0f, -1.0f, -1.0f), D3DXVECTOR3(1.0f, 1.0f, 1.0f));
-		m_pMatrixBuffers[2] = Objects[2]->getMB();
-		
-		//mirror
-		Objects[3] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
-		Objects[3]->Init(D3DXVECTOR3(0.0f, 0.0f, -0.1f), D3DXVECTOR3(0.7f, 0.7f, 0.7f));
-		m_pMatrixBuffers[3] = Objects[3]->getMB();
-		//reflected
-		Objects[4] = new CObject(m_pDevice, m_pContext, &m_projectionMatrix, &m_viewMatrix);
-		Objects[4]->Init(D3DXVECTOR3(0.0f, -0.5f, 1.0f), D3DXVECTOR3(0.3f, 0.3f, 0.3f));
-		m_pMatrixBuffers[4] = Objects[4]->getMB();
 
 		rtBlendDsc.BlendEnable = true;
 		rtBlendDsc.SrcBlend = D3D11_BLEND_BLEND_FACTOR;
@@ -525,17 +349,6 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 			return false;
 		}
 
-	pPsBlob->Release();
-	pPsBlob = nullptr;
-
-	pVsBlob->Release();
-	pVsBlob = nullptr;
-
-	if (pErrorBlob != nullptr)
-	{
-		pErrorBlob->Release();
-		pErrorBlob = nullptr;
-	}
 	return true;
 }
 
@@ -606,65 +419,46 @@ void CD3D11::Shutdown()
 		m_pSwapChain = nullptr;
 	}
 
-	if (m_pVertexShader != nullptr)
-	{
-		m_pVertexShader->Release();
-		m_pVertexShader = nullptr;
-	}
-
-	if (m_pPixelShader != nullptr)
-	{
-		m_pPixelShader->Release();
-		m_pPixelShader = nullptr;
-	}
-
-	if (m_pInputLayout != nullptr)
-	{
-		m_pInputLayout->Release();
-		m_pInputLayout = nullptr;
-	}
-
-
 	if (m_pSampleState != nullptr)
 	{
 		m_pSampleState->Release();
 		m_pSampleState = nullptr;
 	}
 
-	for (int i = m_objectCount - 1; i >= 0; --i)
+	if (m_pCImporter != nullptr)
 	{
-		if (m_pVertexBuffers != nullptr)
-		{
-			m_pVertexBuffers[i]->Release();
-		}
-
-		if (m_pIndexBuffers != nullptr)
-		{
-			m_pIndexBuffers[i]->Release();
-		}
+		delete m_pCImporter;
+		m_pCImporter = nullptr;
 	}
 
-
-	if (m_pShaderResourceViews != nullptr)
+	if (m_pCWMTransformation != nullptr)
 	{
-		for (int i = 0; i < 4; ++i)
-		{
-			m_pShaderResourceViews[i]->Release();
-		}
-		delete[] m_pShaderResourceViews;
-		m_pShaderResourceViews = nullptr;
+		delete m_pCWMTransformation;
+		m_pCWMTransformation = nullptr;
 	}
 
-	if (m_pVertexBuffers != nullptr)
+	if (m_pCMBuffer != nullptr)
+	{
+		delete m_pCMBuffer;
+		m_pCMBuffer = nullptr;
+	}
+
+	if (m_pCCam != nullptr)
+	{
+		delete m_pCCam;
+		m_pCCam = nullptr;
+	}
+    
+	if (m_pCLight != nullptr)
+	{   
+		delete m_pCLight;
+		m_pCLight = nullptr;
+	}
+
+	if (m_pCShader == nullptr)
 	{  
-		delete[] m_pVertexBuffers;
-		m_pVertexBuffers = nullptr;
-	}
-
-	if (m_pIndexBuffers != nullptr)
-	{
-		delete[] m_pIndexBuffers;
-		m_pIndexBuffers = nullptr;
+		delete m_pCShader;
+		m_pCShader = nullptr;
 	}
 
 	if (m_pNoRenderTargetWritesBS != nullptr)
@@ -686,9 +480,6 @@ void CD3D11::UpdateScene()
 {  
 	//clear views
 	HRESULT hr;
-	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	unsigned int stride;
-	unsigned int offset;
 	float blendV[4] = { 0.5f, 0.5f, 0.5f, 0.5f };
 	float color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	
@@ -696,50 +487,18 @@ void CD3D11::UpdateScene()
 	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 0);
  	m_pContext->OMSetBlendState(nullptr, blendV, 0xf);
 	m_pContext->OMSetDepthStencilState(m_pDefualtDDS, 1);
-	stride = sizeof(VertexType);
-	offset = 0;
 
-	for (int i = 0; i < m_objectCount; ++i)
+	XMMATRIX* world;
+	for (int i = 0; i < m_ppCModels.size(); ++i)
 	{   
-		if (i == 1)
-		{
-			continue;
-		}
-		m_pContext->PSSetShaderResources(0, 1, &m_pShaderResourceViews[i]);
-		m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffers[i], &stride, &offset);
-		m_pContext->IASetIndexBuffer(m_pIndexBuffers[i], DXGI_FORMAT_R32_UINT, 0);
-		m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[i]);
-		Objects[i]->UpdateWorld(dx, dy, dz, dphi);
-		m_pContext->DrawIndexed(m_indexCounts[i], 0, 0);
+		world = m_ppCModels[i]->GetWorldMatrix();
+		m_pCCam->Update();
+		m_pCMBuffer->SetViewMatrix(m_pCCam->GetViewMatrix());
+		m_pCMBuffer->SetWorldMatrix(world);
+		m_pCMBuffer->Update();
+		m_ppCModels[i]->UploadBuffers(m_pContext);
+		m_pContext->DrawIndexed(m_ppCModels[i]->GetIndexCount(), 0, 0);
 	}
-
-	Objects[3]->UpdateWorld(dx, dy, dz, dphi);
-	Objects[4]->UpdateWorld(dx, dy, dz, dphi);
-	//dx = 0.0f, dy = 0.0f, dz = 0.0f, dphi = 0.0f;
-	//0 sphere 1 wall 2 tile 3 mirror 4 reflection 
-	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_STENCIL, 1.0f, 0);
-	m_pContext->OMSetBlendState(m_pNoRenderTargetWritesBS, blendV, 0xf);
-	m_pContext->OMSetDepthStencilState(m_pMirroMarkDDS, 1);
-	m_pContext->PSSetShaderResources(0, 1, &m_pShaderResourceViews[2]);
-	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffers[1], &stride, &offset);
-	m_pContext->IASetIndexBuffer(m_pIndexBuffers[1], DXGI_FORMAT_R32_UINT, 0);
-	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[3]);
-	m_pContext->DrawIndexed(m_indexCounts[1], 0, 0);
-	
-	m_pContext->OMSetBlendState(m_pTransparentBS, blendV, 0xf);
-	m_pContext->OMSetDepthStencilState(m_pDrawReflectionDDS, 1);
-	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffers[0], &stride, &offset);
-	m_pContext->IASetIndexBuffer(m_pIndexBuffers[0], DXGI_FORMAT_R32_UINT, 0);
-	m_pContext->PSSetShaderResources(0, 1, &m_pShaderResourceViews[0]);
-	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[4]);
-	m_pContext->DrawIndexed(m_indexCounts[0], 0, 0);
-
-	m_pContext->OMSetDepthStencilState(m_pDefualtDDS, 1);
-	m_pContext->PSSetShaderResources(0, 1, &m_pShaderResourceViews[3]);
-	m_pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffers[1], &stride, &offset);
-	m_pContext->IASetIndexBuffer(m_pIndexBuffers[1], DXGI_FORMAT_R32_UINT, 0);
-	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffers[3]);
-	m_pContext->DrawIndexed(m_indexCounts[1], 0, 0);
 
 	return;
 }

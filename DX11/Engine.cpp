@@ -104,10 +104,10 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		  switch (wParam)
 		  {
 		  case VK_UP:
-			  m_pRenderer->TranslateUp();
+			  m_pRenderer->TranslateUpward();
 			  break;
 		  case VK_DOWN:
-			  m_pRenderer->TranslateDown();
+			  m_pRenderer->TranslateDownward();
 			  break;
 		  case VK_RIGHT:
 			  m_pRenderer->TranslateRight();

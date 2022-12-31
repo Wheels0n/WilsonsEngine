@@ -8,10 +8,18 @@
 
 #include <dxgi.h>
 #include <d3dcommon.h>
+#include <DirectXMath.h>
 #include <d3d11.h>
 #include <D3DX11tex.h>
 #include <Windows.h>
-#include "ConstantBuffer.h"
+#include <vector>
+#include "camera.h"
+#include "MatrixBuffer.h"
+#include "WorldTransformation.h"
+#include "Light.h"
+#include "Shader.h"
+#include "import.h"
+
 
 //D:\DirectxSDK\Include;$(IncludePath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;$(IncludePath)
 //D:\DirectxSDK\Lib\x64;$(LibraryPath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x64;$(LibraryPath)
@@ -29,15 +37,11 @@ public:
 	void UpdateScene();
 	void DrawScene();
 
+	CCamera* GetCam() const
+	{
+		return m_pCCam;
+	};
 private:
-
-public:
-	float dx=0.0f, dy=0.0f, dz = 0.0f, dtheta, dphi=0, dchi;
-
-private:
-	long long currtime, frequency;
-	float ds = 0.001f;
-
 	bool m_bVsync_enabled;
 	IDXGISwapChain* m_pSwapChain;
 	ID3D11Device* m_pDevice;
@@ -48,17 +52,15 @@ private:
 	ID3D11DepthStencilView* m_pDepthStencilView;
 	ID3D11RasterizerState* m_pRasterstate, *m_pRasterStateCC;
 	ID3D11SamplerState* m_pSampleState;
+	ID3D11BlendState* m_pNoRenderTargetWritesBS, * m_pTransparentBS;
 
-	ID3D11Buffer** m_pVertexBuffers, **m_pIndexBuffers;
+	CImporter* m_pCImporter;
+	std::vector<CModel*> m_ppCModels;
+	CCamera* m_pCCam;
+	CMBuffer* m_pCMBuffer;
+	CWMTransformation* m_pCWMTransformation;
+	CLight* m_pCLight;
+	CShader* m_pCShader;
 
-	ID3D11ShaderResourceView** m_pShaderResourceViews;
-	ID3D11VertexShader* m_pVertexShader;
-	ID3D11PixelShader* m_pPixelShader;
-	ID3D11InputLayout* m_pInputLayout;
-
-	CObject* Objects[5];
-	ID3D11Buffer* m_pMatrixBuffers[5], *m_pLightBuffer, *m_pCamBuffer;
-
-	ID3D11BlendState* m_pNoRenderTargetWritesBS, *m_pTransparentBS;
 };
 #endif // !_D3D11_H_

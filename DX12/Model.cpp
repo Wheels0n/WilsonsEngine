@@ -1,6 +1,6 @@
 #include "Model.h"
 
-CModel::CModel()
+Cmodel::Cmodel()
 {   
     m_uploadBuffer = nullptr;
     m_vertexBuffer = nullptr;
@@ -10,11 +10,11 @@ CModel::CModel()
     m_errorBlob = nullptr;
 }
 
-CModel::~CModel()
+Cmodel::~Cmodel()
 {
 }
 
-bool CModel::Initialize(ID3D12Device* m_pDevice)
+bool Cmodel::Initialize(ID3D12Device* m_pDevice)
 {  
 
     bool result;
@@ -29,7 +29,7 @@ bool CModel::Initialize(ID3D12Device* m_pDevice)
     return true;
 }
 
-void CModel::Shutdown()
+void Cmodel::Shutdown()
 {  
     m_uploadBuffer->Release();
     m_vertexBuffer->Release();
@@ -37,7 +37,7 @@ void CModel::Shutdown()
 
 }
 
-void CModel::Render(ID3D12Device* m_pDevice, ID3D12GraphicsCommandList* pCmdList)
+void Cmodel::Render(ID3D12Device* m_pDevice, ID3D12GraphicsCommandList* pCmdList)
 {   
     D3D12_RESOURCE_BARRIER barrier[2];
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
@@ -187,7 +187,7 @@ void CModel::Render(ID3D12Device* m_pDevice, ID3D12GraphicsCommandList* pCmdList
     pCmdList->DrawInstanced(3, 1, 0, 0);
 }
 
-bool CModel::InitializeBuffers(ID3D12Device* m_pDevice)
+bool Cmodel::InitializeBuffers(ID3D12Device* m_pDevice)
 {
     HRESULT hr;
     D3D12_INPUT_ELEMENT_DESC vertexDesc[2];

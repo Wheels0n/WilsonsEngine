@@ -5,7 +5,7 @@
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
 using namespace DirectX;
-class CModel
+class Cmodel
 {
 private:
 	struct Vertex
@@ -15,9 +15,9 @@ private:
 	};
 
 public:
-	CModel();
-	CModel(const CModel&) = delete;
-	~CModel();
+	Cmodel();
+	Cmodel(const Cmodel&) = delete;
+	~Cmodel();
 
 	bool Initialize(ID3D12Device*);
 	void Shutdown();

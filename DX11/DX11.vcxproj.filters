@@ -9,29 +9,38 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Source Files\external">
-      <UniqueIdentifier>{cdf604de-cbc5-48bb-8aa9-c8a28a76dc50}</UniqueIdentifier>
+    <Filter Include="Source Files\Component">
+      <UniqueIdentifier>{08eafe01-f6dd-4058-af84-b0f188c6e135}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\external\ImGui">
-      <UniqueIdentifier>{dd9e50f8-5e8d-4b9f-a7d0-55606c0817fd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\cam">
+    <Filter Include="Source Files\Component\Cam">
       <UniqueIdentifier>{816851b0-1638-49fb-8cd2-4116156d4bcc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\editor">
+    <Filter Include="Source Files\Component\Light">
+      <UniqueIdentifier>{279bc0a5-0b85-4b57-8090-5472aeb35e24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Component\Matrix">
+      <UniqueIdentifier>{7e0aea1f-aff3-45fc-87ba-baed781b128e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Core">
+      <UniqueIdentifier>{25e91440-6c9c-4a12-9bed-f2576bcb57b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External">
+      <UniqueIdentifier>{cdf604de-cbc5-48bb-8aa9-c8a28a76dc50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\External\ImGui">
+      <UniqueIdentifier>{dd9e50f8-5e8d-4b9f-a7d0-55606c0817fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Editor">
       <UniqueIdentifier>{c50e53aa-8775-4636-88c1-6f05cef501e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Component\Model">
+      <UniqueIdentifier>{222aaf94-8b2d-43bb-ad61-84fcbce5c2ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Component\Shader">
+      <UniqueIdentifier>{2d442b5b-70af-46a7-b107-10fc48c466e9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="WinMain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="InputHandler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -39,74 +48,86 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ImGui\imgui_widgets.cpp">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="..\ImGui\imgui.cpp">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="..\ImGui\imgui_demo.cpp">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="..\ImGui\imgui_draw.cpp">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="..\ImGui\imgui_impl_dx11.cpp">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="..\ImGui\imgui_impl_win32.cpp">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="..\ImGui\imgui_tables.cpp">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="import.cpp">
-      <Filter>Source Files\editor</Filter>
-    </ClCompile>
-    <ClCompile Include="ConstantBuffer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Editor</Filter>
     </ClCompile>
     <ClCompile Include="camera.cpp">
-      <Filter>Source Files\cam</Filter>
+      <Filter>Source Files\Component\Cam</Filter>
+    </ClCompile>
+    <ClCompile Include="Light.cpp">
+      <Filter>Source Files\Component\Light</Filter>
+    </ClCompile>
+    <ClCompile Include="MatrixBuffer.cpp">
+      <Filter>Source Files\Component\Matrix</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldTransformation.cpp">
+      <Filter>Source Files\Component\Matrix</Filter>
+    </ClCompile>
+    <ClCompile Include="InputHandler.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="WinMain.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Model.cpp">
+      <Filter>Source Files\Component\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>Source Files\Component\Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Source Files\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ImGui\imstb_rectpack.h">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClInclude>
     <ClInclude Include="..\ImGui\imstb_textedit.h">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClInclude>
     <ClInclude Include="..\ImGui\imstb_truetype.h">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClInclude>
     <ClInclude Include="..\ImGui\imconfig.h">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClInclude>
     <ClInclude Include="..\ImGui\imgui.h">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClInclude>
     <ClInclude Include="..\ImGui\imgui_impl_dx11.h">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClInclude>
     <ClInclude Include="..\ImGui\imgui_impl_win32.h">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClInclude>
     <ClInclude Include="..\ImGui\imgui_internal.h">
-      <Filter>Source Files\external\ImGui</Filter>
+      <Filter>Source Files\External\ImGui</Filter>
     </ClInclude>
     <ClInclude Include="import.h">
-      <Filter>Source Files\editor</Filter>
+      <Filter>Source Files\Editor</Filter>
     </ClInclude>
     <ClInclude Include="D3D11.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="InputHandler.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ConstantBuffer.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Renderer.h">
@@ -116,7 +137,28 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="camera.h">
-      <Filter>Source Files\cam</Filter>
+      <Filter>Source Files\Component\Cam</Filter>
+    </ClInclude>
+    <ClInclude Include="Light.h">
+      <Filter>Source Files\Component\Light</Filter>
+    </ClInclude>
+    <ClInclude Include="MatrixBuffer.h">
+      <Filter>Source Files\Component\Matrix</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldTransformation.h">
+      <Filter>Source Files\Component\Matrix</Filter>
+    </ClInclude>
+    <ClInclude Include="InputHandler.h">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>Source Files\Component\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>Source Files\Component\Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
+      <Filter>Source Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

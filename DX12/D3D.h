@@ -39,7 +39,7 @@ private:
 	ID3D12Fence* m_pFence;
 	HANDLE m_pFenceEvent;
 	unsigned long long m_ullFenceValue;
-    CModel * m_CModel;
+    Cmodel * m_CModel;
 };
 
 #endif

@@ -6,6 +6,8 @@
 
 const bool g_bFull_SCREEN = false;
 const bool g_bVSYNC_ENABLE = true;
+const float g_fSCREEN_FAR = 100.0f;
+const float g_fSCREEN_NEAR = 0.01f;
 
 class CRenderer
 {
@@ -14,13 +16,14 @@ public:
 	CRenderer(CRenderer&) = delete;
 	~CRenderer();
 
+
 	bool Init(int, int, HWND);
 	void Shutdown();
 	bool Frame();
 	void TranslateRight();
 	void TranslateLeft();
-	void TranslateDown();
-	void TranslateUp();
+	void TranslateDownward();
+	void TranslateUpward();
 	void RotateLeft();
 	void RotateRight();
 	void ZoomIn();
@@ -28,7 +31,8 @@ public:
 	
 private:
 	bool Render();
-	CD3D11* m_pD3D11;
-};
 
+	CD3D11* m_pD3D11;
+	CCamera* m_pCam;
+};
 #endif

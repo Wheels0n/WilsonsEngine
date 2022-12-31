@@ -2,8 +2,21 @@
 
 CImporter::CImporter()
 {  
+	m_vertexCount = 0;
+	m_vertexCoordCount = 0;
+	m_texCoordCount = 0;
+	m_normalVectorCount = 0;
+	m_indexCount = 0;
 	m_objectCount = 0;
 	m_texCount = 0;
+
+	m_pCModel = nullptr;
+	m_pVertexCoord = nullptr;
+	m_pNormalVector = nullptr;
+	m_pTexCoord = nullptr;
+	m_pVertices = nullptr;
+	m_pIndices = nullptr;
+	m_pShaderResourceView = nullptr;
 
 	m_plte = nullptr;
 	m_pngData = nullptr;
@@ -21,41 +34,32 @@ bool CImporter::LoadOBJ(LPCWSTR fileName)
 	char ch;
 	std::string line;
 
-	m_vertexCoordCounts.reserve(m_objectCount + 1);
-	m_vertexCoordCounts.push_back(0);
-	m_texCoordCounts.reserve(m_objectCount + 1);
-	m_texCoordCounts.push_back(0);
-	m_normalVectorCounts.reserve(m_objectCount + 1);
-	m_normalVectorCounts.push_back(0);
-	m_vertexCounts.reserve(m_objectCount + 1);
-	m_vertexCounts.push_back(0);
-
 	while (!fin.eof())
 	{
 		std::getline(fin, line, ' ');
 		if (line.compare("v") == 0)
 		{
-			++m_vertexCoordCounts[m_objectCount];
+			++m_vertexCoordCount;
 		}
 		else if (line.compare("vt") == 0)
 		{
-			++m_texCoordCounts[m_objectCount];
+			++m_texCoordCount;
 		}
 
 		else if (line.compare("vn") == 0)
 		{
-			++m_normalVectorCounts[m_objectCount];
+			++m_normalVectorCount;
 		}
 
 		else if (line.compare("f") == 0)
 		{
 			fin.get(ch);
-			++m_vertexCounts[m_objectCount];
+			++m_vertexCount;
 			while (ch != '\n')
 			{
 				if (ch == ' ')
 				{
-					++m_vertexCounts[m_objectCount];
+					++m_vertexCount;
 				}
 				fin.get(ch);
 
@@ -67,34 +71,17 @@ bool CImporter::LoadOBJ(LPCWSTR fileName)
 	fin.close();
 	ch = ' ';
 
-	m_pVertexCoordinates.reserve(m_objectCount + 1);
-	m_pVertexCoordinates.push_back(nullptr);
-	m_pVertexCoordinates[m_objectCount] = new XMFLOAT3[m_vertexCoordCounts[m_objectCount]];
+	m_pVertexCoord = new XMFLOAT3[m_vertexCoordCount];
+	m_pTexCoord = new XMFLOAT2[m_texCoordCount];
+	m_pNormalVector = new XMFLOAT3[m_normalVectorCount];
 
-	m_pTexCoordinates.reserve(m_objectCount + 1);
-	m_pTexCoordinates.push_back(nullptr);
-	m_pTexCoordinates[m_objectCount] = new XMFLOAT2[m_texCoordCounts[m_objectCount]];
+	m_pVertices= new VertexType[m_vertexCount];
+	m_pIndices = new unsigned long[m_vertexCount];
 
-	m_pNormalVectors.reserve(m_objectCount + 1);
-	m_pNormalVectors.push_back(nullptr);
-	m_pNormalVectors[m_objectCount] = new XMFLOAT3[m_normalVectorCounts[m_objectCount]];
-
-	m_pVertices.reserve(m_objectCount + 1);
-	m_pVertices.push_back(nullptr);
-	m_pVertices[m_objectCount] = new VertexType[m_vertexCounts[m_objectCount]];
-
-	m_pIndices.reserve(m_objectCount + 1);
-	m_pIndices.push_back(nullptr);
-	m_pIndices[m_objectCount] = new unsigned long[m_vertexCounts[m_objectCount]];
-
-	m_indexCounts.reserve(m_objectCount + 1);
-	m_indexCounts.push_back(0);
-
-
-	ZeroMemory(m_pVertexCoordinates[m_objectCount], sizeof(D3DXVECTOR3) * m_vertexCoordCounts[m_objectCount]);
-	ZeroMemory(m_pTexCoordinates[m_objectCount], sizeof(D3DXVECTOR2) * m_texCoordCounts[m_objectCount]);
-	ZeroMemory(m_pNormalVectors[m_objectCount], sizeof(D3DXVECTOR3) * m_normalVectorCounts[m_objectCount]);
-	ZeroMemory(m_pVertices[m_objectCount], sizeof(VertexType) * m_vertexCounts[m_objectCount]);
+	ZeroMemory(m_pVertexCoord, sizeof(XMFLOAT3) * m_vertexCoordCount);
+	ZeroMemory(m_pTexCoord, sizeof(XMFLOAT2) * m_texCoordCount);
+	ZeroMemory(m_pNormalVector, sizeof(XMFLOAT3) * m_normalVectorCount);
+	ZeroMemory(m_pVertices, sizeof(VertexType) * m_vertexCount);
 
 	fin.open(fileName);
 	if (fin.fail())
@@ -113,31 +100,31 @@ bool CImporter::LoadOBJ(LPCWSTR fileName)
 			fin.get(type);
 			if (type == ' ')
 			{
-				fin >> m_pVertexCoordinates[m_objectCount][vCnt].x
-					>> m_pVertexCoordinates[m_objectCount][vCnt].y
-					>> m_pVertexCoordinates[m_objectCount][vCnt].z;
-				m_pVertexCoordinates[m_objectCount][vCnt].z *= -1;
+				fin >> m_pVertexCoord[vCnt].x
+					>> m_pVertexCoord[vCnt].y
+					>> m_pVertexCoord[vCnt].z;
+				m_pVertexCoord[vCnt].z *= -1;
 				++vCnt;
 			}
 			else if (type == 't')
 			{
-				fin >> m_pTexCoordinates[m_objectCount][vtCnt].x
-					>> m_pTexCoordinates[m_objectCount][vtCnt].y;
-				m_pTexCoordinates[m_objectCount][vtCnt].y = 1 - m_pTexCoordinates[m_objectCount][vtCnt].y;
+				fin >> m_pTexCoord[vtCnt].x
+					>> m_pTexCoord[vtCnt].y;
+				m_pTexCoord[vtCnt].y = 1 - m_pTexCoord[vtCnt].y;
 				++vtCnt;
 			}
 			else if (type == 'n')
 			{
-				fin >> m_pNormalVectors[m_objectCount][vnCnt].x
-					>> m_pNormalVectors[m_objectCount][vnCnt].y
-					>> m_pNormalVectors[m_objectCount][vnCnt].z;
-				m_pNormalVectors[m_objectCount][vnCnt].z *= -1;
+				fin >> m_pNormalVector[vnCnt].x
+					>> m_pNormalVector[vnCnt].y
+					>> m_pNormalVector[vnCnt].z;
+				m_pNormalVector[vnCnt].z *= -1;
 				++vnCnt;
 			}
 		}
 
 		else if (type == 'f')
-		{
+		{   
 			fin.get(type);
 			if (type == ' ')
 			{
@@ -150,13 +137,13 @@ bool CImporter::LoadOBJ(LPCWSTR fileName)
 					fin >> vn;
 					if (!fin.fail())
 					{
-						i = m_indexCounts[m_objectCount];
-						m_pVertices[m_objectCount][i].position = m_pVertexCoordinates[m_objectCount][v - 1];
-						m_pVertices[m_objectCount][i].tex = m_pTexCoordinates[m_objectCount][vt - 1];
-						m_pVertices[m_objectCount][i].norm = m_pNormalVectors[m_objectCount][vn - 1];
+						
+						m_pVertices[m_indexCount].position = m_pVertexCoord[v - 1];
+						m_pVertices[m_indexCount].tex = m_pTexCoord[vt - 1];
+						m_pVertices[m_indexCount].norm = m_pNormalVector[vn - 1];
 						//¿À¸¥¼ÕÁÂÇ¥°è¿¡¼­ ¿Þ¼ÕÁÂÇ¥°è·Î
-						m_pIndices[m_objectCount][i] = m_vertexCounts[m_objectCount] - i - 1;
-						++m_indexCounts[m_objectCount];
+						m_pIndices[m_indexCount] = m_vertexCount - m_indexCount - 1;
+						++m_indexCount;
 					}
 
 				}
@@ -166,7 +153,8 @@ bool CImporter::LoadOBJ(LPCWSTR fileName)
 	}
 
 	fin.close();
-
+	
+	m_pCModel = new CModel(m_pVertices, m_pIndices, m_vertexCount, m_indexCount);
 	++m_objectCount;
 	return true;
 }
@@ -237,75 +225,22 @@ bool CImporter::LoadPNG(LPCWSTR fileName, unsigned int* width, unsigned int* hei
 	return true;
 }
 
+bool CImporter::LoadTex(CModel* model, LPCWSTR fileName, ID3D11Device* device)
+{   
+	HRESULT hr;
+	hr = D3DX11CreateShaderResourceViewFromFileW(device, fileName, nullptr, nullptr, &m_pShaderResourceView, nullptr);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	model->SetTex(m_pShaderResourceView);
+	return true;
+}
+
 CImporter::~CImporter()
 {  
-	for (int i = m_objectCount - 1; i >= 0; --i)
-	{
-
-		if (m_pVertexCoordinates[i] != nullptr)
-		{
-			delete[] m_pVertexCoordinates[i];
-			m_pVertexCoordinates.pop_back();
-		}
-
-		if (m_pTexCoordinates[i] != nullptr)
-		{
-			delete[] m_pTexCoordinates[i];
-			m_pTexCoordinates.pop_back();
-		}
-
-		if (m_pNormalVectors[i] != nullptr)
-		{
-			delete[] m_pNormalVectors[i];
-			m_pNormalVectors.pop_back();
-		}
-
-		if (m_pVertices[i] != nullptr)
-		{
-			delete[] m_pVertices[i];
-			m_pVertices.pop_back();
-		}
-
-		if (m_pIndices[i] != nullptr)
-		{
-			delete[] m_pIndices[i];
-			m_pIndices.pop_back();
-		}
-
-
-	}
-
-
-	if (m_vertexCounts.size() > 0)
-	{
-		m_vertexCounts.clear();
-		m_vertexCounts.shrink_to_fit();
-	}
-
-	if (m_indexCounts.size() > 0)
-	{
-		m_indexCounts.clear();
-		m_indexCounts.shrink_to_fit();
-	}
-
-	if (m_vertexCoordCounts.size() > 0)
-	{
-		m_vertexCoordCounts.clear();
-		m_vertexCoordCounts.shrink_to_fit();
-	}
-
-	if (m_texCoordCounts.size() > 0)
-	{
-		m_texCoordCounts.clear();
-		m_texCoordCounts.shrink_to_fit();
-	}
-
-	if (m_normalVectorCounts.size() > 0)
-	{
-		m_normalVectorCounts.clear();
-		m_normalVectorCounts.shrink_to_fit();
-	}
-
+	Clear();
 
 	if (m_plte == nullptr)
 	{
@@ -318,4 +253,42 @@ CImporter::~CImporter()
 		delete[] m_pngData;
 		m_pngData = nullptr;
 	}
+}
+
+void CImporter::Clear()
+{
+	if (m_pVertexCoord != nullptr)
+	{
+		delete m_pVertexCoord;
+		m_pVertexCoord = nullptr;
+	}
+
+	if (m_pTexCoord != nullptr)
+	{
+		delete m_pTexCoord;
+		m_pTexCoord = nullptr;
+	}
+
+	if (m_pNormalVector != nullptr)
+	{
+		delete m_pNormalVector;
+		m_pNormalVector = nullptr;
+	}
+
+	if (m_pVertices != nullptr)
+	{
+		m_pVertices = nullptr;
+	}
+
+	if (m_pIndices != nullptr)
+	{
+		m_pIndices = nullptr;
+	}
+
+	m_vertexCount = 0;
+	m_indexCount  = 0;
+	m_vertexCoordCount = 0;
+	m_texCoordCount = 0;
+	m_normalVectorCount =0;
+	
 }
