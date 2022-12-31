@@ -24,38 +24,42 @@ CCamera::~CCamera()
 
 void CCamera::ZoomIn()
 {   
-	XMVECTOR multiplier = XMVectorReplicate(m_fZoomSpeed);
-	m_vPos = XMVectorMultiplyAdd(multiplier, m_vLookat, m_vPos);
+	XMVECTOR vAdd = { 0.0f, 0.0f, -1 * m_fTranslateSpeed, 0.0f };
+	m_vPos = XMVectorAdd(m_vPos, vAdd);
 }
 
 void CCamera::ZoomOut()
 {
-	XMVECTOR multiplier = XMVectorReplicate(-1 * m_fZoomSpeed);
-	m_vPos = XMVectorMultiplyAdd(multiplier, m_vLookat, m_vPos);
+	XMVECTOR vAdd = { 0.0f, 0.0f, m_fTranslateSpeed, 0.0f };
+	m_vPos = XMVectorAdd(m_vPos, vAdd);
 }
 
 void CCamera::translateLeft()
 {
 	XMVECTOR vAdd = { -1* m_fTranslateSpeed, 0.0f, 0.0f, 0.0f };
 	m_vPos = XMVectorAdd(m_vPos, vAdd);
+	m_vLookat = XMVectorAdd(m_vLookat, vAdd);
 }
 
 void CCamera::translateRight()
 {   
 	XMVECTOR vAdd = { m_fTranslateSpeed, 0.0f, 0.0f, 0.0f };
 	m_vPos = XMVectorAdd(m_vPos, vAdd);
+	m_vLookat = XMVectorAdd(m_vLookat, vAdd);
 }
 
 void CCamera::translateUpward()
 {
-	XMVECTOR vAdd = { 0.0f, -1* m_fTranslateSpeed, 0.0f, 0.0f };
+	XMVECTOR vAdd = { 0.0f, m_fTranslateSpeed, 0.0f, 0.0f };
 	m_vPos = XMVectorAdd(m_vPos, vAdd);
+	m_vLookat = XMVectorAdd(m_vLookat, vAdd);
 }
 
 void CCamera::translateDownWard()
 {
-	XMVECTOR vAdd = { 0.0f, m_fTranslateSpeed, 0.0f, 0.0f };
+	XMVECTOR vAdd = { 0.0f, -1 * m_fTranslateSpeed, 0.0f, 0.0f };
 	m_vPos = XMVectorAdd(m_vPos, vAdd);
+	m_vLookat = XMVectorAdd(m_vLookat, vAdd);
 }
 
 void CCamera::RotatePitch()
@@ -72,6 +76,7 @@ void CCamera::RotateLeft()
 	XMMATRIX rotationMatrix = XMMatrixRotationY(m_fRotateSpeed);
 	m_vLookat = XMVector4Transform(m_vLookat, rotationMatrix);
 	m_vUp = XMVector4Transform(m_vUp, rotationMatrix);
+	m_vLookat = XMVectorAdd(m_vLookat, m_vPos);
 }
 
 void CCamera::RotateRight()
@@ -79,15 +84,16 @@ void CCamera::RotateRight()
 	XMMATRIX rotationMatrix = XMMatrixRotationY(-1 * m_fRotateSpeed);
 	m_vLookat = XMVector4Transform(m_vLookat, rotationMatrix);
 	m_vUp = XMVector4Transform(m_vUp, rotationMatrix);
-
+	m_vLookat = XMVectorAdd(m_vLookat, m_vPos);
 }
 
 void CCamera::RotateRoll()
 {
 	XMMATRIX rotationMatrix = XMMatrixRotationZ(m_fRotateSpeed);
 	m_vLookat = XMVector4Transform(m_vLookat, rotationMatrix);
+	m_vLookat = XMVector4Normalize(m_vLookat);
 	m_vUp = XMVector4Transform(m_vUp, rotationMatrix);
-
+	m_vUp = XMVector4Normalize(m_vUp);
 }
 
 XMVECTOR* CCamera::GetPosition()
@@ -123,8 +129,6 @@ void CCamera::Init(ID3D11Device* device)
 
 void CCamera::Update()
 {   
-	//m_vLookat = XMVector4Normalize(m_vLookat);
-	//m_vUp = XMVector4Normalize(m_vUp);
 	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vLookat, m_vUp);
 }
 
