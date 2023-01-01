@@ -189,7 +189,7 @@ void CEngine::InitWindows(int& iScreenHeight, int& iScreenWidth)
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.hInstance = m_hInstance;
-	wc.hIcon = LoadIcon(m_hInstance, MAKEINTRESOURCE(IDI_APPICON));
+	wc.hIcon = LoadIcon(m_hInstance, MAKEINTRESOURCE(IDI_ICON1));
 	wc.hIconSm = wc.hIcon;
 	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
@@ -229,7 +229,7 @@ void CEngine::InitWindows(int& iScreenHeight, int& iScreenWidth)
 		WS_EX_APPWINDOW,
 		m_appName,
 		m_appName,
-		WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_POPUP,
+		WS_POPUP | WS_CAPTION | WS_SYSMENU |WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
 		iPosX, iPosY, iScreenWidth, iScreenHeight,
 		nullptr,
 		nullptr,

@@ -5,7 +5,7 @@ CImGuiManager::CImGuiManager()
 {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGui::StyleColorsLight();
+	ImGui::StyleColorsDark();
 
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;

@@ -99,7 +99,7 @@
       <Filter>Source Files\Core</Filter>
     </ClCompile>
     <ClCompile Include="ImGuiManager.cpp">
-      <Filter>Source Files\Editor</Filter>
+      <Filter>Source Files\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -164,7 +164,7 @@
       <Filter>Source Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="ImGuiManager.h">
-      <Filter>Source Files\Editor</Filter>
+      <Filter>Source Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
