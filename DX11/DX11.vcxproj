@@ -29,6 +29,7 @@
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="D3D11.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="ImGuiManager.cpp" />
     <ClCompile Include="import.cpp" />
     <ClCompile Include="InputHandler.cpp" />
     <ClCompile Include="Light.cpp" />
@@ -51,6 +52,7 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="D3D11.h" />
     <ClInclude Include="Engine.h" />
+    <ClInclude Include="ImGuiManager.h" />
     <ClInclude Include="import.h" />
     <ClInclude Include="InputHandler.h" />
     <ClInclude Include="Light.h" />

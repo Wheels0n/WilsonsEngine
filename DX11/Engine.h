@@ -3,6 +3,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include<Windows.h>
+#include "../ImGui/imgui_impl_win32.h"
 #include"resource.h"
 #include"InputHandler.h"
 #include"Renderer.h"
@@ -30,6 +31,7 @@ private:
 	HINSTANCE m_hInstance;
 	HWND m_hWnd;
 
+	CImGuiManager m_CImGuiManager;
 	CRenderer* m_pRenderer;
 	CInputHandler* m_pInputHandler;
 };

@@ -3,6 +3,7 @@
 
 #include<Windows.h>
 #include "D3D11.h"
+#include "ImGuiManager.h"
 
 const bool g_bFull_SCREEN = false;
 const bool g_bVSYNC_ENABLE = true;

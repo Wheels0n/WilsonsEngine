@@ -95,7 +95,8 @@ void CEngine::Run()
 }
 
 LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
+{  
+	
 	switch (uMsg)
 	{
 	  case WM_KEYDOWN:
@@ -236,6 +237,7 @@ void CEngine::InitWindows(int& iScreenHeight, int& iScreenWidth)
 		nullptr);
 
 	ShowWindow(m_hWnd, SW_SHOW);
+	ImGui_ImplWin32_Init(m_hWnd);
 	SetForegroundWindow(m_hWnd);
 	SetFocus(m_hWnd);
 
@@ -248,7 +250,7 @@ void CEngine::ShutdownWindows()
 	{
 		ChangeDisplaySettings(nullptr, 0);
 	}
-
+	ImGui_ImplWin32_Shutdown();
 	DestroyWindow(m_hWnd);
 	m_hWnd = nullptr;
 
@@ -261,7 +263,8 @@ void CEngine::ShutdownWindows()
 }
 
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
+{   
+
 	switch (uMsg)
 	{
 	 case WM_DESTROY:

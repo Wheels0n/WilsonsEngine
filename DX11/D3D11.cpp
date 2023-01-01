@@ -1,5 +1,5 @@
 #include "D3D11.h"
-
+#include  "../ImGui/imgui_impl_dx11.h"
 CD3D11::CD3D11()
 {
 	m_pSwapChain = nullptr;
@@ -349,11 +349,14 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 			return false;
 		}
 
+		ImGui_ImplDX11_Init(m_pDevice, m_pContext);
 	return true;
 }
 
 void CD3D11::Shutdown()
-{
+{   
+	ImGui_ImplDX11_Shutdown();
+
 	if (m_pSwapChain!=nullptr)
 	{
 		m_pSwapChain->SetFullscreenState(false, nullptr);

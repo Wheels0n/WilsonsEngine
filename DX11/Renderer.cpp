@@ -1,4 +1,7 @@
 #include"Renderer.h"
+#include"../ImGui/imgui.h"
+#include"../ImGui/imgui_impl_win32.h"
+#include"../ImGui/imgui_impl_dx11.h"
 
 CRenderer::CRenderer()
 {
@@ -103,7 +106,16 @@ bool CRenderer::Render()
 {   
 	//버퍼 내용지우기
 	m_pD3D11->UpdateScene();
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	static bool bShowWindow = true;
+	ImGui::ShowDemoWindow(&bShowWindow);;
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 	//화면표시
 	m_pD3D11->DrawScene();
 	return true;
+
 }
