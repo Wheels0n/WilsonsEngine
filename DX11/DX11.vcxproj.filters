@@ -39,6 +39,9 @@
     <Filter Include="Source Files\Component\Shader">
       <UniqueIdentifier>{2d442b5b-70af-46a7-b107-10fc48c466e9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Core\System">
+      <UniqueIdentifier>{b623afb2-fd52-43ea-9add-075fc6681d37}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Renderer.cpp">
@@ -100,6 +103,9 @@
     </ClCompile>
     <ClCompile Include="ImGuiManager.cpp">
       <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Timer.cpp">
+      <Filter>Source Files\Core\System</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -165,6 +171,9 @@
     </ClInclude>
     <ClInclude Include="ImGuiManager.h">
       <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Timer.h">
+      <Filter>Source Files\Core\System</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
