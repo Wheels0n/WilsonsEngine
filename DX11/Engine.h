@@ -27,6 +27,8 @@ private:
 	void ShutdownWindows();
 
 private:
+	int m_screenHeight, m_screenWidth;
+
 	LPCWSTR m_appName;
 	HINSTANCE m_hInstance;
 	HWND m_hWnd;
@@ -38,5 +40,5 @@ private:
 
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 static CEngine* g_pEngineHandle = nullptr;
-
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif

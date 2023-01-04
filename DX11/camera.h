@@ -56,6 +56,7 @@ private:
 	float m_fRotateSpeed = 0.1f;
 	float m_fZoomSpeed = 0.1f;
 
+
 };
 
 #endif 

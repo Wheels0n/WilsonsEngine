@@ -33,8 +33,7 @@ CD3D11::~CD3D11()
 
 bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
 	float fScreenFar, float fScreenNear)
-{
-
+{   
 	HRESULT hr;
 	bool result;
 	IDXGIFactory* pFactory;
@@ -143,11 +142,11 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 
 	if (bFullscreen == true)
 	{
-		swapChainDesc.Windowed = false;
+		swapChainDesc.Windowed = FALSE;
 	}
 	else
 	{
-		swapChainDesc.Windowed = true;
+		swapChainDesc.Windowed = TRUE;
 	}
 
 	swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
@@ -176,7 +175,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	{
 		return false;
 	}
-
+	
 	pBackbuffer->Release();
 	pBackbuffer = nullptr;
 
@@ -349,6 +348,9 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 			return false;
 		}
 
+		float blendV[4] = { 0.5f, 0.5f, 0.5f, 0.5f };
+		m_pContext->OMSetBlendState(nullptr, blendV, 0xf);
+		m_pContext->OMSetDepthStencilState(m_pDefualtDDS, 1);
 		ImGui_ImplDX11_Init(m_pDevice, m_pContext);
 	return true;
 }
@@ -480,17 +482,13 @@ void CD3D11::Shutdown()
 
 
 void CD3D11::UpdateScene()
-{  
+{
 	//clear views
 	HRESULT hr;
-	float blendV[4] = { 0.5f, 0.5f, 0.5f, 0.5f };
-	float color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
 	
 	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
-	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 0);
- 	m_pContext->OMSetBlendState(nullptr, blendV, 0xf);
-	m_pContext->OMSetDepthStencilState(m_pDefualtDDS, 1);
-
+	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 	XMMATRIX* world;
 	for (int i = 0; i < m_ppCModels.size(); ++i)
 	{   

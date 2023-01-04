@@ -128,7 +128,7 @@ void CCamera::Init(ID3D11Device* device)
 }
 
 void CCamera::Update()
-{   
+{
 	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vLookat, m_vUp);
 }
 

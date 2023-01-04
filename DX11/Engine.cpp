@@ -13,12 +13,11 @@ CEngine::~CEngine()
 
 bool CEngine::Init()
 {
-	int iScreenHeight, iScreenWidth;
 	bool bResult;
 
-	iScreenHeight = 0;
-	iScreenWidth  = 0;
-	InitWindows(iScreenHeight, iScreenWidth);
+	m_screenHeight = 0;
+	m_screenWidth  = 0;
+	InitWindows(m_screenHeight, m_screenWidth);
 
 	m_pInputHandler = new CInputHandler;
 	if (m_pInputHandler == nullptr)
@@ -33,7 +32,9 @@ bool CEngine::Init()
 		return false;
 	}
 
-	bResult = m_pRenderer->Init(iScreenHeight, iScreenWidth, m_hWnd);
+	RECT rc;
+	GetClientRect(m_hWnd, &rc);
+	bResult = m_pRenderer->Init(rc.right - rc.left, rc.bottom - rc.top, m_hWnd);
 	if (bResult == false)
 	{
 		return false;
@@ -95,10 +96,14 @@ void CEngine::Run()
 }
 
 LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{  
-	
-	switch (uMsg)
+{
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
 	{
+		return 0;
+	}
+	switch (uMsg)
+	{ 
+
 	  case WM_KEYDOWN:
 	  {   
 		  m_pInputHandler->KeyDown(static_cast<unsigned int>(wParam));
@@ -163,18 +168,16 @@ bool CEngine::Frame()
 	if (m_pInputHandler->IsKeyDown(VK_ESCAPE))
 	{
 		return false;
-	}
+	} 
 
-	bResult = m_pRenderer->Frame();
-	if (bResult == false)
-	{
-		return false;
-	}
+	m_pRenderer->BeginFrame();
+	m_CImGuiManager.Update();
+	m_pRenderer->EndFrame();
 
 	return true;
 }
 
-void CEngine::InitWindows(int& iScreenHeight, int& iScreenWidth)
+void CEngine::InitWindows(int& m_screenHeight, int& m_screenWidth)
 {
 	WNDCLASSEX wc;
 	DEVMODE dmScreenSettings;
@@ -192,22 +195,22 @@ void CEngine::InitWindows(int& iScreenHeight, int& iScreenWidth)
 	wc.hIcon = LoadIcon(m_hInstance, MAKEINTRESOURCE(IDI_ICON1));
 	wc.hIconSm = wc.hIcon;
 	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+	wc.hbrBackground = nullptr;
 	wc.lpszMenuName = nullptr;
 	wc.lpszClassName = m_appName;
 	wc.cbSize = sizeof(WNDCLASSEX);
 
 	RegisterClassEx(&wc);
 
-	iScreenHeight = GetSystemMetrics(SM_CYSCREEN);
-	iScreenWidth = GetSystemMetrics(SM_CXSCREEN);
+	m_screenHeight = GetSystemMetrics(SM_CYSCREEN);
+	m_screenWidth = GetSystemMetrics(SM_CXSCREEN);
 
 	if (g_bFull_SCREEN)
 	{
 		ZeroMemory(&dmScreenSettings, 0, sizeof(dmScreenSettings));
 		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
-		dmScreenSettings.dmPelsHeight = static_cast<unsigned long>(iScreenHeight);
-		dmScreenSettings.dmPelsWidth = static_cast<unsigned long>(iScreenWidth);
+		dmScreenSettings.dmPelsHeight = static_cast<unsigned long>(m_screenHeight);
+		dmScreenSettings.dmPelsWidth = static_cast<unsigned long>(m_screenWidth);
 		dmScreenSettings.dmBitsPerPel = 64;
 		dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 		
@@ -218,25 +221,26 @@ void CEngine::InitWindows(int& iScreenHeight, int& iScreenWidth)
 	}
 	else
 	{
-		iScreenWidth = 1280;
-		iScreenHeight = 720;
+		m_screenWidth = 1280;
+		m_screenHeight = 800;
 
-		iPosX = (GetSystemMetrics(SM_CXSCREEN) - iScreenWidth) / 2;
-		iPosY = (GetSystemMetrics(SM_CYSCREEN) - iScreenHeight) / 2;
+		iPosX = (GetSystemMetrics(SM_CXSCREEN) - m_screenWidth) / 2;
+		iPosY = (GetSystemMetrics(SM_CYSCREEN) - m_screenHeight) / 2;
 	}
 
 	m_hWnd = CreateWindowEx(
 		WS_EX_APPWINDOW,
 		m_appName,
 		m_appName,
-		WS_POPUP | WS_CAPTION | WS_SYSMENU |WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
-		iPosX, iPosY, iScreenWidth, iScreenHeight,
+		WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS,
+		iPosX, iPosY, m_screenWidth, m_screenHeight,
 		nullptr,
 		nullptr,
 		m_hInstance,
 		nullptr);
 
 	ShowWindow(m_hWnd, SW_SHOW);
+	UpdateWindow(m_hWnd);
 	ImGui_ImplWin32_Init(m_hWnd);
 	SetForegroundWindow(m_hWnd);
 	SetFocus(m_hWnd);
@@ -250,6 +254,7 @@ void CEngine::ShutdownWindows()
 	{
 		ChangeDisplaySettings(nullptr, 0);
 	}
+
 	ImGui_ImplWin32_Shutdown();
 	DestroyWindow(m_hWnd);
 	m_hWnd = nullptr;

@@ -20,7 +20,9 @@ public:
 
 	bool Init(int, int, HWND);
 	void Shutdown();
-	bool Frame();
+	void BeginFrame();
+	void EndFrame();
+
 	void TranslateRight();
 	void TranslateLeft();
 	void TranslateDownward();

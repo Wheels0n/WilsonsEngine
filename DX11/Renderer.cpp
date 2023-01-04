@@ -14,7 +14,7 @@ CRenderer::~CRenderer()
 
 }
 
-bool CRenderer::Init(int iScreenHeight, int iScreenWidth, HWND hWnd)
+bool CRenderer::Init(int m_screenWidth, int m_screenHeight, HWND hWnd)
 {   
 	bool bResult;
 
@@ -24,7 +24,7 @@ bool CRenderer::Init(int iScreenHeight, int iScreenWidth, HWND hWnd)
 		return false;
 	}
 
-	bResult = m_pD3D11->Init(iScreenWidth, iScreenHeight, g_bVSYNC_ENABLE, hWnd, g_bFull_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
+	bResult = m_pD3D11->Init(m_screenWidth, m_screenHeight, g_bVSYNC_ENABLE, hWnd, g_bFull_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
 	if (bResult == false)
 	{
 		MessageBox(hWnd, L"Could not initialize D3D", L"Error", MB_OK);
@@ -49,16 +49,14 @@ void CRenderer::Shutdown()
 	return;
 }
 
-bool CRenderer::Frame()
+void CRenderer::BeginFrame()
 {   
-	bool bResult;
+	m_pD3D11->UpdateScene();
+}
 
-	bResult = Render();
-	if (bResult == false)
-	{
-		return false;
-	}
-	return true;
+void CRenderer::EndFrame()
+{
+	m_pD3D11->DrawScene();
 }
 
 void CRenderer::TranslateRight()
@@ -99,24 +97,4 @@ void CRenderer::ZoomIn()
 void CRenderer::ZoomOut()
 {
 	m_pCam->ZoomOut();
-}
-
-
-bool CRenderer::Render()
-{   
-	//버퍼 내용지우기
-	m_pD3D11->UpdateScene();
-
-	ImGui_ImplDX11_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-
-	static bool bShowWindow = true;
-	ImGui::ShowDemoWindow(&bShowWindow);
-	ImGui::Render();
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-	//화면표시
-	m_pD3D11->DrawScene();
-	return true;
-
 }
