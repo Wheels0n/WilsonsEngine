@@ -52,6 +52,9 @@ void CRenderer::Shutdown()
 void CRenderer::BeginFrame()
 {   
 	m_pD3D11->UpdateScene();
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
 }
 
 void CRenderer::EndFrame()

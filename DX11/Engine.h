@@ -7,6 +7,8 @@
 #include"resource.h"
 #include"InputHandler.h"
 #include"Renderer.h"
+#include"Fps.h"
+#include"Timer.h"
 
 
 class CEngine
@@ -33,6 +35,8 @@ private:
 	HINSTANCE m_hInstance;
 	HWND m_hWnd;
 
+	CFps m_CFps;
+	CTimer m_CTimer;
 	CImGuiManager m_CImGuiManager;
 	CRenderer* m_pRenderer;
 	CInputHandler* m_pInputHandler;

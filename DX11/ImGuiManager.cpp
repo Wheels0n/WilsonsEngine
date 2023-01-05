@@ -17,12 +17,7 @@ CImGuiManager::~CImGuiManager()
 
 void CImGuiManager::Update()
 {   
-	ImGui_ImplDX11_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
 	SetMenuBar();
-	bool b = true;
-	ImGui::ShowDemoWindow(&b);
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }

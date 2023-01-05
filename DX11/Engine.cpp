@@ -69,10 +69,12 @@ void CEngine::Run()
 	bool bExit, bResult;
 
 	ZeroMemory(&msg, sizeof(MSG));
+	m_CTimer.Reset();
+	m_CFps.Init();
 
 	bExit = false;
 	while (bExit != true)
-	{
+	{   
 		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
@@ -84,7 +86,7 @@ void CEngine::Run()
 			bExit = true;
 		}
 		else
-		{
+		{   
 			bResult = Frame();
 			if (bResult == false)
 			{
@@ -169,8 +171,14 @@ bool CEngine::Frame()
 	{
 		return false;
 	} 
+	
+	m_CTimer.Tick();
+	m_CFps.Frame();
 
 	m_pRenderer->BeginFrame();
+	ImGui::Begin("Utilization", nullptr, ImGuiWindowFlags_MenuBar);
+	ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_CFps.GetFps());
+	ImGui::End();
 	m_CImGuiManager.Update();
 	m_pRenderer->EndFrame();
 
