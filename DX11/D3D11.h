@@ -46,8 +46,9 @@ private:
 	IDXGISwapChain* m_pSwapChain;
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pContext;
-	ID3D11RenderTargetView* m_pRenderTargetView;
-	ID3D11Texture2D* m_pDepthStencilBuffer;
+	ID3D11RenderTargetView* m_pRenderTargetView, *m_pRTTV;
+	ID3D11Texture2D* m_pDepthStencilBuffer, *m_pRTT;
+	ID3D11ShaderResourceView* m_pSRVForRTT;
 	ID3D11DepthStencilState* m_pDefualtDDS, *m_pMirroMarkDDS, *m_pDrawReflectionDDS;
 	ID3D11DepthStencilView* m_pDepthStencilView;
 	ID3D11RasterizerState* m_pRasterstate, *m_pRasterStateCC;

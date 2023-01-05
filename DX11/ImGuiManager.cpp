@@ -18,8 +18,6 @@ CImGuiManager::~CImGuiManager()
 void CImGuiManager::Update()
 {   
 	SetMenuBar();
-	ImGui::Render();
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
 void CImGuiManager::SetMenuBar()

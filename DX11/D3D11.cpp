@@ -10,6 +10,9 @@ CD3D11::CD3D11()
 	m_pDefualtDDS = nullptr;
 	m_pMirroMarkDDS = nullptr;
 	m_pDrawReflectionDDS = nullptr;
+	m_pRTT = nullptr;
+	m_pRTTV = nullptr;
+	m_pSRVForRTT = nullptr;
 	m_pDepthStencilView = nullptr;
 	m_pRasterstate = nullptr;
 	m_pRasterStateCC = nullptr;
@@ -48,6 +51,9 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	D3D_FEATURE_LEVEL featureLevel;
 	ID3D11Texture2D* pBackbuffer;
 	D3D11_TEXTURE2D_DESC depthBufferDesc;
+	D3D11_TEXTURE2D_DESC RTTDesc;
+	D3D11_RENDER_TARGET_VIEW_DESC RTTVDesc;
+	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
 	D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
 	D3D11_RASTERIZER_DESC rasterDesc;
@@ -179,6 +185,47 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	pBackbuffer->Release();
 	pBackbuffer = nullptr;
 
+	ZeroMemory(&RTTDesc, sizeof(RTTDesc));
+	RTTDesc.Width = screenWidth;;
+	RTTDesc.Height = screenHeight;
+	RTTDesc.MipLevels = 1;
+	RTTDesc.ArraySize = 1;
+	RTTDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	RTTDesc.SampleDesc.Count = 1;
+	RTTDesc.SampleDesc.Quality = 0;
+	RTTDesc.Usage = D3D11_USAGE_DEFAULT;
+	RTTDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	RTTDesc.CPUAccessFlags = 0;
+	RTTDesc.MiscFlags = 0;
+
+	hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pRTT);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	RTTVDesc.Format = RTTDesc.Format;
+	RTTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	RTTVDesc.Texture2D.MipSlice = 0;
+
+	hr = m_pDevice->CreateRenderTargetView(m_pRTT, &RTTVDesc, &m_pRTTV);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+
+	SRVDesc.Format = RTTDesc.Format;
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.MipLevels = 1;
+
+	hr = m_pDevice->CreateShaderResourceView(m_pRTT, &SRVDesc, &m_pSRVForRTT);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
 	ZeroMemory(&depthBufferDesc, sizeof(depthBufferDesc));
 
 	depthBufferDesc.Width = screenWidth;
@@ -256,7 +303,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 		return false;
 	}
 
-	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
+	m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDepthStencilView);
 
 	rasterDesc.AntialiasedLineEnable = false;
 	rasterDesc.CullMode =D3D11_CULL_BACK;
@@ -376,6 +423,24 @@ void CD3D11::Shutdown()
 		m_pRasterStateCC = nullptr;
 	}
 
+	if (m_pRTT != nullptr)
+	{
+		m_pRTT->Release();
+		m_pRTT = nullptr;
+	}
+
+	if (m_pRTTV != nullptr)
+	{
+		m_pRTTV->Release();
+		m_pRTTV = nullptr;
+	}
+
+	if (m_pSRVForRTT != nullptr)
+	{
+		m_pSRVForRTT->Release();
+		m_pSRVForRTT = nullptr;
+	}
+
 	if (m_pDepthStencilView != nullptr)
 	{
 		m_pDepthStencilView->Release();
@@ -488,7 +553,9 @@ void CD3D11::UpdateScene()
 	float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
 	
 	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
+	m_pContext->ClearRenderTargetView(m_pRTTV, color);
 	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDepthStencilView);
 	XMMATRIX* world;
 	for (int i = 0; i < m_ppCModels.size(); ++i)
 	{   
@@ -500,12 +567,17 @@ void CD3D11::UpdateScene()
 		m_ppCModels[i]->UploadBuffers(m_pContext);
 		m_pContext->DrawIndexed(m_ppCModels[i]->GetIndexCount(), 0, 0);
 	}
-
+	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
 	return;
 }
 
 void CD3D11::DrawScene()
-{
+{   
+	ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_MenuBar);
+	ImGui::Image((void*)m_pSRVForRTT, ImVec2(1020, 720));
+	ImGui::End();
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 	if (m_bVsync_enabled == true)
 	{
 		m_pSwapChain->Present(1, 0);
