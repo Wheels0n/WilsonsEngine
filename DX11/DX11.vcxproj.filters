@@ -107,13 +107,16 @@
     <ClCompile Include="Timer.cpp">
       <Filter>Source Files\Core\System</Filter>
     </ClCompile>
-    <ClCompile Include="Fps.cpp">
-      <Filter>Source Files\Core\System</Filter>
-    </ClCompile>
     <ClCompile Include="ContentBrowser.cpp">
       <Filter>Source Files\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Editor.cpp">
+      <Filter>Source Files\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Fps.cpp">
+      <Filter>Source Files\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Viewport.cpp">
       <Filter>Source Files\Editor</Filter>
     </ClCompile>
   </ItemGroup>
@@ -184,13 +187,16 @@
     <ClInclude Include="Timer.h">
       <Filter>Source Files\Core\System</Filter>
     </ClInclude>
-    <ClInclude Include="Fps.h">
-      <Filter>Source Files\Core\System</Filter>
-    </ClInclude>
     <ClInclude Include="ContentBrowser.h">
       <Filter>Source Files\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Editor.h">
+      <Filter>Source Files\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Fps.h">
+      <Filter>Source Files\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Viewport.h">
       <Filter>Source Files\Editor</Filter>
     </ClInclude>
   </ItemGroup>

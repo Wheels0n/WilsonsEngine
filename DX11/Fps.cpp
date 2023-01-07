@@ -17,7 +17,13 @@ void CFps::Frame()
 		m_count = 0;
 		m_startTime = timeGetTime();
 	}
+
+	ImGui::Begin("Utilization", nullptr, ImGuiWindowFlags_MenuBar);
+	ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_fps);
+	ImGui::End();
+
 	return;
+
 }
 
 int CFps::GetFps()

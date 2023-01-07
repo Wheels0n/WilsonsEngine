@@ -41,6 +41,12 @@ public:
 	{
 		return m_pCCam;
 	};
+
+	ID3D11ShaderResourceView* GetRTT() const
+	{
+		return m_pSRVForRTT;
+	};
+
 private:
 	bool m_bVsync_enabled;
 	IDXGISwapChain* m_pSwapChain;

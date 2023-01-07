@@ -40,6 +40,8 @@ bool CEngine::Init()
 		return false;
 	}
 	
+	m_CEditor.Init(m_pRenderer->GetRTT());
+
 	return true;
 }
 
@@ -70,7 +72,6 @@ void CEngine::Run()
 
 	ZeroMemory(&msg, sizeof(MSG));
 	m_CTimer.Reset();
-	m_CFps.Init();
 
 	bExit = false;
 	while (bExit != true)
@@ -173,14 +174,10 @@ bool CEngine::Frame()
 	} 
 	
 	m_CTimer.Tick();
-	m_CFps.Frame();
 	
 	m_pRenderer->BeginFrame();
 	m_CImGuiManager.Update();
-	m_cEditor.Draw();
-	ImGui::Begin("Utilization", nullptr, ImGuiWindowFlags_MenuBar);
-	ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_CFps.GetFps());
-	ImGui::End();
+	m_CEditor.Draw();
 	m_pRenderer->EndFrame();
 
 	return true;

@@ -7,7 +7,6 @@
 #include"resource.h"
 #include"InputHandler.h"
 #include"Renderer.h"
-#include"Fps.h"
 #include"Timer.h"
 #include"Editor.h"
 
@@ -36,12 +35,11 @@ private:
 	HINSTANCE m_hInstance;
 	HWND m_hWnd;
 
-	CFps m_CFps;
 	CTimer m_CTimer;
 	CImGuiManager m_CImGuiManager;
 	CRenderer* m_pRenderer;
 	CInputHandler* m_pInputHandler;
-	CEditor m_cEditor;
+	CEditor m_CEditor;
 };
 
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
