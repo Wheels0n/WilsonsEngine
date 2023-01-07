@@ -574,7 +574,7 @@ void CD3D11::UpdateScene()
 void CD3D11::DrawScene()
 {   
 	ImGuiIO& io = ImGui::GetIO();
-	ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_MenuBar);
+	ImGui::Begin("scene", nullptr, ImGuiWindowFlags_MenuBar);
 	ImGui::Image((void*)m_pSRVForRTT, ImVec2(1020, 720));
 	ImGui::End();
 	ImGui::Render();

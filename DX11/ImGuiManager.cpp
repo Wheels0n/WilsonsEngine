@@ -7,7 +7,6 @@ CImGuiManager::CImGuiManager()
 	ImGui::CreateContext();
 	ImGui::StyleColorsDark();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.MouseDrawCursor = true;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
@@ -18,6 +17,8 @@ CImGuiManager::CImGuiManager()
 		style.WindowRounding = 0.0f;               
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;  //≈ı∏Ìµµ
 	}
+
+	
 }
 
 CImGuiManager::~CImGuiManager()
@@ -28,6 +29,7 @@ CImGuiManager::~CImGuiManager()
 void CImGuiManager::Update()
 {   
 	SetMenuBar();
+	SetDockspace();
 }
 
 void CImGuiManager::SetMenuBar()
@@ -40,6 +42,12 @@ void CImGuiManager::SetMenuBar()
 		}
 		ImGui::EndMainMenuBar();
 	}
+
+}
+
+void CImGuiManager::SetDockspace()
+{
+	ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 }
 
 

@@ -14,5 +14,6 @@ public:
 	void Update();
 private:
 	void SetMenuBar();
+	void SetDockspace();
 };
 #endif
