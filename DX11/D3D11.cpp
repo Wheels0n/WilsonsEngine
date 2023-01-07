@@ -347,12 +347,12 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	m_pCLight->Init();
 	m_pCLight->Update();
 
-	m_pCImporter = new CImporter();
-	m_pCImporter->LoadOBJ(L"./Models/sphere/Sphere.obj");
-	m_ppCModels.push_back(m_pCImporter->GetModel());
-	m_pCImporter->LoadTex(m_ppCModels[0], L"./Models/sphere/Sphere.png", m_pDevice);
-	m_ppCModels[0]->Init(m_pDevice);
-	m_pCImporter->Clear();
+	//m_pCImporter = new CImporter();
+	//m_pCImporter->LoadOBJ(L"./Models/sphere/Sphere.obj");
+	//m_ppCModels.push_back(m_pCImporter->GetModel());
+	//m_pCImporter->LoadTex(m_ppCModels[0], L"./Models/sphere/Sphere.png", m_pDevice);
+	//m_ppCModels[0]->Init(m_pDevice);
+	//m_pCImporter->Clear();
 	
 	m_pCShader = new CShader(m_pDevice, m_pContext);
 	m_pCShader-> Init();

@@ -176,6 +176,7 @@ bool CEngine::Frame()
 	m_CFps.Frame();
 
 	m_pRenderer->BeginFrame();
+	m_cEditor.Draw();
 	ImGui::Begin("Utilization", nullptr, ImGuiWindowFlags_MenuBar);
 	ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_CFps.GetFps());
 	ImGui::End();

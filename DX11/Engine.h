@@ -9,6 +9,7 @@
 #include"Renderer.h"
 #include"Fps.h"
 #include"Timer.h"
+#include"Editor.h"
 
 
 class CEngine
@@ -40,6 +41,7 @@ private:
 	CImGuiManager m_CImGuiManager;
 	CRenderer* m_pRenderer;
 	CInputHandler* m_pInputHandler;
+	CEditor m_cEditor;
 };
 
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
