@@ -573,11 +573,20 @@ void CD3D11::UpdateScene()
 
 void CD3D11::DrawScene()
 {   
+	ImGuiIO& io = ImGui::GetIO();
 	ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_MenuBar);
 	ImGui::Image((void*)m_pSRVForRTT, ImVec2(1020, 720));
 	ImGui::End();
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
+	}
+
+
 	if (m_bVsync_enabled == true)
 	{
 		m_pSwapChain->Present(1, 0);

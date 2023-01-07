@@ -174,7 +174,7 @@ bool CEngine::Frame()
 	
 	m_CTimer.Tick();
 	m_CFps.Frame();
-
+	
 	m_pRenderer->BeginFrame();
 	m_cEditor.Draw();
 	ImGui::Begin("Utilization", nullptr, ImGuiWindowFlags_MenuBar);
