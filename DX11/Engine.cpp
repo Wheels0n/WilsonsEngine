@@ -40,7 +40,7 @@ bool CEngine::Init()
 		return false;
 	}
 	
-	m_CEditor.Init(m_pRenderer->GetRTT());
+	m_CEditor.Init(m_pRenderer->GetD3D11());
 
 	return true;
 }

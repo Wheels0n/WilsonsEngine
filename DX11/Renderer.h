@@ -22,12 +22,12 @@ public:
 	void Shutdown();
 	void BeginFrame();
 	void EndFrame();
-	ID3D11ShaderResourceView* GetRTT()
+
+	CD3D11* GetD3D11()
 	{
-		return m_pD3D11->GetRTT();
+		return m_pD3D11;
 	};
 	
-
 	void TranslateRight();
 	void TranslateLeft();
 	void TranslateDownward();

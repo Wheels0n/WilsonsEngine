@@ -310,7 +310,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	rasterDesc.DepthBias = 0;
 	rasterDesc.DepthBiasClamp = 0.0f;
 	rasterDesc.DepthClipEnable = true;
-	rasterDesc.FillMode = D3D11_FILL_SOLID;
+	rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
 	rasterDesc.FrontCounterClockwise = false;
 	rasterDesc.MultisampleEnable = false;
 	rasterDesc.ScissorEnable = false;
@@ -592,4 +592,10 @@ void CD3D11::DrawScene()
 	{
 		m_pSwapChain->Present(0, 0);
 	}
+}
+
+void CD3D11::addModel(CModel* pCModel, ID3D11Device* pDevice)
+{
+	m_ppCModels.push_back(pCModel);
+	m_ppCModels.back()->Init(pDevice);
 }

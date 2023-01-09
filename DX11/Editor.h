@@ -7,7 +7,7 @@
 class CEditor
 {
 public:
-	void Init(ID3D11ShaderResourceView*);
+	void Init(CD3D11*);
 	void Draw();
 private:
 	CContentBrowser m_CContentBrowser;

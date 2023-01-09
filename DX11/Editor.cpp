@@ -1,9 +1,10 @@
 #include "Editor.h"
 
-void CEditor::Init(ID3D11ShaderResourceView* pSRV)
+void CEditor::Init(CD3D11* pCD3D11)
 {
 	m_CFps.Init();
-	m_CViewport.Init(pSRV);
+	m_CViewport.Init(pCD3D11);
+	m_CContentBrowser.Init(pCD3D11->GetDevice());
 }
 
 void CEditor::Draw()

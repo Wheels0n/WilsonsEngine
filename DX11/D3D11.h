@@ -36,6 +36,7 @@ public:
 
 	void UpdateScene();
 	void DrawScene();
+	void addModel(CModel*, ID3D11Device*);
 
 	CCamera* GetCam() const
 	{
@@ -45,6 +46,11 @@ public:
 	ID3D11ShaderResourceView* GetRTT() const
 	{
 		return m_pSRVForRTT;
+	};
+
+	ID3D11Device* GetDevice() const
+	{
+		return m_pDevice;
 	};
 
 private:
