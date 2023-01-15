@@ -23,7 +23,8 @@ CImporter::CImporter()
 }
 
 bool CImporter::LoadOBJ(LPCWSTR fileName)
-{
+{   
+
 	std::ifstream fin;
 	fin.open(fileName);
 
@@ -154,7 +155,24 @@ bool CImporter::LoadOBJ(LPCWSTR fileName)
 
 	fin.close();
 	
-	m_pCModel = new CModel(m_pVertices, m_pIndices, m_vertexCount, m_indexCount);
+	wchar_t* tok = nullptr;
+	wchar_t* ptr = nullptr;
+	wchar_t* temp = wcstok((wchar_t*)fileName, (const wchar_t*)L"\\", &ptr);
+	while (true)
+	{   
+		temp = wcstok(nullptr, (const wchar_t*)L"\\", &ptr);
+		if (temp == nullptr)
+		{    
+			break;
+		}
+		else
+		{
+			tok = temp;
+		}
+		
+	}
+
+	m_pCModel = new CModel(m_pVertices, m_pIndices, m_vertexCount, m_indexCount, tok);
 	++m_objectCount;
 	return true;
 }

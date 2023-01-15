@@ -1,6 +1,7 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
+#include"Scene.h"
 #include"ContentBrowser.h"
 #include"Viewport.h"
 #include"Fps.h"
@@ -11,7 +12,8 @@ public:
 	void Draw();
 private:
 	CContentBrowser m_CContentBrowser;
-	CFps m_CFps;
+	CScene m_Scene;
 	CViewport m_CViewport;
+	CFps m_CFps;
 };
 #endif // !EDITOR_H

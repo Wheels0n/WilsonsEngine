@@ -3,7 +3,8 @@
 CModel::CModel(VertexType* pVertices,
 	unsigned long* pIndices,
 	unsigned int vertexCount,
-	unsigned int indexCount)
+	unsigned int indexCount,
+	wchar_t* pName)
 {  
 	m_pVertices = pVertices;
 	m_pIndices = pIndices;
@@ -14,6 +15,7 @@ CModel::CModel(VertexType* pVertices,
 	m_pVertexBuffer = nullptr;
 	m_pIndexBuffer = nullptr;
 
+	m_pName = pName;
 	m_worldMatrix = XMMatrixIdentity();
 }
 

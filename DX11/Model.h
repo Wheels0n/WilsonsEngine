@@ -2,6 +2,7 @@
 #define MODEL_H
 #include <D3D11.h>
 #include <DirectXMath.h>
+#include <string>
 
 using namespace DirectX;
 
@@ -18,7 +19,8 @@ public:
 	CModel(VertexType* pVertices,
 	unsigned long* pIndices,
 	unsigned int vertexCount,
-	unsigned int indexCount);
+	unsigned int indexCount,
+	wchar_t* pName);
 	CModel(const CModel&);
 	~CModel();
 
@@ -34,12 +36,18 @@ public:
 	{
 		return m_indexCount;
 	}
+	LPCWSTR GetName()
+	{
+		return m_pName;
+	}
+
 private:
 
 	ID3D11Buffer* m_pVertexBuffer;
 	ID3D11Buffer* m_pIndexBuffer;
 	ID3D11ShaderResourceView* m_pShaderResourceView;
-
+    
+	wchar_t* m_pName;
 	VertexType* m_pVertices;
 	unsigned long* m_pIndices;
 	unsigned int m_vertexCount;

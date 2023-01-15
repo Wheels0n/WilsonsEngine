@@ -594,7 +594,7 @@ void CD3D11::DrawScene()
 	}
 }
 
-void CD3D11::addModel(CModel* pCModel, ID3D11Device* pDevice)
+void CD3D11::AddModel(CModel* pCModel, ID3D11Device* pDevice)
 {
 	m_ppCModels.push_back(pCModel);
 	m_ppCModels.back()->Init(pDevice);

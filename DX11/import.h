@@ -2,11 +2,8 @@
 #define EDITOR_IMPORT_H
 
 #include <Windows.h>
-#include <D3D11.h>
 #include <D3DX11tex.h>
-#include <DirectXMath.h>
 #include <fstream>
-#include <string>
 #include "Model.h"
 
 using namespace DirectX;

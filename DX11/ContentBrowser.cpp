@@ -49,7 +49,7 @@ void CContentBrowser::List()
 
 			ImGui::SetDragDropPayload("obj", fileName_t, (wcslen(fileName_t)+1) * sizeof(wchar_t), ImGuiCond_Once);
 			ImGui::Text("%s", fileName.c_str());
-			ImGui::EndDragDropSource();
+			ImGui::EndDragDropSource(); 
 		}
 
 		ImGui::PopStyleColor();
