@@ -121,6 +121,9 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	pFactory->Release();
 
 
+	m_clientWidth = screenWidth;
+	m_clientHeight = screenHeight;
+
 	ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
 
 	swapChainDesc.BufferCount = 1;

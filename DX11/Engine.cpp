@@ -4,6 +4,7 @@ CEngine::CEngine()
 {
 	m_pInputHandler = nullptr;
 	m_pRenderer = nullptr;
+	m_pEditor = nullptr;
 }
 
 CEngine::~CEngine()
@@ -40,7 +41,12 @@ bool CEngine::Init()
 		return false;
 	}
 	
-	m_CEditor.Init(m_pRenderer->GetD3D11());
+	m_pEditor = new CEditor;
+	if (m_pEditor == nullptr)
+	{
+		return false;
+	}
+	m_pEditor->Init(m_pRenderer->GetD3D11());
 
 	return true;
 }
@@ -58,6 +64,12 @@ void CEngine::Shutdown()
 		m_pRenderer->Shutdown();
 		delete m_pRenderer;
 		m_pRenderer = nullptr;
+	}
+
+	if (m_pEditor == nullptr)
+	{
+		delete m_pEditor;
+		m_pEditor = nullptr;
 	}
 
 	ShutdownWindows();
@@ -99,19 +111,25 @@ void CEngine::Run()
 }
 
 LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
+{   
+	if (uMsg == WM_LBUTTONDOWN && m_pEditor != nullptr)
 	{
+		int x = (short)(lParam & 0xffff);
+		int y = (lParam >> 16) & 0xffff;
+		m_pEditor->Pick(x, y);
+	}
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
+	{   
 		return 0;
 	}
 	switch (uMsg)
 	{ 
-
 	  case WM_KEYDOWN:
 	  {   
 		  m_pInputHandler->KeyDown(static_cast<unsigned int>(wParam));
 		  switch (wParam)
 		  {
+
 		  case VK_UP:
 			  m_pRenderer->TranslateUpward();
 			  break;
@@ -177,7 +195,7 @@ bool CEngine::Frame()
 	
 	m_pRenderer->BeginFrame();
 	m_CImGuiManager.Update();
-	m_CEditor.Draw();
+	m_pEditor->Draw();
 	m_pRenderer->EndFrame();
 
 	return true;

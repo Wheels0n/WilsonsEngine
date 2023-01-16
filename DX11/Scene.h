@@ -3,6 +3,7 @@
 
 #include "../ImGui/imgui.h"
 #include "Entity.h"
+#include "camera.h"
 #include <Windows.h>
 #include <vector>
 
@@ -16,6 +17,11 @@ public:
 	void AddEntity(std::string, DirectX::XMMATRIX*);
 	void Draw();
 
+	void SetCam(CCamera* pCam)
+	{
+		m_pCCam = pCam;
+	}
+
 	void SetSceneName(std::string name)
 	{
 		m_name= name;
@@ -25,11 +31,15 @@ public:
 	{
 		return SceneHandler;
 	}
+	void Pick(int, int, int, int);
 private:
 	std::vector<CEntity*> m_entites;
 	std::string m_name;
 	CEntity* m_pSelectionETT = nullptr;
 	CScene* SceneHandler = this;
+	CCamera* m_pCCam = nullptr;
+
+	bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float);
 };
 
 

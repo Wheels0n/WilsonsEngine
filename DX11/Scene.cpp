@@ -30,8 +30,9 @@ void CScene::Draw()
 				if (ImGui::TreeNode((void*)(intptr_t)i, name.c_str(), i))
 				{
 					m_pSelectionETT = m_entites[i];
-					ImGui::TreePop();
+					
 				}
+				ImGui::TreePop();
 			}
 			ImGui::TreePop();
 		}
@@ -88,5 +89,59 @@ void CScene::Draw()
 		}
 		ImGui::End();
 	}
+}
+
+void CScene::Pick(int sx, int sy, int width, int height)
+{
+	using namespace DirectX;
+
+	XMMATRIX projectionMat = *(m_pCCam->GetProjectionMatrix());
+	XMFLOAT4X4 projectionMat4;
+	XMStoreFloat4x4(&projectionMat4, projectionMat);
+
+	XMMATRIX viewMat = *(m_pCCam->GetViewMatrix());
+	XMVECTOR vDet = XMMatrixDeterminant(viewMat);
+	XMMATRIX inverseView = XMMatrixInverse(&vDet, viewMat);
+
+	float vx = (2.0f * sx / width - 1.0f) / projectionMat4._11;
+	float vy = (-2.0f * sy / height + 1.0f) / projectionMat4._22;
+
+	XMVECTOR rayOrigin = *(m_pCCam->GetPosition());
+	XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 0.0f);
+
+	for (int i = 0; i < m_entites.size(); ++i)
+	{   
+		XMMATRIX world = *(m_entites[i]->GetMat());
+		XMVECTOR wDet = XMMatrixDeterminant(world);
+		XMMATRIX inverseWorld = XMMatrixInverse(&wDet, world);
+
+		XMMATRIX toLocal = XMMatrixMultiply(inverseView, inverseWorld);
+
+		rayOrigin = XMVector3TransformCoord(rayOrigin, toLocal);
+		rayDir = XMVector3TransformCoord(rayDir, toLocal);
+
+		rayDir = XMVector3Normalize(rayDir);
+
+		XMFLOAT3 xfO;
+		XMStoreFloat3(&xfO, rayOrigin);
+		XMFLOAT3 xfDir;
+		XMStoreFloat3(&xfDir, rayDir);
+
+		if (RaySphereIntersect(xfO, xfDir, 1.0f) == true)
+		{
+			m_pSelectionETT = m_entites[i];
+			break;
+		}
+		
+	}
+}
+
+bool CScene::RaySphereIntersect(XMFLOAT3 o, XMFLOAT3 dir, float r)
+{
+	float a = (dir.x * dir.x) + (dir.y * dir.y) + (dir.z * dir.z);
+	float b = ((dir.x * o.x) + (dir.y * o.y) + (dir.z * o.z)) * 2.0f;
+	float c = (o.x * o.x) + (o.y * o.y) + (o.z * o.z) - r*r;
+	
+	return (b*b -(-4*a*c))<0 ? false:true;
 }
 

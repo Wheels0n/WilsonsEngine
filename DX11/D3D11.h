@@ -52,6 +52,14 @@ public:
 	{
 		return m_pDevice;
 	};
+	int GetClientWidth() const
+	{
+		return m_clientWidth;
+	};
+	int GetClientHeight() const
+	{
+		return m_clientHeight;
+	};
 
 private:
 	bool m_bVsync_enabled;
@@ -75,5 +83,7 @@ private:
 	CLight* m_pCLight;
 	CShader* m_pCShader;
 
+	int m_clientWidth;
+	int m_clientHeight;
 };
 #endif // !_D3D11_H_

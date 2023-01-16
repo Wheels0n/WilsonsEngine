@@ -39,7 +39,7 @@ private:
 	CImGuiManager m_CImGuiManager;
 	CRenderer* m_pRenderer;
 	CInputHandler* m_pInputHandler;
-	CEditor m_CEditor;
+	CEditor* m_pEditor;
 };
 
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
