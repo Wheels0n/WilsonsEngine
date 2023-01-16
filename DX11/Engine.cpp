@@ -114,7 +114,7 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {   
 	if (uMsg == WM_LBUTTONDOWN && m_pEditor != nullptr)
 	{
-		int x = (short)(lParam & 0xffff);
+		int x = (short)(lParam)& 0xffff;
 		int y = (lParam >> 16) & 0xffff;
 		m_pEditor->Pick(x, y);
 	}

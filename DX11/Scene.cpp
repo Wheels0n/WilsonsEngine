@@ -103,8 +103,8 @@ void CScene::Pick(int sx, int sy, int width, int height)
 	XMVECTOR vDet = XMMatrixDeterminant(viewMat);
 	XMMATRIX inverseView = XMMatrixInverse(&vDet, viewMat);
 
-	float vx = (2.0f * sx / width - 1.0f) / projectionMat4._11;
-	float vy = (-2.0f * sy / height + 1.0f) / projectionMat4._22;
+	float vx = (2.0f * (float)sx / (float)width - 1.0f) / projectionMat4._11;
+	float vy = (-2.0f * (float)sy / (float)height + 1.0f) / projectionMat4._22;
 
 	XMVECTOR rayOrigin = *(m_pCCam->GetPosition());
 	XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 0.0f);
@@ -118,7 +118,7 @@ void CScene::Pick(int sx, int sy, int width, int height)
 		XMMATRIX toLocal = XMMatrixMultiply(inverseView, inverseWorld);
 
 		rayOrigin = XMVector3TransformCoord(rayOrigin, toLocal);
-		rayDir = XMVector3TransformCoord(rayDir, toLocal);
+		rayDir = XMVector3TransformNormal(rayDir, toLocal);
 
 		rayDir = XMVector3Normalize(rayDir);
 
@@ -142,6 +142,7 @@ bool CScene::RaySphereIntersect(XMFLOAT3 o, XMFLOAT3 dir, float r)
 	float b = ((dir.x * o.x) + (dir.y * o.y) + (dir.z * o.z)) * 2.0f;
 	float c = (o.x * o.x) + (o.y * o.y) + (o.z * o.z) - r*r;
 	
-	return (b*b -(-4*a*c))<0 ? false:true;
+	float discriminant = (b * b - (4 * a * c));
+	return discriminant<0 ? false:true;
 }
 
