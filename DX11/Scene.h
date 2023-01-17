@@ -5,6 +5,7 @@
 #include "Entity.h"
 #include "camera.h"
 #include <Windows.h>
+#include <unordered_map>
 #include <vector>
 
 class CScene
@@ -33,6 +34,7 @@ public:
 	}
 	void Pick(int, int, int, int);
 private:
+	std::unordered_map<std::string, int> m_entityCnt;
 	std::vector<CEntity*> m_entites;
 	std::string m_name;
 	CEntity* m_pSelectionETT = nullptr;

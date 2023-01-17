@@ -21,6 +21,8 @@ void CViewport::Draw()
 			m_CImporter.LoadOBJ(path);
 			CModel* pModel = m_CImporter.GetModel();
 			m_CImporter.LoadTex(pModel, L"./Assets/Textures/empty.png", m_pCD3D11->GetDevice());
+			m_CImporter.Clear();
+
 			m_pCD3D11->AddModel(pModel, m_pDevice);
 			
 

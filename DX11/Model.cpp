@@ -15,7 +15,8 @@ CModel::CModel(VertexType* pVertices,
 	m_pVertexBuffer = nullptr;
 	m_pIndexBuffer = nullptr;
 
-	m_pName = pName;
+	wchar_t* ptr = nullptr;
+	m_pName = wcstok(pName, (const wchar_t*)L".", &ptr);
 	m_worldMatrix = XMMatrixIdentity();
 }
 

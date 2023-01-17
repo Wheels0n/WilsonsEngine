@@ -12,6 +12,7 @@ CScene::~CScene()
 
 void CScene::AddEntity(std::string Name, DirectX::XMMATRIX* worldMat)
 {   
+	Name += std::to_string(++m_entityCnt[Name]);
 	CEntity* ENTT = new CEntity(Name, worldMat);
 	m_entites.push_back(ENTT);
 }
