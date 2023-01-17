@@ -13,10 +13,11 @@ void CViewport::Draw()
 	ImGui::Begin("viewport", nullptr, ImGuiWindowFlags_MenuBar);
 	ImGui::Image((void*)m_pSRV, ImVec2(1020, 720));
 	if (ImGui::BeginDragDropTarget())
-	{
-		const ImGuiPayload* payLoad = ImGui::AcceptDragDropPayload("obj");
-		if (payLoad != NULL)
-		{
+	{  
+		const ImGuiPayload* payLoad;
+		payLoad = ImGui::AcceptDragDropPayload("obj");
+		if (payLoad != nullptr)
+		{ 
 			const wchar_t* path = (const wchar_t*)payLoad->Data;
 			m_CImporter.LoadOBJ(path);
 			CModel* pModel = m_CImporter.GetModel();
@@ -25,11 +26,25 @@ void CViewport::Draw()
 
 			m_pCD3D11->AddModel(pModel, m_pDevice);
 			
-
 			std::wstring wStr(pModel->GetName());
 			std::string str = std::string(wStr.begin(), wStr.end());
-			m_pCScene->AddEntity(str ,pModel->GetWorldMatrix());
+			m_pCScene->AddEntity(str ,pModel->GetWorldMatrix(), pModel);
 		}
+
+		payLoad = ImGui::AcceptDragDropPayload("png");
+		if (payLoad != nullptr)
+		{
+			const wchar_t* path = (const wchar_t*)payLoad->Data;
+			ImGuiIO io= ImGui::GetIO();
+
+			int width = m_pCD3D11->GetClientWidth();
+			int height = m_pCD3D11->GetClientHeight();
+			m_pCScene->Pick(io.MousePos.x, io.MousePos.y, width, height);
+			CEntity* pENTT = m_pCScene->GetSelectedENTT();
+
+			m_CImporter.LoadTex(pENTT->GetModel(), path, m_pCD3D11->GetDevice());
+		}
+
 
 		ImGui::EndDragDropTarget();
 	}

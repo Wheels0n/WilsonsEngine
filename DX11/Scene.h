@@ -15,7 +15,7 @@ public:
 	CScene(const CScene&)= default;
 	~CScene();
 
-	void AddEntity(std::string, DirectX::XMMATRIX*);
+	void AddEntity(std::string, DirectX::XMMATRIX*, CModel*);
 	void Draw();
 
 	void SetCam(CCamera* pCam)
@@ -28,10 +28,16 @@ public:
 		m_name= name;
 	}
 
-	CScene* GetScene()
+	CScene* GetScene() const
 	{
 		return SceneHandler;
 	}
+
+	CEntity* GetSelectedENTT() const
+	{
+		return  m_pSelectionETT;
+	};
+
 	void Pick(int, int, int, int);
 private:
 	std::unordered_map<std::string, int> m_entityCnt;

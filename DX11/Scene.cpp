@@ -10,10 +10,10 @@ CScene::~CScene()
 	m_entites.shrink_to_fit();
 }
 
-void CScene::AddEntity(std::string Name, DirectX::XMMATRIX* worldMat)
+void CScene::AddEntity(std::string Name, DirectX::XMMATRIX* worldMat, CModel* pModel)
 {   
 	Name += std::to_string(++m_entityCnt[Name]);
-	CEntity* ENTT = new CEntity(Name, worldMat);
+	CEntity* ENTT = new CEntity(Name, worldMat, pModel);
 	m_entites.push_back(ENTT);
 }
 
