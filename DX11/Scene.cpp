@@ -30,9 +30,9 @@ void CScene::Draw()
 				if (ImGui::TreeNode((void*)(intptr_t)i, name.c_str(), i))
 				{
 					m_pSelectionETT = m_entites[i];
-					
+					ImGui::TreePop();
 				}
-				ImGui::TreePop();
+				
 			}
 			ImGui::TreePop();
 		}

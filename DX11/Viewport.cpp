@@ -20,7 +20,9 @@ void CViewport::Draw()
 			const wchar_t* path = (const wchar_t*)payLoad->Data;
 			m_CImporter.LoadOBJ(path);
 			CModel* pModel = m_CImporter.GetModel();
+			m_CImporter.LoadTex(pModel, L"./Assets/Textures/empty.png", m_pCD3D11->GetDevice());
 			m_pCD3D11->AddModel(pModel, m_pDevice);
+			
 
 			std::wstring wStr(pModel->GetName());
 			std::string str = std::string(wStr.begin(), wStr.end());
