@@ -28,18 +28,15 @@ public:
 	void UploadBuffers(ID3D11DeviceContext* context);
 	void SetTex(ID3D11ShaderResourceView* tex);
 
-	XMMATRIX* GetWorldMatrix()
-	{
-		return &m_worldMatrix;
-	}
-	unsigned int GetIndexCount()
-	{
-		return m_indexCount;
-	}
-	LPCWSTR GetName()
-	{
-		return m_pName;
-	}
+	XMMATRIX* GetTranslationMatrix();
+	XMMATRIX* GetScaleMatrix();
+	XMMATRIX* GetRoatationMatrix();
+	XMMATRIX GetTransformMatrix();
+	XMVECTOR* GetAngle();
+
+	unsigned int GetIndexCount();
+
+	LPCWSTR GetName();
 
 private:
 
@@ -48,10 +45,16 @@ private:
 	ID3D11ShaderResourceView* m_pShaderResourceView;
     
 	wchar_t* m_pName;
+
 	VertexType* m_pVertices;
 	unsigned long* m_pIndices;
 	unsigned int m_vertexCount;
 	unsigned int m_indexCount;
-	XMMATRIX m_worldMatrix;
+
+	XMMATRIX m_scaleMatrix;
+	XMMATRIX m_rotationMatrix;
+	XMMATRIX m_translationMatrix;
+
+	XMVECTOR m_angleVector;
 };
 #endif

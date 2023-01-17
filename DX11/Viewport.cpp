@@ -25,10 +25,7 @@ void CViewport::Draw()
 			m_CImporter.Clear();
 
 			m_pCD3D11->AddModel(pModel, m_pDevice);
-			
-			std::wstring wStr(pModel->GetName());
-			std::string str = std::string(wStr.begin(), wStr.end());
-			m_pCScene->AddEntity(str ,pModel->GetWorldMatrix(), pModel);
+			m_pCScene->AddEntity(pModel);
 		}
 
 		payLoad = ImGui::AcceptDragDropPayload("png");

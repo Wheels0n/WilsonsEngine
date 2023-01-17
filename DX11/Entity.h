@@ -8,28 +8,15 @@
 class CEntity
 {
 public:
-	CEntity(std::string, DirectX::XMMATRIX*, CModel*);
+	CEntity(std::string, CModel*);
 	CEntity(const CEntity&) = default;
 	~CEntity() = default;
 
-	std::string* GetType()
-	{
-		return &m_type;
-	};
-
-	DirectX::XMMATRIX* GetMat()
-	{
-		return m_pWorldMat;
-	};
-
-	CModel* GetModel() const
-	{
-		return m_pModel;
-	}
+	std::string* GetType();
+	CModel* GetModel() const;
 private:
 	CModel* m_pModel;
 	std::string m_type;
-	DirectX::XMMATRIX* m_pWorldMat;
 };
 
 #endif // !ENTITY_H

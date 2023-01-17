@@ -1,8 +1,17 @@
 #include "Entity.h"
 
-CEntity::CEntity(std::string type, DirectX::XMMATRIX *pWorldMat, CModel* pModel)
+CEntity::CEntity(std::string type, CModel* pModel)
 {  
 	m_pModel = pModel;
 	m_type = type;
-	m_pWorldMat = pWorldMat;
+}
+
+std::string* CEntity::GetType()
+{
+	return &m_type;
+};
+
+CModel* CEntity::GetModel() const
+{
+	return m_pModel;
 }

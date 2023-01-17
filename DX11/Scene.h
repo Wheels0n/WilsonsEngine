@@ -15,7 +15,7 @@ public:
 	CScene(const CScene&)= default;
 	~CScene();
 
-	void AddEntity(std::string, DirectX::XMMATRIX*, CModel*);
+	void AddEntity(CModel*);
 	void Draw();
 
 	void SetCam(CCamera* pCam)

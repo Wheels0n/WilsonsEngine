@@ -559,13 +559,13 @@ void CD3D11::UpdateScene()
 	m_pContext->ClearRenderTargetView(m_pRTTV, color);
 	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 	m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDepthStencilView);
-	XMMATRIX* world;
+	XMMATRIX world;
 	for (int i = 0; i < m_ppCModels.size(); ++i)
 	{   
-		world = m_ppCModels[i]->GetWorldMatrix();
+		world = m_ppCModels[i]->GetTransformMatrix();
 		m_pCCam->Update();
 		m_pCMBuffer->SetViewMatrix(m_pCCam->GetViewMatrix());
-		m_pCMBuffer->SetWorldMatrix(world);
+		m_pCMBuffer->SetWorldMatrix(&world);
 		m_pCMBuffer->Update();
 		m_ppCModels[i]->UploadBuffers(m_pContext);
 		m_pContext->DrawIndexed(m_ppCModels[i]->GetIndexCount(), 0, 0);

@@ -10,10 +10,13 @@ CScene::~CScene()
 	m_entites.shrink_to_fit();
 }
 
-void CScene::AddEntity(std::string Name, DirectX::XMMATRIX* worldMat, CModel* pModel)
+void CScene::AddEntity(CModel* pModel)
 {   
-	Name += std::to_string(++m_entityCnt[Name]);
-	CEntity* ENTT = new CEntity(Name, worldMat, pModel);
+	std::wstring wStr(pModel->GetName());
+	std::string name = std::string(wStr.begin(), wStr.end());
+	name += std::to_string(++m_entityCnt[name]);
+
+	CEntity* ENTT = new CEntity(name, pModel);
 	m_entites.push_back(ENTT);
 }
 
@@ -46,47 +49,77 @@ void CScene::Draw()
 		if (m_pSelectionETT != nullptr)
 		{   
 			std::string name = *(m_pSelectionETT->GetType());
-			
 			ImGui::Text(name.c_str());
- 
-			DirectX::XMMATRIX* mat = nullptr;
-			mat = m_pSelectionETT->GetMat();
-			if (mat != nullptr)
-			{   
-				DirectX::XMFLOAT4X4 mat4;
-				DirectX::XMStoreFloat4x4(&mat4, *mat);
-				float curPos[3] = { mat4._41, mat4._42, mat4._43 };
-				float newPos[3] = { mat4._41, mat4._42, mat4._43 };
+			CModel* pModel = m_pSelectionETT->GetModel();
 
-				static float dragFactor = 0.1f;
-				if (ImGui::DragFloat3("Translation", newPos, dragFactor))
-				{
-					float v[3] = { 0.0f, };
-					if (newPos[0] != curPos[0])
-					{   
-						float val = newPos[0] - curPos[0];
-						v[0] = val;
-					}
+			DirectX::XMMATRIX* scMat = nullptr;
+			DirectX::XMMATRIX* rtMat = nullptr;
+			DirectX::XMMATRIX* trMat = nullptr;
 
-					if (newPos[1] != curPos[1])
+			static float dragFactor = 0.1f;
+
+			scMat = pModel->GetScaleMatrix();
+			if (scMat != nullptr)
+			{
+				DirectX::XMFLOAT4X4 scMat4;
+				DirectX::XMStoreFloat4x4(&scMat4, *scMat);
+
+				float scale[3] = { scMat4._11, scMat4._22, scMat4._33 };
+				if (ImGui::DragFloat3("Scale", scale, dragFactor))
+				{  
+					for (int i = 0; i < 3; ++i)
 					{
-						float val = newPos[1] - curPos[1];
-						v[1] = val;
+						scale[i] = scale[i] < 0.1f ? 0.1f : scale[i];
 					}
 
-					if (newPos[2] != curPos[2])
-					{
-						float val = newPos[2] - curPos[2];
-						v[2] = val;
-					}
+					DirectX::XMVECTOR xv = DirectX::XMVectorSet(
+						scale[0],
+						scale[1], 
+						scale[2], 
+						1.0f);
+					DirectX::XMMATRIX sc = DirectX::XMMatrixScalingFromVector(xv);
+					*scMat = sc;
+				}
+			}
+			
+			rtMat = pModel->GetRoatationMatrix();
+			if (rtMat != nullptr)
+			{
+				DirectX::XMFLOAT3 angleFloat;
+				DirectX::XMVECTOR* angleVec = pModel->GetAngle();
+				DirectX::XMStoreFloat3(&angleFloat, *angleVec);
 
-					DirectX::XMVECTOR xv = DirectX::XMVectorSet(v[0], v[1], v[2], 0.0f);
-					DirectX::XMMATRIX tr = DirectX::XMMatrixTranslationFromVector(xv);
-					*mat = DirectX::XMMatrixMultiply(*mat, tr);
+				float newAngle[3] = { angleFloat.x, angleFloat.y, angleFloat.z };
+				if (ImGui::DragFloat3("Rotation", newAngle, dragFactor))
+				{    
+					XMVECTOR newAngleVec = DirectX::XMVectorSet(newAngle[0], newAngle[1], newAngle[2], 0.0f );
+					XMMATRIX rt = DirectX::XMMatrixRotationRollPitchYawFromVector(newAngleVec);
+					*rtMat = rt;
+					*angleVec = newAngleVec;
+  
 				}
 
 			}
-	
+
+			trMat = pModel->GetTranslationMatrix();
+			if (trMat != nullptr)
+			{   
+				DirectX::XMFLOAT4X4 trMat4;
+				DirectX::XMStoreFloat4x4(&trMat4, *trMat);
+
+				float curPos[3] = { trMat4._41, trMat4._42, trMat4._43 };
+				float newPos[3] = { trMat4._41, trMat4._42, trMat4._43 };
+
+				if (ImGui::DragFloat3("Position", newPos, dragFactor))
+				{   
+					DirectX::XMVECTOR xv = DirectX::XMVectorSet(newPos[0], newPos[1], newPos[2], 0.0f);
+					DirectX::XMMATRIX tr = DirectX::XMMatrixTranslationFromVector(xv);
+					*trMat = tr;
+				}
+
+			}
+
+		
 		}
 		ImGui::End();
 	}
@@ -112,7 +145,8 @@ void CScene::Pick(int sx, int sy, int width, int height)
 
 	for (int i = 0; i < m_entites.size(); ++i)
 	{   
-		XMMATRIX world = *(m_entites[i]->GetMat());
+		CModel* pModel = m_entites[i]->GetModel();
+		XMMATRIX world = pModel->GetTransformMatrix();
 		XMVECTOR wDet = XMMatrixDeterminant(world);
 		XMMATRIX inverseWorld = XMMatrixInverse(&wDet, world);
 

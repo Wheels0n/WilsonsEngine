@@ -17,7 +17,11 @@ CModel::CModel(VertexType* pVertices,
 
 	wchar_t* ptr = nullptr;
 	m_pName = wcstok(pName, (const wchar_t*)L".", &ptr);
-	m_worldMatrix = XMMatrixIdentity();
+	
+	m_scaleMatrix = XMMatrixIdentity();
+	m_rotationMatrix = XMMatrixIdentity();
+	m_translationMatrix = XMMatrixIdentity();
+	m_angleVector = { 0.0f, };
 }
 
 CModel::CModel(const CModel&)
@@ -122,4 +126,42 @@ void CModel::UploadBuffers(ID3D11DeviceContext* context)
 void CModel::SetTex(ID3D11ShaderResourceView* tex)
 {
 	m_pShaderResourceView = tex;
+}
+
+XMMATRIX* CModel::GetTranslationMatrix()
+{
+	return &m_translationMatrix;
+}
+
+XMMATRIX* CModel::GetScaleMatrix()
+{
+	return &m_scaleMatrix;
+}
+
+XMMATRIX* CModel::GetRoatationMatrix()
+{   
+	return &m_rotationMatrix;
+}
+
+XMMATRIX CModel::GetTransformMatrix()
+{
+	XMMATRIX srMat = XMMatrixMultiply(m_scaleMatrix, m_rotationMatrix);
+	XMMATRIX srtMat = XMMatrixMultiply(srMat, m_translationMatrix);
+
+	return srtMat;
+}
+
+XMVECTOR* CModel::GetAngle()
+{
+	return &m_angleVector;
+}
+
+unsigned int CModel::GetIndexCount()
+{
+	return m_indexCount;
+}
+
+LPCWSTR CModel::GetName()
+{  
+	return m_pName;
 }
