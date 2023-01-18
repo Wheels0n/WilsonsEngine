@@ -7,6 +7,7 @@ CCamera::CCamera(int screenWidth = 1080, int screenHeight = 720, float ScreenFar
 	m_fFOV = static_cast<float>(3.1459) / 4.0f;
 	m_fScreenRatio = screenWidth / static_cast<float>(screenHeight);
 
+	Reset();
 	m_projectionMatrix = XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
 	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vLookat, m_vUp);
 	
@@ -22,83 +23,15 @@ CCamera::~CCamera()
 	}
 }
 
-void CCamera::ZoomIn()
-{   
-	XMVECTOR vAdd = { 0.0f, 0.0f, -1 * m_fTranslateSpeed, 0.0f };
-	m_vPos = XMVectorAdd(m_vPos, vAdd);
-}
-
-void CCamera::ZoomOut()
-{
-	XMVECTOR vAdd = { 0.0f, 0.0f, m_fTranslateSpeed, 0.0f };
-	m_vPos = XMVectorAdd(m_vPos, vAdd);
-}
-
-void CCamera::translateLeft()
-{
-	XMVECTOR vAdd = { -1* m_fTranslateSpeed, 0.0f, 0.0f, 0.0f };
-	m_vPos = XMVectorAdd(m_vPos, vAdd);
-	m_vLookat = XMVectorAdd(m_vLookat, vAdd);
-}
-
-void CCamera::translateRight()
-{   
-	XMVECTOR vAdd = { m_fTranslateSpeed, 0.0f, 0.0f, 0.0f };
-	m_vPos = XMVectorAdd(m_vPos, vAdd);
-	m_vLookat = XMVectorAdd(m_vLookat, vAdd);
-}
-
-void CCamera::translateUpward()
-{
-	XMVECTOR vAdd = { 0.0f, m_fTranslateSpeed, 0.0f, 0.0f };
-	m_vPos = XMVectorAdd(m_vPos, vAdd);
-	m_vLookat = XMVectorAdd(m_vLookat, vAdd);
-}
-
-void CCamera::translateDownWard()
-{
-	XMVECTOR vAdd = { 0.0f, -1 * m_fTranslateSpeed, 0.0f, 0.0f };
-	m_vPos = XMVectorAdd(m_vPos, vAdd);
-	m_vLookat = XMVectorAdd(m_vLookat, vAdd);
-}
-
-void CCamera::RotatePitch()
-{
-	XMMATRIX rotationMatrix = XMMatrixRotationX(m_fRotateSpeed);
-	m_vLookat = XMVector4Transform(m_vLookat, rotationMatrix);
-	m_vUp = XMVector4Transform(m_vUp, rotationMatrix);
-
-	m_vLookat = XMVectorAdd(m_vLookat, m_vPos);
-}
-
-void CCamera::RotateLeft()
-{
-	XMMATRIX rotationMatrix = XMMatrixRotationY(m_fRotateSpeed);
-	m_vLookat = XMVector4Transform(m_vLookat, rotationMatrix);
-	m_vUp = XMVector4Transform(m_vUp, rotationMatrix);
-	m_vLookat = XMVectorAdd(m_vLookat, m_vPos);
-}
-
-void CCamera::RotateRight()
-{
-	XMMATRIX rotationMatrix = XMMatrixRotationY(-1 * m_fRotateSpeed);
-	m_vLookat = XMVector4Transform(m_vLookat, rotationMatrix);
-	m_vUp = XMVector4Transform(m_vUp, rotationMatrix);
-	m_vLookat = XMVectorAdd(m_vLookat, m_vPos);
-}
-
-void CCamera::RotateRoll()
-{
-	XMMATRIX rotationMatrix = XMMatrixRotationZ(m_fRotateSpeed);
-	m_vLookat = XMVector4Transform(m_vLookat, rotationMatrix);
-	m_vLookat = XMVector4Normalize(m_vLookat);
-	m_vUp = XMVector4Transform(m_vUp, rotationMatrix);
-	m_vUp = XMVector4Normalize(m_vUp);
-}
 
 XMVECTOR* CCamera::GetPosition()
 {
 	return &m_vPos;
+}
+
+XMVECTOR* CCamera::GetTarget()
+{
+	return &m_vLookat;
 }
 
 XMVECTOR* CCamera::GetRotation()
@@ -109,10 +42,39 @@ XMVECTOR* CCamera::GetRotation()
 XMMATRIX* CCamera::GetViewMatrix()
 {
 	return &m_viewMatrix;
-};
+}
+
 XMMATRIX* CCamera::GetProjectionMatrix()
 {
 	return &m_projectionMatrix;
+}
+
+void CCamera::Zoom(int)
+{
+}
+
+void CCamera::Reset()
+{
+	m_vPos = XMVectorSet( 0.0f, 0.0f, -1.0f, 0.0f );
+	m_vLookat = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f );
+	m_vUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f );//which axis is upward
+	m_vRotation = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+void CCamera::Rotate(int dptich, int dyaw)
+{  
+	XMVECTOR dv =XMVectorSet(dptich, dyaw, 0.0f, 0.0f);
+	dv = XMVectorScale(dv, m_rtSpeed);
+	m_vRotation = XMVectorAdd(m_vRotation, dv);
+}
+
+void CCamera::Translate(XMVECTOR dv)
+{   
+	XMMATRIX rt = XMMatrixRotationRollPitchYawFromVector(m_vRotation);
+	dv = XMVector3Transform(dv, rt);
+	dv = XMVectorScale(dv, m_trSpeed);
+
+	m_vPos = XMVectorAdd(m_vPos, dv);
 }
 
 void CCamera::Init(ID3D11Device* device)
@@ -128,8 +90,12 @@ void CCamera::Init(ID3D11Device* device)
 }
 
 void CCamera::Update()
-{
+{  
+	XMMATRIX rt = XMMatrixRotationRollPitchYawFromVector(m_vRotation);
+	m_vLookat = XMVector3Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rt);
+	m_vLookat = XMVectorAdd(m_vLookat, m_vPos);
 	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vLookat, m_vUp);
+	//m_vUp = XMVector3Transform(m_vUp, rt); no roll
 }
 
 void CCamera::SetCamBuffer(ID3D11DeviceContext* context)

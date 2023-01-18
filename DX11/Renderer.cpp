@@ -63,42 +63,18 @@ void CRenderer::EndFrame()
 	m_pD3D11->DrawScene();
 }
 
-void CRenderer::TranslateRight()
+void CRenderer::Translate(XMVECTOR tr)
 {
-	m_pCam->translateRight();
+	m_pCam->Translate(tr);
 }
 
-void CRenderer::TranslateLeft()
+void CRenderer::Rotate(int dx, int dy)
 {
-	m_pCam->translateLeft();
+	m_pCam->Rotate(dx, dy);
 }
 
-void CRenderer::TranslateDownward()
+void CRenderer::Zoom(int dz)
 {
-	m_pCam->translateDownWard();
+	m_pCam->Zoom(dz);
 }
 
-void CRenderer::TranslateUpward()
-{
-	m_pCam->translateUpward();
-}
-
-void CRenderer::RotateLeft()
-{
-	m_pCam->RotateLeft();
-}
-
-void CRenderer::RotateRight()
-{
-	m_pCam->RotateRight();
-}
-
-void CRenderer::ZoomIn()
-{
-	m_pCam->ZoomIn();
-}
-
-void CRenderer::ZoomOut()
-{
-	m_pCam->ZoomOut();
-}

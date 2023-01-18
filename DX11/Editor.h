@@ -4,7 +4,7 @@
 #include"Scene.h"
 #include"ContentBrowser.h"
 #include"Viewport.h"
-#include"Fps.h"
+#include"Settings.h"
 class CEditor
 {
 public:
@@ -16,6 +16,6 @@ private:
 	CContentBrowser m_CContentBrowser;
 	CScene m_Scene;
 	CViewport m_CViewport;
-	CFps m_CFps;
+	CSettings m_CSettings;
 };
 #endif // !EDITOR_H

@@ -16,31 +16,27 @@ public:
 	CCamera(int screenWidth, int screenHeight, float ScreenFar, float ScreenNear);
 	~CCamera();
 
-	void ZoomIn();
-	void ZoomOut();
-	void translateLeft();
-	void translateRight();
-	void translateUpward();
-	void translateDownWard();
-	void RotatePitch();
-	void RotateLeft();
-	void RotateRight();
-	void RotateRoll();
-
 	void Init(ID3D11Device* device);
 	void Update();
 	void SetCamBuffer(ID3D11DeviceContext* context);
+	void Reset();
+
 	XMVECTOR* GetPosition();
+	XMVECTOR* GetTarget();
 	XMVECTOR* GetRotation();
+
+	void Rotate(int, int);
+	void Translate(XMVECTOR);
+	void Zoom(int);
 
 	XMMATRIX* GetViewMatrix();
 	XMMATRIX* GetProjectionMatrix();
 private:
 
-	XMVECTOR m_vPos      = { 0.0f, 0.0f, -1.0f, 0.0f };  
-	XMVECTOR m_vLookat   = { 0.0f, 0.0f, 1.0f, 0.0f };
-    XMVECTOR m_vUp       = { 0.0f, 1.0f, 0.0f, 0.0f };//which axis is upward
-	XMVECTOR m_vRotation = { 0.0f, 0.0f, 0.0f, 0.0f };
+	XMVECTOR m_vPos;
+	XMVECTOR m_vLookat;
+	XMVECTOR m_vUp;      //which axis is upward
+	XMVECTOR m_vRotation;
 
 	XMMATRIX m_viewMatrix;
 	XMMATRIX m_projectionMatrix;// think of the frustum as the lens of our camera, for it controls our view
@@ -52,10 +48,8 @@ private:
 	float m_fScreenNear;
 	float m_fScreenFar;
 
-	float m_fTranslateSpeed = 0.1f;
-	float m_fRotateSpeed = 0.1f;
-	float m_fZoomSpeed = 0.1f;
-
+	float m_trSpeed = 1.0f;
+	float m_rtSpeed = 0.01f;
 
 };
 

@@ -5,6 +5,13 @@ CEngine::CEngine()
 	m_pInputHandler = nullptr;
 	m_pRenderer = nullptr;
 	m_pEditor = nullptr;
+
+	m_screenHeight = 0;
+	m_screenWidth = 0;
+	m_lastMouseX = 0;
+	m_lastMouseY = 0;
+	m_mouseX = 0;
+	m_mouseY = 0;
 }
 
 CEngine::~CEngine()
@@ -16,8 +23,6 @@ bool CEngine::Init()
 {
 	bool bResult;
 
-	m_screenHeight = 0;
-	m_screenWidth  = 0;
 	InitWindows(m_screenHeight, m_screenWidth);
 
 	m_pInputHandler = new CInputHandler;
@@ -117,6 +122,7 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		int x = (short)(lParam)& 0xffff;
 		int y = (lParam >> 16) & 0xffff;
 		m_pEditor->Pick(x, y);
+
 	}
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
 	{   
@@ -127,52 +133,89 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	  case WM_KEYDOWN:
 	  {   
 		  m_pInputHandler->KeyDown(static_cast<unsigned int>(wParam));
-		  switch (wParam)
-		  {
-
-		  case VK_UP:
-			  m_pRenderer->TranslateUpward();
-			  break;
-		  case VK_DOWN:
-			  m_pRenderer->TranslateDownward();
-			  break;
-		  case VK_RIGHT:
-			  m_pRenderer->TranslateRight();
-			  break;
-		  case VK_LEFT:
-			  m_pRenderer->TranslateLeft();
-			  break;
-		  case VK_ADD:
-			  m_pRenderer->ZoomIn();
-			  break;
-		  case VK_SUBTRACT:
-			  m_pRenderer->ZoomOut();
-			  break;
-		  default:
-			  break;
-		  }
 		  return 0;
-	  }
-	  case WM_CHAR:
-	  {  
-		  switch (wParam)
-		  {
-		  case 'e':
-			  m_pRenderer->RotateRight();
-			  break;
-		  case 'q':
-			  m_pRenderer->RotateLeft();
-			  break;
-		  default:
-			  break;
-		  }
-	   
 	  }
 
 	  case WM_KEYUP:
 	  { 
 		  m_pInputHandler->KeyUp(static_cast<unsigned int>(wParam));
 		  return 0;
+	  }
+
+	  case WM_MOUSEMOVE:
+	  {
+		  if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+		  {
+			  int x = (short)(lParam) & 0xffff;
+			  int y = (lParam >> 16) & 0xffff;
+
+			  int dx = x - m_mouseX;
+			  int dy = y - m_mouseY;
+			  m_mouseX = x;
+			  m_mouseY = y;
+
+			  m_pRenderer->Rotate(dy, dx);
+		  }
+		  break;
+	  }
+
+	  case WM_CHAR:
+	  {
+		  switch (wParam)
+		  {
+		  case 'w':
+		  {
+			  if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+			  {
+				  m_pRenderer->Translate(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f));
+			  }
+			  break;
+		  }
+		  case 's':
+		  {
+			  if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+			  {
+				  m_pRenderer->Translate(XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f));
+			  }
+			  break;
+		  }
+		  case 'a':
+		  {
+			  if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+			  {
+				  m_pRenderer->Translate(XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f));
+			  }
+			  break;
+		  }
+		  case 'd':
+		  {
+			  if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+			  {
+				  m_pRenderer->Translate(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f));
+			  }
+			  break;
+		  }
+
+		  case 'q':
+		  {
+			  if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+			  {
+				  m_pRenderer->Translate(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+			  }
+			  break;
+		  }
+
+		  case 'e':
+		  {
+			  if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+			  {
+				  m_pRenderer->Translate(XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f));
+			  }
+			  break;
+		  }
+		   default :
+			   break;
+		  }
 	  }
 
 	  default:

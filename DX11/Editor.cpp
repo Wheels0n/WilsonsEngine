@@ -4,9 +4,9 @@ void CEditor::Init(CD3D11* pCD3D11)
 {   
 	m_pCD3D11 = pCD3D11;
 
-	m_CFps.Init();
 	m_CViewport.Init(m_pCD3D11, m_Scene.GetScene());
 	m_CContentBrowser.Init(m_pCD3D11->GetDevice());
+	m_CSettings.Init(m_pCD3D11->GetCam());
 
 	std::string str = "Scene";
 	m_Scene.SetCam(m_pCD3D11->GetCam());
@@ -18,7 +18,7 @@ void CEditor::Draw()
 	m_CContentBrowser.List();
 	m_CViewport.Draw();
 	m_Scene.Draw();
-	m_CFps.Frame();
+	m_CSettings.Draw();
 	
 }
 

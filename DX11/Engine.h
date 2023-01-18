@@ -29,7 +29,13 @@ private:
 	void ShutdownWindows();
 
 private:
-	int m_screenHeight, m_screenWidth;
+	int m_screenHeight;
+	int m_screenWidth;
+
+	int m_lastMouseX;
+	int m_lastMouseY;
+	int m_mouseX;
+	int m_mouseY;
 
 	LPCWSTR m_appName;
 	HINSTANCE m_hInstance;

@@ -28,14 +28,9 @@ public:
 		return m_pD3D11;
 	};
 	
-	void TranslateRight();
-	void TranslateLeft();
-	void TranslateDownward();
-	void TranslateUpward();
-	void RotateLeft();
-	void RotateRight();
-	void ZoomIn();
-	void ZoomOut();
+	void Translate(XMVECTOR);
+	void Rotate(int dx, int dy);
+	void Zoom(int dz);
 	
 private:
 	bool Render();

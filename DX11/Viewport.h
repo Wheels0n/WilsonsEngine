@@ -16,6 +16,11 @@ public:
 	void Init(CD3D11*, CScene* );
 	void Draw();
 private:
+	int width;
+	int height;
+	int left;
+	int top;
+
 	CD3D11* m_pCD3D11;
 	CScene* m_pCScene;
 	CImporter m_CImporter;

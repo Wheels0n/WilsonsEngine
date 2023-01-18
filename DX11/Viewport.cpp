@@ -1,7 +1,12 @@
 #include "Viewport.h"
 
 void CViewport::Init(CD3D11* pCD3D11, CScene* pCScene)
-{
+{  
+	width = 0;
+	height = 0;
+	left = 0;;
+	top=0;
+
 	m_pSRV = pCD3D11->GetRTT();
 	m_pDevice = pCD3D11->GetDevice();
 	m_pCD3D11 = pCD3D11;
@@ -12,6 +17,14 @@ void CViewport::Draw()
 {   
 	ImGui::Begin("viewport", nullptr, ImGuiWindowFlags_MenuBar);
 	ImGui::Image((void*)m_pSRV, ImVec2(1020, 720));
+	
+	ImVec2 pos = ImGui::GetWindowPos();
+	left = pos.x;
+	top = pos.y;
+	ImVec2 sz = ImGui::GetWindowSize();
+	width = sz.x;
+	height = sz.y;
+
 	if (ImGui::BeginDragDropTarget())
 	{  
 		const ImGuiPayload* payLoad;
@@ -46,4 +59,8 @@ void CViewport::Draw()
 		ImGui::EndDragDropTarget();
 	}
 	ImGui::End();
+}
+ImVec2 GetViewportPos()
+{
+	return 
 }
