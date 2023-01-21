@@ -2,11 +2,12 @@
 
 void CViewport::Init(CD3D11* pCD3D11, CScene* pCScene)
 {  
-	width = 0;
-	height = 0;
-	left = 0;;
-	top=0;
+	m_width = 1024;
+	m_height = 720;
+	m_left = 0;;
+	m_top=0;
 
+	m_pSwapChain = pCD3D11->GetSwapChain();
 	m_pSRV = pCD3D11->GetRTT();
 	m_pDevice = pCD3D11->GetDevice();
 	m_pCD3D11 = pCD3D11;
@@ -15,15 +16,9 @@ void CViewport::Init(CD3D11* pCD3D11, CScene* pCScene)
 
 void CViewport::Draw()
 {   
-	ImGui::Begin("viewport", nullptr, ImGuiWindowFlags_MenuBar);
-	ImGui::Image((void*)m_pSRV, ImVec2(1020, 720));
-	
-	ImVec2 pos = ImGui::GetWindowPos();
-	left = pos.x;
-	top = pos.y;
-	ImVec2 sz = ImGui::GetWindowSize();
-	width = sz.x;
-	height = sz.y;
+	ImGui::Begin("viewport", nullptr, ImGuiWindowFlags_MenuBar| ImGuiWindowFlags_NoScrollbar);
+	Resize();
+	ImGui::Image((void*)m_pSRV, ImVec2(m_width, m_height));
 
 	if (ImGui::BeginDragDropTarget())
 	{  
@@ -60,7 +55,15 @@ void CViewport::Draw()
 	}
 	ImGui::End();
 }
-ImVec2 GetViewportPos()
-{
-	return 
+void CViewport::Resize()
+{   
+	ImVec2 sz = ImGui::GetWindowSize();
+	int width = sz.x;
+	int height = sz.y;
+	if (m_width != width || m_height != height)
+	{  
+		m_width = width;
+		m_height = height;
+	}
 }
+

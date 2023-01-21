@@ -6,7 +6,8 @@ CD3D11::CD3D11()
 	m_pDevice = nullptr;
 	m_pContext = nullptr;
 	m_pRenderTargetView = nullptr;
-	m_pDepthStencilBuffer = nullptr;
+	m_pDSBuffer = nullptr;
+	m_pDSBufferForRTT = nullptr;
 	m_pDefualtDDS = nullptr;
 	m_pMirroMarkDDS = nullptr;
 	m_pDrawReflectionDDS = nullptr;
@@ -14,6 +15,7 @@ CD3D11::CD3D11()
 	m_pRTTV = nullptr;
 	m_pSRVForRTT = nullptr;
 	m_pDepthStencilView = nullptr;
+	m_pDSVforRTT = nullptr;
 	m_pRasterstate = nullptr;
 	m_pRasterStateCC = nullptr;
 
@@ -50,12 +52,6 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	DXGI_SWAP_CHAIN_DESC swapChainDesc;
 	D3D_FEATURE_LEVEL featureLevel;
 	ID3D11Texture2D* pBackbuffer;
-	D3D11_TEXTURE2D_DESC depthBufferDesc;
-	D3D11_TEXTURE2D_DESC RTTDesc;
-	D3D11_RENDER_TARGET_VIEW_DESC RTTVDesc;
-	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-	D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
-	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
 	D3D11_RASTERIZER_DESC rasterDesc;
 	D3D11_VIEWPORT viewport;
 	D3D11_RENDER_TARGET_BLEND_DESC rtBlendDsc;
@@ -187,126 +183,26 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	
 	pBackbuffer->Release();
 	pBackbuffer = nullptr;
-
-	ZeroMemory(&RTTDesc, sizeof(RTTDesc));
-	RTTDesc.Width = screenWidth;;
-	RTTDesc.Height = screenHeight;
-	RTTDesc.MipLevels = 1;
-	RTTDesc.ArraySize = 1;
-	RTTDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	RTTDesc.SampleDesc.Count = 1;
-	RTTDesc.SampleDesc.Quality = 0;
-	RTTDesc.Usage = D3D11_USAGE_DEFAULT;
-	RTTDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-	RTTDesc.CPUAccessFlags = 0;
-	RTTDesc.MiscFlags = 0;
-
-	hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pRTT);
-	if (FAILED(hr))
+    
+	if (!CreateRTT(m_clientWidth, m_clientHeight))
 	{
 		return false;
 	}
 
-	RTTVDesc.Format = RTTDesc.Format;
-	RTTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-	RTTVDesc.Texture2D.MipSlice = 0;
-
-	hr = m_pDevice->CreateRenderTargetView(m_pRTT, &RTTVDesc, &m_pRTTV);
-	if (FAILED(hr))
+	if (!CreateDSS())
 	{
 		return false;
 	}
 
-
-	SRVDesc.Format = RTTDesc.Format;
-	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	SRVDesc.Texture2D.MostDetailedMip = 0;
-	SRVDesc.Texture2D.MipLevels = 1;
-
-	hr = m_pDevice->CreateShaderResourceView(m_pRTT, &SRVDesc, &m_pSRVForRTT);
-	if (FAILED(hr))
+	if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pDSBuffer, &m_pDepthStencilView))
 	{
 		return false;
 	}
 
-	ZeroMemory(&depthBufferDesc, sizeof(depthBufferDesc));
-
-	depthBufferDesc.Width = screenWidth;
-	depthBufferDesc.Height = screenHeight;
-	depthBufferDesc.MipLevels = 1;
-	depthBufferDesc.ArraySize = 1;
-	depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthBufferDesc.SampleDesc.Count = 1;
-	depthBufferDesc.SampleDesc.Quality = 0;
-	depthBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	depthBufferDesc.CPUAccessFlags = 0;
-	depthBufferDesc.MiscFlags = 0;
-
-	hr = m_pDevice->CreateTexture2D(&depthBufferDesc, nullptr, &m_pDepthStencilBuffer);
-	if (FAILED(hr))
+	if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pDSBufferForRTT, &m_pDSVforRTT))
 	{
 		return false;
 	}
-
-	ZeroMemory(&depthStencilDesc, sizeof(depthStencilDesc));
-
-	//Need depthStencilState to control depthStencilBuffer
-	//To create it, fill out depthStencilDesc
-	depthStencilDesc.DepthEnable = true;
-	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
-	depthStencilDesc.StencilEnable = true;
-	depthStencilDesc.StencilReadMask = 0xFF;
-	depthStencilDesc.StencilWriteMask = 0xFF;
-	depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-	depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-	depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-	hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDefualtDDS);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-
-	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
-	hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pMirroMarkDDS);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
-	hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDrawReflectionDDS);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-;
-
-	ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
-
-	depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	depthStencilViewDesc.Texture2D.MipSlice = 0;
-
-
-	hr = m_pDevice->CreateDepthStencilView(m_pDepthStencilBuffer, &depthStencilViewDesc, &m_pDepthStencilView);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDepthStencilView);
 
 	rasterDesc.AntialiasedLineEnable = false;
 	rasterDesc.CullMode =D3D11_CULL_BACK;
@@ -426,22 +322,12 @@ void CD3D11::Shutdown()
 		m_pRasterStateCC = nullptr;
 	}
 
-	if (m_pRTT != nullptr)
+	DestroyRTT();
+	DestroyDSBforRTT();
+	if (m_pDSBuffer != nullptr)
 	{
-		m_pRTT->Release();
-		m_pRTT = nullptr;
-	}
-
-	if (m_pRTTV != nullptr)
-	{
-		m_pRTTV->Release();
-		m_pRTTV = nullptr;
-	}
-
-	if (m_pSRVForRTT != nullptr)
-	{
-		m_pSRVForRTT->Release();
-		m_pSRVForRTT = nullptr;
+		m_pDSBuffer->Release();
+		m_pDSBuffer = nullptr;
 	}
 
 	if (m_pDepthStencilView != nullptr)
@@ -450,23 +336,7 @@ void CD3D11::Shutdown()
 		m_pDepthStencilView = nullptr;
 	}
 
-	if (m_pDefualtDDS != nullptr)
-	{
-		m_pDefualtDDS->Release();
-		m_pDefualtDDS = nullptr;
-	}
-
-	if (m_pMirroMarkDDS != nullptr)
-	{
-		m_pMirroMarkDDS->Release();
-		m_pMirroMarkDDS = nullptr;
-	}
-
-	if (m_pDrawReflectionDDS != nullptr)
-	{
-		m_pDrawReflectionDDS->Release();
-		m_pDrawReflectionDDS = nullptr;
-	}
+	DestroyDSS();
 
 	if (m_pRenderTargetView != nullptr)
 	{
@@ -558,7 +428,8 @@ void CD3D11::UpdateScene()
 	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
 	m_pContext->ClearRenderTargetView(m_pRTTV, color);
 	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-	m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDepthStencilView);
+	m_pContext->ClearDepthStencilView(m_pDSVforRTT, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDSVforRTT);
 	XMMATRIX world;
 	for (int i = 0; i < m_ppCModels.size(); ++i)
 	{   
@@ -601,4 +472,209 @@ void CD3D11::AddModel(CModel* pCModel, ID3D11Device* pDevice)
 {
 	m_ppCModels.push_back(pCModel);
 	m_ppCModels.back()->Init(pDevice);
+}
+
+bool CD3D11::CreateRTT(int width, int height)
+{  
+	DestroyRTT();
+
+	D3D11_TEXTURE2D_DESC RTTDesc;
+	D3D11_RENDER_TARGET_VIEW_DESC RTTVDesc;
+	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+	HRESULT hr;
+
+	ZeroMemory(&RTTDesc, sizeof(RTTDesc));
+	RTTDesc.Width = width;;
+	RTTDesc.Height = height;
+	RTTDesc.MipLevels = 1;
+	RTTDesc.ArraySize = 1;
+	RTTDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	RTTDesc.SampleDesc.Count = 1;
+	RTTDesc.SampleDesc.Quality = 0;
+	RTTDesc.Usage = D3D11_USAGE_DEFAULT;
+	RTTDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	RTTDesc.CPUAccessFlags = 0;
+	RTTDesc.MiscFlags = 0;
+
+	hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pRTT);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	RTTVDesc.Format = RTTDesc.Format;
+	RTTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	RTTVDesc.Texture2D.MipSlice = 0;
+
+	hr = m_pDevice->CreateRenderTargetView(m_pRTT, &RTTVDesc, &m_pRTTV);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+
+	SRVDesc.Format = RTTDesc.Format;
+	SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.MipLevels = 1;
+
+	hr = m_pDevice->CreateShaderResourceView(m_pRTT, &SRVDesc, &m_pSRVForRTT);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool CD3D11::CreateDepthBuffer(int width, int height, 
+	ID3D11Texture2D** dsb, 
+	ID3D11DepthStencilView** dsbv )
+{   
+	D3D11_TEXTURE2D_DESC depthBufferDesc;
+	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
+	HRESULT hr;
+
+	ZeroMemory(&depthBufferDesc, sizeof(depthBufferDesc));
+
+	depthBufferDesc.Width = width;
+	depthBufferDesc.Height = height;
+	depthBufferDesc.MipLevels = 1;
+	depthBufferDesc.ArraySize = 1;
+	depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthBufferDesc.SampleDesc.Count = 1;
+	depthBufferDesc.SampleDesc.Quality = 0;
+	depthBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	depthBufferDesc.CPUAccessFlags = 0;
+	depthBufferDesc.MiscFlags = 0;
+
+	hr = m_pDevice->CreateTexture2D(&depthBufferDesc, nullptr, dsb);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
+
+	depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	depthStencilViewDesc.Texture2D.MipSlice = 0;
+
+
+	hr = m_pDevice->CreateDepthStencilView(*dsb, &depthStencilViewDesc, dsbv);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool CD3D11::CreateDSS()
+{   
+	D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
+	HRESULT hr;
+
+	ZeroMemory(&depthStencilDesc, sizeof(depthStencilDesc));
+
+	//Need depthStencilState to control depthStencilBuffer
+	//To create it, fill out depthStencilDesc
+	depthStencilDesc.DepthEnable = true;
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	depthStencilDesc.StencilEnable = true;
+	depthStencilDesc.StencilReadMask = 0xFF;
+	depthStencilDesc.StencilWriteMask = 0xFF;
+	depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+	depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+	hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDefualtDDS);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pMirroMarkDDS);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+	hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDrawReflectionDDS);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+	
+	return true;
+}
+
+void CD3D11::DestroyDSS()
+{
+	if (m_pDefualtDDS != nullptr)
+	{
+		m_pDefualtDDS->Release();
+		m_pDefualtDDS = nullptr;
+	}
+
+	if (m_pMirroMarkDDS != nullptr)
+	{
+		m_pMirroMarkDDS->Release();
+		m_pMirroMarkDDS = nullptr;
+	}
+
+	if (m_pDrawReflectionDDS != nullptr)
+	{
+		m_pDrawReflectionDDS->Release();
+		m_pDrawReflectionDDS = nullptr;
+	}
+}
+
+void CD3D11::DestroyRTT()
+{
+	if (m_pRTT != nullptr)
+	{
+		m_pRTT->Release();
+		m_pRTT = nullptr;
+	}
+
+	if (m_pRTTV != nullptr)
+	{
+		m_pRTTV->Release();
+		m_pRTTV = nullptr;
+	}
+
+	if (m_pSRVForRTT != nullptr)
+	{
+		m_pSRVForRTT->Release();
+		m_pSRVForRTT = nullptr;
+	}
+}
+
+void CD3D11::DestroyDSBforRTT()
+{
+	if (m_pDSBufferForRTT != nullptr)
+	{
+		m_pDSBufferForRTT->Release();
+		m_pDSBufferForRTT = nullptr;
+	}
+
+	if (m_pDSVforRTT != nullptr)
+	{
+		m_pDSVforRTT->Release();
+		m_pDSVforRTT = nullptr;
+	}
 }

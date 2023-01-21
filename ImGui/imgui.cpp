@@ -1048,7 +1048,7 @@ static ImGuiWindow*     FindBlockingModal(ImGuiWindow* window);
 // Viewports
 const ImGuiID           IMGUI_VIEWPORT_DEFAULT_ID = 0x11111111; // Using an arbitrary constant instead of e.g. ImHashStr("ViewportDefault", 0); so it's easier to spot in the debugger. The exact value doesn't matter.
 static ImGuiViewportP*  AddUpdateViewport(ImGuiWindow* window, ImGuiID id, const ImVec2& platform_pos, const ImVec2& size, ImGuiViewportFlags flags);
-static void             DestroyViewport(ImGuiViewportP* viewport);
+static void             DestroyRTT(ImGuiViewportP* viewport);
 static void             UpdateViewportsNewFrame();
 static void             UpdateViewportsEndFrame();
 static void             WindowSelectViewport(ImGuiWindow* window);
@@ -13703,7 +13703,7 @@ static void ImGui::UpdateViewportsNewFrame()
         // Erase unused viewports
         if (n > 0 && viewport->LastFrameActive < g.FrameCount - 2)
         {
-            DestroyViewport(viewport);
+            DestroyRTT(viewport);
             n--;
             continue;
         }
@@ -13913,7 +13913,7 @@ ImGuiViewportP* ImGui::AddUpdateViewport(ImGuiWindow* window, ImGuiID id, const 
     return viewport;
 }
 
-static void ImGui::DestroyViewport(ImGuiViewportP* viewport)
+static void ImGui::DestroyRTT(ImGuiViewportP* viewport)
 {
     // Clear references to this viewport in windows (window->ViewportId becomes the master data)
     ImGuiContext& g = *GImGui;

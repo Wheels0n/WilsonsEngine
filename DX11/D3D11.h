@@ -43,6 +43,11 @@ public:
 		return m_pCCam;
 	};
 
+	IDXGISwapChain* GetSwapChain() const
+	{
+		return m_pSwapChain;
+	}
+
 	ID3D11ShaderResourceView* GetRTT() const
 	{
 		return m_pSRVForRTT;
@@ -61,16 +66,31 @@ public:
 		return m_clientHeight;
 	};
 
+	bool CreateRTT(int, int);
+	bool CreateDSBforRTT(int w, int h)
+	{   
+		DestroyDSBforRTT();
+		return CreateDepthBuffer(w, h, &m_pDSBufferForRTT, &m_pDSVforRTT);
+	};
 private:
+	bool CreateDepthBuffer(int, int,
+		ID3D11Texture2D**,
+		ID3D11DepthStencilView**);
+	bool CreateDSS();
+
+	void DestroyDSS();
+	void DestroyRTT();
+	void DestroyDSBforRTT();
+
 	bool m_bVsync_enabled;
 	IDXGISwapChain* m_pSwapChain;
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pContext;
 	ID3D11RenderTargetView* m_pRenderTargetView, *m_pRTTV;
-	ID3D11Texture2D* m_pDepthStencilBuffer, *m_pRTT;
+	ID3D11Texture2D* m_pDSBuffer, *m_pDSBufferForRTT, *m_pRTT;
 	ID3D11ShaderResourceView* m_pSRVForRTT;
 	ID3D11DepthStencilState* m_pDefualtDDS, *m_pMirroMarkDDS, *m_pDrawReflectionDDS;
-	ID3D11DepthStencilView* m_pDepthStencilView;
+	ID3D11DepthStencilView* m_pDepthStencilView, *m_pDSVforRTT;
 	ID3D11RasterizerState* m_pRasterstate, *m_pRasterStateCC;
 	ID3D11SamplerState* m_pSampleState;
 	ID3D11BlendState* m_pNoRenderTargetWritesBS, * m_pTransparentBS;

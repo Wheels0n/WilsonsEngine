@@ -15,15 +15,17 @@ public:
 
 	void Init(CD3D11*, CScene* );
 	void Draw();
+	void Resize();
 private:
-	int width;
-	int height;
-	int left;
-	int top;
+	int m_width;
+	int m_height;
+	int m_left;
+	int m_top;
 
 	CD3D11* m_pCD3D11;
 	CScene* m_pCScene;
 	CImporter m_CImporter;
+	IDXGISwapChain* m_pSwapChain;
 	ID3D11ShaderResourceView* m_pSRV;
 	ID3D11Device* m_pDevice;
 };
