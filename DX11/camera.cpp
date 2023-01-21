@@ -61,11 +61,25 @@ void CCamera::Reset()
 	m_vRotation = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-void CCamera::Rotate(int dptich, int dyaw)
-{  
-	XMVECTOR dv =XMVectorSet(dptich, dyaw, 0.0f, 0.0f);
-	dv = XMVectorScale(dv, m_rtSpeed);
-	m_vRotation = XMVectorAdd(m_vRotation, dv);
+void CCamera::Rotate(int dpitch, int dyaw)
+{   
+	XMFLOAT4 float4;
+	XMStoreFloat4(&float4, m_vRotation);
+	float pitch = float4.x + dpitch * m_rtSpeed;
+	float yaw = float4.y + dyaw * m_rtSpeed;
+
+	if (pitch < 0.0f)
+	{
+		pitch += RAD;
+	}
+	if (yaw < 0.0f)
+	{
+		yaw += RAD;
+	}
+	pitch = pitch > RAD ? 0 : pitch;
+	yaw = yaw > RAD ?0 : yaw;
+
+	m_vRotation = XMVectorSet(pitch, yaw, 0.0f, 0.0f);
 }
 
 void CCamera::Translate(XMVECTOR dv)

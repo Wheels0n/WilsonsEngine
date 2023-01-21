@@ -10,8 +10,8 @@ CEngine::CEngine()
 	m_screenWidth = 0;
 	m_lastMouseX = 0;
 	m_lastMouseY = 0;
-	m_mouseX = 0;
-	m_mouseY = 0;
+	m_curMouseX = 0;
+	m_curMouseY = 0;
 }
 
 CEngine::~CEngine()
@@ -121,9 +121,16 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		int x = (short)(lParam)& 0xffff;
 		int y = (lParam >> 16) & 0xffff;
+		
+		m_lastMouseX = x;
+		m_lastMouseY = y;
+		m_curMouseX = x;
+		m_curMouseY = y;
+
 		m_pEditor->Pick(x, y);
 
 	}
+
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
 	{   
 		return 0;
@@ -146,6 +153,7 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	  {
 		  if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
 		  {   
+
 			  RECT rc;
 			  GetWindowRect(m_hWnd, &rc);
 			  int winPosX = rc.left;
@@ -154,16 +162,17 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			  int x = (short)(lParam) & 0xffff;
 			  int y = (lParam >> 16) & 0xffff;
 
-			  int dx = x - m_mouseX;
-			  int dy = y - m_mouseY;
-			  m_mouseX = x;
-			  m_mouseY = y;
+			  m_curMouseX = x;
+			  m_curMouseY = y;
 
-			  if (!m_pEditor->CheckRange(winPosX+x, winPosY+y))
+			  int dyaw = m_lastMouseX - m_curMouseX;
+			  int dpitch = m_lastMouseY - m_curMouseY;
+
+			  if (dyaw != 0 && dpitch != 0 &&
+				  m_pEditor->CheckRange(winPosX + m_lastMouseX, winPosY + m_lastMouseY))
 			  {
-				  return 0;
+				  m_pRenderer->Rotate(dpitch, dyaw);
 			  }
-			  m_pRenderer->Rotate(dy, dx);
 		  }
 		  break;
 	  }

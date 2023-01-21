@@ -25,12 +25,14 @@ void CSettings::Draw()
 			ImGui::Text("Position");
 			ImGui::SliderFloat("X", &posFloat.x, -100, 100);
 			ImGui::SliderFloat("Y", &posFloat.y, -100, 100);
-			ImGui::SliderFloat("Z", &posFloat.x, -100, 100);
+			ImGui::SliderFloat("Z", &posFloat.z, -100, 100);
 
 			XMVECTOR* angleVec = m_pCCam->GetRotation();
 			XMFLOAT3 angleFloat;
 			XMStoreFloat3(&angleFloat, *angleVec);
-			
+			angleFloat.x *= 57.2958f;
+			angleFloat.y *= 57.2958f;
+
 			ImGui::Text("Rotation");
 			ImGui::SliderFloat("Pitch", &angleFloat.x, -180, 180);
 			ImGui::SliderFloat("Yaw", &angleFloat.y, -360, 360);

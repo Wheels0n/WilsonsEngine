@@ -34,8 +34,8 @@ private:
 
 	int m_lastMouseX;
 	int m_lastMouseY;
-	int m_mouseX;
-	int m_mouseY;
+	int m_curMouseX;
+	int m_curMouseY;
 
 	LPCWSTR m_appName;
 	HINSTANCE m_hInstance;

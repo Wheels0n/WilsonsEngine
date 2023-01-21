@@ -1,5 +1,6 @@
 #ifndef CAM_CAMERA_H
 #define CAM_CAMERA_H
+#define RAD 6.28319
 
 #include<DirectXMath.h>
 #include<d3d11.h>
@@ -49,7 +50,7 @@ private:
 	float m_fScreenFar;
 
 	float m_trSpeed = 1.0f;
-	float m_rtSpeed = 0.01f;
+	float m_rtSpeed = 0.000175f;
 
 };
 
