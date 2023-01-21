@@ -24,7 +24,17 @@ void CEditor::Draw()
 
 void CEditor::Pick(int sx, int sy)
 {   
+	if (!CheckRange(sx, sy))
+	{
+		return;
+	}
+
 	int width = m_pCD3D11->GetClientWidth();
 	int height = m_pCD3D11->GetClientHeight();
 	m_Scene.Pick(sx, sy, width, height);
+}
+
+bool CEditor::CheckRange(int x, int y)
+{
+	return m_CViewport.CheckRange(x, y);
 }

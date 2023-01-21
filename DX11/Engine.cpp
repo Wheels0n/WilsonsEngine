@@ -145,7 +145,12 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	  case WM_MOUSEMOVE:
 	  {
 		  if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
-		  {
+		  {   
+			  RECT rc;
+			  GetWindowRect(m_hWnd, &rc);
+			  int winPosX = rc.left;
+			  int winPosY = rc.top;
+
 			  int x = (short)(lParam) & 0xffff;
 			  int y = (lParam >> 16) & 0xffff;
 
@@ -154,6 +159,10 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			  m_mouseX = x;
 			  m_mouseY = y;
 
+			  if (!m_pEditor->CheckRange(winPosX+x, winPosY+y))
+			  {
+				  return 0;
+			  }
 			  m_pRenderer->Rotate(dy, dx);
 		  }
 		  break;

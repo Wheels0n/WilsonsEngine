@@ -16,7 +16,10 @@ public:
 	void Init(CD3D11*, CScene* );
 	void Draw();
 	void Resize();
+	bool CheckRange(int, int);
 private:
+	bool m_IsFocused;
+
 	int m_width;
 	int m_height;
 	int m_left;

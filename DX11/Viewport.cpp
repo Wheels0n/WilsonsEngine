@@ -2,6 +2,8 @@
 
 void CViewport::Init(CD3D11* pCD3D11, CScene* pCScene)
 {  
+	m_IsFocused = false;
+
 	m_width = 1024;
 	m_height = 720;
 	m_left = 0;;
@@ -18,6 +20,11 @@ void CViewport::Draw()
 {   
 	ImGui::Begin("viewport", nullptr, ImGuiWindowFlags_MenuBar| ImGuiWindowFlags_NoScrollbar);
 	Resize();
+	ImVec2 pos = ImGui::GetWindowPos();
+	m_left = pos.x;
+	m_top = pos.y;
+	m_IsFocused = ImGui::IsWindowFocused();
+
 	ImGui::Image((void*)m_pSRV, ImVec2(m_width, m_height));
 
 	if (ImGui::BeginDragDropTarget())
@@ -65,5 +72,19 @@ void CViewport::Resize()
 		m_width = width;
 		m_height = height;
 	}
+}
+
+bool CViewport::CheckRange(int x, int y)
+{     
+	if (m_IsFocused ==false||
+		x<m_left ||
+		y<m_top  ||
+		x>m_left + m_width||
+		y>m_top + m_height)
+	{
+		return false;
+	}
+
+	return true;
 }
 
