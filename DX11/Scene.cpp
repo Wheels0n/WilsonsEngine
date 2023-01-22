@@ -152,7 +152,7 @@ void CScene::Pick(int sx, int sy, int width, int height)
 		XMMATRIX inverseWorld = XMMatrixInverse(&wDet, world);
 		XMMATRIX toLocal = XMMatrixMultiply(inverseView, inverseWorld);
 
-		XMVECTOR rayOrigin = XMVectorSet(0.0f ,0.0f, -2.0f, 1.0f); //*(m_pCCam->GetPosition());
+		XMVECTOR rayOrigin = XMVectorSet(0.0f ,0.0f, -2.0f, 0.0f); //*(m_pCCam->GetPosition());
 		XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 0.0f);
 
 		rayOrigin = XMVector3TransformCoord(rayOrigin, toLocal);
