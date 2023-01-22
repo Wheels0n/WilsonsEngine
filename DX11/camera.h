@@ -20,7 +20,8 @@ public:
 	void Init(ID3D11Device* device);
 	void Update();
 	void SetCamBuffer(ID3D11DeviceContext* context);
-	void Reset();
+	void ResetTranslation();
+	void ResetRotation();
 
 	XMVECTOR* GetPosition();
 	XMVECTOR* GetTarget();

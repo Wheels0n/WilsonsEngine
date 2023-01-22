@@ -28,6 +28,12 @@ void CSettings::Draw()
 			ImGui::SliderFloat("X", &posFloat.x, -100, 100);
 			ImGui::SliderFloat("Y", &posFloat.y, -100, 100);
 			ImGui::SliderFloat("Z", &posFloat.z, -100, 100);
+			ImGui::PushID(0);
+			if (ImGui::Button("Reset"))
+			{
+				m_pCCam->ResetTranslation();
+			}
+			ImGui::PopID();
 
 			XMVECTOR* angleVec = m_pCCam->GetRotation();
 			XMFLOAT3 angleFloat;
@@ -38,11 +44,12 @@ void CSettings::Draw()
 			ImGui::Text("Rotation");
 			ImGui::SliderFloat("Pitch", &angleFloat.x, -180, 180);
 			ImGui::SliderFloat("Yaw", &angleFloat.y, -360, 360);
-
+			ImGui::PushID(1);
 			if (ImGui::Button("Reset"))
 			{
-				m_pCCam->Reset();
+				m_pCCam->ResetRotation();
 			}
+			ImGui::PopID();
 			ImGui::TreePop();
 		}
 

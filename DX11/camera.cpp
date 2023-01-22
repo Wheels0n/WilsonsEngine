@@ -7,7 +7,10 @@ CCamera::CCamera(int screenWidth = 1080, int screenHeight = 720, float ScreenFar
 	m_fFOV = static_cast<float>(3.1459) / 4.0f;
 	m_fScreenRatio = screenWidth / static_cast<float>(screenHeight);
 
-	Reset();
+	ResetTranslation();
+	ResetRotation();
+	m_vUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
 	m_projectionMatrix = XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
 	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vTarget, m_vUp);
 	
@@ -53,13 +56,17 @@ void CCamera::Zoom(int)
 {
 }
 
-void CCamera::Reset()
+void CCamera::ResetTranslation()
 {
-	m_vPos = XMVectorSet( 0.0f, 0.0f, -1.0f, 0.0f );
+	m_vPos = XMVectorSet( 0.0f, 0.0f, -1.0f, 1.0f );
 	m_vTarget = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f );
-	m_vUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f );//which axis is upward
+}
+
+void CCamera::ResetRotation()
+{
 	m_vRotation = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 }
+
 
 void CCamera::Rotate(int dpitch, int dyaw)
 {   

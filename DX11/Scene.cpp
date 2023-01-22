@@ -151,11 +151,11 @@ void CScene::Pick(int sx, int sy, int width, int height)
 		XMMATRIX inverseWorld = XMMatrixInverse(nullptr, world);
 		XMMATRIX toLocal = XMMatrixMultiply(inverseView, inverseWorld);
 
-		XMVECTOR rayOrigin = XMVectorSet(0.0, 0.0, 0.0f, 1.0f);
+		XMVECTOR rayOrigin = XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f);
 		XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 0.0f);
 
-		rayOrigin = XMVector3TransformCoord(rayOrigin, toLocal);
-		rayDir = XMVector3TransformNormal(rayDir, toLocal);
+		rayOrigin = XMVector3TransformCoord(rayOrigin, inverseView);
+		rayDir = XMVector3TransformNormal(rayDir, inverseView);
 
 		rayDir = XMVector3Normalize(rayDir);
 
