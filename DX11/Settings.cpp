@@ -12,9 +12,10 @@ void CSettings::Draw()
 	{ 
 		m_CFps.Frame();
 		ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_CFps.GetFps());
+	
 		ImGuiIO io = ImGui::GetIO();
 		ImGui::Text("Mouse pos: %g, %g", io.MousePos.x, io.MousePos.y);
-
+		ImGui::Separator();
 		if (ImGui::TreeNode("Camera"))
 		{   
 			using namespace DirectX;
@@ -35,6 +36,7 @@ void CSettings::Draw()
 			}
 			ImGui::PopID();
 
+
 			XMVECTOR* angleVec = m_pCCam->GetRotation();
 			XMFLOAT3 angleFloat;
 			XMStoreFloat3(&angleFloat, *angleVec);
@@ -49,6 +51,7 @@ void CSettings::Draw()
 			{
 				m_pCCam->ResetRotation();
 			}
+			ImGui::Separator();
 			ImGui::PopID();
 			ImGui::TreePop();
 		}

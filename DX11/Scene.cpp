@@ -24,20 +24,19 @@ void CScene::Draw()
 {
 	if (ImGui::Begin("Scene Hierarchy"))
 	{   
-		ImGuiTreeNodeFlags node_flags;
 		if (ImGui::TreeNode(m_name.c_str()))
-		     {   
+		{   
 			ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 			for (int i = 0; i < m_entites.size(); ++i)
 			{
 				std::string name = *(m_entites[i]->GetType());
-
-				node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-				if (ImGui::TreeNodeEx((void*)(intptr_t)i, node_flags, name.c_str(), i))
+                
+				ImGui::PushID(i);
+				if (ImGui::Button(name.c_str()))
 				{
 					m_pSelectionETT = m_entites[i];
 				}
-				
+				ImGui::PopID();
 			}
 			ImGui::TreePop();
 		}
