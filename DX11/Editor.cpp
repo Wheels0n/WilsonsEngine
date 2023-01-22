@@ -22,16 +22,26 @@ void CEditor::Draw()
 	
 }
 
-void CEditor::Pick(int sx, int sy)
+void CEditor::Pick()
 {   
-	if (!CheckRange(sx, sy))
+	ImGuiIO io = ImGui::GetIO();
+	int x = io.MousePos.x;
+	int y = io.MousePos.y;
+	if (!CheckRange(x, y))
 	{
 		return;
 	}
 
 	int width = m_pCD3D11->GetClientWidth();
 	int height = m_pCD3D11->GetClientHeight();
-	m_Scene.Pick(sx, sy, width, height);
+
+	float ndcX = m_CViewport.GetNDCX(x);
+	float ndcY = m_CViewport.GetNDCY(y);
+
+	int mappedX = ndcX *width;
+	int mappedY = ndcY *height;
+
+	m_Scene.Pick(mappedX, mappedY, width, height);
 }
 
 bool CEditor::CheckRange(int x, int y)

@@ -12,7 +12,9 @@ void CSettings::Draw()
 	{ 
 		m_CFps.Frame();
 		ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_CFps.GetFps());
-		
+		ImGuiIO io = ImGui::GetIO();
+		ImGui::Text("Mouse pos: %g, %g", io.MousePos.x, io.MousePos.y);
+
 		if (ImGui::TreeNode("Camera"))
 		{   
 			using namespace DirectX;

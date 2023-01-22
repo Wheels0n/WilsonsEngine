@@ -126,7 +126,9 @@ void CScene::Draw()
 }
 
 void CScene::Pick(int sx, int sy, int width, int height)
-{
+{   
+	m_pSelectionETT = nullptr;
+
 	using namespace DirectX;
 
 	XMMATRIX projectionMat = *(m_pCCam->GetProjectionMatrix());
@@ -137,11 +139,10 @@ void CScene::Pick(int sx, int sy, int width, int height)
 	XMVECTOR vDet = XMMatrixDeterminant(viewMat);
 	XMMATRIX inverseView = XMMatrixInverse(&vDet, viewMat);
 
-	float vx = (2.0f * (float)sx / (float)width - 1.0f) / projectionMat4._11;
-	float vy = (-2.0f * (float)sy / (float)height + 1.0f) / projectionMat4._22;
-
-	XMVECTOR rayOrigin = *(m_pCCam->GetPosition());
-	XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 0.0f);
+	float vx = (2.0f * sx / width - 1.0f) / projectionMat4._11;
+	float vy = (-2.0f * sy / height + 1.0f) / projectionMat4._22;
+	float closestDistance = FLT_MAX;
+	float hitDistance;
 
 	for (int i = 0; i < m_entites.size(); ++i)
 	{   
@@ -149,8 +150,10 @@ void CScene::Pick(int sx, int sy, int width, int height)
 		XMMATRIX world = pModel->GetTransformMatrix();
 		XMVECTOR wDet = XMMatrixDeterminant(world);
 		XMMATRIX inverseWorld = XMMatrixInverse(&wDet, world);
-
 		XMMATRIX toLocal = XMMatrixMultiply(inverseView, inverseWorld);
+
+		XMVECTOR rayOrigin = XMVectorSet(0.0f ,0.0f, -2.0f, 1.0f); //*(m_pCCam->GetPosition());
+		XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 0.0f);
 
 		rayOrigin = XMVector3TransformCoord(rayOrigin, toLocal);
 		rayDir = XMVector3TransformNormal(rayDir, toLocal);
@@ -162,22 +165,33 @@ void CScene::Pick(int sx, int sy, int width, int height)
 		XMFLOAT3 xfDir;
 		XMStoreFloat3(&xfDir, rayDir);
 
-		if (RaySphereIntersect(xfO, xfDir, 1.0f) == true)
-		{
-			m_pSelectionETT = m_entites[i];
-			break;
+		if (RaySphereIntersect(xfO, xfDir, 0.5f, &hitDistance) == true)
+		{   
+			if (hitDistance < closestDistance)
+			{
+				m_pSelectionETT = m_entites[i];
+				closestDistance = hitDistance;
+			}
 		}
 		
 	}
+
+	
 }
 
-bool CScene::RaySphereIntersect(XMFLOAT3 o, XMFLOAT3 dir, float r)
+bool CScene::RaySphereIntersect(XMFLOAT3 o, XMFLOAT3 dir, float r, float* hitDistance)
 {
 	float a = (dir.x * dir.x) + (dir.y * dir.y) + (dir.z * dir.z);
 	float b = ((dir.x * o.x) + (dir.y * o.y) + (dir.z * o.z)) * 2.0f;
 	float c = (o.x * o.x) + (o.y * o.y) + (o.z * o.z) - r*r;
 	
-	float discriminant = (b * b - (4 * a * c));
-	return discriminant<0 ? false:true;
+	float discriminant = (b * b - 4.0f * a * c);
+	if (discriminant < 0.0f)
+	{
+		return false;
+	}
+
+	*hitDistance = (-b - sqrt(discriminant)) / (2.0f * a);
+	return true;
 }
 

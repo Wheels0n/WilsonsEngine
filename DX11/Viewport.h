@@ -17,6 +17,28 @@ public:
 	void Draw();
 	void Resize();
 	bool CheckRange(int, int);
+	float GetNDCX(int);
+	float GetNDCY(int);
+
+	int  GetWidth() const
+	{
+		return m_width;
+	};
+
+	int GetHeight() const
+	{
+		return m_height;
+	};
+
+	int GetX() const
+	{
+		return m_left;
+	};
+
+	int GetY() const
+	{  
+		return m_top;
+	};
 private:
 	bool m_IsFocused;
 

@@ -118,7 +118,8 @@ void CEngine::Run()
 LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {   
 	if (uMsg == WM_LBUTTONDOWN && m_pEditor != nullptr)
-	{
+	{   
+		//현재 창 기준 상대적 좌표
 		int x = (short)(lParam)& 0xffff;
 		int y = (lParam >> 16) & 0xffff;
 		
@@ -127,7 +128,7 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		m_curMouseX = x;
 		m_curMouseY = y;
 
-		m_pEditor->Pick(x, y);
+		m_pEditor->Pick();
 
 	}
 

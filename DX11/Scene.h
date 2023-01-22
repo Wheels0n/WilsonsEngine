@@ -47,7 +47,7 @@ private:
 	CScene* SceneHandler = this;
 	CCamera* m_pCCam = nullptr;
 
-	bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float);
+	bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float, float*);
 };
 
 

@@ -10,7 +10,7 @@ class CEditor
 public:
 	void Init(CD3D11*);
 	void Draw();
-	void Pick(int, int);
+	void Pick();
 	bool CheckRange(int, int);
 private:
 	CD3D11* m_pCD3D11;

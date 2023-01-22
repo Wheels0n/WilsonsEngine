@@ -55,7 +55,7 @@ void CCamera::Zoom(int)
 
 void CCamera::Reset()
 {
-	m_vPos = XMVectorSet( 0.0f, 0.0f, -1.0f, 0.0f );
+	m_vPos = XMVectorSet( 0.0f, 0.0f, -1.0f, 1.0f );
 	m_vLookat = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f );
 	m_vUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f );//which axis is upward
 	m_vRotation = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
