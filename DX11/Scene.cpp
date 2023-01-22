@@ -136,8 +136,7 @@ void CScene::Pick(int sx, int sy, int width, int height)
 	XMStoreFloat4x4(&projectionMat4, projectionMat);
 
 	XMMATRIX viewMat = *(m_pCCam->GetViewMatrix());
-	XMVECTOR vDet = XMMatrixDeterminant(viewMat);
-	XMMATRIX inverseView = XMMatrixInverse(&vDet, viewMat);
+	XMMATRIX inverseView = XMMatrixInverse(nullptr, viewMat);
 
 	float vx = (2.0f * sx / width - 1.0f) / projectionMat4._11;
 	float vy = (-2.0f * sy / height + 1.0f) / projectionMat4._22;
@@ -148,8 +147,7 @@ void CScene::Pick(int sx, int sy, int width, int height)
 	{   
 		CModel* pModel = m_entites[i]->GetModel();
 		XMMATRIX world = pModel->GetTransformMatrix();
-		XMVECTOR wDet = XMMatrixDeterminant(world);
-		XMMATRIX inverseWorld = XMMatrixInverse(&wDet, world);
+		XMMATRIX inverseWorld = XMMatrixInverse(nullptr, world);
 		XMMATRIX toLocal = XMMatrixMultiply(inverseView, inverseWorld);
 
 		XMVECTOR rayOrigin = XMVectorSet(0.0f ,0.0f, -2.0f, 0.0f); //*(m_pCCam->GetPosition());
