@@ -37,6 +37,8 @@ private:
 	int m_curMouseX;
 	int m_curMouseY;
 
+	static constexpr float m_mouseDragThreshold = 6.0f ;
+
 	LPCWSTR m_appName;
 	HINSTANCE m_hInstance;
 	HWND m_hWnd;

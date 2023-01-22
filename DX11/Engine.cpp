@@ -166,16 +166,33 @@ LRESULT CEngine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			  m_curMouseX = x;
 			  m_curMouseY = y;
 
-			  int dyaw = m_lastMouseX - m_curMouseX > 0 ? 1:-1;
-			  int dpitch = m_lastMouseY - m_curMouseY > 0 ? 1 : -1;
+			  int dyaw = m_lastMouseX - m_curMouseX; 
+			  int dpitch = m_lastMouseY - m_curMouseY; 
 
-			  if (dyaw != 0 && dpitch != 0 &&
-				  m_pEditor->CheckRange(winPosX + m_lastMouseX, winPosY + m_lastMouseY))
+			  if (abs(dyaw) > m_mouseDragThreshold)
+			  {
+				  dyaw = dyaw > 0 ? 1 : -1;
+			  }
+			  else
+			  {
+				  dyaw = 0;
+			  }
+			  
+			  if (abs(dpitch) > m_mouseDragThreshold)
+			  {
+				  dpitch = dpitch > 0 ? 1 : -1;
+			  }
+			  else
+			  {
+				  dpitch = 0;
+			  }
+
+			  if (m_pEditor->CheckRange(winPosX + m_lastMouseX, winPosY + m_lastMouseY))
 			  {
 				  m_pRenderer->Rotate(dpitch, dyaw);
+				  m_lastMouseX = x;
+				  m_lastMouseY = y;
 			  }
-			  m_lastMouseX = x;
-			  m_lastMouseY = y;
 		  }
 		  break;
 	  }
