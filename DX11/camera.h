@@ -35,7 +35,7 @@ public:
 private:
 
 	XMVECTOR m_vPos;
-	XMVECTOR m_vLookat;
+	XMVECTOR m_vTarget;
 	XMVECTOR m_vUp;      //which axis is upward
 	XMVECTOR m_vRotation;
 

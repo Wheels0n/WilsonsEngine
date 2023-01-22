@@ -9,7 +9,7 @@ CCamera::CCamera(int screenWidth = 1080, int screenHeight = 720, float ScreenFar
 
 	Reset();
 	m_projectionMatrix = XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
-	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vLookat, m_vUp);
+	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vTarget, m_vUp);
 	
 	m_pCamBuffer = nullptr;
 }
@@ -31,7 +31,7 @@ XMVECTOR* CCamera::GetPosition()
 
 XMVECTOR* CCamera::GetTarget()
 {
-	return &m_vLookat;
+	return &m_vTarget;
 }
 
 XMVECTOR* CCamera::GetRotation()
@@ -56,7 +56,7 @@ void CCamera::Zoom(int)
 void CCamera::Reset()
 {
 	m_vPos = XMVectorSet( 0.0f, 0.0f, -1.0f, 0.0f );
-	m_vLookat = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f );
+	m_vTarget = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f );
 	m_vUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f );//which axis is upward
 	m_vRotation = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 }
@@ -106,9 +106,9 @@ void CCamera::Init(ID3D11Device* device)
 void CCamera::Update()
 {  
 	XMMATRIX rt = XMMatrixRotationRollPitchYawFromVector(m_vRotation);
-	m_vLookat = XMVector3Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rt);
-	m_vLookat = XMVectorAdd(m_vLookat, m_vPos);
-	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vLookat, m_vUp);
+	m_vTarget = XMVector3Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rt);
+	m_vTarget = XMVectorAdd(m_vTarget, m_vPos);
+	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vTarget, m_vUp);
 	//m_vUp = XMVector3Transform(m_vUp, rt); no roll
 }
 
