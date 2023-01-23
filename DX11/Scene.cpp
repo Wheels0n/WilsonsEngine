@@ -21,7 +21,8 @@ void CScene::AddEntity(CModel* pModel)
 }
 
 void CScene::Draw()
-{
+{   
+	const char* actions = "Remove";
 	if (ImGui::Begin("Scene Hierarchy"))
 	{   
 		if (ImGui::TreeNode(m_name.c_str()))
@@ -33,8 +34,19 @@ void CScene::Draw()
                 
 				ImGui::PushID(i);
 				if (ImGui::Button(name.c_str()))
-				{
+				{   
 					m_pSelectionETT = m_entites[i];
+					ImGui::OpenPopup("Edit");
+				}
+				if (ImGui::BeginPopup("Edit"))
+				{
+					ImGui::Text("Edit");
+					ImGui::Separator();
+					if (ImGui::Selectable(actions))
+					{
+						//RemoveENTT(i);
+					}
+					ImGui::EndPopup();
 				}
 				ImGui::PopID();
 			}
