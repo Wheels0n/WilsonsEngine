@@ -2,6 +2,7 @@
 #define SCENE_H
 
 #include "../ImGui/imgui.h"
+#include "D3D11.h"
 #include "Entity.h"
 #include "camera.h"
 #include <Windows.h>
@@ -11,10 +12,11 @@
 class CScene
 {
 public:
-	CScene() = default;
+	CScene();
 	CScene(const CScene&)= default;
 	~CScene();
 
+	void Init(CD3D11*);
 	void AddEntity(CModel*);
 	void Draw();
 
@@ -43,11 +45,14 @@ private:
 	std::unordered_map<std::string, int> m_entityCnt;
 	std::vector<CEntity*> m_entites;
 	std::string m_name;
-	CEntity* m_pSelectionETT = nullptr;
-	CScene* SceneHandler = this;
-	CCamera* m_pCCam = nullptr;
+
+	CD3D11* m_pCD3D11;
+	CEntity* m_pSelectionETT;
+	CScene* SceneHandler ;
+	CCamera* m_pCCam ;
 
 	bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float, float*);
+	void RemoveENTT(int);
 };
 
 

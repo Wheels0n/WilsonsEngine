@@ -1,5 +1,13 @@
 #include "Scene.h"
 
+CScene::CScene()
+{
+	m_pCD3D11 = nullptr;
+	m_pSelectionETT = nullptr;
+	SceneHandler = this;
+	m_pCCam = nullptr;
+}
+
 CScene::~CScene()
 {   
 	for (int i = 0; i < m_entites.size(); ++i)
@@ -8,6 +16,11 @@ CScene::~CScene()
 	}
 	m_entites.clear();
 	m_entites.shrink_to_fit();
+}
+
+void CScene::Init(CD3D11* pCD3D11)
+{
+	m_pCD3D11 = pCD3D11;
 }
 
 void CScene::AddEntity(CModel* pModel)
@@ -44,7 +57,7 @@ void CScene::Draw()
 					ImGui::Separator();
 					if (ImGui::Selectable(actions))
 					{
-						//RemoveENTT(i);
+						RemoveENTT(i);
 					}
 					ImGui::EndPopup();
 				}
@@ -204,5 +217,17 @@ bool CScene::RaySphereIntersect(XMFLOAT3 o, XMFLOAT3 dir, float r, float* hitDis
 
 	*hitDistance = (-b - sqrt(discriminant)) / (2.0f * a);
 	return true;
+}
+
+void CScene::RemoveENTT(int i)
+{  
+	m_pCD3D11->RemoveModel(i);
+
+	std::string type = *(m_entites[i]->GetType());
+	--m_entityCnt[type];
+	delete m_entites[i];
+	m_entites.erase(m_entites.begin()+i);
+
+	m_pSelectionETT = nullptr;
 }
 

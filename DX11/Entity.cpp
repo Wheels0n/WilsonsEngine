@@ -6,6 +6,7 @@ CEntity::CEntity(std::string type, CModel* pModel)
 	m_type = type;
 }
 
+
 std::string* CEntity::GetType()
 {
 	return &m_type;

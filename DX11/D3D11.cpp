@@ -415,6 +415,16 @@ void CD3D11::Shutdown()
 		m_pTransparentBS->Release();
 		m_pTransparentBS = nullptr;
 	}
+
+	for (int i = 0; i < m_ppCModels.size(); ++i)
+	{
+		if (m_ppCModels[i] != nullptr)
+		{
+			delete m_ppCModels[i];
+		}
+	}
+	m_ppCModels.clear();
+	m_ppCModels.shrink_to_fit();
 	return;
 }
 
@@ -472,6 +482,12 @@ void CD3D11::AddModel(CModel* pCModel, ID3D11Device* pDevice)
 {
 	m_ppCModels.push_back(pCModel);
 	m_ppCModels.back()->Init(pDevice);
+}
+
+void CD3D11::RemoveModel(int i)
+{  
+	delete m_ppCModels[i];
+	m_ppCModels.erase(m_ppCModels.begin() + i);
 }
 
 bool CD3D11::CreateRTT(int width, int height)

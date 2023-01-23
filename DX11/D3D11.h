@@ -37,6 +37,7 @@ public:
 	void UpdateScene();
 	void DrawScene();
 	void AddModel(CModel*, ID3D11Device*);
+	void RemoveModel(int i);
 
 	CCamera* GetCam() const
 	{
