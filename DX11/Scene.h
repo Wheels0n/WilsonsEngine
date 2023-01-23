@@ -19,6 +19,7 @@ public:
 	void Init(CD3D11*);
 	void AddEntity(CModel*);
 	void Draw();
+	void DrawVec3Control(const std::string& label, float* vals);
 
 	void SetCam(CCamera* pCam)
 	{

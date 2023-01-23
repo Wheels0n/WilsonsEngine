@@ -90,21 +90,20 @@ void CScene::Draw()
 				DirectX::XMStoreFloat4x4(&scMat4, *scMat);
 
 				float scale[3] = { scMat4._11, scMat4._22, scMat4._33 };
-				if (ImGui::DragFloat3("Scale", scale, dragFactor))
-				{  
-					for (int i = 0; i < 3; ++i)
-					{
-						scale[i] = scale[i] < 0.1f ? 0.1f : scale[i];
-					}
+				DrawVec3Control("scale", scale);
+				for (int i = 0; i < 3; ++i)
+				{
+					scale[i] = scale[i] < 0.1f ? 0.1f : scale[i];
+				}
 
-					DirectX::XMVECTOR xv = DirectX::XMVectorSet(
+				DirectX::XMVECTOR xv = DirectX::XMVectorSet(
 						scale[0],
 						scale[1], 
 						scale[2], 
 						1.0f);
-					DirectX::XMMATRIX sc = DirectX::XMMatrixScalingFromVector(xv);
+				DirectX::XMMATRIX sc = DirectX::XMMatrixScalingFromVector(xv);
 					*scMat = sc;
-				}
+				
 			}
 			
 			rtMat = pModel->GetRoatationMatrix();
@@ -115,14 +114,12 @@ void CScene::Draw()
 				DirectX::XMStoreFloat3(&angleFloat, *angleVec);
 
 				float newAngle[3] = { angleFloat.x, angleFloat.y, angleFloat.z };
-				if (ImGui::DragFloat3("Rotation", newAngle, dragFactor))
-				{    
-					XMVECTOR newAngleVec = DirectX::XMVectorSet(newAngle[0], newAngle[1], newAngle[2], 0.0f );
-					XMMATRIX rt = DirectX::XMMatrixRotationRollPitchYawFromVector(newAngleVec);
-					*rtMat = rt;
-					*angleVec = newAngleVec;
+				DrawVec3Control("Rotation", newAngle);
+				XMVECTOR newAngleVec = DirectX::XMVectorSet(newAngle[0], newAngle[1], newAngle[2], 0.0f );
+				XMMATRIX rt = DirectX::XMMatrixRotationRollPitchYawFromVector(newAngleVec);
+				*rtMat = rt;
+				*angleVec = newAngleVec;
   
-				}
 
 			}
 
@@ -132,22 +129,73 @@ void CScene::Draw()
 				DirectX::XMFLOAT4X4 trMat4;
 				DirectX::XMStoreFloat4x4(&trMat4, *trMat);
 
-				float curPos[3] = { trMat4._41, trMat4._42, trMat4._43 };
 				float newPos[3] = { trMat4._41, trMat4._42, trMat4._43 };
-
-				if (ImGui::DragFloat3("Position", newPos, dragFactor))
-				{   
-					DirectX::XMVECTOR xv = DirectX::XMVectorSet(newPos[0], newPos[1], newPos[2], 0.0f);
-					DirectX::XMMATRIX tr = DirectX::XMMatrixTranslationFromVector(xv);
-					*trMat = tr;
-				}
+				DrawVec3Control("Position", newPos);
+				
+				DirectX::XMVECTOR xv = DirectX::XMVectorSet(newPos[0], newPos[1], newPos[2], 0.0f);
+				DirectX::XMMATRIX tr = DirectX::XMMatrixTranslationFromVector(xv);
+				*trMat = tr;
 
 			}
-
 		
 		}
 		ImGui::End();
 	}
+}
+
+void CScene::DrawVec3Control(const std::string& label, float* vals)
+{
+	ImGui::Columns(2);
+	ImGui::SetColumnWidth(0, 70.f);
+	ImGui::Text(label.c_str());
+	ImGui::NextColumn();
+
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+	float itemWidth =ImGui::CalcItemWidth() / 3.0f;
+
+	ImGui::PushItemWidth(itemWidth);
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.15f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGuiCol_Button);
+	if (ImGui::Button("X"))
+	{
+		vals[0] = 0.0f;
+	}
+	ImGui::SameLine();
+	ImGui::DragFloat("##X", &vals[0], 0.1f); //##으로 중복되는 label처리, 출력은 안됨
+	ImGui::PopItemWidth();
+	ImGui::PopStyleColor(3);
+	ImGui::SameLine();
+
+	ImGui::PushItemWidth(itemWidth);
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.7f, 0.3f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.2f, 0.2f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGuiCol_Button);
+	if (ImGui::Button("Y"))
+	{
+		vals[1] = 0.0f;
+	}
+	ImGui::SameLine();
+	ImGui::DragFloat("##Y", &vals[1], 0.1f);
+	ImGui::PopItemWidth();
+	ImGui::PopStyleColor(3);
+	ImGui::SameLine();
+
+	ImGui::PushItemWidth(itemWidth);
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.25f, 0.8f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.35f, 0.9f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGuiCol_Button);
+	if (ImGui::Button("Z"))
+	{
+		vals[2] = 0.0f;
+	}
+	ImGui::SameLine();
+	ImGui::DragFloat("##Z", &vals[2], 0.1f);
+	ImGui::PopItemWidth();
+	ImGui::PopStyleColor(3);
+
+	ImGui::PopStyleVar();
+	ImGui::Columns(1);
 }
 
 void CScene::Pick(int sx, int sy, int width, int height)
