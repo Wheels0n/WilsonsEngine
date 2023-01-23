@@ -59,9 +59,13 @@ void CViewport::Draw()
 				int y = io.MousePos.y;
 
 				m_pCScene->Pick(GetNDCX(x) * width, GetNDCY(y) * height, width, height);
-				CEntity* pENTT = m_pCScene->GetSelectedENTT();
-
-				m_CImporter.LoadTex(pENTT->GetModel(), path, m_pCD3D11->GetDevice());
+				CEntity* pENTT = nullptr;
+				pENTT = m_pCScene->GetSelectedENTT();
+				if (pENTT != nullptr)
+				{
+					m_CImporter.LoadTex(pENTT->GetModel(), path, m_pCD3D11->GetDevice());
+				}
+				
 			}
 
 
