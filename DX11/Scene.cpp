@@ -144,7 +144,9 @@ void CScene::Draw()
 }
 
 void CScene::DrawVec3Control(const std::string& label, float* vals)
-{
+{  
+	ImGui::PushID(label.c_str());
+
 	ImGui::Columns(2);
 	ImGui::SetColumnWidth(0, 70.f);
 	ImGui::Text(label.c_str());
@@ -196,6 +198,8 @@ void CScene::DrawVec3Control(const std::string& label, float* vals)
 
 	ImGui::PopStyleVar();
 	ImGui::Columns(1);
+
+	ImGui::PopID();
 }
 
 void CScene::Pick(int sx, int sy, int width, int height)
