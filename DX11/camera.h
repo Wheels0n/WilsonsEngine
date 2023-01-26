@@ -50,7 +50,7 @@ private:
 	float m_fScreenNear;
 	float m_fScreenFar;
 
-	float m_trSpeed = 1.0f;
+	float m_trSpeed = 0.1f;
 	float m_rtSpeed = 0.0175f;
 
 };

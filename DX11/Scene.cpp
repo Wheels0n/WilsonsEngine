@@ -214,7 +214,11 @@ void CScene::Pick(int sx, int sy, int width, int height)
 
 	XMMATRIX viewMat = *(m_pCCam->GetViewMatrix());
 	XMMATRIX inverseView = XMMatrixInverse(nullptr, viewMat);
+	XMVECTOR pos = *(m_pCCam->GetPosition());
+	XMFLOAT4 pos4;
+	XMStoreFloat4(&pos4, pos);
 
+	float zNDC = projectionMat4._33 + projectionMat4._43* (1/pos4.z);
 	float vx = (2.0f * sx / width - 1.0f) / projectionMat4._11;
 	float vy = (-2.0f * sy / height + 1.0f) / projectionMat4._22;
 	float closestDistance = FLT_MAX;
@@ -229,13 +233,15 @@ void CScene::Pick(int sx, int sy, int width, int height)
 		XMMATRIX toLocal = XMMatrixMultiply(inverseView, inverseWorld);
 
 		XMVECTOR rayOrigin = XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f);
-		XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 0.0f);
+		XMVECTOR v = XMVectorSet(sx, sy, zNDC, 1.0f);
+		XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 1.0f);
+		XMVECTOR wo =XMVector3Unproject(v, 0, 0, width, height, 0, 1, projectionMat, viewMat, world);
 
 		rayOrigin = XMVector3TransformCoord(rayOrigin, inverseView);
 		rayDir = XMVector3TransformNormal(rayDir, inverseView);
 
 		rayDir = XMVector3Normalize(rayDir);
-
+		
 		XMFLOAT3 xfO;
 		XMStoreFloat3(&xfO, rayOrigin);
 		XMFLOAT3 xfDir;
