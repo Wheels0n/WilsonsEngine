@@ -22,6 +22,9 @@ public:
 	void SetCamBuffer(ID3D11DeviceContext* context);
 	void ResetTranslation();
 	void ResetRotation();
+     
+	void SetENTTsInFrustum(int);
+	int  GetENTTsInFrustum();
 
 	XMVECTOR* GetPosition();
 	XMVECTOR* GetTarget();
@@ -44,6 +47,8 @@ private:
 	XMMATRIX m_projectionMatrix;// think of the frustum as the lens of our camera, for it controls our view
 
 	ID3D11Buffer* m_pCamBuffer;
+
+	int m_ENTTsInFrustum;
 
 	float m_fFOV;
 	float m_fScreenRatio;

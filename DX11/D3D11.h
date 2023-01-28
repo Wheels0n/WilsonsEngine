@@ -14,6 +14,7 @@
 #include <Windows.h>
 #include <vector>
 #include "camera.h"
+#include "Frustum.h"
 #include "MatrixBuffer.h"
 #include "WorldTransformation.h"
 #include "Light.h"
@@ -99,6 +100,7 @@ private:
 	CImporter* m_pCImporter;
 	std::vector<CModel*> m_ppCModels;
 	CCamera* m_pCCam;
+	CFrustum* m_pCFrustum;
 	CMBuffer* m_pCMBuffer;
 	CWMTransformation* m_pCWMTransformation;
 	CLight* m_pCLight;

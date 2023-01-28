@@ -12,6 +12,7 @@ void CSettings::Draw()
 	{ 
 		m_CFps.Frame();
 		ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_CFps.GetFps());
+		ImGui::TextColored(ImVec4(0, 1, 0, 1), "ENTTSInFrustum:%d", m_pCCam->GetENTTsInFrustum());
 	
 		ImGuiIO io = ImGui::GetIO();
 		ImGui::Text("Mouse pos: %g, %g", io.MousePos.x, io.MousePos.y);

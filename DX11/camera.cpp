@@ -15,6 +15,9 @@ CCamera::CCamera(int screenWidth = 1080, int screenHeight = 720, float ScreenFar
 	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vTarget, m_vUp);
 	
 	m_pCamBuffer = nullptr;
+
+	m_ENTTsInFrustum = 0;
+
 }
 
 CCamera::~CCamera()
@@ -87,6 +90,16 @@ void CCamera::Rotate(int dpitch, int dyaw)
 	yaw = yaw > RAD ?0 : yaw;
 
 	m_vRotation = XMVectorSet(pitch, yaw, 0.0f, 0.0f);
+}
+
+void CCamera::SetENTTsInFrustum(int cnt)
+{
+	m_ENTTsInFrustum = cnt;
+}
+
+int CCamera::GetENTTsInFrustum()
+{
+	return m_ENTTsInFrustum;
 }
 
 void CCamera::Translate(XMVECTOR dv)

@@ -26,6 +26,7 @@ CD3D11::CD3D11()
 
 	m_pCImporter = nullptr;
 	m_pCCam  = nullptr;
+	m_pCFrustum = nullptr;
 	m_pCMBuffer = nullptr;
 	m_pCWMTransformation = nullptr;
 	m_pCLight = nullptr;
@@ -238,6 +239,8 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	m_pCCam->SetCamBuffer(m_pContext);
 	XMMATRIX* projection=  m_pCCam->GetProjectionMatrix();
 	XMMATRIX* view = m_pCCam->GetViewMatrix();
+	m_pCFrustum = new CFrustum();
+	m_pCFrustum->Construct(100.0f, m_pCCam);
 	m_pCMBuffer = new CMBuffer(m_pDevice, m_pContext, projection, view);
 	m_pCMBuffer->Init();
 	m_pCWMTransformation = new CWMTransformation(m_pDevice, m_pContext);
@@ -392,6 +395,12 @@ void CD3D11::Shutdown()
 		m_pCCam = nullptr;
 	}
     
+	if (m_pCFrustum != nullptr)
+	{
+		delete m_pCFrustum;
+		m_pCFrustum = nullptr;
+	}
+
 	if (m_pCLight != nullptr)
 	{   
 		delete m_pCLight;
@@ -434,7 +443,8 @@ void CD3D11::UpdateScene()
 	//clear views
 	HRESULT hr;
 	float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
-	
+	int drawed = 0;
+
 	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
 	m_pContext->ClearRenderTargetView(m_pRTTV, color);
 	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -443,14 +453,24 @@ void CD3D11::UpdateScene()
 	XMMATRIX world;
 	for (int i = 0; i < m_ppCModels.size(); ++i)
 	{   
-		world = m_ppCModels[i]->GetTransformMatrix();
 		m_pCCam->Update();
-		m_pCMBuffer->SetViewMatrix(m_pCCam->GetViewMatrix());
-		m_pCMBuffer->SetWorldMatrix(&world);
-		m_pCMBuffer->Update();
-		m_ppCModels[i]->UploadBuffers(m_pContext);
-		m_pContext->DrawIndexed(m_ppCModels[i]->GetIndexCount(), 0, 0);
+		m_pCFrustum->Construct(100.0f, m_pCCam);
+		world = m_ppCModels[i]->GetTransformMatrix();
+		XMFLOAT4X4 pos4;
+		XMStoreFloat4x4(&pos4, world);
+		if (m_pCFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
+		{  
+			m_pCMBuffer->SetViewMatrix(m_pCCam->GetViewMatrix());
+			m_pCMBuffer->SetWorldMatrix(&world);
+			m_pCMBuffer->Update();
+			m_ppCModels[i]->UploadBuffers(m_pContext);
+			m_pContext->DrawIndexed(m_ppCModels[i]->GetIndexCount(), 0, 0);
+
+			++drawed;
+		}
+		
 	}
+	m_pCCam->SetENTTsInFrustum(drawed);
 	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
 	return;
 }
