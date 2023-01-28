@@ -13,7 +13,7 @@ cbuffer Light
 	float4 specular;
 	float4 ambient;
 	float4 diffuse;
-	float3 direction;
+	float4 direction;
 	float  specPow;
 };
 

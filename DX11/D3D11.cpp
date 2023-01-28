@@ -461,6 +461,8 @@ void CD3D11::UpdateScene()
 	m_pContext->ClearDepthStencilView(m_pDSVforRTT, D3D11_CLEAR_DEPTH, 1.0f, 0);
 	m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDSVforRTT);
 
+	//Update Light
+	m_pCLight->Update();
 	//Update Cam 
 	m_pCCam->Update();
 	m_pCFrustum->Construct(100.0f, m_pCCam);

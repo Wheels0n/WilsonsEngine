@@ -30,6 +30,56 @@ bool CLight::Init()
 	return true;
 }
 
+XMVECTOR* CLight::GetSpecular()
+{
+	return &m_vSpecular;
+}
+
+XMVECTOR* CLight::GetAmbient()
+{
+	return &m_vAmbient;
+}
+
+XMVECTOR* CLight::GetDiffuse()
+{
+	return &m_vDiffuse;
+}
+
+XMVECTOR* CLight::GetDirection()
+{
+	return &m_vDirection;
+}
+
+float* CLight::GetSpecPow()
+{
+	return &m_fSpecPow;
+}
+
+void CLight::SetSpecular(XMVECTOR spec)
+{
+	m_vSpecular = spec;
+}
+
+void CLight::SetAmbient(XMVECTOR ambi)
+{
+	m_vAmbient = ambi;
+}
+
+void CLight::SetDiffuse(XMVECTOR diff)
+{
+	m_vDiffuse = diff;
+}
+
+void CLight::SetDirection(XMVECTOR dir)
+{
+	m_vDirection = dir;
+}
+
+void CLight::SetSpecPow(float pow)
+{
+	m_fSpecPow = pow;
+}
+
 void CLight::Update()
 {
 	D3D11_MAPPED_SUBRESOURCE mappedResource;

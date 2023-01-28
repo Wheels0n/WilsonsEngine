@@ -60,7 +60,63 @@ void CSettings::Draw()
 
 
 		if (ImGui::TreeNode("Lighting"))
-		{  
+		{   
+			XMVECTOR* dir = m_pCLight->GetDirection();
+		    XMFLOAT4 dir4;
+			XMStoreFloat4(&dir4, *dir);
+			ImGui::Text("Direction");
+			if (ImGui::Button("X"))
+			{
+				dir4.x = 0.0f;
+			}
+			ImGui::SameLine();
+			ImGui::DragFloat("##X", &dir4.x, 0.1f);
+
+			if (ImGui::Button("Y"))
+			{
+				dir4.y = 0.0f;
+			}
+			ImGui::SameLine();
+			ImGui::DragFloat("##Y", &dir4.y, 0.1f);
+
+			if (ImGui::Button("Z"))
+			{
+				dir4.z = 0.0f;
+			}
+			ImGui::SameLine();
+			ImGui::DragFloat("##Z", &dir4.z, 0.1f);
+			m_pCLight->SetDirection(XMLoadFloat4(&dir4));
+
+			float* pow = m_pCLight->GetSpecPow();
+			ImGui::Text("Intensity/Color");
+			if (ImGui::Button("Intensity"))
+			{
+				*pow= 0.0f;
+			}
+			ImGui::SameLine();
+			ImGui::DragFloat("##Intensity", pow, 0.1f);
+			m_pCLight->SetSpecPow(*pow);
+
+			XMVECTOR* Ambi = m_pCLight->GetAmbient();
+			XMFLOAT4 Ambi4;
+			XMStoreFloat4(&Ambi4, *Ambi);
+			float pAmbi[4] = { Ambi4.x, Ambi4.y, Ambi4.z, Ambi4.w };
+			ImGui::SliderFloat4("Ambient", pAmbi, 0.0f, 1.0f);
+			m_pCLight->SetAmbient(XMVectorSet(pAmbi[0], pAmbi[1], pAmbi[2], pAmbi[3]));
+
+			XMVECTOR* diff = m_pCLight->GetDiffuse();
+			XMFLOAT4 diff4;
+			XMStoreFloat4(&diff4, *diff);
+		    float pDiff[4] = { diff4.x, diff4.y, diff4.z, diff4.w };
+			ImGui::SliderFloat4("Diffuse", pDiff, 0.0f, 1.0f);
+			m_pCLight->SetDiffuse(XMVectorSet(pDiff[0], pDiff[1], pDiff[2], pDiff[3]));
+
+			XMVECTOR* spec = m_pCLight->GetSpecular();
+			XMFLOAT4 spec4;
+			XMStoreFloat4(&spec4, *spec);
+			float pSpec[4] = { spec4.x, spec4.y, spec4.z, spec4.w };
+			ImGui::SliderFloat4("Specular", pSpec, 0.0f, 1.0f);
+			m_pCLight->SetSpecular(XMVectorSet(pSpec[0], pSpec[1], pSpec[2], pSpec[3]));
 
 			ImGui::TreePop();
 		}

@@ -12,7 +12,7 @@ struct Light
 	XMVECTOR specular;
 	XMVECTOR ambient;
 	XMVECTOR diffuse;
-	XMFLOAT3 direction;
+	XMVECTOR direction;
 	float specPow;
 };
 
@@ -23,6 +23,19 @@ public:
 	~CLight();
 	void Update();
 	bool Init();
+
+	XMVECTOR* GetSpecular();
+	XMVECTOR* GetAmbient();
+	XMVECTOR* GetDiffuse();
+	XMVECTOR* GetDirection();
+	float* GetSpecPow();
+
+	void SetSpecular(XMVECTOR);
+	void SetAmbient(XMVECTOR);
+	void SetDiffuse(XMVECTOR);
+	void SetDirection(XMVECTOR);
+	void SetSpecPow(float);
+
 private:
 
 	ID3D11Device* m_pDevice;
@@ -32,7 +45,7 @@ private:
 	XMVECTOR m_vSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	XMVECTOR m_vAmbient = { 0.1f,  0.1f, 0.1f, 0.1f };
 	XMVECTOR m_vDiffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	XMFLOAT3 m_vDirection = {0.0f, 1.0f, 1.0f};
+	XMVECTOR m_vDirection = {0.0f, 1.0f, 1.0f, 1.0f};
 	float    m_fSpecPow = 32.0f;
 };
 
