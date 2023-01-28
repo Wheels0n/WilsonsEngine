@@ -32,7 +32,7 @@ private:
 	XMVECTOR m_vSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	XMVECTOR m_vAmbient = { 0.1f,  0.1f, 0.1f, 0.1f };
 	XMVECTOR m_vDiffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	XMFLOAT3 m_vDirection = {0.0f, -3.0f, 1.0f};
+	XMFLOAT3 m_vDirection = {0.0f, 1.0f, 1.0f};
 	float    m_fSpecPow = 32.0f;
 };
 

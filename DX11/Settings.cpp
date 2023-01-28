@@ -1,8 +1,9 @@
 #include "Settings.h"
 
-void CSettings::Init(CCamera* pCCam)
+void CSettings::Init(CCamera* pCCam , CLight* pCLight)
 {
 	m_CFps.Init();
+	m_pCLight = pCLight;
 	m_pCCam = pCCam;
 }
 
@@ -54,6 +55,13 @@ void CSettings::Draw()
 			}
 			ImGui::Separator();
 			ImGui::PopID();
+			ImGui::TreePop();
+		}
+
+
+		if (ImGui::TreeNode("Lighting"))
+		{  
+
 			ImGui::TreePop();
 		}
 

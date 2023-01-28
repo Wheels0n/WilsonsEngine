@@ -24,6 +24,7 @@ CD3D11::CD3D11()
 	m_pNoRenderTargetWritesBS = nullptr;
 	m_pTransparentBS = nullptr;
 
+	m_pCTerrain = nullptr;
 	m_pCImporter = nullptr;
 	m_pCCam  = nullptr;
 	m_pCFrustum = nullptr;
@@ -234,6 +235,8 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	m_pContext->RSSetViewports(1, &viewport);
 
 	//Set projectionMatrix, viewMatrix;
+	m_pCTerrain = new CTerrain;
+	m_pCTerrain->Init(m_pDevice, 100, 100);
 	m_pCCam = new CCamera(screenWidth, screenHeight, fScreenFar, fScreenNear);
 	m_pCCam->Init(m_pDevice);
 	m_pCCam->SetCamBuffer(m_pContext);
@@ -389,6 +392,12 @@ void CD3D11::Shutdown()
 		m_pCMBuffer = nullptr;
 	}
 
+	if (m_pCTerrain != nullptr)
+	{
+		delete m_pCTerrain;
+		m_pCTerrain = nullptr;
+	}
+
 	if (m_pCCam != nullptr)
 	{
 		delete m_pCCam;
@@ -442,6 +451,7 @@ void CD3D11::UpdateScene()
 {
 	//clear views
 	HRESULT hr;
+	XMMATRIX world = XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
 	float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
 	int drawed = 0;
 
@@ -450,11 +460,20 @@ void CD3D11::UpdateScene()
 	m_pContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 	m_pContext->ClearDepthStencilView(m_pDSVforRTT, D3D11_CLEAR_DEPTH, 1.0f, 0);
 	m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDSVforRTT);
-	XMMATRIX world;
+
+	//Update Cam 
+	m_pCCam->Update();
+	m_pCFrustum->Construct(100.0f, m_pCCam);
+	//Draw Terrain
+	m_pCTerrain->UploadBuffers(m_pContext);
+	m_pCMBuffer->SetViewMatrix(m_pCCam->GetViewMatrix());
+	m_pCMBuffer->SetWorldMatrix(&world);
+	m_pCMBuffer->Update();
+	m_pContext->DrawIndexed(m_pCTerrain->GetIndexCount(), 0, 0);
+
+	//Draw ENTTs
 	for (int i = 0; i < m_ppCModels.size(); ++i)
 	{   
-		m_pCCam->Update();
-		m_pCFrustum->Construct(100.0f, m_pCCam);
 		world = m_ppCModels[i]->GetTransformMatrix();
 		XMFLOAT4X4 pos4;
 		XMStoreFloat4x4(&pos4, world);

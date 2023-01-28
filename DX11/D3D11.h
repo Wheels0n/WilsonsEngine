@@ -19,6 +19,7 @@
 #include "WorldTransformation.h"
 #include "Light.h"
 #include "Shader.h"
+#include "Terrain.h"
 #include "import.h"
 
 
@@ -44,6 +45,11 @@ public:
 	{
 		return m_pCCam;
 	};
+
+	CLight* GetLight() const
+	{
+		return m_pCLight;
+	}
 
 	IDXGISwapChain* GetSwapChain() const
 	{
@@ -99,6 +105,7 @@ private:
 
 	CImporter* m_pCImporter;
 	std::vector<CModel*> m_ppCModels;
+	CTerrain* m_pCTerrain;
 	CCamera* m_pCCam;
 	CFrustum* m_pCFrustum;
 	CMBuffer* m_pCMBuffer;

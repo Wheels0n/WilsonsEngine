@@ -6,7 +6,7 @@ void CEditor::Init(CD3D11* pCD3D11)
 
 	m_CViewport.Init(m_pCD3D11, m_Scene.GetScene());
 	m_CContentBrowser.Init(m_pCD3D11->GetDevice());
-	m_CSettings.Init(m_pCD3D11->GetCam());
+	m_CSettings.Init(m_pCD3D11->GetCam(), m_pCD3D11->GetLight());
 	m_Scene.Init(pCD3D11);
 
 	std::string str = "Scene";
