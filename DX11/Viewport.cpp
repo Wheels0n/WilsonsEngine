@@ -81,24 +81,27 @@ void CViewport::Draw()
 				//
 				m_pCD3D11->AddModel(pModel, m_pDevice);
 				m_pCScene->AddEntity(pModel);
-			}
 
-			payLoad = ImGui::AcceptDragDropPayload("png");
-			if (payLoad != nullptr)
-			{
-				const wchar_t* path = (const wchar_t*)payLoad->Data;
-
-				m_pCScene->Pick(GetNDCX(x) * width, GetNDCY(y) * height, width, height);
-				CEntity* pENTT = nullptr;
-				pENTT = m_pCScene->GetSelectedENTT();
-				if (pENTT != nullptr)
-				{
-					m_CImporter.LoadTex(pENTT->GetModel(), path, m_pCD3D11->GetDevice());
-				}
 				
 			}
 
+			for (int i = 0; i < 3; ++i)
+			{   
+				payLoad = ImGui::AcceptDragDropPayload(texFormats[i]);
+				if (payLoad != nullptr)
+				{
+					const wchar_t* path = (const wchar_t*)payLoad->Data;
 
+					//m_pCScene->Pick(GetNDCX(x) * width, GetNDCY(y) * height, width, height);
+					CEntity* pENTT = nullptr;
+					pENTT = m_pCScene->GetSelectedENTT();
+					if (pENTT != nullptr)
+					{
+						m_CImporter.LoadTex(pENTT->GetModel(), path, m_pCD3D11->GetDevice());
+					}
+
+				}
+			}
 			ImGui::EndDragDropTarget();
 		}
 		ImGui::End();

@@ -6,6 +6,12 @@
 #include "Scene.h"
 #include "D3D11.h"
 #include "import.h"
+
+static const char* texFormats[] =
+{
+	"bmp", "dds", "png"
+};
+
 class CViewport
 {
 public:

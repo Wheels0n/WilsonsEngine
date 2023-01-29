@@ -204,7 +204,7 @@ void CScene::DrawVec3Control(const std::string& label, float* vals)
 
 void CScene::Pick(int sx, int sy, int width, int height)
 {   
-	m_pSelectionETT = nullptr;
+	//m_pSelectionETT = nullptr;
 
 	using namespace DirectX;
 

@@ -466,13 +466,13 @@ void CD3D11::UpdateScene()
 	//Update Cam 
 	m_pCCam->Update();
 	m_pCFrustum->Construct(100.0f, m_pCCam);
-	//Draw Terrain
+	/*Draw Terrain
 	m_pCTerrain->UploadBuffers(m_pContext);
 	m_pCMBuffer->SetViewMatrix(m_pCCam->GetViewMatrix());
 	m_pCMBuffer->SetWorldMatrix(&world);
 	m_pCMBuffer->Update();
 	m_pContext->DrawIndexed(m_pCTerrain->GetIndexCount(), 0, 0);
-
+	*/
 	//Draw ENTTs
 	for (int i = 0; i < m_ppCModels.size(); ++i)
 	{   

@@ -45,6 +45,9 @@
     <Filter Include="Source Files\Scene">
       <UniqueIdentifier>{a0f5b359-ca6b-4306-af83-6944b1545b81}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Component\Terrain">
+      <UniqueIdentifier>{eb33cdb5-b4bd-425b-9231-39adf741ecc1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Renderer.cpp">
@@ -135,7 +138,7 @@
       <Filter>Source Files\Component\Cam</Filter>
     </ClCompile>
     <ClCompile Include="Terrain.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Component\Terrain</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -230,7 +233,7 @@
       <Filter>Source Files\Component\Cam</Filter>
     </ClInclude>
     <ClInclude Include="Terrain.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Component\Terrain</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

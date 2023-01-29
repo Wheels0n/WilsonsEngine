@@ -326,8 +326,8 @@ void CEngine::InitWindows(int& m_screenHeight, int& m_screenWidth)
 	}
 	else
 	{
-		m_screenWidth = 1280;
-		m_screenHeight =720;
+		m_screenWidth = 1600;
+		m_screenHeight =800;
 
 		iPosX = (GetSystemMetrics(SM_CXSCREEN) - m_screenWidth) / 2;
 		iPosY = (GetSystemMetrics(SM_CYSCREEN) - m_screenHeight) / 2;
