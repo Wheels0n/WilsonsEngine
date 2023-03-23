@@ -94,7 +94,7 @@ namespace wilson
 						const wchar_t* path = (const wchar_t*)payLoad->Data;
 
 						//m_pCScene->Pick(GetNDCX(x) * width, GetNDCY(y) * height, width, height);
-						CEntity* pENTT = nullptr;
+						Entity* pENTT = nullptr;
 						pENTT = m_pScene->GetSelectedENTT();
 						if (pENTT != nullptr)
 						{

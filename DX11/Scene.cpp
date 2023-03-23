@@ -29,7 +29,7 @@ void CScene::AddEntity(Model* pModel)
 	std::string name = std::string(wStr.begin(), wStr.end());
 	name += std::to_string(++m_entityCnt[name]);
 
-	CEntity* ENTT = new CEntity(name, pModel);
+	Entity* ENTT = new Entity(name, pModel);
 	m_entites.push_back(ENTT);
 }
 

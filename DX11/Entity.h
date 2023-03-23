@@ -5,19 +5,28 @@
 #include <DirectXMath.h>
 #include <string>
 #include "Model.h"
-class CEntity
+
+namespace wilson
 {
-public:
-	CEntity(std::string, Model*);
-	CEntity(const CEntity&) = default;
-	~CEntity() = default;
+	class Entity
+	{
+	public:
+		inline std::string* GetType() 
+		{
+			return &m_type;
+		};
+		inline Model* GetModel() const
+		{
+			return m_pModel;
+		}
 
-	std::string* GetType();
-	Model* GetModel() const;
-private:
-	Model* m_pModel;
-	std::string m_type;
-};
-
+		Entity(std::string, Model*);
+		Entity(const Entity&) = default;
+		~Entity() = default;
+	private:
+		Model* m_pModel;
+		std::string m_type;
+	};
+}
 #endif // !ENTITY_H
 

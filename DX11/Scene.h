@@ -36,7 +36,7 @@ public:
 		return SceneHandler;
 	}
 
-	CEntity* GetSelectedENTT() const
+	Entity* GetSelectedENTT() const
 	{
 		return  m_pSelectionETT;
 	};
@@ -44,11 +44,11 @@ public:
 	void Pick(int, int, int, int);
 private:
 	std::unordered_map<std::string, int> m_entityCnt;
-	std::vector<CEntity*> m_entites;
+	std::vector<Entity*> m_entites;
 	std::string m_name;
 
 	CD3D11* m_pCD3D11;
-	CEntity* m_pSelectionETT;
+	Entity* m_pSelectionETT;
 	CScene* SceneHandler ;
 	Camera* m_pCam ;
 
