@@ -4,10 +4,10 @@ int CALLBACK WinMain(HINSTANCE hInstance,
 	LPSTR lpCmdLine,
 	int   nCmdShow)
 {
-	CEngine* g_pEngine;
+	Engine* g_pEngine;
 	bool g_bResult;
 
-	g_pEngine = new CEngine;
+	g_pEngine = new Engine;
 	if (g_pEngine == nullptr)
 	{
 		return 0;

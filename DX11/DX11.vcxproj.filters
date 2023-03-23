@@ -89,9 +89,6 @@
     <ClCompile Include="MatrixBuffer.cpp">
       <Filter>Source Files\Component\Matrix</Filter>
     </ClCompile>
-    <ClCompile Include="InputHandler.cpp">
-      <Filter>Source Files\Core</Filter>
-    </ClCompile>
     <ClCompile Include="WinMain.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
@@ -183,9 +180,6 @@
     </ClInclude>
     <ClInclude Include="MatrixBuffer.h">
       <Filter>Source Files\Component\Matrix</Filter>
-    </ClInclude>
-    <ClInclude Include="InputHandler.h">
-      <Filter>Source Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="Model.h">
       <Filter>Source Files\Component\Model</Filter>

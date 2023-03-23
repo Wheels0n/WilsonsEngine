@@ -10,25 +10,26 @@
 #include"Timer.h"
 #include"Editor.h"
 
-
-class CEngine
-{
-public:
-	CEngine();
-	CEngine(CEngine&) = delete;
-	~CEngine();
+namespace wilson{
+ class Engine
+ {
+ public:
 
 	bool Init();
 	void Shutdown();
 	void Run();
 
 	LRESULT CALLBACK MsgHandler(HWND, UINT, WPARAM, LPARAM);
-private:
+
+	Engine();
+	Engine(Engine&) = delete;
+	~Engine()=default;
+ private:
 	bool Frame();
 	void InitWindows(int&, int&);
 	void ShutdownWindows();
 
-private:
+ private:
 	int m_screenHeight;
 	int m_screenWidth;
 
@@ -43,14 +44,14 @@ private:
 	HINSTANCE m_hInstance;
 	HWND m_hWnd;
 
-	Timer m_CTimer;
-	CImGuiManager m_CImGuiManager;
+	Timer m_timer;
+	CImGuiManager m_ImGuiManager;
 	CRenderer* m_pRenderer;
-	CInputHandler* m_pInputHandler;
 	CEditor* m_pEditor;
-};
+ };
 
-static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-static CEngine* g_pEngineHandle = nullptr;
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+ static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+ static Engine* g_pEngineHandle = nullptr;
+ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+}
 #endif
