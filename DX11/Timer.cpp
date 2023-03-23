@@ -1,6 +1,6 @@
 #include "Timer.h"
 
-CTimer::CTimer()
+Timer::Timer()
 {
 	m_secPerTick = 0.0f;
 	m_dt = -1.0f;
@@ -9,14 +9,14 @@ CTimer::CTimer()
 	m_stopTime = 0.0f;
 	m_prevTime = 0.0f;
 	m_curTime = 0.0f;
-	m_isStopped = false;
+	m_bStopped = false;
 
 	__int64 ticksPerSec;
 	QueryPerformanceFrequency((LARGE_INTEGER*)&ticksPerSec);
 	m_secPerTick = 1.0f / (float)ticksPerSec;
 }
 
-void CTimer::Reset()
+void Timer::Reset()
 {
 	__int64 curTime;
 	QueryPerformanceCounter((LARGE_INTEGER*)&curTime);
@@ -24,38 +24,38 @@ void CTimer::Reset()
 	m_baseTime = curTime;
 	m_prevTime = curTime;
 	m_stopTime = 0;
-	m_isStopped = false;
+	m_bStopped = false;
 }
 
-void CTimer::Start()
+void Timer::Start()
 {
 	__int64 startTime;
 	QueryPerformanceCounter((LARGE_INTEGER*) & startTime);
 
-	if (m_isStopped)
+	if (m_bStopped)
 	{
 		m_pausedTime += (startTime - m_stopTime);
 		m_prevTime = startTime;
 		m_stopTime = 0;
-		m_isStopped = false;
+		m_bStopped = false;
 	}
 }
 
-void CTimer::Stop()
+void Timer::Stop()
 {
-	if (!m_isStopped)
+	if (!m_bStopped)
 	{
 		__int64 curTime;
 		QueryPerformanceCounter((LARGE_INTEGER*)&curTime);
 
 		m_stopTime = curTime;
-		m_isStopped = true;
+		m_bStopped = true;
 	}
 }
 
-void CTimer::Tick()
+void Timer::Tick()
 {
-	if (m_isStopped)
+	if (m_bStopped)
 	{
 		m_dt = 0.0f;
 		return;

@@ -43,7 +43,7 @@ private:
 	HINSTANCE m_hInstance;
 	HWND m_hWnd;
 
-	CTimer m_CTimer;
+	Timer m_CTimer;
 	CImGuiManager m_CImGuiManager;
 	CRenderer* m_pRenderer;
 	CInputHandler* m_pInputHandler;
