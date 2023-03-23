@@ -1,7 +1,7 @@
 #include "Editor.h"
 
 namespace wilson {
-	void Editor::Init(CD3D11* pCD3D11)
+	void Editor::Init(D3D11* pCD3D11)
 	{
 		m_pD3D11 = pCD3D11;
 

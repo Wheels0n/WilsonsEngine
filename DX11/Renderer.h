@@ -23,7 +23,7 @@ public:
 	void BeginFrame();
 	void EndFrame();
 
-	CD3D11* GetD3D11()
+	D3D11* GetD3D11()
 	{
 		return m_pD3D11;
 	};
@@ -35,7 +35,7 @@ public:
 private:
 	bool Render();
 
-	CD3D11* m_pD3D11;
+	D3D11* m_pD3D11;
 	Camera* m_pCam;
 };
 #endif

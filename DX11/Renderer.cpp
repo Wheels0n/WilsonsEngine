@@ -18,7 +18,7 @@ bool CRenderer::Init(int m_screenWidth, int m_screenHeight, HWND hWnd)
 {   
 	bool bResult;
 
-	m_pD3D11 = new CD3D11;
+	m_pD3D11 = new D3D11;
 	if (m_pD3D11 == nullptr)
 	{
 		return false;

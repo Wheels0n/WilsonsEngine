@@ -25,93 +25,93 @@
 //D:\DirectxSDK\Include;$(IncludePath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;$(IncludePath)
 //D:\DirectxSDK\Lib\x64;$(LibraryPath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x64;$(LibraryPath)
 
-class CD3D11
+namespace wilson
 {
-	
-public:
-	CD3D11();
-	CD3D11(const CD3D11&) = delete;
-	~CD3D11();
-	bool Init(int, int, bool, HWND, bool, float, float);
-	void Shutdown();
-
-	void UpdateScene();
-	void DrawScene();
-	void AddModel(Model*, ID3D11Device*);
-	void RemoveModel(int i);
-
-	Camera* GetCam() const
+	class D3D11
 	{
-		return m_pCam;
+
+	public:
+		bool Init(int, int, bool, HWND, bool, float, float);
+		void Shutdown();
+
+		void UpdateScene();
+		void DrawScene();
+		void AddModel(Model*, ID3D11Device*);
+		void RemoveModel(int i);
+
+		inline Camera* GetCam() const
+		{
+			return m_pCam;
+		};
+		inline CLight* GetLight() const
+		{
+			return m_pLight;
+		}
+		inline IDXGISwapChain* GetSwapChain() const
+		{
+			return m_pSwapChain;
+		}
+		inline ID3D11ShaderResourceView* GetRTT() const
+		{
+			return m_pSRVForRTT;
+		};
+		inline ID3D11Device* GetDevice() const
+		{
+			return m_pDevice;
+		};
+		inline int GetClientWidth() const
+		{
+			return m_clientWidth;
+		};
+		inline int GetClientHeight() const
+		{
+			return m_clientHeight;
+		};
+
+		bool CreateRTT(int, int);
+		bool CreateDSBforRTT(int w, int h)
+		{
+			DestroyDSBforRTT();
+			return CreateDepthBuffer(w, h, &m_pDSBufferForRTT, &m_pDSVforRTT);
+		};
+
+		D3D11();
+		D3D11(const D3D11&) = delete;
+		~D3D11();
+	private:
+		bool CreateDepthBuffer(int, int,
+			ID3D11Texture2D**,
+			ID3D11DepthStencilView**);
+		bool CreateDSS();
+
+		void DestroyDSS();
+		void DestroyRTT();
+		void DestroyDSBforRTT();
+
+		bool m_bVsyncOn;
+		IDXGISwapChain* m_pSwapChain;
+		ID3D11Device* m_pDevice;
+		ID3D11DeviceContext* m_pContext;
+		ID3D11RenderTargetView* m_pRenderTargetView, * m_pRTTV;
+		ID3D11Texture2D* m_pDSBuffer, * m_pDSBufferForRTT, * m_pRTT;
+		ID3D11ShaderResourceView* m_pSRVForRTT;
+		ID3D11DepthStencilState* m_pDefualtDDS, * m_pMirroMarkDDS, * m_pDrawReflectionDDS;
+		ID3D11DepthStencilView* m_pDSV, * m_pDSVforRTT;
+		ID3D11RasterizerState* m_pRS, * m_pRasterStateCC;
+		ID3D11SamplerState* m_pSampleState;
+		ID3D11BlendState* m_pNoRenderTargetWritesBS, * m_pTransparentBS;
+
+		Importer* m_pImporter;
+		std::vector<Model*> m_ppModels;
+		CTerrain* m_pTerrain;
+		Camera* m_pCam;
+		Frustum* m_pFrustum;
+		MatBuffer* m_pMatBuffer;
+		CLight* m_pLight;
+		Shader* m_pShader;
+
+		int m_clientWidth;
+		int m_clientHeight;
 	};
-
-	CLight* GetLight() const
-	{
-		return m_pLight;
-	}
-
-	IDXGISwapChain* GetSwapChain() const
-	{
-		return m_pSwapChain;
-	}
-
-	ID3D11ShaderResourceView* GetRTT() const
-	{
-		return m_pSRVForRTT;
-	};
-
-	ID3D11Device* GetDevice() const
-	{
-		return m_pDevice;
-	};
-	int GetClientWidth() const
-	{
-		return m_clientWidth;
-	};
-	int GetClientHeight() const
-	{
-		return m_clientHeight;
-	};
-
-	bool CreateRTT(int, int);
-	bool CreateDSBforRTT(int w, int h)
-	{   
-		DestroyDSBforRTT();
-		return CreateDepthBuffer(w, h, &m_pDSBufferForRTT, &m_pDSVforRTT);
-	};
-private:
-	bool CreateDepthBuffer(int, int,
-		ID3D11Texture2D**,
-		ID3D11DepthStencilView**);
-	bool CreateDSS();
-
-	void DestroyDSS();
-	void DestroyRTT();
-	void DestroyDSBforRTT();
-
-	bool m_bVsync_enabled;
-	IDXGISwapChain* m_pSwapChain;
-	ID3D11Device* m_pDevice;
-	ID3D11DeviceContext* m_pContext;
-	ID3D11RenderTargetView* m_pRenderTargetView, *m_pRTTV;
-	ID3D11Texture2D* m_pDSBuffer, *m_pDSBufferForRTT, *m_pRTT;
-	ID3D11ShaderResourceView* m_pSRVForRTT;
-	ID3D11DepthStencilState* m_pDefualtDDS, *m_pMirroMarkDDS, *m_pDrawReflectionDDS;
-	ID3D11DepthStencilView* m_pDepthStencilView, *m_pDSVforRTT;
-	ID3D11RasterizerState* m_pRasterstate, *m_pRasterStateCC;
-	ID3D11SamplerState* m_pSampleState;
-	ID3D11BlendState* m_pNoRenderTargetWritesBS, * m_pTransparentBS;
-
-	Importer* m_pCImporter;
-	std::vector<Model*> m_ppCModels;
-	CTerrain* m_pCTerrain;
-	Camera* m_pCam;
-	Frustum* m_pCFrustum;
-	MatBuffer* m_pCMBuffer;
-	CLight* m_pLight;
-	Shader* m_pCShader;
-
-	int m_clientWidth;
-	int m_clientHeight;
-};
+}
 #endif // !_D3D11_H_

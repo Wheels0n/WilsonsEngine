@@ -10,12 +10,12 @@ namespace wilson {
 	class Editor
 	{
 	public:
-		void Init(CD3D11*);
+		void Init(D3D11*);
 		void Draw();
 		void Pick();
 		bool CheckRange(int, int);
 	private:
-		CD3D11* m_pD3D11;
+		D3D11* m_pD3D11;
 		ContentBrowser m_contentBrowser;
 		Scene m_scene;
 		Viewport m_viewport;

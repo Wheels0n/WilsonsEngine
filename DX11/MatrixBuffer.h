@@ -35,7 +35,7 @@ public:
 	};
 
 	MatBuffer(ID3D11Device*, ID3D11DeviceContext*, XMMATRIX*, XMMATRIX*);
-	~MatBuffer()=delete;
+	~MatBuffer();
 
 private:
 	ID3D11Device* m_pDevice;
