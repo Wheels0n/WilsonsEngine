@@ -62,8 +62,8 @@ namespace wilson {
 
 	void Camera::Translate(DirectX::XMVECTOR dv)
 	{
-		DirectX::XMMATRIX rt = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
-		dv = DirectX::XMVector3Transform(dv, rt);
+		DirectX::XMMATRIX rtMat = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
+		dv = DirectX::XMVector3Transform(dv, rtMat);
 		dv = DirectX::XMVectorScale(dv, m_trSpeed);
 
 		m_pos = DirectX::XMVectorAdd(m_pos, dv);
@@ -73,7 +73,7 @@ namespace wilson {
 	{
 		D3D11_BUFFER_DESC camCBD;
 		camCBD.Usage = D3D11_USAGE_DYNAMIC;
-		camCBD.ByteWidth = sizeof(camBuffer);
+		camCBD.ByteWidth = sizeof(CamBuffer);
 		camCBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		camCBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		camCBD.MiscFlags = 0;
@@ -83,8 +83,8 @@ namespace wilson {
 
 	void Camera::Update()
 	{
-		DirectX::XMMATRIX rt = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
-		m_target = DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rt);
+		DirectX::XMMATRIX rtMat = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
+		m_target = DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rtMat);
 		m_target = DirectX::XMVectorAdd(m_target, m_pos);
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
 		//m_vUp = XMVector3Transform(m_vUp, rt); no roll
@@ -93,10 +93,10 @@ namespace wilson {
 	void Camera::SetCamBuffer(ID3D11DeviceContext* pContext)
 	{
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		camBuffer* pCamBuffer;
+		CamBuffer* pCamBuffer;
 
 		pContext->Map(m_pCamBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		pCamBuffer = reinterpret_cast<camBuffer*>(mappedResource.pData);
+		pCamBuffer = reinterpret_cast<CamBuffer*>(mappedResource.pData);
 		pCamBuffer->m_camPos = m_pos;
 		pContext->Unmap(m_pCamBuffer, 0);
 		pContext->VSSetConstantBuffers(1, 1, &m_pCamBuffer);

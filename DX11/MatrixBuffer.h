@@ -10,34 +10,41 @@ using namespace DirectX;
 
 struct MatrixBuffer
 {
-	XMMATRIX world;
-	XMMATRIX view;
-	XMMATRIX projection;
+	XMMATRIX m_worldMat;
+	XMMATRIX m_viewMat;
+	XMMATRIX m_projMat;
 };
-class CMBuffer
+class MatBuffer
 {
 public:
-	CMBuffer(ID3D11Device*, ID3D11DeviceContext*, XMMATRIX*, XMMATRIX*);
-	~CMBuffer();
-
 	bool Init();
 	void ShutDown();
 	void Update();
-	void SetWorldMatrix(XMMATRIX*);
-	void SetViewMatrix(XMMATRIX*);
-	ID3D11Buffer* getMB()
+	
+	inline void SetViewMatrix(XMMATRIX* viewMatrix)
 	{
-		return m_pMatrixBuffer;
+		m_viewMat = *viewMatrix;
+	}
+	inline void SetWorldMatrix(XMMATRIX* worldMatrix)
+	{
+		m_worldMat = *worldMatrix;
+	}
+	inline ID3D11Buffer* getMB()
+	{
+		return m_pMatBuffer;
 	};
+
+	MatBuffer(ID3D11Device*, ID3D11DeviceContext*, XMMATRIX*, XMMATRIX*);
+	~MatBuffer()=delete;
 
 private:
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pContext;
-	XMMATRIX m_worldMatrix;
+	XMMATRIX m_worldMat;
 	XMMATRIX m_projMat;
 	XMMATRIX m_viewMat;
 
-	ID3D11Buffer* m_pMatrixBuffer;
+	ID3D11Buffer* m_pMatBuffer;
 };
 
 #endif

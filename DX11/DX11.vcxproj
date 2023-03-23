@@ -48,7 +48,6 @@
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Viewport.cpp" />
     <ClCompile Include="WinMain.cpp" />
-    <ClCompile Include="WorldTransformation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ImGui\imconfig.h" />
@@ -81,7 +80,6 @@
     <ClInclude Include="Terrain.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Viewport.h" />
-    <ClInclude Include="WorldTransformation.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DX11.rc" />

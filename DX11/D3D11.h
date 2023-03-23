@@ -16,7 +16,6 @@
 #include "camera.h"
 #include "Frustum.h"
 #include "MatrixBuffer.h"
-#include "WorldTransformation.h"
 #include "Light.h"
 #include "Shader.h"
 #include "Terrain.h"
@@ -108,8 +107,7 @@ private:
 	CTerrain* m_pCTerrain;
 	Camera* m_pCCam;
 	Frustum* m_pCFrustum;
-	CMBuffer* m_pCMBuffer;
-	CWMTransformation* m_pCWMTransformation;
+	MatBuffer* m_pCMBuffer;
 	CLight* m_pCLight;
 	CShader* m_pCShader;
 

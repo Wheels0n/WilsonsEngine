@@ -7,7 +7,7 @@
 
 namespace wilson {
 
-	struct camBuffer
+	struct CamBuffer
 	{
 		DirectX::XMVECTOR m_camPos;
 	};

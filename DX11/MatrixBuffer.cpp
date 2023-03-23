@@ -1,31 +1,32 @@
 #include "MatrixBuffer.h"
 
-CMBuffer::CMBuffer(ID3D11Device* device, ID3D11DeviceContext* context, XMMATRIX* viewMatrix, XMMATRIX* projectionMatrix)
+MatBuffer::MatBuffer(ID3D11Device* pDevice, ID3D11DeviceContext* pContext, 
+	XMMATRIX* pViewMat, XMMATRIX* pProjMat)
 {
- 	m_pContext = context;
-	m_pDevice = device;
-	m_pMatrixBuffer = nullptr;
+ 	m_pContext = pContext;
+	m_pDevice = pDevice;
+	m_pMatBuffer = nullptr;
 
-	m_viewMat =  *viewMatrix;
-	m_projMat = *projectionMatrix;
+	m_viewMat =  *pViewMat;
+	m_projMat = *pProjMat;
 }
 
-CMBuffer::~CMBuffer()
+MatBuffer::~MatBuffer()
 {
 }
 
-bool CMBuffer::Init()
+bool MatBuffer::Init()
 {  
 	HRESULT hr;
-	D3D11_BUFFER_DESC mbDesc;
+	D3D11_BUFFER_DESC matCBD;
 
-	mbDesc.Usage = D3D11_USAGE_DYNAMIC;
-	mbDesc.ByteWidth = sizeof(MatrixBuffer);
-	mbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	mbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	mbDesc.MiscFlags = 0;
-	mbDesc.StructureByteStride = 0;
-	hr = m_pDevice->CreateBuffer(&mbDesc, 0, &m_pMatrixBuffer);
+	matCBD.Usage = D3D11_USAGE_DYNAMIC;
+	matCBD.ByteWidth = sizeof(MatrixBuffer);
+	matCBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	matCBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	matCBD.MiscFlags = 0;
+	matCBD.StructureByteStride = 0;
+	hr = m_pDevice->CreateBuffer(&matCBD, 0, &m_pMatBuffer);
 	if (FAILED(hr))
 	{
 		return false;
@@ -34,17 +35,17 @@ bool CMBuffer::Init()
 	return true;
 }
 
-void CMBuffer::ShutDown()
+void MatBuffer::ShutDown()
 {
-	if (m_pMatrixBuffer != nullptr)
+	if (m_pMatBuffer != nullptr)
 	{
-		m_pMatrixBuffer->Release();
-		m_pMatrixBuffer = nullptr;
+		m_pMatBuffer->Release();
+		m_pMatBuffer = nullptr;
 	}
 
 }
 
-void CMBuffer::Update()
+void MatBuffer::Update()
 { 
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -55,27 +56,17 @@ void CMBuffer::Update()
 	//m_viewMatrix  = XMMatrixTranspose(m_viewMatrix);
 	//m_projectionMatrix = XMMatrixTranspose(m_projectionMatrix);
 	//write CPU data into GPU mem;
-	hr = m_pContext->Map(m_pMatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	hr = m_pContext->Map(m_pMatBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if (FAILED(hr))
 	{
 		return;
 	}
 	pMatrices = reinterpret_cast<MatrixBuffer*>(mappedResource.pData);
-	pMatrices->world = XMMatrixTranspose(m_worldMatrix);
-	pMatrices->view = XMMatrixTranspose(m_viewMat);
-	pMatrices->projection = m_projMat;
-	m_pContext->Unmap(m_pMatrixBuffer, 0);
+	pMatrices->m_worldMat = XMMatrixTranspose(m_worldMat);
+	pMatrices->m_viewMat = XMMatrixTranspose(m_viewMat);
+	pMatrices->m_projMat = m_projMat;
+	m_pContext->Unmap(m_pMatBuffer, 0);
 
-	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffer);
+	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatBuffer);
 	return;
-}
-
-void CMBuffer::SetWorldMatrix(XMMATRIX* worldMatrix)
-{
-	m_worldMatrix = *worldMatrix;
-}
-
-void CMBuffer::SetViewMatrix(XMMATRIX* viewMatrix)
-{
-	m_viewMat = *viewMatrix;
 }

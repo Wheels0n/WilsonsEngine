@@ -29,7 +29,6 @@ CD3D11::CD3D11()
 	m_pCCam  = nullptr;
 	m_pCFrustum = nullptr;
 	m_pCMBuffer = nullptr;
-	m_pCWMTransformation = nullptr;
 	m_pCLight = nullptr;
 	m_pCShader = nullptr;
 }
@@ -240,13 +239,12 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	m_pCCam = new Camera(screenWidth, screenHeight, fScreenFar, fScreenNear);
 	m_pCCam->Init(m_pDevice);
 	m_pCCam->SetCamBuffer(m_pContext);
-	XMMATRIX* projection=  m_pCCam->GetProjectionMatrix();
-	XMMATRIX* view = m_pCCam->GetViewMatrix();
+	XMMATRIX* m_projMat=  m_pCCam->GetProjectionMatrix();
+	XMMATRIX* m_viewMat = m_pCCam->GetViewMatrix();
 	m_pCFrustum = new Frustum();
 	m_pCFrustum->Construct(100.0f, m_pCCam);
-	m_pCMBuffer = new CMBuffer(m_pDevice, m_pContext, projection, view);
+	m_pCMBuffer = new MatBuffer(m_pDevice, m_pContext, m_projMat, m_viewMat);
 	m_pCMBuffer->Init();
-	m_pCWMTransformation = new CWMTransformation(m_pDevice, m_pContext);
 	
 	m_pCLight = new CLight(m_pDevice, m_pContext);
 	m_pCLight->Init();
@@ -380,12 +378,6 @@ void CD3D11::Shutdown()
 		m_pCImporter = nullptr;
 	}
 
-	if (m_pCWMTransformation != nullptr)
-	{
-		delete m_pCWMTransformation;
-		m_pCWMTransformation = nullptr;
-	}
-
 	if (m_pCMBuffer != nullptr)
 	{
 		delete m_pCMBuffer;
@@ -451,7 +443,7 @@ void CD3D11::UpdateScene()
 {
 	//clear views
 	HRESULT hr;
-	XMMATRIX world = XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
+	XMMATRIX m_worldMat = XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
 	float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
 	int drawed = 0;
 
@@ -476,13 +468,13 @@ void CD3D11::UpdateScene()
 	//Draw ENTTs
 	for (int i = 0; i < m_ppCModels.size(); ++i)
 	{   
-		world = m_ppCModels[i]->GetTransformMatrix();
+		m_worldMat = m_ppCModels[i]->GetTransformMatrix();
 		XMFLOAT4X4 pos4;
-		XMStoreFloat4x4(&pos4, world);
+		XMStoreFloat4x4(&pos4, m_worldMat);
 		if (m_pCFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
 		{  
 			m_pCMBuffer->SetViewMatrix(m_pCCam->GetViewMatrix());
-			m_pCMBuffer->SetWorldMatrix(&world);
+			m_pCMBuffer->SetWorldMatrix(&m_worldMat);
 			m_pCMBuffer->Update();
 			m_ppCModels[i]->UploadBuffers(m_pContext);
 			m_pContext->DrawIndexed(m_ppCModels[i]->GetIndexCount(), 0, 0);

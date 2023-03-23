@@ -5,7 +5,7 @@ cbuffer MatrixBuffer
 	matrix projectionMatrix;
 };
 
-cbuffer camBuffer
+cbuffer CamBuffer
 {
 	float4 m_camPos;
 };
