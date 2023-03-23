@@ -5,15 +5,16 @@
 #include"../ImGui/imgui_impl_win32.h"
 #include"../ImGui/imgui_impl_dx11.h"
 
-class CImGuiManager
-{
-public:
-	CImGuiManager();
-	~CImGuiManager(); 
-	
-	void Update();
-private:
-	void SetMenuBar();
-	void SetDockspace();
-};
+namespace wilson {
+	class ImGuiManager
+	{
+	public:
+		void Update();
+		ImGuiManager();
+		~ImGuiManager();
+	private:
+		void SetMenuBar();
+		void SetDockspace();
+	};
+}
 #endif

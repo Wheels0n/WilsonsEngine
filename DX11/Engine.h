@@ -5,7 +5,6 @@
 #include<Windows.h>
 #include "../ImGui/imgui_impl_win32.h"
 #include"resource.h"
-#include"InputHandler.h"
 #include"Renderer.h"
 #include"Timer.h"
 #include"Editor.h"
@@ -45,7 +44,7 @@ namespace wilson{
 	HWND m_hWnd;
 
 	Timer m_timer;
-	CImGuiManager m_ImGuiManager;
+	ImGuiManager m_ImGuiManager;
 	CRenderer* m_pRenderer;
 	CEditor* m_pEditor;
  };
