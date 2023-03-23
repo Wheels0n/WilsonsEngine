@@ -45,7 +45,7 @@ namespace wilson{
 
 	Timer m_timer;
 	ImGuiManager m_ImGuiManager;
-	CRenderer* m_pRenderer;
+	Renderer* m_pRenderer;
 	Editor* m_pEditor;
  };
 

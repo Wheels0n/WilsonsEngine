@@ -20,7 +20,7 @@ namespace wilson {
 
 		InitWindows(m_screenHeight, m_screenWidth);
 
-		m_pRenderer = new CRenderer;
+		m_pRenderer = new Renderer;
 		if (m_pRenderer == nullptr)
 		{
 			return false;

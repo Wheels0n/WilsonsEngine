@@ -5,37 +5,38 @@
 #include "D3D11.h"
 #include "ImGuiManager.h"
 
-const bool g_bFull_SCREEN = false;
-const bool g_bVSYNC_ENABLE = true;
-const float g_fSCREEN_FAR = 100.0f;
-const float g_fSCREEN_NEAR = 0.01f;
+constexpr bool g_bFull_SCREEN = false;
+constexpr bool g_bVSYNC_ENABLE = true;
+constexpr float g_fSCREEN_FAR = 100.0f;
+constexpr float g_fSCREEN_NEAR = 0.01f;
 
-class CRenderer
+namespace wilson
 {
-public:
-	CRenderer();
-	CRenderer(CRenderer&) = delete;
-	~CRenderer();
-
-
-	bool Init(int, int, HWND);
-	void Shutdown();
-	void BeginFrame();
-	void EndFrame();
-
-	D3D11* GetD3D11()
+	class Renderer
 	{
-		return m_pD3D11;
-	};
-	
-	void Translate(XMVECTOR);
-	void Rotate(int dx, int dy);
-	void Zoom(int dz);
-	
-private:
-	bool Render();
+	public:
+		bool Init(int, int, HWND);
+		void Shutdown();
+		void BeginFrame();
+		void EndFrame();
 
-	D3D11* m_pD3D11;
-	Camera* m_pCam;
-};
+		inline D3D11* GetD3D11()
+		{
+			return m_pD3D11;
+		};
+
+		void Translate(XMVECTOR);
+		void Rotate(int dx, int dy);
+		void Zoom(int dz);
+
+		Renderer();
+		Renderer(Renderer&) = delete;
+		~Renderer();
+	 private:
+		bool Render();
+
+		D3D11* m_pD3D11;
+		Camera* m_pCam;
+	};
+}
 #endif
