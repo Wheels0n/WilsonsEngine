@@ -5,61 +5,61 @@
 #include <d3d11.h>
 #include "Scene.h"
 #include "D3D11.h"
-#include "import.h"
+#include "Import.h"
 
-static const char* texFormats[] =
+namespace wilson
 {
-	"bmp", "dds", "png"
-};
-
-class CViewport
-{
-public:
-	CViewport() = default;
-	CViewport(const CViewport&)=delete;
-	~CViewport() = default;
-
-	void Init(CD3D11*, CScene* );
-	void Draw();
-	void Resize();
-	bool CheckRange(int, int);
-	float GetNDCX(int);
-	float GetNDCY(int);
-
-	int  GetWidth() const
+	static const char* texFormats[] =
 	{
-		return m_width;
+		"bmp", "dds", "png"
 	};
 
-	int GetHeight() const
+	class Viewport
 	{
-		return m_height;
+	public:
+		void Init(CD3D11*, CScene*);
+		void Draw();
+		void Resize();
+		bool CheckRange(int, int);
+		
+		inline float GetNDCX(int);
+		inline float GetNDCY(int);
+		inline int GetWidth() const
+		{
+			return m_width;
+		};
+		inline int GetHeight() const
+		{
+			return m_height;
+		};
+		inline int GetX() const
+		{
+			return m_left;
+		};
+		inline int GetY() const
+		{
+			return m_top;
+		};
+
+		Viewport() = default;
+		Viewport(const Viewport&) = delete;
+		~Viewport() = default;
+	private:
+		bool m_IsFocused;
+
+		int m_width;
+		int m_height;
+		int m_left;
+		int m_top;
+
+		CD3D11* m_pD3D11;
+		Camera* m_pCam;
+		CScene* m_pScene;
+		Importer m_importer;
+		IDXGISwapChain* m_pSwapChain;
+		ID3D11ShaderResourceView* m_pSRV;
+		ID3D11Device* m_pDevice;
 	};
-
-	int GetX() const
-	{
-		return m_left;
-	};
-
-	int GetY() const
-	{  
-		return m_top;
-	};
-private:
-	bool m_IsFocused;
-
-	int m_width;
-	int m_height;
-	int m_left;
-	int m_top;
-
-	CD3D11* m_pD3D11;
-	Camera* m_pCam;
-	CScene* m_pCScene;
-	Importer m_CImporter;
-	IDXGISwapChain* m_pSwapChain;
-	ID3D11ShaderResourceView* m_pSRV;
-	ID3D11Device* m_pDevice;
-};
+}
 #endif // !VIEWPORT_H
 
