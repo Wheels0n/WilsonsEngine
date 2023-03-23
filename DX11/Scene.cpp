@@ -23,7 +23,7 @@ void CScene::Init(CD3D11* pCD3D11)
 	m_pCD3D11 = pCD3D11;
 }
 
-void CScene::AddEntity(CModel* pModel)
+void CScene::AddEntity(Model* pModel)
 {   
 	std::wstring wStr(pModel->GetName());
 	std::string name = std::string(wStr.begin(), wStr.end());
@@ -75,7 +75,7 @@ void CScene::Draw()
 		{   
 			std::string name = *(m_pSelectionETT->GetType());
 			ImGui::Text(name.c_str());
-			CModel* pModel = m_pSelectionETT->GetModel();
+			Model* pModel = m_pSelectionETT->GetModel();
 
 			DirectX::XMMATRIX* scMat = nullptr;
 			DirectX::XMMATRIX* rtMat = nullptr;
@@ -226,7 +226,7 @@ void CScene::Pick(int sx, int sy, int width, int height)
 
 	for (int i = 0; i < m_entites.size(); ++i)
 	{   
-		CModel* pModel = m_entites[i]->GetModel();
+		Model* pModel = m_entites[i]->GetModel();
 
 		XMMATRIX m_worldMat = pModel->GetTransformMatrix();
 		XMMATRIX inverseWorld = XMMatrixInverse(nullptr, m_worldMat);

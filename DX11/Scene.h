@@ -17,7 +17,7 @@ public:
 	~CScene();
 
 	void Init(CD3D11*);
-	void AddEntity(CModel*);
+	void AddEntity(Model*);
 	void Draw();
 	void DrawVec3Control(const std::string& label, float* vals);
 

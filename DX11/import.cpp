@@ -16,7 +16,7 @@ CImporter::CImporter()
 	m_pTexCoord = nullptr;
 	m_pVertices = nullptr;
 	m_pIndices = nullptr;
-	m_pShaderResourceView = nullptr;
+	m_pSRV = nullptr;
 
 	m_plte = nullptr;
 	m_pngData = nullptr;
@@ -76,13 +76,13 @@ bool CImporter::LoadOBJ(LPCWSTR fileName)
 	m_pTexCoord = new XMFLOAT2[m_texCoordCount];
 	m_pNormalVector = new XMFLOAT3[m_normalVectorCount];
 
-	m_pVertices= new VertexType[m_vertexCount];
+	m_pVertices= new VertexData[m_vertexCount];
 	m_pIndices = new unsigned long[m_vertexCount];
 
 	ZeroMemory(m_pVertexCoord, sizeof(XMFLOAT3) * m_vertexCoordCount);
 	ZeroMemory(m_pTexCoord, sizeof(XMFLOAT2) * m_texCoordCount);
 	ZeroMemory(m_pNormalVector, sizeof(XMFLOAT3) * m_normalVectorCount);
-	ZeroMemory(m_pVertices, sizeof(VertexType) * m_vertexCount);
+	ZeroMemory(m_pVertices, sizeof(VertexData) * m_vertexCount);
 
 	fin.open(fileName);
 	if (fin.fail())
@@ -172,7 +172,7 @@ bool CImporter::LoadOBJ(LPCWSTR fileName)
 		
 	}
 
-	m_pCModel = new CModel(m_pVertices, m_pIndices, m_vertexCount, m_indexCount, tok);
+	m_pCModel = new Model(m_pVertices, m_pIndices, m_vertexCount, m_indexCount, tok);
 	++m_objectCount;
 	return true;
 }
@@ -243,16 +243,16 @@ bool CImporter::LoadPNG(LPCWSTR fileName, unsigned int* width, unsigned int* hei
 	return true;
 }
 
-bool CImporter::LoadTex(CModel* model, LPCWSTR fileName, ID3D11Device* device)
+bool CImporter::LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* device)
 {   
 	HRESULT hr;
-	hr = D3DX11CreateShaderResourceViewFromFileW(device, fileName, nullptr, nullptr, &m_pShaderResourceView, nullptr);
+	hr = D3DX11CreateShaderResourceViewFromFileW(device, fileName, nullptr, nullptr, &m_pSRV, nullptr);
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
-	model->SetTex(m_pShaderResourceView);
+	model->SetTex(m_pSRV);
 	return true;
 }
 

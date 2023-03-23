@@ -1,167 +1,131 @@
 #include "Model.h"
 
-CModel::CModel(VertexType* pVertices,
-	unsigned long* pIndices,
-	unsigned int vertexCount,
-	unsigned int indexCount,
-	wchar_t* pName)
-{  
-	m_pVertices = pVertices;
-	m_pIndices = pIndices;
-	m_pShaderResourceView = nullptr;
-	m_vertexCount = vertexCount;
-	m_indexCount = indexCount;
-
-	m_pVertexBuffer = nullptr;
-	m_pIndexBuffer = nullptr;
-
-	wchar_t* ptr = nullptr;
-	m_pName = wcstok(pName, (const wchar_t*)L".", &ptr);
-	
-	m_scaleMatrix = XMMatrixIdentity();
-	m_rotationMatrix = XMMatrixIdentity();
-	m_translationMatrix = XMMatrixIdentity();
-	m_angleVector = { 0.0f, };
-}
-
-CModel::CModel(const CModel&)
-{
-}
-
-CModel::~CModel()
-{  
-	if (m_pVertices != nullptr)
+namespace wilson {
+	Model::Model(VertexData* pVertices,
+		unsigned long* pIndices,
+		unsigned int vertexCount,
+		unsigned int indexCount,
+		wchar_t* pName)
 	{
-		delete m_pVertices;
-		m_pVertices = nullptr;
-	}
+		m_pVertices = pVertices;
+		m_pIndices = pIndices;
+		m_pSRV = nullptr;
+		m_vertexCount = vertexCount;
+		m_indexCount = indexCount;
 
-	if (m_pIndices != nullptr)
-	{
-		delete m_pIndices;
-		m_pIndices = nullptr;
-	}
-
-	if (m_pVertexBuffer != nullptr)
-	{
-		m_pVertexBuffer->Release();
 		m_pVertexBuffer = nullptr;
-	}
-
-	if (m_pIndexBuffer != nullptr)
-	{
-		m_pIndexBuffer->Release();
 		m_pIndexBuffer = nullptr;
+
+		wchar_t* ptr = nullptr;
+		m_pName = wcstok(pName, (const wchar_t*)L".", &ptr);
+
+		m_scMat = DirectX::XMMatrixIdentity();
+		m_rtMat = DirectX::XMMatrixIdentity();
+		m_trMat = DirectX::XMMatrixIdentity();
+		m_angleVec = DirectX::XMVectorZero();
 	}
 
-	if (m_pShaderResourceView != nullptr)
+	Model::~Model()
 	{
-		m_pShaderResourceView->Release();
-		m_pShaderResourceView = nullptr;
+		if (m_pVertices != nullptr)
+		{
+			delete m_pVertices;
+			m_pVertices = nullptr;
+		}
+
+		if (m_pIndices != nullptr)
+		{
+			delete m_pIndices;
+			m_pIndices = nullptr;
+		}
+
+		if (m_pVertexBuffer != nullptr)
+		{
+			m_pVertexBuffer->Release();
+			m_pVertexBuffer = nullptr;
+		}
+
+		if (m_pIndexBuffer != nullptr)
+		{
+			m_pIndexBuffer->Release();
+			m_pIndexBuffer = nullptr;
+		}
+
+		if (m_pSRV != nullptr)
+		{
+			m_pSRV->Release();
+			m_pSRV = nullptr;
+		}
 	}
-}
 
-bool CModel::Init(ID3D11Device* device)
-{   
-	HRESULT hr;
-	D3D11_BUFFER_DESC vertexBufferDesc;
-	D3D11_BUFFER_DESC indexBufferDesc;
-	D3D11_SUBRESOURCE_DATA vertexData;
-	D3D11_SUBRESOURCE_DATA indexData;
-
-	vertexData.pSysMem = m_pVertices;
-	vertexData.SysMemPitch = 0;
-	vertexData.SysMemSlicePitch = 0;
-
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCount;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc.CPUAccessFlags = 0;
-	vertexBufferDesc.MiscFlags = 0;
-	vertexBufferDesc.StructureByteStride = 0;
-
-	hr = device->CreateBuffer(&vertexBufferDesc, &vertexData, &m_pVertexBuffer);
-	if (FAILED(hr))
+	bool Model::Init(ID3D11Device* device)
 	{
-		return false;
+		HRESULT hr;
+		D3D11_BUFFER_DESC vertexBD;
+		D3D11_BUFFER_DESC indexBD;
+		D3D11_SUBRESOURCE_DATA vertexData;
+		D3D11_SUBRESOURCE_DATA indexData;
+
+		vertexData.pSysMem = m_pVertices;
+		vertexData.SysMemPitch = 0;
+		vertexData.SysMemSlicePitch = 0;
+
+		vertexBD.Usage = D3D11_USAGE_DEFAULT;
+		vertexBD.ByteWidth = sizeof(VertexData) * m_vertexCount;
+		vertexBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vertexBD.CPUAccessFlags = 0;
+		vertexBD.MiscFlags = 0;
+		vertexBD.StructureByteStride = 0;
+
+		hr = device->CreateBuffer(&vertexBD, &vertexData, &m_pVertexBuffer);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
+
+		indexData.pSysMem = m_pIndices;
+		indexData.SysMemPitch = 0;
+		indexData.SysMemSlicePitch = 0;
+
+		indexBD.Usage = D3D11_USAGE_DEFAULT;
+		indexBD.ByteWidth = sizeof(unsigned long) * m_indexCount;
+		indexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBD.CPUAccessFlags = 0;
+		indexBD.MiscFlags = 0;
+		indexBD.StructureByteStride = 0;
+
+		hr = device->CreateBuffer(&indexBD, &indexData, &m_pIndexBuffer);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 
-	indexData.pSysMem = m_pIndices;
-	indexData.SysMemPitch = 0;
-	indexData.SysMemSlicePitch = 0;
-
-	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_indexCount;
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBufferDesc.CPUAccessFlags = 0;
-	indexBufferDesc.MiscFlags = 0;
-	indexBufferDesc.StructureByteStride = 0;
-
-	hr = device->CreateBuffer(&indexBufferDesc, &indexData, &m_pIndexBuffer);
-	if (FAILED(hr))
+	void Model::UploadBuffers(ID3D11DeviceContext* context)
 	{
-		return false;
+		unsigned int stride;
+		unsigned int offset;
+
+		stride = sizeof(VertexData);
+		offset = 0;
+
+		context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		context->PSSetShaderResources(0, 1, &m_pSRV);
 	}
 
 
-	return true;
-}
+	DirectX::XMMATRIX Model::GetTransformMatrix()
+	{
+		DirectX::XMMATRIX srMat = XMMatrixMultiply(m_scMat, m_rtMat);
+		DirectX::XMMATRIX srtMat = XMMatrixMultiply(srMat, m_trMat);
 
+		return srtMat;
+	}
 
-void CModel::UploadBuffers(ID3D11DeviceContext* context)
-{
-	unsigned int stride;
-	unsigned int offset;
-
-	stride = sizeof(VertexType);
-	offset = 0;
-
-	context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
-	context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context->PSSetShaderResources(0, 1, &m_pShaderResourceView);
-}
-
-void CModel::SetTex(ID3D11ShaderResourceView* tex)
-{
-	m_pShaderResourceView = tex;
-}
-
-XMMATRIX* CModel::GetTranslationMatrix()
-{
-	return &m_translationMatrix;
-}
-
-XMMATRIX* CModel::GetScaleMatrix()
-{
-	return &m_scaleMatrix;
-}
-
-XMMATRIX* CModel::GetRoatationMatrix()
-{   
-	return &m_rotationMatrix;
-}
-
-XMMATRIX CModel::GetTransformMatrix()
-{
-	XMMATRIX srMat = XMMatrixMultiply(m_scaleMatrix, m_rotationMatrix);
-	XMMATRIX srtMat = XMMatrixMultiply(srMat, m_translationMatrix);
-
-	return srtMat;
-}
-
-XMVECTOR* CModel::GetAngle()
-{
-	return &m_angleVector;
-}
-
-unsigned int CModel::GetIndexCount()
-{
-	return m_indexCount;
-}
-
-LPCWSTR CModel::GetName()
-{  
-	return m_pName;
 }

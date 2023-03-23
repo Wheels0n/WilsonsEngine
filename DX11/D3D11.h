@@ -13,7 +13,7 @@
 #include <D3DX11tex.h>
 #include <Windows.h>
 #include <vector>
-#include "camera.h"
+#include "Camera.h"
 #include "Frustum.h"
 #include "MatrixBuffer.h"
 #include "Light.h"
@@ -37,7 +37,7 @@ public:
 
 	void UpdateScene();
 	void DrawScene();
-	void AddModel(CModel*, ID3D11Device*);
+	void AddModel(Model*, ID3D11Device*);
 	void RemoveModel(int i);
 
 	Camera* GetCam() const
@@ -103,7 +103,7 @@ private:
 	ID3D11BlendState* m_pNoRenderTargetWritesBS, * m_pTransparentBS;
 
 	CImporter* m_pCImporter;
-	std::vector<CModel*> m_ppCModels;
+	std::vector<Model*> m_ppCModels;
 	CTerrain* m_pCTerrain;
 	Camera* m_pCCam;
 	Frustum* m_pCFrustum;

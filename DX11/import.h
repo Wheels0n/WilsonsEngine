@@ -13,12 +13,12 @@ class CImporter
 
 
 private:
-	CModel* m_pCModel;
+	Model* m_pCModel;
 
 	XMFLOAT3* m_pVertexCoord; 
 	XMFLOAT3* m_pNormalVector;
 	XMFLOAT2* m_pTexCoord;
-	VertexType* m_pVertices;
+	VertexData* m_pVertices;
 	unsigned long* m_pIndices;
 	unsigned int m_vertexCount;
 	unsigned int m_vertexCoordCount;
@@ -28,7 +28,7 @@ private:
 	unsigned int m_objectCount;
 	unsigned int m_texCount;
 
-	ID3D11ShaderResourceView* m_pShaderResourceView;
+	ID3D11ShaderResourceView* m_pSRV;
 
 	char* m_plte;
 	char* m_pngData;
@@ -36,13 +36,13 @@ public:
 	CImporter();
 	~CImporter();
 	void Clear();
-	CModel* GetModel()
+	Model* GetModel()
 	{
 		return m_pCModel;
 	};
 	bool LoadOBJ(LPCWSTR fileName);
 	bool LoadPNG(LPCWSTR fileName, unsigned int* width, unsigned int* height);
-	bool LoadTex(CModel* model, LPCWSTR fileName, ID3D11Device* device);
+	bool LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* device);
 };
 
 

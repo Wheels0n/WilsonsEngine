@@ -8,14 +8,14 @@
 class CEntity
 {
 public:
-	CEntity(std::string, CModel*);
+	CEntity(std::string, Model*);
 	CEntity(const CEntity&) = default;
 	~CEntity() = default;
 
 	std::string* GetType();
-	CModel* GetModel() const;
+	Model* GetModel() const;
 private:
-	CModel* m_pModel;
+	Model* m_pModel;
 	std::string m_type;
 };
 
