@@ -17,7 +17,7 @@ namespace wilson
 	class Viewport
 	{
 	public:
-		void Init(CD3D11*, CScene*);
+		void Init(CD3D11*, Scene*);
 		void Draw();
 		void Resize();
 		bool CheckRange(int, int);
@@ -54,7 +54,7 @@ namespace wilson
 
 		CD3D11* m_pD3D11;
 		Camera* m_pCam;
-		CScene* m_pScene;
+		Scene* m_pScene;
 		Importer m_importer;
 		IDXGISwapChain* m_pSwapChain;
 		ID3D11ShaderResourceView* m_pSRV;

@@ -2,7 +2,7 @@
 
 namespace wilson
 {
-	void Viewport::Init(CD3D11* pD3D11, CScene* pScene)
+	void Viewport::Init(CD3D11* pD3D11, Scene* pScene)
 	{
 		m_IsFocused = false;
 

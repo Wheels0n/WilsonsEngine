@@ -17,7 +17,7 @@ namespace wilson {
 	private:
 		CD3D11* m_pD3D11;
 		ContentBrowser m_contentBrowser;
-		CScene m_scene;
+		Scene m_scene;
 		Viewport m_viewport;
 		Settings m_settings;
 	};
