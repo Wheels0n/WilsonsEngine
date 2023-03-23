@@ -1,51 +1,53 @@
 #include "Editor.h"
 
-void CEditor::Init(CD3D11* pCD3D11)
-{   
-	m_pCD3D11 = pCD3D11;
-
-	m_CViewport.Init(m_pCD3D11, m_Scene.GetScene());
-	m_CContentBrowser.Init(m_pCD3D11->GetDevice());
-	m_CSettings.Init(m_pCD3D11->GetCam(), m_pCD3D11->GetLight());
-	m_Scene.Init(pCD3D11);
-
-	std::string str = "Scene";
-	m_Scene.SetCam(m_pCD3D11->GetCam());
-	m_Scene.SetSceneName(str);
-}
-
-void CEditor::Draw()
-{  
-	m_CContentBrowser.List();
-	m_CViewport.Draw();
-	m_Scene.Draw();
-	m_CSettings.Draw();
-	
-}
-
-void CEditor::Pick()
-{   
-	ImGuiIO io = ImGui::GetIO();
-	int x = io.MousePos.x;
-	int y = io.MousePos.y;
-	if (!CheckRange(x, y))
+namespace wilson {
+	void Editor::Init(CD3D11* pCD3D11)
 	{
-		return;
+		m_pD3D11 = pCD3D11;
+
+		m_viewport.Init(m_pD3D11, m_scene.GetScene());
+		m_contentBrowser.Init(m_pD3D11->GetDevice());
+		m_settings.Init(m_pD3D11->GetCam(), m_pD3D11->GetLight());
+		m_scene.Init(pCD3D11);
+
+		std::string str = "Scene";
+		m_scene.SetCam(m_pD3D11->GetCam());
+		m_scene.SetSceneName(str);
 	}
 
-	int width = m_pCD3D11->GetClientWidth();
-	int height = m_pCD3D11->GetClientHeight();
+	void Editor::Draw()
+	{
+		m_contentBrowser.List();
+		m_viewport.Draw();
+		m_scene.Draw();
+		m_settings.Draw();
 
-	float ndcX = m_CViewport.GetNDCX(x);
-	float ndcY = m_CViewport.GetNDCY(y);
+	}
 
-	int mappedX = ndcX *width;
-	int mappedY = ndcY *height;
+	void Editor::Pick()
+	{
+		ImGuiIO io = ImGui::GetIO();
+		int x = io.MousePos.x;
+		int y = io.MousePos.y;
+		if (!CheckRange(x, y))
+		{
+			return;
+		}
 
-	m_Scene.Pick(mappedX, mappedY, width, height);
-}
+		int width = m_pD3D11->GetClientWidth();
+		int height = m_pD3D11->GetClientHeight();
 
-bool CEditor::CheckRange(int x, int y)
-{
-	return m_CViewport.CheckRange(x, y);
+		float ndcX = m_viewport.GetNDCX(x);
+		float ndcY = m_viewport.GetNDCY(y);
+
+		float mappedX = ndcX * width;
+		float mappedY = ndcY * height;
+
+		m_scene.Pick(mappedX, mappedY, width, height);
+	}
+
+	bool Editor::CheckRange(int x, int y)
+	{
+		return m_viewport.CheckRange(x, y);
+	}
 }

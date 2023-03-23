@@ -3,7 +3,6 @@
 namespace wilson {
 	Engine::Engine()
 	{
-		m_pInputHandler = nullptr;
 		m_pRenderer = nullptr;
 		m_pEditor = nullptr;
 
@@ -35,7 +34,7 @@ namespace wilson {
 			return false;
 		}
 
-		m_pEditor = new CEditor;
+		m_pEditor = new Editor;
 		if (m_pEditor == nullptr)
 		{
 			return false;

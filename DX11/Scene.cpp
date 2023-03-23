@@ -2,7 +2,7 @@
 
 CScene::CScene()
 {
-	m_pCD3D11 = nullptr;
+	m_pD3D11 = nullptr;
 	m_pSelectionETT = nullptr;
 	SceneHandler = this;
 	m_pCCam = nullptr;
@@ -20,7 +20,7 @@ CScene::~CScene()
 
 void CScene::Init(CD3D11* pCD3D11)
 {
-	m_pCD3D11 = pCD3D11;
+	m_pD3D11 = pCD3D11;
 }
 
 void CScene::AddEntity(Model* pModel)
@@ -279,7 +279,7 @@ bool CScene::RaySphereIntersect(XMFLOAT3 o, XMFLOAT3 dir, float r, float* hitDis
 
 void CScene::RemoveENTT(int i)
 {  
-	m_pCD3D11->RemoveModel(i);
+	m_pD3D11->RemoveModel(i);
 
 	std::string type = *(m_entites[i]->GetType());
 	--m_entityCnt[type];

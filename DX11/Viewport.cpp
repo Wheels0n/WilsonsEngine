@@ -12,7 +12,7 @@ void CViewport::Init(CD3D11* pCD3D11, CScene* pCScene)
 	m_pSwapChain = pCD3D11->GetSwapChain();
 	m_pSRV = pCD3D11->GetRTT();
 	m_pDevice = pCD3D11->GetDevice();
-	m_pCD3D11 = pCD3D11;
+	m_pD3D11 = pCD3D11;
 	m_pCCam = pCD3D11->GetCam();
 	m_pCScene = pCScene;
 }
@@ -31,8 +31,8 @@ void CViewport::Draw()
 		m_IsFocused = ImGui::IsWindowFocused();
 
 		ImGuiIO io = ImGui::GetIO();
-		int width = m_pCD3D11->GetClientWidth();
-		int height = m_pCD3D11->GetClientHeight();
+		int width = m_pD3D11->GetClientWidth();
+		int height = m_pD3D11->GetClientHeight();
 		int x = GetNDCX(io.MousePos.x ) * width;
 		int y = GetNDCY(io.MousePos.y) * height;
 
@@ -46,7 +46,7 @@ void CViewport::Draw()
 				const wchar_t* path = (const wchar_t*)payLoad->Data;
 				m_CImporter.LoadOBJ(path);
 				Model* pModel = m_CImporter.GetModel();
-				m_CImporter.LoadTex(pModel, L"./Assets/Textures/empty.png", m_pCD3D11->GetDevice());
+				m_CImporter.LoadTex(pModel, L"./Assets/Textures/empty.png", m_pD3D11->GetDevice());
 				m_CImporter.Clear();
 				//
 				XMMATRIX* pTr = pModel->GetTranslationMatrix();
@@ -79,7 +79,7 @@ void CViewport::Draw()
 				XMMATRIX tr = XMMatrixTranslationFromVector(pPos);
 				*pTr = tr;
 				//
-				m_pCD3D11->AddModel(pModel, m_pDevice);
+				m_pD3D11->AddModel(pModel, m_pDevice);
 				m_pCScene->AddEntity(pModel);
 
 				
@@ -97,7 +97,7 @@ void CViewport::Draw()
 					pENTT = m_pCScene->GetSelectedENTT();
 					if (pENTT != nullptr)
 					{
-						m_CImporter.LoadTex(pENTT->GetModel(), path, m_pCD3D11->GetDevice());
+						m_CImporter.LoadTex(pENTT->GetModel(), path, m_pD3D11->GetDevice());
 					}
 
 				}

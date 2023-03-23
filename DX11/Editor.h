@@ -5,18 +5,21 @@
 #include"ContentBrowser.h"
 #include"Viewport.h"
 #include"Settings.h"
-class CEditor
-{
-public:
-	void Init(CD3D11*);
-	void Draw();
-	void Pick();
-	bool CheckRange(int, int);
-private:
-	CD3D11* m_pCD3D11;
-	ContentBrowser m_CContentBrowser;
-	CScene m_Scene;
-	CViewport m_CViewport;
-	CSettings m_CSettings;
-};
+
+namespace wilson {
+	class Editor
+	{
+	public:
+		void Init(CD3D11*);
+		void Draw();
+		void Pick();
+		bool CheckRange(int, int);
+	private:
+		CD3D11* m_pD3D11;
+		ContentBrowser m_contentBrowser;
+		CScene m_scene;
+		CViewport m_viewport;
+		CSettings m_settings;
+	};
+}
 #endif // !EDITOR_H

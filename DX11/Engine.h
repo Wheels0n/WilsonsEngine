@@ -46,7 +46,7 @@ namespace wilson{
 	Timer m_timer;
 	ImGuiManager m_ImGuiManager;
 	CRenderer* m_pRenderer;
-	CEditor* m_pEditor;
+	Editor* m_pEditor;
  };
 
  static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
