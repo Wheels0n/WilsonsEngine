@@ -257,7 +257,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	//m_ppCModels[0]->Init(m_pDevice);
 	//m_pCImporter->Clear();
 	
-	m_pCShader = new CShader(m_pDevice, m_pContext);
+	m_pCShader = new Shader(m_pDevice, m_pContext);
 	m_pCShader-> Init();
 
 

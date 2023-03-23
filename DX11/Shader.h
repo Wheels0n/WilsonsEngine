@@ -4,20 +4,24 @@
 #include<d3d11.h>
 #include<D3DX11tex.h>
 
-class CShader
+namespace wilson
 {
-public:
-	CShader(ID3D11Device* device, ID3D11DeviceContext* context);
-	~CShader();
-	bool Init();
-private:
+	class Shader
+	{
+	public:
+		bool Init();
 
-	ID3D11Device* m_pDevice;
-	ID3D11DeviceContext* m_pContext;
+		Shader(ID3D11Device* device, ID3D11DeviceContext* context);
+		~Shader();
+	private:
 
-	ID3D11VertexShader* m_pVertexShader;
-	ID3D11PixelShader* m_pPixelShader;
-	ID3D11InputLayout* m_pInputLayout;
-};
+		ID3D11Device* m_pDevice;
+		ID3D11DeviceContext* m_pContext;
 
+		ID3D11VertexShader* m_pVertexShader;
+		ID3D11PixelShader* m_pPixelShader;
+		ID3D11InputLayout* m_pInputLayout;
+
+	};
+}
 #endif

@@ -109,7 +109,7 @@ private:
 	Frustum* m_pCFrustum;
 	MatBuffer* m_pCMBuffer;
 	CLight* m_pCLight;
-	CShader* m_pCShader;
+	Shader* m_pCShader;
 
 	int m_clientWidth;
 	int m_clientHeight;
