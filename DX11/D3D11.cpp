@@ -26,10 +26,10 @@ CD3D11::CD3D11()
 
 	m_pCTerrain = nullptr;
 	m_pCImporter = nullptr;
-	m_pCCam  = nullptr;
+	m_pCam  = nullptr;
 	m_pCFrustum = nullptr;
 	m_pCMBuffer = nullptr;
-	m_pCLight = nullptr;
+	m_pLight = nullptr;
 	m_pCShader = nullptr;
 }
 
@@ -236,19 +236,19 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	//Set projectionMatrix, viewMatrix;
 	m_pCTerrain = new CTerrain;
 	m_pCTerrain->Init(m_pDevice, 100, 100);
-	m_pCCam = new Camera(screenWidth, screenHeight, fScreenFar, fScreenNear);
-	m_pCCam->Init(m_pDevice);
-	m_pCCam->SetCamBuffer(m_pContext);
-	XMMATRIX* m_projMat=  m_pCCam->GetProjectionMatrix();
-	XMMATRIX* m_viewMat = m_pCCam->GetViewMatrix();
+	m_pCam = new Camera(screenWidth, screenHeight, fScreenFar, fScreenNear);
+	m_pCam->Init(m_pDevice);
+	m_pCam->SetCamBuffer(m_pContext);
+	XMMATRIX* m_projMat=  m_pCam->GetProjectionMatrix();
+	XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
 	m_pCFrustum = new Frustum();
-	m_pCFrustum->Construct(100.0f, m_pCCam);
+	m_pCFrustum->Construct(100.0f, m_pCam);
 	m_pCMBuffer = new MatBuffer(m_pDevice, m_pContext, m_projMat, m_viewMat);
 	m_pCMBuffer->Init();
 	
-	m_pCLight = new CLight(m_pDevice, m_pContext);
-	m_pCLight->Init();
-	m_pCLight->Update();
+	m_pLight = new CLight(m_pDevice, m_pContext);
+	m_pLight->Init();
+	m_pLight->Update();
 
 	//m_pCImporter = new CImporter();
 	//m_pCImporter->LoadOBJ(L"./Models/sphere/Sphere.obj");
@@ -390,10 +390,10 @@ void CD3D11::Shutdown()
 		m_pCTerrain = nullptr;
 	}
 
-	if (m_pCCam != nullptr)
+	if (m_pCam != nullptr)
 	{
-		delete m_pCCam;
-		m_pCCam = nullptr;
+		delete m_pCam;
+		m_pCam = nullptr;
 	}
     
 	if (m_pCFrustum != nullptr)
@@ -402,10 +402,10 @@ void CD3D11::Shutdown()
 		m_pCFrustum = nullptr;
 	}
 
-	if (m_pCLight != nullptr)
+	if (m_pLight != nullptr)
 	{   
-		delete m_pCLight;
-		m_pCLight = nullptr;
+		delete m_pLight;
+		m_pLight = nullptr;
 	}
 
 	if (m_pCShader == nullptr)
@@ -454,10 +454,10 @@ void CD3D11::UpdateScene()
 	m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDSVforRTT);
 
 	//Update Light
-	m_pCLight->Update();
+	m_pLight->Update();
 	//Update Cam 
-	m_pCCam->Update();
-	m_pCFrustum->Construct(100.0f, m_pCCam);
+	m_pCam->Update();
+	m_pCFrustum->Construct(100.0f, m_pCam);
 	/*Draw Terrain
 	m_pCTerrain->UploadBuffers(m_pContext);
 	m_pCMBuffer->SetViewMatrix(m_pCCam->GetViewMatrix());
@@ -473,7 +473,7 @@ void CD3D11::UpdateScene()
 		XMStoreFloat4x4(&pos4, m_worldMat);
 		if (m_pCFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
 		{  
-			m_pCMBuffer->SetViewMatrix(m_pCCam->GetViewMatrix());
+			m_pCMBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 			m_pCMBuffer->SetWorldMatrix(&m_worldMat);
 			m_pCMBuffer->Update();
 			m_ppCModels[i]->UploadBuffers(m_pContext);
@@ -483,7 +483,7 @@ void CD3D11::UpdateScene()
 		}
 		
 	}
-	m_pCCam->SetENTTsInFrustum(drawed);
+	m_pCam->SetENTTsInFrustum(drawed);
 	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
 	return;
 }

@@ -54,7 +54,7 @@ private:
 	int m_top;
 
 	CD3D11* m_pD3D11;
-	Camera* m_pCCam;
+	Camera* m_pCam;
 	CScene* m_pCScene;
 	Importer m_CImporter;
 	IDXGISwapChain* m_pSwapChain;

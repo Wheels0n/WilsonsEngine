@@ -23,7 +23,7 @@ public:
 
 	void SetCam(Camera* pCam)
 	{
-		m_pCCam = pCam;
+		m_pCam = pCam;
 	}
 
 	void SetSceneName(std::string name)
@@ -50,7 +50,7 @@ private:
 	CD3D11* m_pCD3D11;
 	CEntity* m_pSelectionETT;
 	CScene* SceneHandler ;
-	Camera* m_pCCam ;
+	Camera* m_pCam ;
 
 	bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float, float*);
 	void RemoveENTT(int);

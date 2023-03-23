@@ -2,22 +2,25 @@
 #define SETTINGS_H
 
 #include"FPS.h"
-#include"camera.h"
+#include"Camera.h"
 #include"Light.h"
 
-class CSettings
+namespace wilson
 {
-public:
-	CSettings() = default;
-	CSettings(const CSettings&) = default;
-	~CSettings() = default;
+	class Settings
+	{
+	public:
+		void Init(Camera*, CLight*);
+		void Draw();
 
-	void Init(Camera*, CLight*);
-	void Draw();
-private:
-	FPS m_CFps;
-	CLight* m_pCLight;
-	Camera* m_pCCam;
-};
+		Settings() = default;
+		Settings(const Settings&) = default;
+		~Settings() = default;
+	private:
+		FPS m_CFps;
+		CLight* m_pLight;
+		Camera* m_pCam;
+	};
+}
 #endif // !SETTINGS_H
 

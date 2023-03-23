@@ -5,7 +5,7 @@ CScene::CScene()
 	m_pD3D11 = nullptr;
 	m_pSelectionETT = nullptr;
 	SceneHandler = this;
-	m_pCCam = nullptr;
+	m_pCam = nullptr;
 }
 
 CScene::~CScene()
@@ -208,13 +208,13 @@ void CScene::Pick(int sx, int sy, int width, int height)
 
 	using namespace DirectX;
 
-	XMMATRIX projectionMat = *(m_pCCam->GetProjectionMatrix());
+	XMMATRIX projectionMat = *(m_pCam->GetProjectionMatrix());
 	XMFLOAT4X4 projectionMat4;
 	XMStoreFloat4x4(&projectionMat4, projectionMat);
 
-	XMMATRIX viewMat = *(m_pCCam->GetViewMatrix());
+	XMMATRIX viewMat = *(m_pCam->GetViewMatrix());
 	XMMATRIX inverseView = XMMatrixInverse(nullptr, viewMat);
-	XMVECTOR pos = *(m_pCCam->GetPosition());
+	XMVECTOR pos = *(m_pCam->GetPosition());
 	XMFLOAT4 pos4;
 	XMStoreFloat4(&pos4, pos);
 

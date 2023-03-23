@@ -13,7 +13,7 @@ void CViewport::Init(CD3D11* pCD3D11, CScene* pCScene)
 	m_pSRV = pCD3D11->GetRTT();
 	m_pDevice = pCD3D11->GetDevice();
 	m_pD3D11 = pCD3D11;
-	m_pCCam = pCD3D11->GetCam();
+	m_pCam = pCD3D11->GetCam();
 	m_pCScene = pCScene;
 }
 
@@ -53,11 +53,11 @@ void CViewport::Draw()
 				XMFLOAT4X4 tr4;
 				XMStoreFloat4x4(&tr4, *pTr);
 
-				XMVECTOR m_camPos = *(m_pCCam->GetPosition());
+				XMVECTOR m_camPos = *(m_pCam->GetPosition());
 				XMFLOAT4 camPos4;
 				XMStoreFloat4(&camPos4, m_camPos);
 
-				XMMATRIX projectionMat = *(m_pCCam->GetProjectionMatrix());
+				XMMATRIX projectionMat = *(m_pCam->GetProjectionMatrix());
 				XMFLOAT4X4 projectionMat4;
 				XMStoreFloat4x4(&projectionMat4, projectionMat);
 				float ratio = width / (float)height;
@@ -68,7 +68,7 @@ void CViewport::Draw()
 
 				XMVECTOR pPos = XMVectorSet(dx * dz, dy * dz, dz, 0.0f);
 			   
-				XMMATRIX viewMat = *(m_pCCam->GetViewMatrix());
+				XMMATRIX viewMat = *(m_pCam->GetViewMatrix());
 				XMMATRIX invViewMat = XMMatrixInverse(nullptr, viewMat);
 				pPos = XMVector4Transform(pPos, invViewMat);
 				

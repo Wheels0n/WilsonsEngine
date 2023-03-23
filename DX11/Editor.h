@@ -19,7 +19,7 @@ namespace wilson {
 		ContentBrowser m_contentBrowser;
 		CScene m_scene;
 		CViewport m_viewport;
-		CSettings m_settings;
+		Settings m_settings;
 	};
 }
 #endif // !EDITOR_H

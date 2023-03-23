@@ -42,12 +42,12 @@ public:
 
 	Camera* GetCam() const
 	{
-		return m_pCCam;
+		return m_pCam;
 	};
 
 	CLight* GetLight() const
 	{
-		return m_pCLight;
+		return m_pLight;
 	}
 
 	IDXGISwapChain* GetSwapChain() const
@@ -105,10 +105,10 @@ private:
 	Importer* m_pCImporter;
 	std::vector<Model*> m_ppCModels;
 	CTerrain* m_pCTerrain;
-	Camera* m_pCCam;
+	Camera* m_pCam;
 	Frustum* m_pCFrustum;
 	MatBuffer* m_pCMBuffer;
-	CLight* m_pCLight;
+	CLight* m_pLight;
 	Shader* m_pCShader;
 
 	int m_clientWidth;
