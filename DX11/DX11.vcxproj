@@ -35,7 +35,7 @@
     <ClCompile Include="FPS.cpp" />
     <ClCompile Include="Frustum.cpp" />
     <ClCompile Include="ImGuiManager.cpp" />
-    <ClCompile Include="import.cpp" />
+    <ClCompile Include="Import.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="MatrixBuffer.cpp" />
     <ClCompile Include="Model.cpp" />
@@ -66,7 +66,7 @@
     <ClInclude Include="FPS.h" />
     <ClInclude Include="Frustum.h" />
     <ClInclude Include="ImGuiManager.h" />
-    <ClInclude Include="import.h" />
+    <ClInclude Include="Import.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="MatrixBuffer.h" />
     <ClInclude Include="Model.h" />

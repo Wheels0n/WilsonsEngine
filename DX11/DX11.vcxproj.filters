@@ -77,7 +77,7 @@
     <ClCompile Include="..\ImGui\imgui_tables.cpp">
       <Filter>Source Files\External\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="import.cpp">
+    <ClCompile Include="Import.cpp">
       <Filter>Source Files\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Camera.cpp">
@@ -160,7 +160,7 @@
     <ClInclude Include="..\ImGui\imgui_internal.h">
       <Filter>Source Files\External\ImGui</Filter>
     </ClInclude>
-    <ClInclude Include="import.h">
+    <ClInclude Include="Import.h">
       <Filter>Source Files\Editor</Filter>
     </ClInclude>
     <ClInclude Include="D3D11.h">

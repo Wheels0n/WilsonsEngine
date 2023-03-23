@@ -19,7 +19,7 @@
 #include "Light.h"
 #include "Shader.h"
 #include "Terrain.h"
-#include "import.h"
+#include "Import.h"
 
 
 //D:\DirectxSDK\Include;$(IncludePath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;$(IncludePath)
@@ -102,7 +102,7 @@ private:
 	ID3D11SamplerState* m_pSampleState;
 	ID3D11BlendState* m_pNoRenderTargetWritesBS, * m_pTransparentBS;
 
-	CImporter* m_pCImporter;
+	Importer* m_pCImporter;
 	std::vector<Model*> m_ppCModels;
 	CTerrain* m_pCTerrain;
 	Camera* m_pCCam;

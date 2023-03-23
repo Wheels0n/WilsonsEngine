@@ -56,7 +56,7 @@ private:
 	CD3D11* m_pD3D11;
 	Camera* m_pCCam;
 	CScene* m_pCScene;
-	CImporter m_CImporter;
+	Importer m_CImporter;
 	IDXGISwapChain* m_pSwapChain;
 	ID3D11ShaderResourceView* m_pSRV;
 	ID3D11Device* m_pDevice;
