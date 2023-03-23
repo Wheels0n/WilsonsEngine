@@ -1,6 +1,6 @@
 #include "Settings.h"
 
-void CSettings::Init(CCamera* pCCam , CLight* pCLight)
+void CSettings::Init(Camera* pCCam , CLight* pCLight)
 {
 	m_CFps.Init();
 	m_pCLight = pCLight;

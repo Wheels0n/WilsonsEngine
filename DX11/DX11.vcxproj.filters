@@ -80,7 +80,7 @@
     <ClCompile Include="import.cpp">
       <Filter>Source Files\Editor</Filter>
     </ClCompile>
-    <ClCompile Include="camera.cpp">
+    <ClCompile Include="Camera.cpp">
       <Filter>Source Files\Component\Cam</Filter>
     </ClCompile>
     <ClCompile Include="Light.cpp">
@@ -178,7 +178,7 @@
     <ClInclude Include="resource.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="camera.h">
+    <ClInclude Include="Camera.h">
       <Filter>Source Files\Component\Cam</Filter>
     </ClInclude>
     <ClInclude Include="Light.h">

@@ -4,60 +4,86 @@
 
 #include<DirectXMath.h>
 #include<d3d11.h>
-using namespace DirectX;
 
-struct camBuffer
-{
-	XMVECTOR camPos;
-};
+namespace wilson {
 
-class CCamera
-{
-public:
-	CCamera(int screenWidth, int screenHeight, float ScreenFar, float ScreenNear);
-	~CCamera();
+	struct camBuffer
+	{
+		DirectX::XMVECTOR m_camPos;
+	};
 
-	void Init(ID3D11Device* device);
-	void Update();
-	void SetCamBuffer(ID3D11DeviceContext* context);
-	void ResetTranslation();
-	void ResetRotation();
-     
-	void SetENTTsInFrustum(int);
-	int  GetENTTsInFrustum();
+	class Camera
+	{
+	public:
 
-	XMVECTOR* GetPosition();
-	XMVECTOR* GetTarget();
-	XMVECTOR* GetRotation();
+		void Init(ID3D11Device* device);
+		void Update();
+		void SetCamBuffer(ID3D11DeviceContext* context);
+		void ResetTranslation();
+		inline void ResetRotation()
+		{
+			m_rotation = XMVectorZero();
+		}
 
-	void Rotate(int, int);
-	void Translate(XMVECTOR);
-	void Zoom(int);
+		inline void SetENTTsInFrustum(int cnt)
+		{
+			m_ENTTsInFrustum = cnt;
+		}
+		inline int GetENTTsInFrustum()
+		{
+			return m_ENTTsInFrustum;
+		}
 
-	XMMATRIX* GetViewMatrix();
-	XMMATRIX* GetProjectionMatrix();
-private:
+		inline DirectX::XMVECTOR* GetPosition()
+		{
+			return &m_pos;
+		}
+		inline DirectX::XMVECTOR* GetTarget()
+		{
+			return &m_target;
+		}
+		inline DirectX::XMVECTOR* GetRotation()
+		{
+			return &m_rotation;
+		}
+		inline DirectX::XMMATRIX* GetViewMatrix()
+		{
+			return &m_viewMat;
+		}
+		inline DirectX::XMMATRIX* GetProjectionMatrix()
+		{
+			return &m_projMat;
+		}
 
-	XMVECTOR m_vPos;
-	XMVECTOR m_vTarget;
-	XMVECTOR m_vUp;      //which axis is upward
-	XMVECTOR m_vRotation;
+		void Rotate(int, int);
+		void Translate(DirectX::XMVECTOR);
+		void Zoom(int);
 
-	XMMATRIX m_viewMatrix;
-	XMMATRIX m_projectionMatrix;// think of the frustum as the lens of our camera, for it controls our view
+		Camera(int screenWidth, int screenHeight, float ScreenFar, float ScreenNear);
+		~Camera();
+	private:
 
-	ID3D11Buffer* m_pCamBuffer;
+		DirectX::XMVECTOR m_pos;
+		DirectX::XMVECTOR m_target;
+		DirectX::XMVECTOR m_up;      //which axis is upward
+		DirectX::XMVECTOR m_rotation;
 
-	int m_ENTTsInFrustum;
+		DirectX::XMMATRIX m_viewMat;
+		DirectX::XMMATRIX m_projMat;// think of the frustum as the lens of our camera, for it controls our view
 
-	float m_fFOV;
-	float m_fScreenRatio;
-	float m_fScreenNear;
-	float m_fScreenFar;
+		ID3D11Buffer* m_pCamBuffer;
 
-	float m_trSpeed = 0.1f;
-	float m_rtSpeed = 0.0175f;
+		int m_ENTTsInFrustum;
 
-};
+		float m_fFOV;
+		float m_fScreenRatio;
+		float m_fScreenNear;
+		float m_fScreenFar;
 
+		float m_trSpeed = 0.1f;
+		float m_rtSpeed = 0.0175f;
+
+	};
+
+}
 #endif 

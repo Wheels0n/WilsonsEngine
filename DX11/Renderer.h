@@ -36,6 +36,6 @@ private:
 	bool Render();
 
 	CD3D11* m_pD3D11;
-	CCamera* m_pCam;
+	Camera* m_pCam;
 };
 #endif

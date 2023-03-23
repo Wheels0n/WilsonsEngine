@@ -7,7 +7,7 @@ cbuffer MatrixBuffer
 
 cbuffer camBuffer
 {
-	float4 camPos;
+	float4 m_camPos;
 };
 
 struct VertexInputType
@@ -33,7 +33,7 @@ PixelInputType main(VertexInputType input)
 
 	output.position = mul(input.position, worldMatrix);
 	
-	output.viewDir = output.position.xyz - camPos.xyz;
+	output.viewDir = output.position.xyz - m_camPos.xyz;
 	output.viewDir = normalize(output.viewDir);
 
 	output.position = mul(output.position, viewMatrix);

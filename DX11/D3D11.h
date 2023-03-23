@@ -41,7 +41,7 @@ public:
 	void AddModel(CModel*, ID3D11Device*);
 	void RemoveModel(int i);
 
-	CCamera* GetCam() const
+	Camera* GetCam() const
 	{
 		return m_pCCam;
 	};
@@ -106,7 +106,7 @@ private:
 	CImporter* m_pCImporter;
 	std::vector<CModel*> m_ppCModels;
 	CTerrain* m_pCTerrain;
-	CCamera* m_pCCam;
+	Camera* m_pCCam;
 	CFrustum* m_pCFrustum;
 	CMBuffer* m_pCMBuffer;
 	CWMTransformation* m_pCWMTransformation;

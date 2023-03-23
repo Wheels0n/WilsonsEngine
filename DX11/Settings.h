@@ -12,12 +12,12 @@ public:
 	CSettings(const CSettings&) = default;
 	~CSettings() = default;
 
-	void Init(CCamera*, CLight*);
+	void Init(Camera*, CLight*);
 	void Draw();
 private:
 	CFps m_CFps;
 	CLight* m_pCLight;
-	CCamera* m_pCCam;
+	Camera* m_pCCam;
 };
 #endif // !SETTINGS_H
 

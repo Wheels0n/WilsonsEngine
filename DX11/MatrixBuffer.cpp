@@ -6,8 +6,8 @@ CMBuffer::CMBuffer(ID3D11Device* device, ID3D11DeviceContext* context, XMMATRIX*
 	m_pDevice = device;
 	m_pMatrixBuffer = nullptr;
 
-	m_viewMatrix =  *viewMatrix;
-	m_projectionMatrix = *projectionMatrix;
+	m_viewMat =  *viewMatrix;
+	m_projMat = *projectionMatrix;
 }
 
 CMBuffer::~CMBuffer()
@@ -62,8 +62,8 @@ void CMBuffer::Update()
 	}
 	pMatrices = reinterpret_cast<MatrixBuffer*>(mappedResource.pData);
 	pMatrices->world = XMMatrixTranspose(m_worldMatrix);
-	pMatrices->view = XMMatrixTranspose(m_viewMatrix);
-	pMatrices->projection = m_projectionMatrix;
+	pMatrices->view = XMMatrixTranspose(m_viewMat);
+	pMatrices->projection = m_projMat;
 	m_pContext->Unmap(m_pMatrixBuffer, 0);
 
 	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffer);
@@ -77,5 +77,5 @@ void CMBuffer::SetWorldMatrix(XMMATRIX* worldMatrix)
 
 void CMBuffer::SetViewMatrix(XMMATRIX* viewMatrix)
 {
-	m_viewMatrix = *viewMatrix;
+	m_viewMat = *viewMatrix;
 }

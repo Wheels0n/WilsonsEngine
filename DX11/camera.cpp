@@ -1,147 +1,106 @@
-#include "camera.h"
+#include "Camera.h"
 
-CCamera::CCamera(int screenWidth = 1080, int screenHeight = 720, float ScreenFar = 100.0f, float ScreenNear = 0.01f)
-{    
-	m_fScreenNear = ScreenNear;
-	m_fScreenFar = ScreenFar;
-	m_fFOV = static_cast<float>(3.1459) / 4.0f;
-	m_fScreenRatio = screenWidth / static_cast<float>(screenHeight);
-
-	ResetTranslation();
-	ResetRotation();
-	m_vUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-	m_projectionMatrix = XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
-	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vTarget, m_vUp);
-	
-	m_pCamBuffer = nullptr;
-
-	m_ENTTsInFrustum = 0;
-
-}
-
-CCamera::~CCamera()
-{
-	if (m_pCamBuffer != nullptr)
+namespace wilson {
+	Camera::Camera(int screenWidth, int screenHeight, float screenFar, float screenNear)
 	{
-		m_pCamBuffer->Release();
+		m_fScreenNear = screenNear;
+		m_fScreenFar = screenFar;
+		m_fFOV = static_cast<float>(3.1459) / 4.0f;
+		m_fScreenRatio = screenWidth / static_cast<float>(screenHeight);
+
+		ResetTranslation();
+		ResetRotation();
+		m_up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
+		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
 		m_pCamBuffer = nullptr;
+		m_ENTTsInFrustum = 0;
+
 	}
-}
 
-
-XMVECTOR* CCamera::GetPosition()
-{
-	return &m_vPos;
-}
-
-XMVECTOR* CCamera::GetTarget()
-{
-	return &m_vTarget;
-}
-
-XMVECTOR* CCamera::GetRotation()
-{
-	return &m_vRotation;
-}
-
-XMMATRIX* CCamera::GetViewMatrix()
-{
-	return &m_viewMatrix;
-}
-
-XMMATRIX* CCamera::GetProjectionMatrix()
-{
-	return &m_projectionMatrix;
-}
-
-void CCamera::Zoom(int)
-{
-}
-
-void CCamera::ResetTranslation()
-{
-	m_vPos = XMVectorSet( 0.0f, 0.0f, -1.0f, 1.0f );
-	m_vTarget = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f );
-}
-
-void CCamera::ResetRotation()
-{
-	m_vRotation = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-}
-
-
-void CCamera::Rotate(int dpitch, int dyaw)
-{   
-	XMFLOAT4 float4;
-	XMStoreFloat4(&float4, m_vRotation);
-	float pitch = float4.x + dpitch * m_rtSpeed;
-	float yaw = float4.y + dyaw * m_rtSpeed;
-
-	if (pitch < 0.0f)
+	Camera::~Camera()
 	{
-		pitch += RAD;
+		if (m_pCamBuffer != nullptr)
+		{
+			m_pCamBuffer->Release();
+			m_pCamBuffer = nullptr;
+		}
 	}
-	if (yaw < 0.0f)
+
+	void Camera::Zoom(int)
 	{
-		yaw += RAD;
 	}
-	pitch = pitch > RAD ? 0 : pitch;
-	yaw = yaw > RAD ?0 : yaw;
 
-	m_vRotation = XMVectorSet(pitch, yaw, 0.0f, 0.0f);
-}
+	void Camera::ResetTranslation()
+	{
+		m_pos = DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 1.0f);
+		m_target = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+	}
 
-void CCamera::SetENTTsInFrustum(int cnt)
-{
-	m_ENTTsInFrustum = cnt;
-}
 
-int CCamera::GetENTTsInFrustum()
-{
-	return m_ENTTsInFrustum;
-}
+	void Camera::Rotate(int dpitch, int dyaw)
+	{
+		DirectX::XMFLOAT4 float4;
+		DirectX::XMStoreFloat4(&float4, m_rotation);
+		float pitch = float4.x + dpitch * m_rtSpeed;
+		float yaw = float4.y + dyaw * m_rtSpeed;
 
-void CCamera::Translate(XMVECTOR dv)
-{   
-	XMMATRIX rt = XMMatrixRotationRollPitchYawFromVector(m_vRotation);
-	dv = XMVector3Transform(dv, rt);
-	dv = XMVectorScale(dv, m_trSpeed);
+		if (pitch < 0.0f)
+		{
+			pitch += RAD;
+		}
+		if (yaw < 0.0f)
+		{
+			yaw += RAD;
+		}
+		pitch = pitch > RAD ? 0 : pitch;
+		yaw = yaw > RAD ? 0 : yaw;
 
-	m_vPos = XMVectorAdd(m_vPos, dv);
-}
+		m_rotation = DirectX::XMVectorSet(pitch, yaw, 0.0f, 0.0f);
+	}
 
-void CCamera::Init(ID3D11Device* device)
-{
-	D3D11_BUFFER_DESC camCbd;
-	camCbd.Usage = D3D11_USAGE_DYNAMIC;
-	camCbd.ByteWidth = sizeof(camBuffer);
-	camCbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	camCbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	camCbd.MiscFlags = 0;
-	camCbd.StructureByteStride = 0;
-	device->CreateBuffer(&camCbd, nullptr, &m_pCamBuffer);
-}
+	void Camera::Translate(DirectX::XMVECTOR dv)
+	{
+		DirectX::XMMATRIX rt = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
+		dv = DirectX::XMVector3Transform(dv, rt);
+		dv = DirectX::XMVectorScale(dv, m_trSpeed);
 
-void CCamera::Update()
-{  
-	XMMATRIX rt = XMMatrixRotationRollPitchYawFromVector(m_vRotation);
-	m_vTarget = XMVector3Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rt);
-	m_vTarget = XMVectorAdd(m_vTarget, m_vPos);
-	m_viewMatrix = XMMatrixLookAtLH(m_vPos, m_vTarget, m_vUp);
-	//m_vUp = XMVector3Transform(m_vUp, rt); no roll
-}
+		m_pos = DirectX::XMVectorAdd(m_pos, dv);
+	}
 
-void CCamera::SetCamBuffer(ID3D11DeviceContext* context)
-{
-	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	camBuffer* pCamBuffer;
+	void Camera::Init(ID3D11Device* pDevice)
+	{
+		D3D11_BUFFER_DESC camCBD;
+		camCBD.Usage = D3D11_USAGE_DYNAMIC;
+		camCBD.ByteWidth = sizeof(camBuffer);
+		camCBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		camCBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		camCBD.MiscFlags = 0;
+		camCBD.StructureByteStride = 0;
+		pDevice->CreateBuffer(&camCBD, nullptr, &m_pCamBuffer);
+	}
 
-	context->Map(m_pCamBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	pCamBuffer = reinterpret_cast<camBuffer*>(mappedResource.pData);
-	pCamBuffer->camPos = m_vPos;
-	context->Unmap(m_pCamBuffer, 0);
-	context->VSSetConstantBuffers(1, 1, &m_pCamBuffer);
+	void Camera::Update()
+	{
+		DirectX::XMMATRIX rt = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
+		m_target = DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rt);
+		m_target = DirectX::XMVectorAdd(m_target, m_pos);
+		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
+		//m_vUp = XMVector3Transform(m_vUp, rt); no roll
+	}
 
-	return;
+	void Camera::SetCamBuffer(ID3D11DeviceContext* pContext)
+	{
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		camBuffer* pCamBuffer;
+
+		pContext->Map(m_pCamBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		pCamBuffer = reinterpret_cast<camBuffer*>(mappedResource.pData);
+		pCamBuffer->m_camPos = m_pos;
+		pContext->Unmap(m_pCamBuffer, 0);
+		pContext->VSSetConstantBuffers(1, 1, &m_pCamBuffer);
+
+		return;
+	}
 }

@@ -21,7 +21,7 @@ public:
 	void Draw();
 	void DrawVec3Control(const std::string& label, float* vals);
 
-	void SetCam(CCamera* pCam)
+	void SetCam(Camera* pCam)
 	{
 		m_pCCam = pCam;
 	}
@@ -50,7 +50,7 @@ private:
 	CD3D11* m_pCD3D11;
 	CEntity* m_pSelectionETT;
 	CScene* SceneHandler ;
-	CCamera* m_pCCam ;
+	Camera* m_pCCam ;
 
 	bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float, float*);
 	void RemoveENTT(int);

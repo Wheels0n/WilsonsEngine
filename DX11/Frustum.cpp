@@ -1,6 +1,6 @@
 #include "Frustum.h"
 
-void CFrustum::Construct(float screenDepth, CCamera* pCam)
+void CFrustum::Construct(float screenDepth, Camera* pCam)
 {   
 	XMMATRIX projectionMat = *(pCam->GetProjectionMatrix());
 	XMFLOAT4X4 projectionMat4;

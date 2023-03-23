@@ -237,7 +237,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	//Set projectionMatrix, viewMatrix;
 	m_pCTerrain = new CTerrain;
 	m_pCTerrain->Init(m_pDevice, 100, 100);
-	m_pCCam = new CCamera(screenWidth, screenHeight, fScreenFar, fScreenNear);
+	m_pCCam = new Camera(screenWidth, screenHeight, fScreenFar, fScreenNear);
 	m_pCCam->Init(m_pDevice);
 	m_pCCam->SetCamBuffer(m_pContext);
 	XMMATRIX* projection=  m_pCCam->GetProjectionMatrix();

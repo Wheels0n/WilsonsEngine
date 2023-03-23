@@ -53,9 +53,9 @@ void CViewport::Draw()
 				XMFLOAT4X4 tr4;
 				XMStoreFloat4x4(&tr4, *pTr);
 
-				XMVECTOR camPos = *(m_pCCam->GetPosition());
+				XMVECTOR m_camPos = *(m_pCCam->GetPosition());
 				XMFLOAT4 camPos4;
-				XMStoreFloat4(&camPos4, camPos);
+				XMStoreFloat4(&camPos4, m_camPos);
 
 				XMMATRIX projectionMat = *(m_pCCam->GetProjectionMatrix());
 				XMFLOAT4X4 projectionMat4;

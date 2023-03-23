@@ -7,7 +7,7 @@ class CFrustum
 public:
 	CFrustum() = default;
 	~CFrustum() = default;
-	void Construct(float, CCamera*);
+	void Construct(float, Camera*);
 	bool IsInFrustum(XMVECTOR);
 private:
 	XMVECTOR m_plane[6];

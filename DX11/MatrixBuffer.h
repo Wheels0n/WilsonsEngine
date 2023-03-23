@@ -34,8 +34,8 @@ private:
 	ID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pContext;
 	XMMATRIX m_worldMatrix;
-	XMMATRIX m_projectionMatrix;
-	XMMATRIX m_viewMatrix;
+	XMMATRIX m_projMat;
+	XMMATRIX m_viewMat;
 
 	ID3D11Buffer* m_pMatrixBuffer;
 };
