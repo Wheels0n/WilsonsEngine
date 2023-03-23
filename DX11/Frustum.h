@@ -1,16 +1,19 @@
 #ifndef FRUSTUM_H
 #define FRUSTUM_H
-#include"camera.h"
+#include"Camera.h"
 
-class CFrustum
-{
-public:
-	CFrustum() = default;
-	~CFrustum() = default;
-	void Construct(float, Camera*);
-	bool IsInFrustum(XMVECTOR);
-private:
-	XMVECTOR m_plane[6];
-};
+namespace wilson {
+	class Frustum
+	{
+	public:
+		void Construct(float, Camera*);
+		bool IsInFrustum(DirectX::XMVECTOR);
+		
+		Frustum() = default;
+		~Frustum() = default;
 
+	private:
+		DirectX::XMVECTOR m_planes[6];
+	};
+}
 #endif // !FRUSTUM_H

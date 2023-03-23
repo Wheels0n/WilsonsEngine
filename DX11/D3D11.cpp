@@ -242,7 +242,7 @@ bool CD3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, boo
 	m_pCCam->SetCamBuffer(m_pContext);
 	XMMATRIX* projection=  m_pCCam->GetProjectionMatrix();
 	XMMATRIX* view = m_pCCam->GetViewMatrix();
-	m_pCFrustum = new CFrustum();
+	m_pCFrustum = new Frustum();
 	m_pCFrustum->Construct(100.0f, m_pCCam);
 	m_pCMBuffer = new CMBuffer(m_pDevice, m_pContext, projection, view);
 	m_pCMBuffer->Init();

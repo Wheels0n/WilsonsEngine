@@ -107,7 +107,7 @@ private:
 	std::vector<CModel*> m_ppCModels;
 	CTerrain* m_pCTerrain;
 	Camera* m_pCCam;
-	CFrustum* m_pCFrustum;
+	Frustum* m_pCFrustum;
 	CMBuffer* m_pCMBuffer;
 	CWMTransformation* m_pCWMTransformation;
 	CLight* m_pCLight;
