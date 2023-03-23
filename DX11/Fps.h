@@ -7,20 +7,27 @@
 #include<windows.h>
 #include<mmsyscom.h>
 
-class CFps
+namespace wilson
 {
-public:
-	CFps() = default;
-	CFps(const CFps&) = delete;
-	~CFps() = default;
+	class FPS
+	{
+	public:
+		void Init();
+		void Frame();
+		
+		inline int GetFps()
+		{
+			return m_fps;
+		}
 
-	void Init();
-	void Frame();
-	int GetFps();
-private:
-	int m_fps;
-	int m_count;
-	unsigned long m_startTime;
-};
+		FPS() = default;
+		FPS(const FPS&) = delete;
+		~FPS() = default;
 
+	private:
+		int m_fps;
+		int m_count;
+		unsigned long m_startTime;
+	};
+}
 #endif // !FPS_H

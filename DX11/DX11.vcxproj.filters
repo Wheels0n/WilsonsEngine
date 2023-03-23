@@ -113,7 +113,7 @@
     <ClCompile Include="Editor.cpp">
       <Filter>Source Files\Editor</Filter>
     </ClCompile>
-    <ClCompile Include="Fps.cpp">
+    <ClCompile Include="FPS.cpp">
       <Filter>Source Files\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Viewport.cpp">
@@ -202,7 +202,7 @@
     <ClInclude Include="Editor.h">
       <Filter>Source Files\Editor</Filter>
     </ClInclude>
-    <ClInclude Include="Fps.h">
+    <ClInclude Include="FPS.h">
       <Filter>Source Files\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Viewport.h">
