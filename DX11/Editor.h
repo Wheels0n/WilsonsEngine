@@ -14,7 +14,7 @@ public:
 	bool CheckRange(int, int);
 private:
 	CD3D11* m_pCD3D11;
-	CContentBrowser m_CContentBrowser;
+	ContentBrowser m_CContentBrowser;
 	CScene m_Scene;
 	CViewport m_CViewport;
 	CSettings m_CSettings;

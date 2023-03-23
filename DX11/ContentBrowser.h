@@ -5,20 +5,24 @@
 #include<D3DX11tex.h>
 #include<filesystem>
 
-class CContentBrowser
+namespace wilson 
 {
-public:
-	CContentBrowser() = default;
-	CContentBrowser(const CContentBrowser&) = delete;
-	~CContentBrowser() = default;
+	class ContentBrowser
+	{
+	public:
+		void Init(ID3D11Device*);
+		void List();
 
-	void Init(ID3D11Device*);
-	void List();
-private:
-	void getExtension(char*, const char*);
+		ContentBrowser() = default;
+		ContentBrowser(const ContentBrowser&) = delete;
+		~ContentBrowser() = default;
 
-	std::filesystem::path m_curDir = "Assets";
-	ID3D11ShaderResourceView* m_pDirIcon;
-	ID3D11ShaderResourceView* m_pFileIcon;
-};
+	private:
+		void GetExtension(char*, const char*);
+	private:
+		std::filesystem::path m_curDir = "Assets";
+		ID3D11ShaderResourceView* m_pDirIcon;
+		ID3D11ShaderResourceView* m_pFileIcon;
+	};
+}
 #endif // !CONTENTBROWSER_H
