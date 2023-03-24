@@ -250,7 +250,7 @@ namespace wilson
 		m_pMatBuffer = new MatBuffer(m_pDevice, m_pContext, m_projMat, m_viewMat);
 		m_pMatBuffer->Init();
 
-		m_pLight = new CLight(m_pDevice, m_pContext);
+		m_pLight = new Light(m_pDevice, m_pContext);
 		m_pLight->Init();
 		m_pLight->Update();
 

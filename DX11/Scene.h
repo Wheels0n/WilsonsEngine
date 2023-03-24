@@ -15,7 +15,7 @@ namespace wilson
 	{
 	public:
 
-		inline void Init(CD3D11* pD3D11)
+		inline void Init(D3D11* pD3D11)
 		{
 			m_pD3D11 = pD3D11;
 		}
@@ -52,12 +52,11 @@ namespace wilson
 		std::vector<Entity*> m_entites;
 		std::string m_name;
 
-		CD3D11* m_pD3D11;
+		D3D11* m_pD3D11;
 		Entity* m_pSelectedENTT;
 		Camera* m_pCam;
+		Scene* sceneHandler;
 	};
-
-	static Scene* sceneHandler;
 }
 #endif // !SCENE_H
 

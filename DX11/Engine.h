@@ -48,9 +48,8 @@ namespace wilson{
 	Renderer* m_pRenderer;
 	Editor* m_pEditor;
  };
-
- static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
  static Engine* g_pEngineHandle = nullptr;
- extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+ static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 }
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif

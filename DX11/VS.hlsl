@@ -22,7 +22,7 @@ struct PixelInputType
 	float4 position : SV_POSITION;
 	float2 tex   : TEXTURE;
 	float3 normal : NORMAL;
-	float3 viewDir: VIEW;
+	float3 toEye: VIEW;
 };
 
 PixelInputType main(VertexInputType input)  
@@ -33,8 +33,8 @@ PixelInputType main(VertexInputType input)
 
 	output.position = mul(input.position, worldMatrix);
 	
-	output.viewDir = output.position.xyz - m_camPos.xyz;
-	output.viewDir = normalize(output.viewDir);
+    output.toEye = output.position.xyz - m_camPos.xyz;
+    output.toEye = normalize(output.toEye);
 
 	output.position = mul(output.position, viewMatrix);
 	output.position = mul(output.position, projectionMatrix);

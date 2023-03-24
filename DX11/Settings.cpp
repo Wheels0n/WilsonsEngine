@@ -2,7 +2,7 @@
 
 namespace wilson
 {
-	void Settings::Init(Camera* pCCam, CLight* pCLight)
+	void Settings::Init(Camera* pCCam, Light* pCLight)
 	{
 		m_CFps.Init();
 		m_pLight = pCLight;
@@ -59,66 +59,224 @@ namespace wilson
 				ImGui::PopID();
 				ImGui::TreePop();
 			}
-
-
 			if (ImGui::TreeNode("Lighting"))
-			{
-				XMVECTOR* dir = m_pLight->GetDirection();
-				XMFLOAT4 dir4;
-				XMStoreFloat4(&dir4, *dir);
-				ImGui::Text("Direction");
-				if (ImGui::Button("X"))
-				{
-					dir4.x = 0.0f;
+			{   
+				if(ImGui::TreeNode("DirectionalLight"))
+				{  
+					DirectionalLight dirLight = m_pLight->GetDirLight();
+					
+						DirectX::XMFLOAT3 dir3 = dirLight.direction;
+						ImGui::Text("Direction");
+						if (ImGui::Button("X"))
+						{
+							dir3.x = 0.0f;
+						}
+						ImGui::SameLine();
+						ImGui::DragFloat("##X", &dir3.x, 0.1f);
+
+						if (ImGui::Button("Y"))
+						{
+							dir3.y = 0.0f;
+						}
+						ImGui::SameLine();
+						ImGui::DragFloat("##Y", &dir3.y, 0.1f);
+
+						if (ImGui::Button("Z"))
+						{
+							dir3.z = 0.0f;
+						}
+						ImGui::SameLine();
+						ImGui::DragFloat("##Z", &dir3.z, 0.1f);
+						dirLight.direction = dir3;
+
+						DirectX::XMFLOAT4 ambient4;
+						DirectX::XMStoreFloat4(&ambient4, dirLight.ambient);
+						float ambient[4] = { ambient4.x, ambient4.y, ambient4.z, ambient4.w };
+						ImGui::SliderFloat4("Ambient", ambient, 0.0f, 1.0f);
+						ambient4 = DirectX::XMFLOAT4(ambient[0], ambient[1], ambient[2], ambient[3]);
+						dirLight.ambient = DirectX::XMLoadFloat4(&ambient4);
+
+						DirectX::XMFLOAT4 diffuse4;
+						DirectX::XMStoreFloat4(&diffuse4, dirLight.diffuse);
+						float diffuse[4] = { diffuse4.x, diffuse4.y, diffuse4.z, diffuse4.w };
+						ImGui::SliderFloat4("Diffuse", diffuse, 0.0f, 1.0f);
+						diffuse4 = DirectX::XMFLOAT4(diffuse[0], diffuse[1], diffuse[2], diffuse[3]);
+						dirLight.diffuse = DirectX::XMLoadFloat4(&diffuse4);
+
+						DirectX::XMFLOAT4 specular4;
+						DirectX::XMStoreFloat4(&specular4, dirLight.specular);
+						float specular[4] = { specular4.x, specular4.y, specular4.z, specular4.w };
+						ImGui::SliderFloat4( "Specular", specular, 0.0f, 1.0f );
+						specular4 = DirectX::XMFLOAT4(specular[0], specular[1], specular[2], specular[3]);
+						dirLight.specular = DirectX::XMLoadFloat4(&specular4);
+
+					m_pLight->SetDirLight(dirLight);
+					ImGui::TreePop();
 				}
-				ImGui::SameLine();
-				ImGui::DragFloat("##X", &dir4.x, 0.1f);
+				if (ImGui::TreeNode("PointLight"))
+				{   
+					PointLight pointLight = m_pLight->GetPointLight();
+					DirectX::XMFLOAT3 pos3 = pointLight.position;
+					ImGui::Text("Position");
+					if (ImGui::Button("X"))
+					{
+						pos3.x = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("##X", &pos3.x, 0.1f);
 
-				if (ImGui::Button("Y"))
-				{
-					dir4.y = 0.0f;
+					if (ImGui::Button("Y"))
+					{
+						pos3.y = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("##Y", &pos3.y, 0.1f);
+
+					if (ImGui::Button("Z"))
+					{
+						pos3.z = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("##Z", &pos3.z, 0.1f);
+					pointLight.position = pos3;
+
+					DirectX::XMFLOAT4 ambient4;
+					DirectX::XMStoreFloat4(&ambient4, pointLight.ambient);
+					float ambient[4] = { ambient4.x, ambient4.y, ambient4.z, ambient4.w };
+					ImGui::SliderFloat4("Ambient", ambient, 0.0f, 1.0f);
+					ambient4 = DirectX::XMFLOAT4(ambient[0], ambient[1], ambient[2], ambient[3]);
+					pointLight.ambient = DirectX::XMLoadFloat4(&ambient4);
+
+					DirectX::XMFLOAT4 diffuse4;
+					DirectX::XMStoreFloat4(&diffuse4, pointLight.diffuse);
+					float diffuse[4] = { diffuse4.x, diffuse4.y, diffuse4.z, diffuse4.w };
+					ImGui::SliderFloat4("Diffuse", diffuse, 0.0f, 1.0f);
+					diffuse4 = DirectX::XMFLOAT4(diffuse[0], diffuse[1], diffuse[2], diffuse[3]);
+					pointLight.diffuse = DirectX::XMLoadFloat4(&diffuse4);
+
+					DirectX::XMFLOAT4 specular4;
+					DirectX::XMStoreFloat4(&specular4, pointLight.specular);
+					float specular[4] = { specular4.x, specular4.y, specular4.z, specular4.w };
+					ImGui::SliderFloat4("Specular", specular, 0.0f, 1.0f);
+					specular4 = DirectX::XMFLOAT4(specular[0], specular[1], specular[2], specular[3]);
+					pointLight.specular = DirectX::XMLoadFloat4(&specular4);
+
+					DirectX::XMFLOAT3 attenuation3 = pointLight.attenuation;
+					float attenuation[3] = { attenuation3.x, attenuation3.y, attenuation3.z };
+					ImGui::SliderFloat3("Attenuation", attenuation, 0.0f, 1.0f);
+					pointLight.attenuation = DirectX::XMFLOAT3(attenuation[0], attenuation[1], attenuation[2]);
+
+					float range = pointLight.range;
+					if (ImGui::Button("Range"))
+					{
+						range = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("##Range", &range, 0.1f);
+					pointLight.range = range;
+
+					m_pLight->SetPointLight(pointLight);
+					ImGui::TreePop();
 				}
-				ImGui::SameLine();
-				ImGui::DragFloat("##Y", &dir4.y, 0.1f);
+				if (ImGui::TreeNode("SpotLight"))
+				{   
+					SpotLight spotLight = m_pLight->GetSpotLight();
 
-				if (ImGui::Button("Z"))
-				{
-					dir4.z = 0.0f;
+					DirectX::XMFLOAT3 dir3 = spotLight.direction;
+					ImGui::Text("Direction");
+					if (ImGui::Button("X"))
+					{
+						dir3.x = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("##X", &dir3.x, 0.1f);
+
+					if (ImGui::Button("Y"))
+					{
+						dir3.y = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("##Y", &dir3.y, 0.1f);
+
+					if (ImGui::Button("Z"))
+					{
+						dir3.z = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("##Z", &dir3.z, 0.1f);
+					spotLight.direction = dir3;
+
+					DirectX::XMFLOAT3 pos3 = spotLight.position;
+					ImGui::Text("Position");
+					if (ImGui::Button("X"))
+					{
+						pos3.x = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("###X", &pos3.x, 0.1f);
+
+					if (ImGui::Button("Y"))
+					{
+						pos3.y = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("###Y", &pos3.y, 0.1f);
+
+					if (ImGui::Button("Z"))
+					{
+						pos3.z = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("###Z", &pos3.z, 0.1f);
+					spotLight.position = pos3;
+
+					DirectX::XMFLOAT4 ambient4;
+					DirectX::XMStoreFloat4(&ambient4, spotLight.ambient);
+					float ambient[4] = { ambient4.x, ambient4.y, ambient4.z, ambient4.w };
+					ImGui::SliderFloat4("Ambient", ambient, 0.0f, 1.0f);
+					ambient4 = DirectX::XMFLOAT4(ambient[0], ambient[1], ambient[2], ambient[3]);
+					spotLight.ambient = DirectX::XMLoadFloat4(&ambient4);
+
+					DirectX::XMFLOAT4 diffuse4;
+					DirectX::XMStoreFloat4(&diffuse4, spotLight.diffuse);
+					float diffuse[4] = { diffuse4.x, diffuse4.y, diffuse4.z, diffuse4.w };
+					ImGui::SliderFloat4("Diffuse", diffuse, 0.0f, 1.0f);
+					diffuse4 = DirectX::XMFLOAT4(diffuse[0], diffuse[1], diffuse[2], diffuse[3]);
+					spotLight.diffuse = DirectX::XMLoadFloat4(&diffuse4);
+
+					DirectX::XMFLOAT4 specular4;
+					DirectX::XMStoreFloat4(&specular4, spotLight.specular);
+					float specular[4] = { specular4.x, specular4.y, specular4.z, specular4.w };
+					ImGui::SliderFloat4("Specular", specular, 0.0f, 1.0f);
+					specular4 = DirectX::XMFLOAT4(specular[0], specular[1], specular[2], specular[3]);
+					spotLight.specular = DirectX::XMLoadFloat4(&specular4);
+
+					DirectX::XMFLOAT3 attenuation3 = spotLight.attenuation;
+					float attenuation[3] = { attenuation3.x, attenuation3.y, attenuation3.z };
+					ImGui::SliderFloat3("Attenuation", attenuation, 0.0f, 1.0f);
+					spotLight.attenuation = DirectX::XMFLOAT3(attenuation[0], attenuation[1], attenuation[2]);
+
+					float range = spotLight.range;
+					if (ImGui::Button("Range"))
+					{
+						range = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("##Range", &range, 1.0f);
+					spotLight.range = range;
+
+					float spot = spotLight.spot;
+					if (ImGui::Button("Spot"))
+					{
+						spot = 0.0f;
+					}
+					ImGui::SameLine();
+					ImGui::DragFloat("##Spot", &spot, 1.0f);
+					spotLight.spot = spot;
+
+					m_pLight->SetSpotLight(spotLight);
+					ImGui::TreePop();
 				}
-				ImGui::SameLine();
-				ImGui::DragFloat("##Z", &dir4.z, 0.1f);
-				m_pLight->SetDirection(XMLoadFloat4(&dir4));
-
-				float* pow = m_pLight->GetSpecPow();
-				ImGui::Text("Intensity/Color");
-				if (ImGui::Button("Intensity"))
-				{
-					*pow = 0.0f;
-				}
-				ImGui::SameLine();
-				ImGui::DragFloat("##Intensity", pow, 0.1f);
-				m_pLight->SetSpecPow(*pow);
-
-				XMVECTOR* pAmbi = m_pLight->GetAmbient();
-				XMFLOAT4 ambi4;
-				XMStoreFloat4(&ambi4, *pAmbi);
-				float ambi[4] = { ambi4.x, ambi4.y, ambi4.z, ambi4.w };
-				ImGui::SliderFloat4("Ambient", ambi, 0.0f, 1.0f);
-				m_pLight->SetAmbient(XMVectorSet(ambi[0], ambi[1], ambi[2], ambi[3]));
-
-				XMVECTOR* pDiff = m_pLight->GetDiffuse();
-				XMFLOAT4 diff4;
-				XMStoreFloat4(&diff4, *pDiff);
-				float diff[4] = { diff4.x, diff4.y, diff4.z, diff4.w };
-				ImGui::SliderFloat4("Diffuse", diff, 0.0f, 1.0f);
-				m_pLight->SetDiffuse(XMVectorSet(diff[0], diff[1], diff[2], diff[3]));
-
-				XMVECTOR* pSpec = m_pLight->GetSpecular();
-				XMFLOAT4 spec4;
-				XMStoreFloat4(&spec4, *pSpec);
-				float spec[4] = { spec4.x, spec4.y, spec4.z, spec4.w };
-				ImGui::SliderFloat4("Specular", spec, 0.0f, 1.0f);
-				m_pLight->SetSpecular(XMVectorSet(spec[0], spec[1], spec[2], spec[3]));
 
 				ImGui::TreePop();
 			}

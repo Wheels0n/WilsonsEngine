@@ -43,7 +43,7 @@ namespace wilson
 		{
 			return m_pCam;
 		};
-		inline CLight* GetLight() const
+		inline Light* GetLight() const
 		{
 			return m_pLight;
 		}
@@ -107,7 +107,7 @@ namespace wilson
 		Camera* m_pCam;
 		Frustum* m_pFrustum;
 		MatBuffer* m_pMatBuffer;
-		CLight* m_pLight;
+		Light* m_pLight;
 		Shader* m_pShader;
 
 		int m_clientWidth;

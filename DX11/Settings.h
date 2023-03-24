@@ -10,7 +10,7 @@ namespace wilson
 	class Settings
 	{
 	public:
-		void Init(Camera*, CLight*);
+		void Init(Camera*, Light*);
 		void Draw();
 
 		Settings() = default;
@@ -18,7 +18,7 @@ namespace wilson
 		~Settings() = default;
 	private:
 		FPS m_CFps;
-		CLight* m_pLight;
+		Light* m_pLight;
 		Camera* m_pCam;
 	};
 }

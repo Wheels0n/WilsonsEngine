@@ -5,48 +5,109 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 
-using namespace DirectX;
+namespace wilson
+{   
+	struct Material
+	{
+		DirectX::XMVECTOR ambient;
+		DirectX::XMVECTOR diffuse;
+		DirectX::XMVECTOR specular;//w component is SpecPower
+		DirectX::XMVECTOR reflect;
+	};
+	struct DirectionalLight
+	{
+		DirectX::XMVECTOR specular;
+		DirectX::XMVECTOR ambient;
+		DirectX::XMVECTOR diffuse;
+		DirectX::XMFLOAT3 direction;
+		float pad;
+	};
+	struct PointLight
+	{
+		DirectX::XMVECTOR ambient;
+		DirectX::XMVECTOR diffuse;
+		DirectX::XMVECTOR specular;
 
-struct Light
-{
-	XMVECTOR specular;
-	XMVECTOR ambient;
-	XMVECTOR diffuse;
-	XMVECTOR direction;
-	float specPow;
-};
+		DirectX::XMFLOAT3 position;
+		float range;
 
-class CLight
-{
-public:
-	CLight(ID3D11Device* device, ID3D11DeviceContext* context);
-	~CLight();
-	void Update();
-	bool Init();
+		DirectX::XMFLOAT3 attenuation;
+		float pad;
+	};
+	struct SpotLight
+	{
+		DirectX::XMVECTOR ambient;
+		DirectX::XMVECTOR diffuse;
+		DirectX::XMVECTOR specular;
 
-	XMVECTOR* GetSpecular();
-	XMVECTOR* GetAmbient();
-	XMVECTOR* GetDiffuse();
-	XMVECTOR* GetDirection();
-	float* GetSpecPow();
+		DirectX::XMFLOAT3 position;
+		float range;
 
-	void SetSpecular(XMVECTOR);
-	void SetAmbient(XMVECTOR);
-	void SetDiffuse(XMVECTOR);
-	void SetDirection(XMVECTOR);
-	void SetSpecPow(float);
+		DirectX::XMFLOAT3 direction;
+		float spot;
 
-private:
+		DirectX::XMFLOAT3 attenuation;
+		float pad;
+	};
+	struct LightBuffer
+	{
+		DirectionalLight  dirLight;
+		PointLight        pointLight;
+		SpotLight		  spotLight;
+	};
 
-	ID3D11Device* m_pDevice;
-	ID3D11DeviceContext* m_pContext;
-	ID3D11Buffer* m_pLightBuffer;
+	class Light
+	{
+	public:
+		bool Init();
+		void Update();
 
-	XMVECTOR m_vSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
-	XMVECTOR m_vAmbient = { 0.1f,  0.1f, 0.1f, 0.1f };
-	XMVECTOR m_vDiffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	XMVECTOR m_vDirection = {0.0f, 1.0f, 1.0f, 1.0f};
-	float    m_fSpecPow = 32.0f;
-};
+		inline DirectionalLight GetDirLight()
+		{
+			return m_dirLight;
+		}
+		inline PointLight       GetPointLight()
+		{
+			return m_pointLight;
+		}
+		inline SpotLight        GetSpotLight()
+		{
+			return m_spotLight;
+		}
+		inline void             SetDirLight(DirectionalLight dirLight)
+		{
+			m_dirLight = dirLight;
+		}
+		inline void             SetPointLight(PointLight pointLight)
+		{
+			m_pointLight = pointLight;
+		}
+		inline void             SetSpotLight(SpotLight spotLight)
+		{
+			m_spotLight = spotLight;
+		}
+		inline void             SetMaterial(DirectX::XMVECTOR ambient,
+			DirectX::XMVECTOR diffuse, DirectX::XMVECTOR specular, DirectX::XMVECTOR reflect)
+		{
+			m_material.ambient = ambient;
+			m_material.diffuse = diffuse;
+			m_material.specular = specular;
+			m_material.reflect = reflect;
+		}
 
+		Light(ID3D11Device* device, ID3D11DeviceContext* context);
+		~Light();
+	private:
+
+		ID3D11Device* m_pDevice;
+		ID3D11DeviceContext* m_pContext;
+		ID3D11Buffer* m_pLightBuffer;
+		ID3D11Buffer* m_pMaterialBuffer;
+
+		DirectionalLight m_dirLight;
+		PointLight       m_pointLight;
+		SpotLight        m_spotLight;
+		Material         m_material;
+	};
+}
 #endif 

@@ -22,7 +22,7 @@ namespace wilson {
 		void ResetTranslation();
 		inline void ResetRotation()
 		{
-			m_rotation = XMVectorZero();
+			m_rotation = DirectX::XMVectorZero();
 		}
 
 		inline void SetENTTsInFrustum(int cnt)
