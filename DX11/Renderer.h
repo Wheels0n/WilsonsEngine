@@ -8,7 +8,7 @@
 constexpr bool g_bFull_SCREEN = false;
 constexpr bool g_bVSYNC_ENABLE = true;
 constexpr float g_fSCREEN_FAR = 100.0f;
-constexpr float g_fSCREEN_NEAR = 0.01f;
+constexpr float g_fSCREEN_NEAR = 1.0f;
 
 namespace wilson
 {

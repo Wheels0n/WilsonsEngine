@@ -7,7 +7,7 @@ namespace wilson {
 		unsigned int indexCount,
 		wchar_t* pName)
 	{
-		m_pVertices = pVertices;
+		m_pVertexData = pVertices;
 		m_pIndices = pIndices;
 		m_pSRV = nullptr;
 		m_vertexCount = vertexCount;
@@ -27,10 +27,10 @@ namespace wilson {
 
 	Model::~Model()
 	{
-		if (m_pVertices != nullptr)
+		if (m_pVertexData != nullptr)
 		{
-			delete m_pVertices;
-			m_pVertices = nullptr;
+			delete m_pVertexData;
+			m_pVertexData = nullptr;
 		}
 
 		if (m_pIndices != nullptr)
@@ -66,7 +66,7 @@ namespace wilson {
 		D3D11_SUBRESOURCE_DATA vertexData;
 		D3D11_SUBRESOURCE_DATA indexData;
 
-		vertexData.pSysMem = m_pVertices;
+		vertexData.pSysMem = m_pVertexData;
 		vertexData.SysMemPitch = 0;
 		vertexData.SysMemSlicePitch = 0;
 
@@ -115,7 +115,7 @@ namespace wilson {
 
 		context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
 		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 		context->PSSetShaderResources(0, 1, &m_pSRV);
 	}
 

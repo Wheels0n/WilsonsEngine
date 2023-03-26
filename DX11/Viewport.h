@@ -13,6 +13,11 @@ namespace wilson
 	{
 		"bmp", "dds", "png"
 	};
+	
+	static const char* modelFormats[] =
+	{
+		"obj", "fbx"
+	};
 
 	class Viewport
 	{

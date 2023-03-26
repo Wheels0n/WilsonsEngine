@@ -64,8 +64,8 @@ namespace wilson {
 		ID3D11ShaderResourceView* m_pSRV;
 
 		wchar_t* m_pName;
-
-		VertexData* m_pVertices;
+		VertexData** m_pPolygons;
+		VertexData* m_pVertexData;
 		unsigned long* m_pIndices;
 		unsigned int m_vertexCount;
 		unsigned int m_indexCount;

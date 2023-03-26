@@ -4,18 +4,44 @@
 #include <Windows.h>
 #include <D3DX11tex.h>
 #include <fstream>
+#include <fbxsdk.h>
 #include "Model.h"
-
 namespace wilson {
 	class Importer
 	{
+
+	public:
+		void Clear();
+		inline Model* GetModel()
+		{
+			return m_pModel;
+		};
+		bool LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* device);
+		bool LoadModel(const char* extension,LPCWSTR fileName)
+		{
+			if (!strcmp(extension, "obj"))
+			{
+				return LoadOBJ(fileName);
+			}
+			else if (!strcmp(extension, "fbx"))
+			{
+				return LoadFbx(fileName);
+			}
+		}
+
+		Importer();
+		~Importer();
+	private:
+		bool LoadFbx(LPCWSTR fileName);
+		bool LoadOBJ(LPCWSTR fileName);
+		wchar_t* TokenizeCWSTR(LPCWSTR fileName);
 	private:
 		Model* m_pModel;
 
 		DirectX::XMFLOAT3* m_pVertexCoord;
 		DirectX::XMFLOAT3* m_pNormalVector;
 		DirectX::XMFLOAT2* m_pTexCoord;
-		VertexData* m_pVertices;
+		VertexData* m_pVertexData;
 		unsigned long* m_pIndices;
 		unsigned int m_vertexCount;
 		unsigned int m_vertexCoordCount;
@@ -27,17 +53,9 @@ namespace wilson {
 
 		ID3D11ShaderResourceView* m_pSRV;
 
-	public:
-		void Clear();
-		inline Model* GetModel()
-		{
-			return m_pModel;
-		};
-		bool LoadOBJ(LPCWSTR fileName);
-		bool LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* device);
-
-		Importer();
-		~Importer();
+		FbxManager* m_fbxManager;
+		FbxIOSettings* m_fbxIOsettings;
+		FbxImporter* m_fbxImporter;
 	};
 }
 

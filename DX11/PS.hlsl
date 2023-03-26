@@ -163,6 +163,8 @@ out float4 ambient, out float4 diffuse, out float4 specular)
 
 float4 main(PixelInputType input) : SV_TARGET
 {   
+    float4 texColor = shaderTexture.Sample(SampleType, input.tex);
+    
     float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 specular = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -184,8 +186,8 @@ float4 main(PixelInputType input) : SV_TARGET
     diffuse += D;
     specular += S;
     
-    float4 litColor = ambient + diffuse + specular;
-    litColor.a = gMaterial.diffuse.a;
+    float4 litColor = ambient + diffuse + specular; //texColor*(ambient + diffuse) + specular;
+    litColor.a = gMaterial.diffuse.a; 
     
     return litColor;
 }
