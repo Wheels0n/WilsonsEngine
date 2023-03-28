@@ -48,7 +48,7 @@ namespace wilson
 					if (payLoad != nullptr)
 					{
 						const wchar_t* path = (const wchar_t*)payLoad->Data;
-						m_importer.LoadModel(modelFormats[i],path);
+						m_importer.LoadModel(modelFormats[i],path,m_pDevice);
 						Model* pModel = m_importer.GetModel();
 						m_importer.LoadTex(pModel, L"./Assets/Textures/empty.png", m_pD3D11->GetDevice());
 						m_importer.Clear();

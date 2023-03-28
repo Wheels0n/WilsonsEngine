@@ -3,14 +3,34 @@
 #include <D3D11.h>
 #include <DirectXMath.h>
 #include <string>
+#include <vector>
 
 namespace wilson {
-
+	enum EObjectType
+	{
+		OBJ,
+		FBX
+	};
 	struct VertexData
 	{
 		DirectX::XMFLOAT3 position;
-		DirectX::XMFLOAT2 tex;
+		DirectX::XMFLOAT2 UV;
 		DirectX::XMFLOAT3 norm;
+	};
+
+	struct Material
+	{
+		DirectX::XMVECTOR ambient;
+		DirectX::XMVECTOR diffuse;
+		DirectX::XMVECTOR specular;//w component is SpecPower
+		DirectX::XMVECTOR reflect;
+	};
+
+	struct TextureData
+	{
+		std::string name;
+		std::string path;
+		ID3D11ShaderResourceView* texture;
 	};
 
 	class Model
@@ -19,10 +39,6 @@ namespace wilson {
 		bool Init(ID3D11Device* device);
 		void UploadBuffers(ID3D11DeviceContext* context);
 		
-		inline void SetTex(ID3D11ShaderResourceView* tex)
-		{
-			m_pSRV = tex;
-		}
 		inline DirectX::XMMATRIX* GetTranslationMatrix()
 		{
 			return &m_trMat;
@@ -48,20 +64,31 @@ namespace wilson {
 		{
 			return m_pName;
 		}
+		inline void SetTex(ID3D11ShaderResourceView* srv)
+		{
+			m_SRV = srv;
+		}
 
 		Model(VertexData* pVertices,
 			unsigned long* pIndices,
 			unsigned int vertexCount,
 			unsigned int indexCount,
+			std::vector<Material> materialV,
+			std::vector<TextureData> texDataV,
 			wchar_t* pName);
-		Model(const Model&);
+		Model(VertexData* pVertices,
+			unsigned long* pIndices,
+			unsigned int vertexCount,
+			unsigned int indexCount,
+			wchar_t* pName);
+		Model(const Model&) = delete;
 		~Model();
 
 	private:
-
+		EObjectType m_eObjectType;
 		ID3D11Buffer* m_pVertexBuffer;
 		ID3D11Buffer* m_pIndexBuffer;
-		ID3D11ShaderResourceView* m_pSRV;
+		ID3D11Buffer* m_pMaterialBuffer;
 
 		wchar_t* m_pName;
 		VertexData** m_pPolygons;
@@ -69,6 +96,10 @@ namespace wilson {
 		unsigned long* m_pIndices;
 		unsigned int m_vertexCount;
 		unsigned int m_indexCount;
+
+		std::vector<Material> m_materials;
+		std::vector<TextureData> m_textures;
+		ID3D11ShaderResourceView* m_SRV;
 
 		DirectX::XMMATRIX m_scMat;
 		DirectX::XMMATRIX m_rtMat;

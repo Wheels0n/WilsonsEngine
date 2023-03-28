@@ -186,8 +186,8 @@ float4 main(PixelInputType input) : SV_TARGET
     diffuse += D;
     specular += S;
     
-    float4 litColor = ambient + diffuse + specular; //texColor*(ambient + diffuse) + specular;
-    litColor.a = gMaterial.diffuse.a; 
+    float4 litColor = texColor*(ambient + diffuse) + specular;
+    litColor.a = texColor * gMaterial.diffuse.a;
     
     return litColor;
 }

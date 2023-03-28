@@ -7,6 +7,7 @@
 #include <fbxsdk.h>
 #include "Model.h"
 namespace wilson {
+
 	class Importer
 	{
 
@@ -17,7 +18,7 @@ namespace wilson {
 			return m_pModel;
 		};
 		bool LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* device);
-		bool LoadModel(const char* extension,LPCWSTR fileName)
+		bool LoadModel(const char* extension,LPCWSTR fileName, ID3D11Device* device)
 		{
 			if (!strcmp(extension, "obj"))
 			{
@@ -25,16 +26,19 @@ namespace wilson {
 			}
 			else if (!strcmp(extension, "fbx"))
 			{
-				return LoadFbx(fileName);
+				return LoadFbx(fileName, device);
 			}
 		}
 
 		Importer();
 		~Importer();
 	private:
-		bool LoadFbx(LPCWSTR fileName);
+		bool LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice);
 		bool LoadOBJ(LPCWSTR fileName);
 		wchar_t* TokenizeCWSTR(LPCWSTR fileName);
+		bool LoadFbxTex(std::string fileName, FbxSurfaceMaterial* pSurfaceMaterial,
+			std::vector<TextureData>& texData, ID3D11Device* pDevice);
+		Material LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial);
 	private:
 		Model* m_pModel;
 

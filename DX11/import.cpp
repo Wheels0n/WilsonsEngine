@@ -1,4 +1,5 @@
 #include "Import.h"
+#include <filesystem>
 namespace wilson
 {
 	Importer::Importer()
@@ -143,7 +144,7 @@ namespace wilson
 						{
 
 							m_pVertexData[m_indexCount].position = m_pVertexCoord[v - 1];
-							m_pVertexData[m_indexCount].tex = m_pTexCoord[vt - 1];
+							m_pVertexData[m_indexCount].UV = m_pTexCoord[vt - 1];
 							m_pVertexData[m_indexCount].norm = m_pNormalVector[vn - 1];
 							//¿À¸¥¼ÕÁÂÇ¥°è¿¡¼­ ¿Þ¼ÕÁÂÇ¥°è·Î
 							m_pIndices[m_indexCount] = m_vertexCount - m_indexCount - 1;
@@ -160,7 +161,7 @@ namespace wilson
 
 		wchar_t* tok = TokenizeCWSTR(fileName);
 
-		m_pModel = new Model(m_pVertexData, m_pIndices, m_vertexCount, m_indexCount, tok);
+		m_pModel = new Model(m_pVertexData, m_pIndices, m_vertexCount, m_indexCount,tok);
 		++m_objectCount;
 		return true;
 	}
@@ -186,7 +187,78 @@ namespace wilson
 
 		return tok;
 	}
+	bool Importer::LoadFbxTex(std::string fileName, FbxSurfaceMaterial* pSurfaceMaterial,
+		std::vector<TextureData>& texVec, ID3D11Device* pDevice)
+	{	
+		std::filesystem::path fbxPath = fileName.c_str();
+		std::string texturesPath = fbxPath.parent_path().string() + "\\";
+		
 
+		FbxProperty fbxProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sDiffuse);
+
+		ID3D11ShaderResourceView* tex = nullptr;
+		std::string materialName(FbxSurfaceMaterial::sDiffuse);
+
+		int layeredTexCount = fbxProperty.GetSrcObjectCount(FbxCriteria::ObjectType(FbxLayeredTexture::ClassId));
+		if (layeredTexCount ==0)
+		{
+			FbxFileTexture* texture = FbxCast<FbxFileTexture>(fbxProperty.GetSrcObject(FbxCriteria::ObjectType(FbxFileTexture::ClassId), 0));
+			int texCount = fbxProperty.GetSrcObjectCount(FbxCriteria::ObjectType(FbxTexture::ClassId));
+			if (texCount >= 0)
+			{
+				HRESULT hr;
+				TextureData textureData;
+				textureData.path = texturesPath + std::string(texture->GetRelativeFileName());
+				textureData.name = std::string(texture->GetName());
+
+				std::wstring wPath = std::wstring(textureData.path.begin(), textureData.path.end());
+
+				hr = D3DX11CreateShaderResourceViewFromFile(pDevice, wPath.c_str(), nullptr, nullptr, &textureData.texture, nullptr);
+				texVec.push_back(textureData);
+			}
+		}
+		return true;
+	}
+
+	Material Importer::LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial)
+	{
+		Material mat;
+		const FbxProperty AmbientProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sAmbient);
+		const FbxProperty AmbientFactorProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sAmbientFactor);
+		if (AmbientProperty.IsValid() && AmbientFactorProperty.IsValid())
+		{
+			FbxDouble3 ambientDouble = AmbientProperty.Get<FbxDouble3>();
+			DirectX::XMVECTOR ambientVec = DirectX::XMVectorSet(ambientDouble[0], ambientDouble[1], ambientDouble[2], 1.0f);
+
+			float factor = AmbientFactorProperty.Get<float>();
+			ambientVec = DirectX::XMVectorMultiply(ambientVec, DirectX::XMVectorSet(factor, factor, factor, factor));
+			mat.ambient = ambientVec;
+		}
+		const FbxProperty diffuseProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sDiffuse);
+		const FbxProperty diffuseFactorProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sDiffuseFactor);
+		if (diffuseProperty.IsValid() && diffuseFactorProperty.IsValid())
+		{
+			FbxDouble3 diffuseDouble = diffuseProperty.Get<FbxDouble3>();
+			DirectX::XMVECTOR diffuseVec = DirectX::XMVectorSet(diffuseDouble[0], diffuseDouble[1], diffuseDouble[2], 1.0f);
+
+			float factor = diffuseFactorProperty.Get<float>();
+			diffuseVec = DirectX::XMVectorMultiply(diffuseVec, DirectX::XMVectorSet(factor, factor, factor, factor));
+			mat.diffuse = diffuseVec;
+		}
+		const FbxProperty specularProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sSpecular);
+		const FbxProperty specularFactorProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sSpecularFactor);
+		if (specularProperty.IsValid() && specularFactorProperty.IsValid())
+		{
+			FbxDouble3 specularDouble = specularProperty.Get<FbxDouble3>();
+			DirectX::XMVECTOR specularVec = DirectX::XMVectorSet(specularDouble[0], specularDouble[1], specularDouble[2], 1.0f);
+
+			float factor = specularFactorProperty.Get<float>();
+			specularVec = DirectX::XMVectorMultiply(specularVec, DirectX::XMVectorSet(factor, factor, factor, factor));
+			mat.specular = specularVec;
+		};
+		
+		return mat;
+	}
 	bool Importer::LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* device)
 	{
 		HRESULT hr;
@@ -200,8 +272,10 @@ namespace wilson
 		return true;
 	}
 
-	bool Importer::LoadFbx(LPCWSTR fileName)
-	{	
+	bool Importer::LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice)
+	{
+		std::vector<TextureData> texVec;
+		std::vector<Material> materialVec;
 		std::wstring fileName_w(fileName);
 		std::string fileName_c = std::string(fileName_w.begin(), fileName_w.end());
 
@@ -272,20 +346,174 @@ namespace wilson
 
 						VertexData v;
 						v.position = DirectX::XMFLOAT3(
-							pVertices[controlPointIndex].mData[0],
-							pVertices[controlPointIndex].mData[1],
-							pVertices[controlPointIndex].mData[2]
+							static_cast<float>(pVertices[controlPointIndex].mData[0]),
+							static_cast<float>(pVertices[controlPointIndex].mData[1]),
+							static_cast<float>(pVertices[controlPointIndex].mData[2])
 						);
 
 						m_pVertexData[vCnt] = v;
 						++vCnt;
+
+						FbxGeometryElementNormal* pNormal = pMesh->GetElementNormal();
+					    //vertex != controlPoint
+						switch (pNormal->GetMappingMode())
+						{
+						case FbxGeometryElement::eByControlPoint:
+							switch (pNormal->GetReferenceMode())
+							{
+							 case FbxGeometryElement::eDirect:
+							 {
+								 v.norm.x = static_cast<float>(
+									 pNormal->GetDirectArray().GetAt(controlPointIndex).mData[0]);
+								 v.norm.y = static_cast<float>(
+									 pNormal->GetDirectArray().GetAt(controlPointIndex).mData[1]);
+								 v.norm.z = static_cast<float>(
+									 pNormal->GetDirectArray().GetAt(controlPointIndex).mData[2]);
+								 break;
+							 }
+							 case FbxGeometryElement::eIndexToDirect:
+							 {
+								 int idx = pNormal->GetIndexArray().GetAt(controlPointIndex);
+								 v.norm.x = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[0]);
+								 v.norm.y = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[1]);
+								 v.norm.z = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[2]);
+							 }
+							default:
+								break;
+							}
+							break;
+						case FbxGeometryElement::eByPolygonVertex:
+							switch (pNormal->GetReferenceMode())
+							{
+							case FbxGeometryElement::eDirect:
+							{
+								v.norm.x = static_cast<float>(
+									pNormal->GetDirectArray().GetAt(vCnt).mData[0]);
+								v.norm.y = static_cast<float>(
+									pNormal->GetDirectArray().GetAt(vCnt).mData[1]);
+								v.norm.z = static_cast<float>(
+									pNormal->GetDirectArray().GetAt(vCnt).mData[2]);
+								break;
+							}
+							case FbxGeometryElement::eIndexToDirect:
+							{
+								int idx = pNormal->GetIndexArray().GetAt(vCnt);
+								v.norm.x = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[0]);
+								v.norm.y = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[1]);
+								v.norm.z = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[2]);
+								break;
+							}
+							default:
+								break;
+							}
+							break;
+						default:
+							break;
+						}
+
+						FbxGeometryElementUV* pUV = pMesh->GetElementUV();
+						int uvIndx = pMesh->GetTextureUVIndex(i, j);
+						switch (pUV->GetMappingMode())
+						{
+						 case FbxGeometryElement::eByControlPoint:
+							switch (pUV->GetReferenceMode())
+							{
+							case FbxGeometryElement::eDirect:
+							{
+								v.UV.x = static_cast<float>(pUV->GetDirectArray().GetAt(controlPointIndex).mData[0]);
+								v.UV.y = static_cast<float>(pUV->GetDirectArray().GetAt(controlPointIndex).mData[1]);
+								break;
+							}
+							case FbxGeometryElement::eIndexToDirect:
+							{
+								int idx = pNormal->GetIndexArray().GetAt(controlPointIndex);
+								v.UV.x = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[0]);
+								v.UV.y = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[1]);
+								break;
+							}
+							default:
+								break;
+							}
+							break;
+						 case FbxGeometryElement::eByPolygonVertex:
+						 {
+							switch (pUV->GetReferenceMode())
+							{
+							case FbxGeometryElement::eDirect:
+							{
+								v.UV.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
+								v.UV.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
+								break;
+							}
+							case FbxGeometryElement::eIndexToDirect:
+							{
+								int idx = pNormal->GetIndexArray().GetAt(uvIndx);
+								v.UV.x = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[0]);
+								v.UV.y = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[1]);
+								break;
+							}
+							default:
+								break;
+							}
+
+						 }
+						}
+
+						
+					}
+				}
+
+				FbxLayerElementMaterial* pMaterial = pMesh->GetLayer(0)->GetMaterials();
+				if (pMaterial!=nullptr)
+				{
+					switch (pMaterial->GetMappingMode())
+					{
+					case FbxLayerElement::eAllSame:
+					{
+						int matId = pMaterial->GetIndexArray().GetAt(0);
+						FbxSurfaceMaterial* pSurfaceMaterial = pMesh->GetNode()->GetMaterial(matId);
+
+						if (matId >= 0)
+						{	
+							materialVec.push_back(LoadFbxMaterial(pSurfaceMaterial));
+							LoadFbxTex(fileName_c, pSurfaceMaterial, texVec, pDevice);
+						}
+						break;
+					}
+					case FbxLayerElement::eByPolygon:
+					{
+						for (int i = 0; i < pMesh->GetPolygonCount(); ++i)
+						{
+							for (int j = 0; j < pMesh->GetLayerCount(); ++j)
+							{
+								FbxLayerElementMaterial* layerMaterial = pMesh->GetLayer(j)->GetMaterials();
+								if (layerMaterial != nullptr)
+								{
+									FbxSurfaceMaterial* pSurfaceMaterial = nullptr;
+									int matId = -1;
+									
+									pSurfaceMaterial = pMesh->GetNode()->GetMaterial(layerMaterial->GetIndexArray().GetAt(i));
+									matId = layerMaterial->GetIndexArray().GetAt(i);
+
+									if (matId >= 0)
+									{	
+										materialVec.push_back(LoadFbxMaterial(pSurfaceMaterial));
+										LoadFbxTex(fileName_c, pSurfaceMaterial, texVec, pDevice);
+									}
+								}
+							}
+						}
+						break;
+					}
+					default:
+						break;
 					}
 				}
 			}
 		}
 
 		wchar_t* tok = TokenizeCWSTR(fileName);
-		m_pModel = new Model(m_pVertexData, m_pIndices, m_vertexCount, m_indexCount, tok);
+		m_pModel = new Model(m_pVertexData, m_pIndices, m_vertexCount, m_indexCount, materialVec, texVec, tok);
 		return true;
 	}
 

@@ -7,13 +7,6 @@
 
 namespace wilson
 {   
-	struct Material
-	{
-		DirectX::XMVECTOR ambient;
-		DirectX::XMVECTOR diffuse;
-		DirectX::XMVECTOR specular;//w component is SpecPower
-		DirectX::XMVECTOR reflect;
-	};
 	struct DirectionalLight
 	{
 		DirectX::XMVECTOR specular;
@@ -86,14 +79,6 @@ namespace wilson
 		{
 			m_spotLight = spotLight;
 		}
-		inline void             SetMaterial(DirectX::XMVECTOR ambient,
-			DirectX::XMVECTOR diffuse, DirectX::XMVECTOR specular, DirectX::XMVECTOR reflect)
-		{
-			m_material.ambient = ambient;
-			m_material.diffuse = diffuse;
-			m_material.specular = specular;
-			m_material.reflect = reflect;
-		}
 
 		Light(ID3D11Device* device, ID3D11DeviceContext* context);
 		~Light();
@@ -102,12 +87,10 @@ namespace wilson
 		ID3D11Device* m_pDevice;
 		ID3D11DeviceContext* m_pContext;
 		ID3D11Buffer* m_pLightBuffer;
-		ID3D11Buffer* m_pMaterialBuffer;
 
 		DirectionalLight m_dirLight;
 		PointLight       m_pointLight;
 		SpotLight        m_spotLight;
-		Material         m_material;
 	};
 }
 #endif 

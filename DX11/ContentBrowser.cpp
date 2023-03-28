@@ -47,7 +47,7 @@ namespace wilson {
 				char ext[4];
 				const wchar_t* fileName_t = item.path().c_str(); //value_type	character type used by the native encoding of the filesystem: char on POSIX, wchar_t on Windows
 				GetExtension(ext, fileName.c_str());
-
+				
 				ImGui::SetDragDropPayload(ext, fileName_t, (wcslen(fileName_t) + 1) * sizeof(wchar_t), ImGuiCond_Once);
 				ImGui::Text("%s", fileName.c_str());
 				ImGui::EndDragDropSource();
