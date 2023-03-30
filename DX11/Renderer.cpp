@@ -39,8 +39,6 @@ namespace wilson
 
 	void Renderer::Shutdown()
 	{
-
-
 		if (m_pD3D11 != nullptr)
 		{
 			m_pD3D11->Shutdown();

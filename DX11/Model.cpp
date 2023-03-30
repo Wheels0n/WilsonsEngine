@@ -189,7 +189,7 @@ namespace wilson {
 			pMaterial->diffuse = m_materials[0].diffuse;
 			pMaterial->specular = m_materials[0].specular;
 			context->Unmap(m_pMaterialBuffer, 0);
-			context->PSSetConstantBuffers(0, 1, &m_pMaterialBuffer);
+			context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
 		}
 		else
 		{

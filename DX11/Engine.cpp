@@ -99,6 +99,12 @@ namespace wilson {
 
 	LRESULT Engine::MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+
+		if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
+		{
+			
+		}
+
 		if (uMsg == WM_LBUTTONDOWN && m_pEditor != nullptr)
 		{
 			//현재 창 기준 상대적 좌표
@@ -112,11 +118,6 @@ namespace wilson {
 
 			m_pEditor->Pick();
 
-		}
-
-		if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
-		{
-			return 0;
 		}
 		switch (uMsg)
 		{
@@ -227,7 +228,7 @@ namespace wilson {
 		 }
 
 		 default:
-		 {
+		 {	
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		 }
 		}

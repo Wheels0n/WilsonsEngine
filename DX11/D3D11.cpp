@@ -36,11 +36,6 @@ namespace wilson
 		m_pShader = nullptr;
 	}
 
-	D3D11::~D3D11()
-	{
-		Shutdown();
-	}
-
 	bool D3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
 		float fScreenFar, float fScreenNear)
 	{

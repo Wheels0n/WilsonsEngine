@@ -77,7 +77,7 @@ namespace wilson
 
 		D3D11();
 		D3D11(const D3D11&) = delete;
-		~D3D11();
+		~D3D11()=default;
 	private:
 		bool CreateDepthBuffer(int, int,
 			ID3D11Texture2D**,

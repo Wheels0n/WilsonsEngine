@@ -48,6 +48,7 @@ namespace wilson{
 	Renderer* m_pRenderer;
 	Editor* m_pEditor;
  };
+ static bool bShutdown = false;
  static Engine* g_pEngineHandle = nullptr;
  static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 }
