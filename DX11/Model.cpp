@@ -172,7 +172,7 @@ namespace wilson {
 
 		context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
 		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		
 		
 		if (m_eObjectType == EObjectType::FBX)

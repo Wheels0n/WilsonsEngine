@@ -3,8 +3,9 @@
 
 #include <Windows.h>
 #include <D3DX11tex.h>
-#include <fstream>
 #include <fbxsdk.h>
+#include <fstream>
+#include <unordered_set>
 #include "Model.h"
 namespace wilson {
 
@@ -37,7 +38,7 @@ namespace wilson {
 		bool LoadOBJ(LPCWSTR fileName);
 		wchar_t* TokenizeCWSTR(LPCWSTR fileName);
 		bool LoadFbxTex(std::string fileName, FbxSurfaceMaterial* pSurfaceMaterial,
-			std::vector<TextureData>& texData, ID3D11Device* pDevice);
+			std::unordered_set<std::string>& texSet , std::vector<TextureData>& texData, ID3D11Device* pDevice);
 		Material LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial);
 	private:
 		Model* m_pModel;

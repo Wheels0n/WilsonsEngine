@@ -188,7 +188,7 @@ namespace wilson
 		return tok;
 	}
 	bool Importer::LoadFbxTex(std::string fileName, FbxSurfaceMaterial* pSurfaceMaterial,
-		std::vector<TextureData>& texVec, ID3D11Device* pDevice)
+		std::unordered_set<std::string>& texSet ,std::vector<TextureData>& texVec, ID3D11Device* pDevice)
 	{	
 		std::filesystem::path fbxPath = fileName.c_str();
 		std::string texturesPath = fbxPath.parent_path().string() + "\\";
@@ -211,10 +211,18 @@ namespace wilson
 				textureData.path = texturesPath + std::string(texture->GetRelativeFileName());
 				textureData.name = std::string(texture->GetName());
 
-				std::wstring wPath = std::wstring(textureData.path.begin(), textureData.path.end());
+				if (texSet.find(textureData.name) == texSet.end())
+				{
+					std::wstring wPath = std::wstring(textureData.path.begin(), textureData.path.end());
+					hr = D3DX11CreateShaderResourceViewFromFile(pDevice, wPath.c_str(), nullptr, nullptr, &textureData.texture, nullptr);
+					texVec.push_back(textureData);
+					texSet.insert(textureData.name);
+				}
+				else
+				{
+					return false;
+				}
 
-				hr = D3DX11CreateShaderResourceViewFromFile(pDevice, wPath.c_str(), nullptr, nullptr, &textureData.texture, nullptr);
-				texVec.push_back(textureData);
 			}
 		}
 		return true;
@@ -222,7 +230,7 @@ namespace wilson
 
 	Material Importer::LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial)
 	{
-		Material mat;
+		Material mat = { 0, };
 		const FbxProperty AmbientProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sAmbient);
 		const FbxProperty AmbientFactorProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sAmbientFactor);
 		if (AmbientProperty.IsValid() && AmbientFactorProperty.IsValid())
@@ -273,7 +281,9 @@ namespace wilson
 	}
 
 	bool Importer::LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice)
-	{
+	{	
+		std::unordered_set<std::string> texSet;
+		std::unordered_set<FbxSurfaceMaterial*> materialSet;
 		std::vector<TextureData> texVec;
 		std::vector<Material> materialVec;
 		std::wstring fileName_w(fileName);
@@ -341,7 +351,7 @@ namespace wilson
 					for (int k = 0; k < verticesCnt; ++k)
 					{	
 						int controlPointIndex = pMesh->GetPolygonVertex(j, k);
-						m_pIndices[idxCnt] = (unsigned long)controlPointIndex;
+						m_pIndices[idxCnt] = idxCnt;
 						++idxCnt;
 
 						VertexData v;
@@ -476,7 +486,7 @@ namespace wilson
 						if (matId >= 0)
 						{	
 							materialVec.push_back(LoadFbxMaterial(pSurfaceMaterial));
-							LoadFbxTex(fileName_c, pSurfaceMaterial, texVec, pDevice);
+							LoadFbxTex(fileName_c, pSurfaceMaterial, texSet, texVec, pDevice);
 						}
 						break;
 					}
@@ -497,8 +507,12 @@ namespace wilson
 
 									if (matId >= 0)
 									{	
-										materialVec.push_back(LoadFbxMaterial(pSurfaceMaterial));
-										LoadFbxTex(fileName_c, pSurfaceMaterial, texVec, pDevice);
+										if (materialSet.find(pSurfaceMaterial) == materialSet.end())
+										{
+											materialVec.push_back(LoadFbxMaterial(pSurfaceMaterial));
+											materialSet.insert(pSurfaceMaterial);
+										}
+										LoadFbxTex(fileName_c, pSurfaceMaterial, texSet, texVec, pDevice);
 									}
 								}
 							}
