@@ -545,7 +545,7 @@ void    ImGui_ImplDX11_InvalidateDeviceObjects()
     if (bd->pVertexShader)          { bd->pVertexShader->Release(); bd->pVertexShader = nullptr; }
 }
 
-bool    ImGui_ImplDX11_Init(ID3D11Device* device, ID3D11DeviceContext* device_context)
+bool    ImGui_ImplDX11_Init(ID3D11Device* pDevice, ID3D11DeviceContext* device_context)
 {
     ImGuiIO& io = ImGui::GetIO();
     IM_ASSERT(io.BackendRendererUserData == nullptr && "Already initialized a renderer backend!");
@@ -562,11 +562,11 @@ bool    ImGui_ImplDX11_Init(ID3D11Device* device, ID3D11DeviceContext* device_co
     IDXGIAdapter* pDXGIAdapter = nullptr;
     IDXGIFactory* pFactory = nullptr;
 
-    if (device->QueryInterface(IID_PPV_ARGS(&pDXGIDevice)) == S_OK)
+    if (pDevice->QueryInterface(IID_PPV_ARGS(&pDXGIDevice)) == S_OK)
         if (pDXGIDevice->GetParent(IID_PPV_ARGS(&pDXGIAdapter)) == S_OK)
             if (pDXGIAdapter->GetParent(IID_PPV_ARGS(&pFactory)) == S_OK)
             {
-                bd->pd3dDevice = device;
+                bd->pd3dDevice = pDevice;
                 bd->pd3dDeviceContext = device_context;
                 bd->pFactory = pFactory;
             }

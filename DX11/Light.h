@@ -80,7 +80,7 @@ namespace wilson
 			m_spotLight = spotLight;
 		}
 
-		Light(ID3D11Device* device, ID3D11DeviceContext* context);
+		Light(ID3D11Device* pDevice, ID3D11DeviceContext* context);
 		~Light();
 	private:
 

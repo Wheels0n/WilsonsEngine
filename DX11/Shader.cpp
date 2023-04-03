@@ -2,9 +2,9 @@
 
 namespace wilson
 {
-	Shader::Shader(ID3D11Device* device, ID3D11DeviceContext* context)
+	Shader::Shader(ID3D11Device* pDevice, ID3D11DeviceContext* context)
 	{
-		m_pDevice = device;
+		m_pDevice = pDevice;
 		m_pContext = context;
 		m_pVertexShader = nullptr;
 		m_pPixelShader = nullptr;

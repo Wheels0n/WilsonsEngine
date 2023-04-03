@@ -12,7 +12,7 @@ cbuffer CamBuffer
 
 struct VertexInputType
 {
-	float4 position : POSITION;
+	float3 position : POSITION;
 	float2 tex   : TEXTURE;
 	float3 normal : NORMAL;
 };
@@ -29,9 +29,9 @@ PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
 
-	input.position.w = 1.0f;
+    float4 position = float4(input.position, 1.0f);
 
-	output.position = mul(input.position, worldMatrix);
+	output.position = mul(position, worldMatrix);
 	
     output.toEye = output.position.xyz - m_camPos.xyz;
     output.toEye = normalize(output.toEye);

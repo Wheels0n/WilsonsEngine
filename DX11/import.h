@@ -18,8 +18,8 @@ namespace wilson {
 		{
 			return m_pModel;
 		};
-		bool LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* device);
-		bool LoadModel(const char* extension,LPCWSTR fileName, ID3D11Device* device)
+		bool LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* pDevice);
+		bool LoadModel(const char* extension,LPCWSTR fileName, ID3D11Device* pDevice)
 		{
 			if (!strcmp(extension, "obj"))
 			{
@@ -27,7 +27,7 @@ namespace wilson {
 			}
 			else if (!strcmp(extension, "fbx"))
 			{
-				return LoadFbx(fileName, device);
+				return LoadFbx(fileName, pDevice);
 			}
 		}
 

@@ -210,11 +210,17 @@ namespace wilson
 				TextureData textureData;
 				textureData.path = texturesPath + std::string(texture->GetRelativeFileName());
 				textureData.name = std::string(texture->GetName());
+				textureData.texture = nullptr;
 
 				if (texSet.find(textureData.name) == texSet.end())
-				{
+				{	
 					std::wstring wPath = std::wstring(textureData.path.begin(), textureData.path.end());
-					hr = D3DX11CreateShaderResourceViewFromFile(pDevice, wPath.c_str(), nullptr, nullptr, &textureData.texture, nullptr);
+					hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, wPath.c_str(), nullptr, nullptr, &textureData.texture, nullptr);
+					if (FAILED(hr))
+					{
+						return false;
+					}
+					
 					texVec.push_back(textureData);
 					texSet.insert(textureData.name);
 				}
@@ -222,6 +228,7 @@ namespace wilson
 				{
 					return false;
 				}
+				
 
 			}
 		}
@@ -267,10 +274,10 @@ namespace wilson
 		
 		return mat;
 	}
-	bool Importer::LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* device)
+	bool Importer::LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* pDevice)
 	{
 		HRESULT hr;
-		hr = D3DX11CreateShaderResourceViewFromFileW(device, fileName, nullptr, nullptr, &m_pSRV, nullptr);
+		hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, fileName, nullptr, nullptr, &m_pSRV, nullptr);
 		if (FAILED(hr))
 		{
 			return false;
@@ -286,6 +293,11 @@ namespace wilson
 		std::unordered_set<FbxSurfaceMaterial*> materialSet;
 		std::vector<TextureData> texVec;
 		std::vector<Material> materialVec;
+
+		std::vector<unsigned int> submeshStride;
+		std::vector<unsigned int> vertexDataPos;
+		std::vector<unsigned int> indicesPos;
+
 		std::wstring fileName_w(fileName);
 		std::string fileName_c = std::string(fileName_w.begin(), fileName_w.end());
 
@@ -326,9 +338,75 @@ namespace wilson
 				FbxMesh* pMesh = (FbxMesh*)pFbxChildNode->GetNodeAttribute();
 				FbxVector4* pVertices = pMesh->GetControlPoints();
 
-				for (int cnt = 0; cnt < pMesh->GetPolygonCount(); ++cnt)
+				FbxLayerElementMaterial* pMaterial = pMesh->GetLayer(0)->GetMaterials();
+				if (pMaterial != nullptr)
 				{
-					int verticesCnt = pMesh->GetPolygonSize(cnt);
+					switch (pMaterial->GetMappingMode())
+					{
+					case FbxLayerElement::eAllSame:
+					{
+						int matId = pMaterial->GetIndexArray().GetAt(0);
+						FbxSurfaceMaterial* pSurfaceMaterial = pMesh->GetNode()->GetMaterial(matId);
+					
+						if (matId >= 0)
+						{
+							materialVec.push_back(LoadFbxMaterial(pSurfaceMaterial));
+							LoadFbxTex(fileName_c, pSurfaceMaterial, texSet, texVec, pDevice);
+						}
+						break;
+					}
+					case FbxLayerElement::eByPolygon:
+					{
+						for (int i = 0; i < pMesh->GetPolygonCount(); ++i)
+						{
+							for (int j = 0; j < pMesh->GetLayerCount(); ++j)
+							{	
+								FbxLayerElementMaterial* layerMaterial = pMesh->GetLayer(j)->GetMaterials();
+								if (layerMaterial != nullptr)
+								{	
+									FbxSurfaceMaterial* pSurfaceMaterial = nullptr;
+									int matId = -1;
+
+									pSurfaceMaterial = pMesh->GetNode()->GetMaterial(layerMaterial->GetIndexArray().GetAt(i));
+									matId = layerMaterial->GetIndexArray().GetAt(i);
+
+									if (matId >= 0)
+									{	
+										if (materialSet.find(pSurfaceMaterial) == materialSet.end())
+										{
+											Material material = LoadFbxMaterial(pSurfaceMaterial);
+											materialVec.push_back(material);
+											materialSet.insert(pSurfaceMaterial);
+											LoadFbxTex(fileName_c, pSurfaceMaterial, texSet, texVec, pDevice);
+
+											submeshStride.push_back(i);
+										}		
+									}
+								}
+							}
+						}
+						break;
+					}
+					default:
+						break;
+					}
+				}
+
+				submeshStride.push_back(pMesh->GetPolygonCount());
+				vertexDataPos.push_back(0);
+				indicesPos.push_back(0);
+
+				int submeshCount = 0;
+				for (int j = 0; j < pMesh->GetPolygonCount(); ++j)
+				{	
+					if (submeshStride[submeshCount + 1] == j)
+					{
+						++submeshCount;
+						vertexDataPos.push_back(m_vertexCount);
+						indicesPos.push_back(m_indexCount);
+					}
+
+					int verticesCnt = pMesh->GetPolygonSize(j);
 					m_vertexCount += verticesCnt;
 					if (verticesCnt == 3)
 					{
@@ -338,7 +416,10 @@ namespace wilson
 					{
 						m_indexCount += 6;
 					}
+			
 				}
+				vertexDataPos.push_back(m_vertexCount);
+				indicesPos.push_back(m_indexCount);
 				m_pIndices = new unsigned long[m_indexCount];
 				m_pVertexData = new VertexData[m_vertexCount];
 
@@ -473,61 +554,11 @@ namespace wilson
 					}
 				}
 
-				FbxLayerElementMaterial* pMaterial = pMesh->GetLayer(0)->GetMaterials();
-				if (pMaterial!=nullptr)
-				{
-					switch (pMaterial->GetMappingMode())
-					{
-					case FbxLayerElement::eAllSame:
-					{
-						int matId = pMaterial->GetIndexArray().GetAt(0);
-						FbxSurfaceMaterial* pSurfaceMaterial = pMesh->GetNode()->GetMaterial(matId);
-
-						if (matId >= 0)
-						{	
-							materialVec.push_back(LoadFbxMaterial(pSurfaceMaterial));
-							LoadFbxTex(fileName_c, pSurfaceMaterial, texSet, texVec, pDevice);
-						}
-						break;
-					}
-					case FbxLayerElement::eByPolygon:
-					{
-						for (int i = 0; i < pMesh->GetPolygonCount(); ++i)
-						{
-							for (int j = 0; j < pMesh->GetLayerCount(); ++j)
-							{
-								FbxLayerElementMaterial* layerMaterial = pMesh->GetLayer(j)->GetMaterials();
-								if (layerMaterial != nullptr)
-								{
-									FbxSurfaceMaterial* pSurfaceMaterial = nullptr;
-									int matId = -1;
-									
-									pSurfaceMaterial = pMesh->GetNode()->GetMaterial(layerMaterial->GetIndexArray().GetAt(i));
-									matId = layerMaterial->GetIndexArray().GetAt(i);
-
-									if (matId >= 0)
-									{	
-										if (materialSet.find(pSurfaceMaterial) == materialSet.end())
-										{
-											materialVec.push_back(LoadFbxMaterial(pSurfaceMaterial));
-											materialSet.insert(pSurfaceMaterial);
-										}
-										LoadFbxTex(fileName_c, pSurfaceMaterial, texSet, texVec, pDevice);
-									}
-								}
-							}
-						}
-						break;
-					}
-					default:
-						break;
-					}
-				}
 			}
 		}
 
 		wchar_t* tok = TokenizeCWSTR(fileName);
-		m_pModel = new Model(m_pVertexData, m_pIndices, m_vertexCount, m_indexCount, materialVec, texVec, tok);
+		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos, materialVec, texVec, tok);
 		return true;
 	}
 

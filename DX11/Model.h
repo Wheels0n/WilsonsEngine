@@ -17,15 +17,14 @@ namespace wilson {
 		DirectX::XMFLOAT2 UV;
 		DirectX::XMFLOAT3 norm;
 	};
-
 	struct Material
 	{
 		DirectX::XMVECTOR ambient;
 		DirectX::XMVECTOR diffuse;
 		DirectX::XMVECTOR specular;//w component is SpecPower
 		DirectX::XMVECTOR reflect;
-	};
 
+	};
 	struct TextureData
 	{
 		std::string name;
@@ -36,9 +35,10 @@ namespace wilson {
 	class Model
 	{
 	public:
-		bool Init(ID3D11Device* device);
+		bool Init(ID3D11Device* pDevice);
 		void UploadBuffers(ID3D11DeviceContext* context);
-		
+		void UploadBuffers(ID3D11DeviceContext* context, int i);
+
 		inline DirectX::XMMATRIX* GetTranslationMatrix()
 		{
 			return &m_trMat;
@@ -64,15 +64,35 @@ namespace wilson {
 		{
 			return m_pName;
 		}
+		inline EObjectType GetObjectType()
+		{
+			return m_eObjectType;
+		}
 		inline void SetTex(ID3D11ShaderResourceView* srv)
 		{
 			m_SRV = srv;
 		}
+		inline std::vector<unsigned int>& GetNumVertexData()
+		{
+			return m_numVertexData;
+		}
+		inline std::vector<unsigned int>& GetNumIndice()
+		{
+			return m_numIndices;
+		}
+		inline std::vector<unsigned int>& GetVertexDataPos()
+		{
+			return m_vertexDataPos;
+		}
+		inline std::vector<unsigned int>& GetIndicesPos()
+		{
+			return m_indicesPos;
+		}
 
 		Model(VertexData* pVertices,
 			unsigned long* pIndices,
-			unsigned int vertexCount,
-			unsigned int indexCount,
+			std::vector<unsigned int> vertexDataPos,
+			std::vector<unsigned int> indicesPos,
 			std::vector<Material> materialV,
 			std::vector<TextureData> texDataV,
 			wchar_t* pName);
@@ -96,6 +116,11 @@ namespace wilson {
 		unsigned long* m_pIndices;
 		unsigned int m_vertexCount;
 		unsigned int m_indexCount;
+		std::vector<unsigned int> m_vertexDataPos;
+		std::vector<unsigned int> m_indicesPos;
+		std::vector<unsigned int> m_numVertexData;
+		std::vector<unsigned int> m_numIndices;
+
 
 		std::vector<Material> m_materials;
 		std::vector<TextureData> m_textures;

@@ -2,9 +2,9 @@
 
 namespace wilson
 {
-	Light::Light(ID3D11Device* device, ID3D11DeviceContext* context)
+	Light::Light(ID3D11Device* pDevice, ID3D11DeviceContext* context)
 	{
-		m_pDevice = device;
+		m_pDevice = pDevice;
 		m_pContext = context;
 		m_pLightBuffer = nullptr;
 	}

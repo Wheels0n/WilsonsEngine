@@ -11,7 +11,7 @@ namespace wilson
 	public:
 		bool Init();
 
-		Shader(ID3D11Device* device, ID3D11DeviceContext* context);
+		Shader(ID3D11Device* pDevice, ID3D11DeviceContext* context);
 		~Shader();
 	private:
 

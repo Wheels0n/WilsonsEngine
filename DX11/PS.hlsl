@@ -175,19 +175,21 @@ float4 main(PixelInputType input) : SV_TARGET
     ambient += A;
     diffuse += D;
     specular += S;
-    
+
     CalPointLight(gMaterial, pointLight, (float3) input.position, input.normal, input.toEye, A, D, S);
     ambient += A;
     diffuse += D;
     specular += S;
     
+
     CalSpotLight(gMaterial, spotLight, (float3) input.position, input.normal, input.toEye, A, D, S);
     ambient += A;
     diffuse += D;
     specular += S;
     
-    float4 litColor = texColor*(ambient + diffuse) + specular;
-    litColor.a = texColor * gMaterial.diffuse.a;
+    float4 litColor = texColor * (ambient + diffuse) + specular;
+
+    litColor.a = texColor.a * gMaterial.diffuse.a;
     
     return litColor;
 }

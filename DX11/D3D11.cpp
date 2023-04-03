@@ -443,6 +443,7 @@ namespace wilson
 		HRESULT hr;
 		XMMATRIX m_worldMat = XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
+		float blendV[4] = { 0.5f, 0.5f, 0.5f, 0.5f };
 		int drawed = 0;
 
 		m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
@@ -474,9 +475,22 @@ namespace wilson
 				m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 				m_pMatBuffer->SetWorldMatrix(&m_worldMat);
 				m_pMatBuffer->Update();
-				m_ppModels[i]->UploadBuffers(m_pContext);
-				m_pContext->DrawIndexed(m_ppModels[i]->GetIndexCount(), 0, 0);
-
+				if (m_ppModels[i]->GetObjectType() == EObjectType::FBX)
+				{	
+					std::vector<unsigned int> indicesCount = m_ppModels[i]->GetNumIndice();
+					for (int j = 0; j < indicesCount.size(); ++j)
+					{
+						m_ppModels[i]->UploadBuffers(m_pContext, j);
+						m_pContext->Draw(indicesCount[j], 0);
+					}
+			
+				}
+				else
+				{
+					m_ppModels[i]->UploadBuffers(m_pContext);
+					m_pContext->DrawIndexed(m_ppModels[i]->GetIndexCount(), 0, 0);
+				}
+				
 				++drawed;
 			}
 

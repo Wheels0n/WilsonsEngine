@@ -3,8 +3,8 @@
 namespace wilson {
 	Model::Model(VertexData* pVertices,
 		unsigned long* pIndices,
-		unsigned int vertexCount,
-		unsigned int indexCount,
+		std::vector<unsigned int> vertexDataPos,
+		std::vector<unsigned int> indicesPos,
 		std::vector<Material> materialV,
 		std::vector<TextureData> texDataV,
 		wchar_t* pName)
@@ -13,8 +13,10 @@ namespace wilson {
 
 		m_pVertexData = pVertices;
 		m_pIndices = pIndices;
-		m_vertexCount = vertexCount;
-		m_indexCount = indexCount;
+		m_vertexCount = vertexDataPos[vertexDataPos.size()-1];
+		m_indexCount = indicesPos[indicesPos.size()-1];
+		m_vertexDataPos = vertexDataPos;
+		m_indicesPos = indicesPos;
 
 		m_pVertexBuffer = nullptr;
 		m_pIndexBuffer = nullptr;
@@ -30,6 +32,13 @@ namespace wilson {
 		m_rtMat = DirectX::XMMatrixIdentity();
 		m_trMat = DirectX::XMMatrixIdentity();
 		m_angleVec = DirectX::XMVectorZero();
+
+		for (int i = 0; i < m_vertexDataPos.size()-1; ++i)
+		{
+			m_numVertexData.push_back(m_vertexDataPos[i + 1] - m_vertexDataPos[i]);
+			m_numIndices.push_back(m_indicesPos[i + 1] - m_indicesPos[i]);
+		}
+
 	}
 	Model::Model(VertexData* pVertices,
 		unsigned long* pIndices,
@@ -97,7 +106,7 @@ namespace wilson {
 
 	}
 
-	bool Model::Init(ID3D11Device* device)
+	bool Model::Init(ID3D11Device* pDevice)
 	{
 		HRESULT hr;
 		D3D11_BUFFER_DESC vertexBD;
@@ -117,7 +126,7 @@ namespace wilson {
 		vertexBD.MiscFlags = 0;
 		vertexBD.StructureByteStride = 0;
 
-		hr = device->CreateBuffer(&vertexBD, &vertexData, &m_pVertexBuffer);
+		hr = pDevice->CreateBuffer(&vertexBD, &vertexData, &m_pVertexBuffer);
 		if (FAILED(hr))
 		{
 			return false;
@@ -135,7 +144,7 @@ namespace wilson {
 		indexBD.MiscFlags = 0;
 		indexBD.StructureByteStride = 0;
 
-		hr = device->CreateBuffer(&indexBD, &indexData, &m_pIndexBuffer);
+		hr = pDevice->CreateBuffer(&indexBD, &indexData, &m_pIndexBuffer);
 		if (FAILED(hr))
 		{
 			return false;
@@ -148,7 +157,7 @@ namespace wilson {
 		materialBD.MiscFlags = 0;
 		materialBD.StructureByteStride = 0;
 
-		hr = device->CreateBuffer(&materialBD, 0, &m_pMaterialBuffer);
+		hr = pDevice->CreateBuffer(&materialBD, 0, &m_pMaterialBuffer);
 		if (FAILED(hr))
 		{
 			return false;
@@ -156,8 +165,40 @@ namespace wilson {
 
 		return true;
 	}
+	void Model::UploadBuffers(ID3D11DeviceContext* context, int i)
+	{
+		HRESULT hr;
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		Material* pMaterial;
 
+		unsigned int stride;
+		unsigned int vOffset;
+		unsigned int idxOffset;
 
+		stride = sizeof(VertexData);
+		vOffset = sizeof(VertexData)* m_vertexDataPos[i];
+		idxOffset = sizeof(unsigned long) * m_indicesPos[i];
+		context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &vOffset);
+		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, idxOffset);
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		
+		if (i < m_textures.size())
+		{
+			hr = context->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			if (FAILED(hr))
+			{
+				return;
+			}
+
+			context->PSSetShaderResources(0, 1, &m_textures[i].texture);
+			pMaterial = reinterpret_cast<Material*>(mappedResource.pData);
+			pMaterial->ambient = m_materials[i].ambient;
+			pMaterial->diffuse = m_materials[i].diffuse;
+			pMaterial->specular = m_materials[i].specular;
+			context->Unmap(m_pMaterialBuffer, 0);
+			context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
+		}
+	}
 	void Model::UploadBuffers(ID3D11DeviceContext* context)
 	{	
 		HRESULT hr;
@@ -173,28 +214,7 @@ namespace wilson {
 		context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
 		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		
-		
-		if (m_eObjectType == EObjectType::FBX)
-		{
-			context->PSSetShaderResources(0, 1, &m_textures[0].texture);
-			hr = context->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-			if (FAILED(hr))
-			{
-				return;
-			}
-
-			pMaterial = reinterpret_cast<Material*>(mappedResource.pData);
-			pMaterial->ambient = m_materials[0].ambient;
-			pMaterial->diffuse = m_materials[0].diffuse;
-			pMaterial->specular = m_materials[0].specular;
-			context->Unmap(m_pMaterialBuffer, 0);
-			context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
-		}
-		else
-		{
-			context->PSSetShaderResources(0, 1, &m_SRV);
-		}
+	    context->PSSetShaderResources(0, 1, &m_SRV);
 		return;
 	}
 

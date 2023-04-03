@@ -1,4 +1,29 @@
 #include "Engine.h"
+#include<d3d11.h>
+
+#ifdef _DEBUG
+
+#include <dxgidebug.h>
+DEFINE_GUID(DXGI_DEBUG_D3D11, 0x4b99317b, 0xac39, 0x4aa6, 0xbb, 0xb, 0xba, 0xa0, 0x47, 0x84, 0x79, 0x8f);
+
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "dxguid.lib")
+
+void D3DMemoryLeakCheck()
+{
+	HMODULE dxgidebugDLL = GetModuleHandleW(L"dxgidebug.dll");
+	decltype(&DXGIGetDebugInterface) GetDebugInterface =
+		reinterpret_cast<decltype(&DXGIGetDebugInterface)>(GetProcAddress(dxgidebugDLL, "DXGIGetDebugInterface"));
+
+	IDXGIDebug* pDebug;
+	GetDebugInterface(IID_PPV_ARGS(&pDebug));
+
+	OutputDebugString(L"D3D 메모리 누수 체크\r\n");
+	pDebug->ReportLiveObjects(DXGI_DEBUG_D3D11,DXGI_DEBUG_RLO_DETAIL);
+	OutputDebugString(L"반환되지 않은 IUnKnown 객체\r\n");
+}
+#endif // _DEBUG
+
 int CALLBACK WinMain(HINSTANCE hInstance,
 	HINSTANCE hPreInstance,
 	LPSTR lpCmdLine,
@@ -22,6 +47,10 @@ int CALLBACK WinMain(HINSTANCE hInstance,
 	g_pEngine->Shutdown();
 	delete g_pEngine;
 	g_pEngine = nullptr;
+
+#ifdef _DEBUG
+	D3DMemoryLeakCheck();
+#endif // _DEBUG
 
 	return 0;
 }
