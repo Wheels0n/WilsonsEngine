@@ -298,7 +298,7 @@ namespace wilson
 		}
 
 		float blendV[4] = { 0.5f, 0.5f, 0.5f, 0.5f };
-		m_pContext->OMSetBlendState(nullptr, blendV, 0xf);
+		m_pContext->OMSetBlendState(nullptr, nullptr, 0xf);
 		m_pContext->OMSetDepthStencilState(m_pDefualtDDS, 1);
 		ImGui_ImplDX11_Init(m_pDevice, m_pContext);
 		return true;

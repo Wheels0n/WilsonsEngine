@@ -442,9 +442,6 @@ namespace wilson
 							static_cast<float>(pVertices[controlPointIndex].mData[2])
 						);
 
-						m_pVertexData[vCnt] = v;
-						++vCnt;
-
 						FbxGeometryElementNormal* pNormal = pMesh->GetElementNormal();
 					    //vertex != controlPoint
 						switch (pNormal->GetMappingMode())
@@ -503,7 +500,7 @@ namespace wilson
 						}
 
 						FbxGeometryElementUV* pUV = pMesh->GetElementUV();
-						int uvIndx = pMesh->GetTextureUVIndex(i, j);
+						int uvIndx = pMesh->GetTextureUVIndex(j, k);
 						switch (pUV->GetMappingMode())
 						{
 						 case FbxGeometryElement::eByControlPoint:
@@ -517,9 +514,9 @@ namespace wilson
 							}
 							case FbxGeometryElement::eIndexToDirect:
 							{
-								int idx = pNormal->GetIndexArray().GetAt(controlPointIndex);
-								v.UV.x = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[0]);
-								v.UV.y = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[1]);
+								int idx = pUV->GetIndexArray().GetAt(controlPointIndex);
+								v.UV.x = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[0]);
+								v.UV.y = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[1]);
 								break;
 							}
 							default:
@@ -538,9 +535,9 @@ namespace wilson
 							}
 							case FbxGeometryElement::eIndexToDirect:
 							{
-								int idx = pNormal->GetIndexArray().GetAt(uvIndx);
-								v.UV.x = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[0]);
-								v.UV.y = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[1]);
+								int idx = pUV->GetIndexArray().GetAt(uvIndx);
+								v.UV.x = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[0]);
+								v.UV.y = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[1]);
 								break;
 							}
 							default:
@@ -550,7 +547,8 @@ namespace wilson
 						 }
 						}
 
-						
+						m_pVertexData[vCnt] = v;
+						++vCnt;
 					}
 				}
 
