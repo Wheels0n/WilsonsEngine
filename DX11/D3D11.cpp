@@ -274,11 +274,11 @@ namespace wilson
 		m_pContext->PSSetSamplers(0, 1, &m_pSampleState);
 
 		rtBlendDSC.BlendEnable = true;
-		rtBlendDSC.SrcBlend = D3D11_BLEND_BLEND_FACTOR;
-		rtBlendDSC.DestBlend = D3D11_BLEND_INV_BLEND_FACTOR;
+		rtBlendDSC.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		rtBlendDSC.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
 		rtBlendDSC.BlendOp = D3D11_BLEND_OP_ADD;
 		rtBlendDSC.SrcBlendAlpha = D3D11_BLEND_ONE;
-		rtBlendDSC.DestBlendAlpha = D3D11_BLEND_ZERO;
+		rtBlendDSC.DestBlendAlpha = D3D11_BLEND_ONE;
 		rtBlendDSC.BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		rtBlendDSC.RenderTargetWriteMask = 0;
 
@@ -297,8 +297,8 @@ namespace wilson
 			return false;
 		}
 
-		float blendV[4] = { 0.5f, 0.5f, 0.5f, 0.5f };
-		m_pContext->OMSetBlendState(nullptr, nullptr, 0xf);
+		float blendV[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		m_pContext->OMSetBlendState(m_pTransparentBS, blendV, 0xffffffff);
 		m_pContext->OMSetDepthStencilState(m_pDefualtDDS, 1);
 		ImGui_ImplDX11_Init(m_pDevice, m_pContext);
 		return true;
