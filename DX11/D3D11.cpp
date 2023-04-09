@@ -205,7 +205,7 @@ namespace wilson
 		}
 
 		rasterDesc.AntialiasedLineEnable = false;
-		rasterDesc.CullMode = D3D11_CULL_BACK;
+		rasterDesc.CullMode = D3D11_CULL_NONE;
 		rasterDesc.DepthBias = 0;
 		rasterDesc.DepthBiasClamp = 0.0f;
 		rasterDesc.DepthClipEnable = true;
@@ -273,7 +273,7 @@ namespace wilson
 		}
 		m_pContext->PSSetSamplers(0, 1, &m_pSampleState);
 
-		rtBlendDSC.BlendEnable = true;
+		rtBlendDSC.BlendEnable = TRUE;
 		rtBlendDSC.SrcBlend = D3D11_BLEND_SRC_ALPHA;
 		rtBlendDSC.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
 		rtBlendDSC.BlendOp = D3D11_BLEND_OP_ADD;
@@ -443,7 +443,6 @@ namespace wilson
 		HRESULT hr;
 		XMMATRIX m_worldMat = XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
-		float blendV[4] = { 0.5f, 0.5f, 0.5f, 0.5f };
 		int drawed = 0;
 
 		m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
@@ -475,6 +474,7 @@ namespace wilson
 				m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 				m_pMatBuffer->SetWorldMatrix(&m_worldMat);
 				m_pMatBuffer->Update();
+
 				if (m_ppModels[i]->GetObjectType() == EObjectType::FBX)
 				{	
 					std::vector<unsigned int> indicesCount = m_ppModels[i]->GetNumIndice();
