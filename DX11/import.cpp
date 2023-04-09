@@ -536,8 +536,8 @@ namespace wilson
 							case FbxGeometryElement::eIndexToDirect:
 							{
 								int idx = pUV->GetIndexArray().GetAt(uvIndx);
-								v.UV.x = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[0]);
-								v.UV.y = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[1]);
+								v.UV.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
+								v.UV.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
 								break;
 							}
 							default:
@@ -547,6 +547,7 @@ namespace wilson
 						 }
 						}
 
+						v.UV.y = 1 - v.UV.y;
 						m_pVertexData[vCnt] = v;
 						++vCnt;
 					}
