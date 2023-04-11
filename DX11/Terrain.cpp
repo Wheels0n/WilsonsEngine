@@ -1,6 +1,6 @@
 #include "Terrain.h"
 
-CTerrain::CTerrain()
+Terrain::Terrain()
 {
 	m_terrainWidth = 0;
 	m_terrainHeight = 0;
@@ -10,7 +10,7 @@ CTerrain::CTerrain()
 	m_indexBuffer = nullptr;
 }
 
-CTerrain::~CTerrain()
+Terrain::~Terrain()
 {
 	if (m_indexBuffer != nullptr)
 	{
@@ -25,7 +25,7 @@ CTerrain::~CTerrain()
 	}
 }
 
-bool CTerrain::Init(ID3D11Device* pDevice, int tWidth, int tHeight)
+bool Terrain::Init(ID3D11Device* pDevice, int tWidth, int tHeight)
 {   
 	m_terrainWidth = tWidth;
 	m_terrainHeight = tHeight;
@@ -168,7 +168,7 @@ bool CTerrain::Init(ID3D11Device* pDevice, int tWidth, int tHeight)
 	return true;
 }
 
-void CTerrain::UploadBuffers(ID3D11DeviceContext* pContext)
+void Terrain::UploadBuffers(ID3D11DeviceContext* pContext)
 {
 	unsigned int stride = sizeof(GridType);
 	unsigned int offset = 0;

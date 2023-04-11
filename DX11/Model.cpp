@@ -104,6 +104,15 @@ namespace wilson {
 			m_SRV = nullptr;	
 		}
 
+		for (int i = 0; i < m_textures.size(); ++i)
+		{
+			if (m_textures[i].texture != nullptr)
+			{
+				m_textures[i].texture->Release();
+				m_textures[i].texture = nullptr;
+			}
+		}
+
 	}
 
 	bool Model::Init(ID3D11Device* pDevice)

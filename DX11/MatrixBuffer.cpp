@@ -13,6 +13,7 @@ MatBuffer::MatBuffer(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,
 
 MatBuffer::~MatBuffer()
 {
+	ShutDown();
 }
 
 bool MatBuffer::Init()

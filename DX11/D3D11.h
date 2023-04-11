@@ -103,7 +103,7 @@ namespace wilson
 
 		Importer* m_pImporter;
 		std::vector<Model*> m_ppModels;
-		CTerrain* m_pTerrain;
+		Terrain* m_pTerrain;
 		Camera* m_pCam;
 		Frustum* m_pFrustum;
 		MatBuffer* m_pMatBuffer;

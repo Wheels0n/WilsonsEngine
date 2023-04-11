@@ -5,9 +5,25 @@ namespace wilson {
 	const static float iconSz = 128.0f;
 	const static float padding = 16.0f;
 
+	ContentBrowser::~ContentBrowser()
+	{
+		if (m_pDirIcon != nullptr)
+		{
+			m_pDirIcon->Release();
+			m_pDirIcon = nullptr;
+		}
+
+		if (m_pFileIcon != nullptr)
+		{
+			m_pFileIcon->Release();
+			m_pFileIcon = nullptr;
+		}
+	}
+
 	void ContentBrowser::Init(ID3D11Device* pDevice)
 	{
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/folderIcon.png", nullptr, nullptr, &m_pDirIcon, nullptr);
+		m_pDirIcon->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof("icon") - 1, "icon");
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/fileIcon.png", nullptr, nullptr, &m_pFileIcon, nullptr);
 	}
 

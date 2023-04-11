@@ -50,4 +50,5 @@ namespace wilson {
 	{
 		return m_viewport.CheckRange(x, y);
 	}
+
 }

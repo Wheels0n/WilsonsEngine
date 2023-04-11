@@ -15,7 +15,7 @@ namespace wilson
 			m_pLightBuffer->Release();
 			m_pLightBuffer = nullptr;
 		}
-
+		
 	}
 	bool Light::Init()
 	{

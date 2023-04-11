@@ -13,7 +13,7 @@ namespace wilson
 
 	Renderer::~Renderer()
 	{
-
+		
 	}
 
 	bool Renderer::Init(int m_screenWidth, int m_screenHeight, HWND hWnd)

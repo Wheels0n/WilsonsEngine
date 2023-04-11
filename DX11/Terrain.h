@@ -5,7 +5,7 @@
 #include<DirectXMath.h>
 using namespace DirectX;
 
-class CTerrain
+class Terrain
 {
 private:
 	struct GridType
@@ -14,9 +14,9 @@ private:
 		XMFLOAT4 col;
 	};
 public:
-	CTerrain();
-	CTerrain(const CTerrain&) = default;
-	~CTerrain();
+	Terrain();
+	Terrain(const Terrain&) = default;
+	~Terrain();
 
 	bool Init(ID3D11Device*, int, int);
 	void UploadBuffers(ID3D11DeviceContext*);

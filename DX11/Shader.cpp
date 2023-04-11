@@ -56,7 +56,7 @@ namespace wilson
 		}
 		m_pDevice->CreatePixelShader(pPsBlob->GetBufferPointer(), pPsBlob->GetBufferSize(), nullptr, &m_pPixelShader);
 		m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
-
+		m_pPixelShader->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof("Shader::m_pPixelShader") - 1, "D3D11::m_pPixelShader");
 		vertexIED[0].SemanticName = "POSITION";
 		vertexIED[0].SemanticIndex = 0;
 		vertexIED[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;

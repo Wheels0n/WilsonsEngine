@@ -15,7 +15,7 @@ namespace wilson
 
 		ContentBrowser() = default;
 		ContentBrowser(const ContentBrowser&) = delete;
-		~ContentBrowser() = default;
+		~ContentBrowser();
 
 	private:
 		void GetExtension(char*, const char*);

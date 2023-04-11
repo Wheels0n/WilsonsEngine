@@ -115,7 +115,7 @@ namespace wilson
 		pAdapter = nullptr;
 
 		pFactory->Release();
-
+		pFactory = nullptr;
 
 		m_clientWidth = screenWidth;
 		m_clientHeight = screenHeight;
@@ -198,7 +198,7 @@ namespace wilson
 		{
 			return false;
 		}
-
+		
 		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pDSBufferForRTT, &m_pDSVforRTT))
 		{
 			return false;
@@ -222,7 +222,7 @@ namespace wilson
 		}
 
 		m_pContext->RSSetState(m_pRS);
-
+		
 		viewport.Width = static_cast<float>(screenWidth);
 		viewport.Height = static_cast<float>(screenHeight);
 		viewport.MinDepth = 0.0f;
@@ -233,7 +233,7 @@ namespace wilson
 		m_pContext->RSSetViewports(1, &viewport);
 
 		//Set projectionMatrix, viewMatrix;
-		m_pTerrain = new CTerrain;
+		m_pTerrain = new Terrain;
 		m_pTerrain->Init(m_pDevice, 100, 100);
 		m_pCam = new Camera(screenWidth, screenHeight, fScreenFar, fScreenNear);
 		m_pCam->Init(m_pDevice);
@@ -308,11 +308,6 @@ namespace wilson
 	{
 		ImGui_ImplDX11_Shutdown();
 
-		if (m_pSwapChain != nullptr)
-		{
-			m_pSwapChain->SetFullscreenState(false, nullptr);
-		}
-
 		if (m_pRS != nullptr)
 		{
 			m_pRS->Release();
@@ -360,7 +355,7 @@ namespace wilson
 		}
 
 		if (m_pSwapChain != nullptr)
-		{
+		{	
 			m_pSwapChain->Release();
 			m_pSwapChain = nullptr;
 		}
@@ -407,7 +402,7 @@ namespace wilson
 			m_pLight = nullptr;
 		}
 
-		if (m_pShader == nullptr)
+		if (m_pShader != nullptr)
 		{
 			delete m_pShader;
 			m_pShader = nullptr;

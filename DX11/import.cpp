@@ -566,11 +566,11 @@ namespace wilson
 		Clear();
 		m_fbxIOsettings->Destroy();
 		m_fbxManager->Destroy();
-		m_fbxImporter->Destroy();
 	}
 
 	void Importer::Clear()
 	{
+		m_fbxImporter->Destroy();
 		if (m_pVertexCoord != nullptr)
 		{
 			delete m_pVertexCoord;

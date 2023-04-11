@@ -18,9 +18,11 @@ void D3DMemoryLeakCheck()
 	IDXGIDebug* pDebug;
 	GetDebugInterface(IID_PPV_ARGS(&pDebug));
 
-	OutputDebugString(L"D3D 메모리 누수 체크\r\n");
+	OutputDebugStringW(L"!!!D3D 메모리 누수 체크!!!\r\n");
 	pDebug->ReportLiveObjects(DXGI_DEBUG_D3D11,DXGI_DEBUG_RLO_DETAIL);
-	OutputDebugString(L"반환되지 않은 IUnKnown 객체\r\n");
+	OutputDebugStringW(L"!!!반환되지 않은 IUnKnown 객체!!!\r\n");
+	
+	pDebug->Release();
 }
 #endif // _DEBUG
 

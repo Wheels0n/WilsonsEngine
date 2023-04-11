@@ -53,7 +53,7 @@ namespace wilson {
 			m_pRenderer = nullptr;
 		}
 
-		if (m_pEditor == nullptr)
+		if (m_pEditor != nullptr)
 		{
 			delete m_pEditor;
 			m_pEditor = nullptr;
