@@ -9,6 +9,7 @@ namespace wilson
 		m_pVertexShader = nullptr;
 		m_pPixelShader = nullptr;
 		m_pInputLayout = nullptr;
+		m_pInstancedInputLayout = nullptr;
 	}
 
 	Shader::~Shader()
@@ -30,12 +31,19 @@ namespace wilson
 			m_pInputLayout->Release();
 			m_pInputLayout = nullptr;
 		}
+
+		if (m_pInstancedInputLayout != nullptr)
+		{
+			m_pInstancedInputLayout->Release();
+			m_pInstancedInputLayout = nullptr;
+		}
 	}
 
 	bool Shader::Init()
 	{
 		HRESULT hr;
 		D3D11_INPUT_ELEMENT_DESC vertexIED[3];
+		D3D11_INPUT_ELEMENT_DESC instancedIED[7];
 		ID3DBlob* pVsBlob;
 		ID3DBlob* pPsBlob;
 		ID3DBlob* pErrorBlob;
@@ -57,6 +65,7 @@ namespace wilson
 		m_pDevice->CreatePixelShader(pPsBlob->GetBufferPointer(), pPsBlob->GetBufferSize(), nullptr, &m_pPixelShader);
 		m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
 		m_pPixelShader->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof("Shader::m_pPixelShader") - 1, "D3D11::m_pPixelShader");
+		
 		vertexIED[0].SemanticName = "POSITION";
 		vertexIED[0].SemanticIndex = 0;
 		vertexIED[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
@@ -81,8 +90,21 @@ namespace wilson
 		vertexIED[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 		vertexIED[2].InstanceDataStepRate = 0;
 		m_pDevice->CreateInputLayout(vertexIED, sizeof(vertexIED) / sizeof(vertexIED[0]), pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), &m_pInputLayout);
-		m_pContext->IASetInputLayout(m_pInputLayout);
 
+
+		instancedIED[0] = vertexIED[0];
+		instancedIED[1] = vertexIED[1];
+		instancedIED[2] = vertexIED[2];
+        instancedIED[3] = { "WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,
+								D3D11_INPUT_PER_INSTANCE_DATA, 1 };
+		instancedIED[4] = { "WORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16,
+								D3D11_INPUT_PER_INSTANCE_DATA, 1 };
+		instancedIED[5] = { "WORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32,
+								D3D11_INPUT_PER_INSTANCE_DATA, 1 };
+		instancedIED[6] = { "WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48,
+								D3D11_INPUT_PER_INSTANCE_DATA, 1 };
+
+		m_pDevice->CreateInputLayout(instancedIED, sizeof(instancedIED) / sizeof(instancedIED[0]), pVsBlob->GetBufferPointer(), pVsBlob->GetBufferSize(), &m_pInstancedInputLayout);
 
 		pPsBlob->Release();
 		pPsBlob = nullptr;

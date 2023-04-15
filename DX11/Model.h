@@ -11,6 +11,13 @@ namespace wilson {
 		OBJ,
 		FBX
 	};
+	struct CbPerModel
+	{
+		BOOL isInstanced;
+		BOOL hasSpecular;
+		BOOL hasNormal;
+		BOOL Padding;
+	};
 	struct VertexData
 	{
 		DirectX::XMFLOAT3 position;
@@ -32,9 +39,13 @@ namespace wilson {
 		ID3D11ShaderResourceView* texture;
 	};
 
+	constexpr int MAX_INSTANCES = 5;
 	class Model
 	{
+	private:
+		void CreateInstanceMatrices();
 	public:
+
 		bool Init(ID3D11Device* pDevice);
 		void UploadBuffers(ID3D11DeviceContext* context);
 		void UploadBuffers(ID3D11DeviceContext* context, int i);
@@ -72,6 +83,10 @@ namespace wilson {
 		{
 			m_SRV = srv;
 		}
+		inline void SetInstanced(bool bIsInstanced)
+		{
+			m_isInstanced = bIsInstanced;
+		}
 		inline std::vector<unsigned int>& GetNumVertexData()
 		{
 			return m_numVertexData;
@@ -87,6 +102,14 @@ namespace wilson {
 		inline std::vector<unsigned int>& GetIndicesPos()
 		{
 			return m_indicesPos;
+		}
+		inline bool isInstanced()
+		{
+			return m_isInstanced;
+		}
+		inline int getMaxInstance()
+		{
+			return MAX_INSTANCES;
 		}
 
 		Model(VertexData* pVertices,
@@ -109,6 +132,9 @@ namespace wilson {
 		ID3D11Buffer* m_pVertexBuffer;
 		ID3D11Buffer* m_pIndexBuffer;
 		ID3D11Buffer* m_pMaterialBuffer;
+		ID3D11Buffer* m_pInstancePosBuffer;
+		ID3D11Buffer* m_pPerModelBuffer;
+		ID3D11Device* m_pDevice;
 
 		wchar_t* m_pName;
 		VertexData** m_pPolygons;
@@ -130,6 +156,9 @@ namespace wilson {
 		DirectX::XMMATRIX m_rtMat;
 		DirectX::XMMATRIX m_trMat;
 		DirectX::XMVECTOR m_angleVec;
+		
+		DirectX::XMMATRIX* m_instancedData;
+		bool m_isInstanced;
 	};
 }
 #endif

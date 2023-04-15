@@ -471,17 +471,33 @@ namespace wilson
 				m_pMatBuffer->Update();
 
 				if (m_ppModels[i]->GetObjectType() == EObjectType::FBX)
-				{	
+				{
+					m_pShader->SetIndexedInputLayout();
 					std::vector<unsigned int> indicesCount = m_ppModels[i]->GetNumIndice();
-					for (int j = 0; j < indicesCount.size(); ++j)
+					if (m_ppModels[i]->isInstanced())
 					{
-						m_ppModels[i]->UploadBuffers(m_pContext, j);
-						m_pContext->Draw(indicesCount[j], 0);
+						std::vector<unsigned int> verticesCount = m_ppModels[i]->GetNumVertexData();
+						m_pShader->SetIndexedInputLayout();
+						int numInstance = m_ppModels[i]->getMaxInstance();
+						for (int j = 0; j < verticesCount.size(); ++j)
+						{
+							m_ppModels[i]->UploadBuffers(m_pContext, j);
+							m_pContext->DrawInstanced(verticesCount[j], numInstance, 0, 0);
+						}
+					}
+					
+					else
+					{	
+						for (int j = 0; j < indicesCount.size(); ++j)
+						{
+							m_ppModels[i]->UploadBuffers(m_pContext, j);
+							m_pContext->Draw(indicesCount[j], 0);
+						}
 					}
 			
 				}
 				else
-				{
+				{	
 					m_ppModels[i]->UploadBuffers(m_pContext);
 					m_pContext->DrawIndexed(m_ppModels[i]->GetIndexCount(), 0, 0);
 				}

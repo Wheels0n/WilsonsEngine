@@ -1,5 +1,6 @@
 #include "Model.h"
-
+#include <random>
+#include <chrono>
 namespace wilson {
 	Model::Model(VertexData* pVertices,
 		unsigned long* pIndices,
@@ -39,6 +40,10 @@ namespace wilson {
 			m_numIndices.push_back(m_indicesPos[i + 1] - m_indicesPos[i]);
 		}
 
+		m_instancedData = nullptr;
+		m_isInstanced = false;
+		m_pInstancePosBuffer = nullptr;
+		m_pPerModelBuffer = nullptr;
 	}
 	Model::Model(VertexData* pVertices,
 		unsigned long* pIndices,
@@ -64,6 +69,11 @@ namespace wilson {
 		m_rtMat = DirectX::XMMatrixIdentity();
 		m_trMat = DirectX::XMMatrixIdentity();
 		m_angleVec = DirectX::XMVectorZero();
+
+		m_instancedData = nullptr;
+		m_isInstanced = true;
+		m_pInstancePosBuffer = nullptr;
+		m_pPerModelBuffer = nullptr;
 	}
 
 	Model::~Model()
@@ -98,6 +108,23 @@ namespace wilson {
 			m_pMaterialBuffer = nullptr;
 		}
 
+		if (m_pInstancePosBuffer != nullptr)
+		{
+			m_pInstancePosBuffer->Release();
+			m_pInstancePosBuffer = nullptr;
+		}
+
+		if (m_pPerModelBuffer != nullptr)
+		{
+			m_pPerModelBuffer->Release();
+			m_pPerModelBuffer = nullptr;
+		}
+
+		if (m_instancedData != nullptr)
+		{
+			delete[] m_instancedData;
+		}
+
 		if (m_SRV != nullptr)
 		{
 			m_SRV->Release();
@@ -115,8 +142,41 @@ namespace wilson {
 
 	}
 
+	void Model::CreateInstanceMatrices()
+	{	
+		std::random_device rd;
+		std::mt19937 rng(rd());
+		std::uniform_real_distribution floatGen (0.0f, 10.0f);
+		float x, y, z;
+		m_instancedData = new DirectX::XMMATRIX[MAX_INSTANCES];
+		
+		for (int i = 0; i < MAX_INSTANCES; ++i)
+		{
+			x = floatGen(rng);
+			y = floatGen(rng);
+			z = floatGen(rng);
+		    m_instancedData[i] = DirectX::XMMatrixTranslation(x, y, z);
+			m_instancedData[i] = DirectX::XMMatrixTranspose(m_instancedData[i]);
+		}
+		
+		D3D11_BUFFER_DESC instancePosBD;
+		instancePosBD.Usage = D3D11_USAGE_DYNAMIC;
+		instancePosBD.ByteWidth = sizeof(DirectX::XMMATRIX) * MAX_INSTANCES;
+		instancePosBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		instancePosBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		instancePosBD.MiscFlags = 0;
+		instancePosBD.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA instanceSubResource = { 0, };
+		instanceSubResource.pSysMem = m_instancedData;
+
+		m_pDevice->CreateBuffer(&instancePosBD, &instanceSubResource, &m_pInstancePosBuffer);
+
+	}
 	bool Model::Init(ID3D11Device* pDevice)
-	{
+	{	
+		m_pDevice = pDevice;
+
 		HRESULT hr;
 		D3D11_BUFFER_DESC vertexBD;
 		D3D11_BUFFER_DESC indexBD;
@@ -141,11 +201,6 @@ namespace wilson {
 			return false;
 		}
 
-
-		indexData.pSysMem = m_pIndices;
-		indexData.SysMemPitch = 0;
-		indexData.SysMemSlicePitch = 0;
-
 		indexBD.Usage = D3D11_USAGE_DEFAULT;
 		indexBD.ByteWidth = sizeof(unsigned long) * m_indexCount;
 		indexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -153,7 +208,7 @@ namespace wilson {
 		indexBD.MiscFlags = 0;
 		indexBD.StructureByteStride = 0;
 
-		hr = pDevice->CreateBuffer(&indexBD, &indexData, &m_pIndexBuffer);
+		hr = pDevice->CreateBuffer(&indexBD, nullptr, &m_pIndexBuffer);
 		if (FAILED(hr))
 		{
 			return false;
@@ -172,23 +227,58 @@ namespace wilson {
 			return false;
 		}
 
+
+		D3D11_BUFFER_DESC perModelBD;
+		perModelBD.Usage = D3D11_USAGE_DYNAMIC;
+		perModelBD.ByteWidth = sizeof(CbPerModel);
+		perModelBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		perModelBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		perModelBD.MiscFlags = 0;
+		perModelBD.StructureByteStride = 0;
+
+		hr = pDevice->CreateBuffer(&perModelBD, 0, &m_pPerModelBuffer);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
 		return true;
 	}
+
 	void Model::UploadBuffers(ID3D11DeviceContext* context, int i)
 	{
 		HRESULT hr;
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		Material* pMaterial;
+		DirectX::XMMATRIX* pMatrices;
+		CbPerModel* pPerModel;
 
-		unsigned int stride;
-		unsigned int vOffset;
+		unsigned int stride[2];
+		unsigned int vOffset[2] = { 0, };
 		unsigned int idxOffset;
-
-		stride = sizeof(VertexData);
-		vOffset = sizeof(VertexData)* m_vertexDataPos[i];
+		stride[0] = sizeof(VertexData);
+		stride[1] = sizeof(DirectX::XMMATRIX);
+		vOffset[0] = sizeof(VertexData) * m_vertexDataPos[i];
 		idxOffset = sizeof(unsigned long) * m_indicesPos[i];
-		context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &vOffset);
-		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, idxOffset);
+
+
+		if (m_isInstanced)
+		{	
+
+			if (m_instancedData == nullptr)
+			{
+				CreateInstanceMatrices();
+			}
+
+			ID3D11Buffer* vbs[2] = { m_pVertexBuffer, m_pInstancePosBuffer };
+			context->IASetVertexBuffers(0, 2, vbs, stride, vOffset);
+		}
+		else
+		{	
+			context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, stride, vOffset);
+			context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, idxOffset);
+		}
+		
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		
 		if (i < m_textures.size())
@@ -207,6 +297,17 @@ namespace wilson {
 			context->Unmap(m_pMaterialBuffer, 0);
 			context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
 		}
+
+		hr = context->Map(m_pPerModelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		if (FAILED(hr))
+		{
+			return;
+		}
+
+		pPerModel = reinterpret_cast<CbPerModel*>(mappedResource.pData);
+		pPerModel->isInstanced = m_isInstanced;
+		context->Unmap(m_pPerModelBuffer, 0);
+		context->VSSetConstantBuffers(2, 1, &m_pPerModelBuffer);
 	}
 	void Model::UploadBuffers(ID3D11DeviceContext* context)
 	{	

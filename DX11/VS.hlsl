@@ -10,11 +10,21 @@ cbuffer CamBuffer
 	float4 m_camPos;
 };
 
+cbuffer PerModel
+{
+    bool isInstanced;
+    bool hasSpecular;
+    bool hasNormal;
+    bool Padding;
+};
+
 struct VertexInputType
 {
 	float3 position : POSITION;
 	float2 tex   : TEXTURE;
 	float3 normal : NORMAL;
+    matrix instanceMat : WORLD;
+    uint InstanceID : SV_InstanceID;
 };
 
 struct PixelInputType
@@ -30,8 +40,15 @@ PixelInputType main(VertexInputType input)
 	PixelInputType output;
 
     float4 position = float4(input.position, 1.0f);
+    if (isInstanced==true)
+    {
+        output.position = mul(position, input.instanceMat);
 
-	output.position = mul(position, worldMatrix);
+    }
+    else
+    {
+        output.position = mul(position, worldMatrix);
+    }
 	
     output.toEye = output.position.xyz - m_camPos.xyz;
     output.toEye = normalize(output.toEye);

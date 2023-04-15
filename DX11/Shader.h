@@ -10,9 +10,18 @@ namespace wilson
 	{
 	public:
 		bool Init();
+		inline void SetInputLayout()
+		{
+			m_pContext->IASetInputLayout(m_pInputLayout);
+		}
+		inline void SetIndexedInputLayout()
+		{
+			m_pContext->IASetInputLayout(m_pInstancedInputLayout);
+		}
 
 		Shader(ID3D11Device* pDevice, ID3D11DeviceContext* context);
 		~Shader();
+
 	private:
 
 		ID3D11Device* m_pDevice;
@@ -21,7 +30,7 @@ namespace wilson
 		ID3D11VertexShader* m_pVertexShader;
 		ID3D11PixelShader* m_pPixelShader;
 		ID3D11InputLayout* m_pInputLayout;
-
+		ID3D11InputLayout* m_pInstancedInputLayout;
 	};
 }
 #endif

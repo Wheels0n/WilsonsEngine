@@ -570,7 +570,7 @@ namespace wilson
 
 	void Importer::Clear()
 	{
-		m_fbxImporter->Destroy();
+		//m_fbxImporter->Destroy();
 		if (m_pVertexCoord != nullptr)
 		{
 			delete m_pVertexCoord;

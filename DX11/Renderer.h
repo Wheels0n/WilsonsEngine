@@ -6,8 +6,8 @@
 #include "ImGuiManager.h"
 
 constexpr bool g_bFull_SCREEN = false;
-constexpr bool g_bVSYNC_ENABLE = true;
-constexpr float g_fSCREEN_FAR = 100.0f;
+constexpr bool g_bVSYNC_ENABLE =false;
+constexpr float g_fSCREEN_FAR = 1000.0f;
 constexpr float g_fSCREEN_NEAR = 1.0f;
 
 namespace wilson
