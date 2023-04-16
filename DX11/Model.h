@@ -39,7 +39,7 @@ namespace wilson {
 		ID3D11ShaderResourceView* texture;
 	};
 
-	constexpr int MAX_INSTANCES = 5;
+	constexpr int MAX_INSTANCES = 50;
 	class Model
 	{
 	private:
@@ -107,9 +107,17 @@ namespace wilson {
 		{
 			return m_isInstanced;
 		}
-		inline int getMaxInstance()
+		inline int GetNumInstance()
 		{
-			return MAX_INSTANCES;
+			return m_numInstance;
+		}
+		inline void SetNumInstance(UINT n)
+		{	
+			m_numInstance = n;
+		}
+		inline void ToggleInstancing()
+		{
+			m_isInstanced = ~m_isInstanced;
 		}
 
 		Model(VertexData* pVertices,
@@ -158,6 +166,7 @@ namespace wilson {
 		DirectX::XMVECTOR m_angleVec;
 		
 		DirectX::XMMATRIX* m_instancedData;
+		UINT m_numInstance;
 		bool m_isInstanced;
 	};
 }

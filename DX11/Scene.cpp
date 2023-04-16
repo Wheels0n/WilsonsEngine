@@ -135,10 +135,21 @@ namespace wilson
 					*trMat = tr;
 
 				}
+				if (ImGui::Button("Instancing On/Off"))
+				{
+					m_pSelectedENTT->ToggleInstancing();
+				}
 
+				int numInstance = m_pSelectedENTT->GetNumInstance();
+				if (ImGui::DragInt("InstanceCount", &numInstance, 1, 1, 50))
+				{
+					m_pSelectedENTT->SetNumInstance(numInstance);
+				}
+				
 			}
 			ImGui::End();
 		}
+
 	}
 
 	void Scene::DrawVec3Control(const std::string& label, float* vals)

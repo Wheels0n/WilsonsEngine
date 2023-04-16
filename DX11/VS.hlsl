@@ -23,7 +23,7 @@ struct VertexInputType
 	float3 position : POSITION;
 	float2 tex   : TEXTURE;
 	float3 normal : NORMAL;
-    matrix instanceMat : WORLD;
+    row_major float4x4 instanceMat : WORLD;
     uint InstanceID : SV_InstanceID;
 };
 
@@ -42,13 +42,15 @@ PixelInputType main(VertexInputType input)
     float4 position = float4(input.position, 1.0f);
     if (isInstanced==true)
     {
-        output.position = mul(position, input.instanceMat);
+        output.position = mul(position,
+        worldMatrix + input.instanceMat);
 
     }
     else
     {
         output.position = mul(position, worldMatrix);
     }
+    
 	
     output.toEye = output.position.xyz - m_camPos.xyz;
     output.toEye = normalize(output.toEye);

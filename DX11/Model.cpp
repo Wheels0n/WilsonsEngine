@@ -40,6 +40,7 @@ namespace wilson {
 			m_numIndices.push_back(m_indicesPos[i + 1] - m_indicesPos[i]);
 		}
 
+		m_numInstance = 1;
 		m_instancedData = nullptr;
 		m_isInstanced = false;
 		m_pInstancePosBuffer = nullptr;
@@ -146,7 +147,7 @@ namespace wilson {
 	{	
 		std::random_device rd;
 		std::mt19937 rng(rd());
-		std::uniform_real_distribution floatGen (0.0f, 10.0f);
+		std::uniform_real_distribution floatGen (5.0f, 50.0f);
 		float x, y, z;
 		m_instancedData = new DirectX::XMMATRIX[MAX_INSTANCES];
 		
@@ -156,7 +157,6 @@ namespace wilson {
 			y = floatGen(rng);
 			z = floatGen(rng);
 		    m_instancedData[i] = DirectX::XMMatrixTranslation(x, y, z);
-			m_instancedData[i] = DirectX::XMMatrixTranspose(m_instancedData[i]);
 		}
 		
 		D3D11_BUFFER_DESC instancePosBD;

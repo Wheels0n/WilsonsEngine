@@ -478,7 +478,7 @@ namespace wilson
 					{
 						std::vector<unsigned int> verticesCount = m_ppModels[i]->GetNumVertexData();
 						m_pShader->SetIndexedInputLayout();
-						int numInstance = m_ppModels[i]->getMaxInstance();
+						int numInstance = m_ppModels[i]->GetNumInstance();
 						for (int j = 0; j < verticesCount.size(); ++j)
 						{
 							m_ppModels[i]->UploadBuffers(m_pContext, j);
