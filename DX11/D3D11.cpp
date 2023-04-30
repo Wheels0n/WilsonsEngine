@@ -8,15 +8,22 @@ namespace wilson
 		m_pSwapChain = nullptr;
 		m_pDevice = nullptr;
 		m_pContext = nullptr;
+
+		m_pSkyBoxVertices = nullptr;
+		m_pSkyBoxIndices = nullptr;
+		m_pSkyBoxDSS = nullptr;
+		m_pSkyBoxRS = nullptr;
+
 		m_pRenderTargetView = nullptr;
 		m_pDSBuffer = nullptr;
 		m_pDSBufferForRTT = nullptr;
-		m_pDefualtDDS = nullptr;
-		m_pMirroMarkDDS = nullptr;
-		m_pDrawReflectionDDS = nullptr;
+		m_pDefualtDSS = nullptr;
+		m_pMirroMarkDSS = nullptr;
+		m_pDrawReflectionDSS = nullptr;
 		m_pRTT = nullptr;
 		m_pRTTV = nullptr;
 		m_pSRVForRTT = nullptr;
+		m_pSkyBoxSRV = nullptr;
 		m_pDSV = nullptr;
 		m_pDSVforRTT = nullptr;
 		m_pRS = nullptr;
@@ -183,6 +190,128 @@ namespace wilson
 
 		pBackbuffer->Release();
 		pBackbuffer = nullptr;
+		{	
+			XMFLOAT3 vertices[] = {
+			 {XMFLOAT3(-1.0f,  1.0f, -1.0f)},//front-upper-left  0
+			 {XMFLOAT3(1.0f,   1.0f, -1.0f)},//front-upper-right 1
+			 {XMFLOAT3(1.0f,  -1.0f, -1.0f)},//front-down-right  2
+			 {XMFLOAT3(-1.0f, -1.0f, -1.0f)},//front-down-left   3
+
+			 {XMFLOAT3(-1.0f,  1.0f, 1.0f)},//back-upper-left   4
+			 {XMFLOAT3(1.0f,   1.0f, 1.0f)},//back-upper-right  5
+			 {XMFLOAT3(1.0f,  -1.0f, 1.0f)},//back-down-right   6
+			 {XMFLOAT3(-1.0f, -1.0f, 1.0f)},//back-down-left    7
+
+			 {XMFLOAT3(-1.0f,  1.0f, -1.0f)},//front-upper-left  8
+			 {XMFLOAT3(-1.0f, -1.0f, -1.0f)},//front-down-left   9
+			 {XMFLOAT3(-1.0f,  1.0f, 1.0f)},//back-upper-left   10
+			 {XMFLOAT3(-1.0f, -1.0f, 1.0f)},//back-down-left    11
+
+			 {XMFLOAT3(1.0f,   1.0f, -1.0f)},//front-upper-right 12
+			 {XMFLOAT3(1.0f,  -1.0f, -1.0f)},//front-down-right  13
+			 {XMFLOAT3(1.0f,   1.0f, 1.0f)},//back-upper-right  14
+			 {XMFLOAT3(1.0f,  -1.0f, 1.0f)},//back-down-right   15
+
+			 {XMFLOAT3(-1.0f,  1.0f, -1.0f)},//front-upper-left  16
+			 {XMFLOAT3(1.0f,   1.0f, -1.0f)},//front-upper-right 17
+			 {XMFLOAT3(-1.0f,  1.0f, 1.0f)},//back-upper-left   18
+			 {XMFLOAT3(1.0f,   1.0f, 1.0f)},//back-upper-right  19
+
+			 {XMFLOAT3(1.0f,  -1.0f, -1.0f)},//front-down-right  20
+			 {XMFLOAT3(-1.0f, -1.0f, -1.0f)},//front-down-left   21
+			 {XMFLOAT3(1.0f,  -1.0f, 1.0f)},//back-down-right   22
+			 {XMFLOAT3(-1.0f, -1.0f, 1.0f)} };//back-down-left    23
+			int vertexCount = sizeof(vertices) / sizeof(XMFLOAT3);
+			
+			 D3D11_SUBRESOURCE_DATA skyBoxVertexData;
+			 skyBoxVertexData.pSysMem = vertices;
+			 skyBoxVertexData.SysMemPitch = 0;
+			 skyBoxVertexData.SysMemSlicePitch = 0;
+
+			D3D11_BUFFER_DESC skyBoxVertexBD;
+			skyBoxVertexBD.Usage = D3D11_USAGE_DEFAULT;
+			skyBoxVertexBD.ByteWidth = sizeof(XMFLOAT3) * vertexCount;
+			skyBoxVertexBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+			skyBoxVertexBD.CPUAccessFlags = 0;
+			skyBoxVertexBD.MiscFlags = 0;
+			skyBoxVertexBD.StructureByteStride = 0;
+
+		    hr = m_pDevice->CreateBuffer(&skyBoxVertexBD,&skyBoxVertexData, &m_pSkyBoxVertices);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+			unsigned long indices[] = {
+	   0,1,2,
+	   0,2,3,
+
+	   4,5,6,
+	   4,6,7,
+
+	   8,10,11,
+	   8,11,9,
+
+	   12,14,15,
+	   12,15,13,
+
+	   16,18,19,
+	   16,19,17,
+
+	   21,23,22,
+	   21,22,20
+
+			};
+			int indexCount = sizeof(indices) / sizeof(unsigned long);
+
+			D3D11_SUBRESOURCE_DATA skyBoxIndexData;
+			skyBoxIndexData.pSysMem = indices;
+			skyBoxIndexData.SysMemPitch = 0;
+			skyBoxIndexData.SysMemSlicePitch = 0;
+
+			D3D11_BUFFER_DESC skyBoxIndexBD;
+			skyBoxIndexBD.Usage = D3D11_USAGE_DEFAULT;
+			skyBoxIndexBD.ByteWidth = sizeof(unsigned long) * indexCount;
+			skyBoxIndexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
+			skyBoxIndexBD.CPUAccessFlags = 0;
+			skyBoxIndexBD.MiscFlags = 0;
+			skyBoxIndexBD.StructureByteStride = 0;
+
+			hr = m_pDevice->CreateBuffer(&skyBoxIndexBD, &skyBoxIndexData, &m_pSkyBoxIndices);
+			if(FAILED(hr))
+			{
+				return false;
+			}
+
+			hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Assets/Textures/ocean.dds",
+				0, 0, &m_pSkyBoxSRV, 0);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+			D3D11_DEPTH_STENCIL_DESC skyboxDSD;
+			ZeroMemory(&skyboxDSD, sizeof(D3D11_DEPTH_STENCIL_DESC));
+			skyboxDSD.DepthEnable = true;
+			skyboxDSD.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+			skyboxDSD.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+			hr = m_pDevice->CreateDepthStencilState(&skyboxDSD, &m_pSkyBoxDSS);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+			D3D11_RASTERIZER_DESC skyboxRD;
+			ZeroMemory(&skyboxRD, sizeof(D3D11_RASTERIZER_DESC));
+			skyboxRD.CullMode = D3D11_CULL_NONE;
+			skyboxRD.FillMode = D3D11_FILL_SOLID;
+			hr = m_pDevice->CreateRasterizerState(&skyboxRD, &m_pSkyBoxRS);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+		}
 
 		if (!CreateRTT(m_clientWidth, m_clientHeight))
 		{
@@ -262,7 +391,7 @@ namespace wilson
 
 		D3D11_SAMPLER_DESC samplerDesc = {};
 		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
 		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 
@@ -299,7 +428,7 @@ namespace wilson
 
 		float blendV[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		m_pContext->OMSetBlendState(m_pTransparentBS, blendV, 0xffffffff);
-		m_pContext->OMSetDepthStencilState(m_pDefualtDDS, 1);
+		m_pContext->OMSetDepthStencilState(m_pDefualtDSS, 1);
 		ImGui_ImplDX11_Init(m_pDevice, m_pContext);
 		return true;
 	}
@@ -307,6 +436,30 @@ namespace wilson
 	void D3D11::Shutdown()
 	{
 		ImGui_ImplDX11_Shutdown();
+
+		if (m_pSkyBoxVertices != nullptr)
+		{
+			m_pSkyBoxVertices->Release();
+			m_pSkyBoxVertices = nullptr;
+		}
+
+		if (m_pSkyBoxIndices != nullptr)
+		{
+			m_pSkyBoxIndices->Release();
+			m_pSkyBoxIndices = nullptr;
+		}
+
+		if (m_pSkyBoxDSS != nullptr)
+		{
+			m_pSkyBoxDSS->Release();
+			m_pSkyBoxDSS = nullptr;
+		}
+
+		if (m_pSkyBoxRS != nullptr)
+		{
+			m_pSkyBoxRS->Release();
+			m_pSkyBoxRS = nullptr;
+		}
 
 		if (m_pRS != nullptr)
 		{
@@ -335,6 +488,11 @@ namespace wilson
 		}
 
 		DestroyDSS();
+		if (m_pSkyBoxSRV != nullptr)
+		{
+			m_pSkyBoxSRV->Release();
+			m_pSkyBoxSRV = nullptr;
+		}
 
 		if (m_pRenderTargetView != nullptr)
 		{
@@ -438,6 +596,8 @@ namespace wilson
 		HRESULT hr;
 		XMMATRIX m_worldMat = XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
+		UINT stride = 0;
+		UINT offset = 0;
 		int drawed = 0;
 
 		m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
@@ -445,7 +605,6 @@ namespace wilson
 		m_pContext->ClearDepthStencilView(m_pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		m_pContext->ClearDepthStencilView(m_pDSVforRTT, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDSVforRTT);
-
 		//Update Light
 		m_pLight->Update();
 		//Update Cam 
@@ -458,26 +617,44 @@ namespace wilson
 		m_pCMBuffer->Update();
 		m_pContext->DrawIndexed(m_pCTerrain->GetIndexCount(), 0, 0);
 		*/
+		
+		/*/Draw EnvMap
+		m_pMatBuffer->SetWorldMatrix(&m_idMat);	
+		m_pMatBuffer->Update();
+		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		m_pShader->SetSkyBoxInputLayout();
+		m_pShader->SetSkyBoxShader();
+		m_pContext->IASetVertexBuffers(0, 1, &m_pSkyBoxVertices, &stride, &offset);
+		m_pContext->IASetIndexBuffer(m_pSkyBoxIndices, DXGI_FORMAT_R32_UINT, 0);
+		m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
+		m_pContext->RSSetState(m_pSkyBoxRS);
+		//m_pContext->OMSetDepthStencilState(m_pSkyBoxDSS, 0);
+		m_pContext->DrawIndexed(30, 0, 0);*/
 		//Draw ENTTs
+		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_pShader->SetInputLayout();
+		m_pShader->SetShader();
+		m_pContext->RSSetState(m_pRS);
+		m_pContext->OMSetDepthStencilState(m_pDefualtDSS, 1);
 		for (int i = 0; i < m_ppModels.size(); ++i)
 		{
 			m_worldMat = m_ppModels[i]->GetTransformMatrix();
+			m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 			XMFLOAT4X4 pos4;
 			XMStoreFloat4x4(&pos4, m_worldMat);
 			if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
 			{
-				m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 				m_pMatBuffer->SetWorldMatrix(&m_worldMat);
 				m_pMatBuffer->Update();
 
 				if (m_ppModels[i]->GetObjectType() == EObjectType::FBX)
 				{
-					m_pShader->SetIndexedInputLayout();
+					m_pShader->SetInputLayout();
 					std::vector<unsigned int> indicesCount = m_ppModels[i]->GetNumIndice();
 					if (m_ppModels[i]->isInstanced())
 					{
 						std::vector<unsigned int> verticesCount = m_ppModels[i]->GetNumVertexData();
-						m_pShader->SetIndexedInputLayout();
+						m_pShader->SetInputLayout();
 						int numInstance = m_ppModels[i]->GetNumInstance();
 						for (int j = 0; j < verticesCount.size(); ++j)
 						{
@@ -667,7 +844,7 @@ namespace wilson
 		depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 		depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
-		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDefualtDDS);
+		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDefualtDSS);
 		if (FAILED(hr))
 		{
 			return false;
@@ -677,7 +854,7 @@ namespace wilson
 		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 		depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
 		depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
-		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pMirroMarkDDS);
+		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pMirroMarkDSS);
 		if (FAILED(hr))
 		{
 			return false;
@@ -685,7 +862,7 @@ namespace wilson
 
 		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 		depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
-		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDrawReflectionDDS);
+		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDrawReflectionDSS);
 		if (FAILED(hr))
 		{
 			return false;
@@ -696,22 +873,22 @@ namespace wilson
 
 	void D3D11::DestroyDSS()
 	{
-		if (m_pDefualtDDS != nullptr)
+		if (m_pDefualtDSS != nullptr)
 		{
-			m_pDefualtDDS->Release();
-			m_pDefualtDDS = nullptr;
+			m_pDefualtDSS->Release();
+			m_pDefualtDSS = nullptr;
 		}
 
-		if (m_pMirroMarkDDS != nullptr)
+		if (m_pMirroMarkDSS != nullptr)
 		{
-			m_pMirroMarkDDS->Release();
-			m_pMirroMarkDDS = nullptr;
+			m_pMirroMarkDSS->Release();
+			m_pMirroMarkDSS = nullptr;
 		}
 
-		if (m_pDrawReflectionDDS != nullptr)
+		if (m_pDrawReflectionDSS != nullptr)
 		{
-			m_pDrawReflectionDDS->Release();
-			m_pDrawReflectionDDS = nullptr;
+			m_pDrawReflectionDSS->Release();
+			m_pDrawReflectionDSS = nullptr;
 		}
 	}
 

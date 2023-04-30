@@ -92,12 +92,18 @@ namespace wilson
 		IDXGISwapChain* m_pSwapChain;
 		ID3D11Device* m_pDevice;
 		ID3D11DeviceContext* m_pContext;
+
+		ID3D11Buffer* m_pSkyBoxVertices;
+		ID3D11Buffer* m_pSkyBoxIndices;
+
 		ID3D11RenderTargetView* m_pRenderTargetView, * m_pRTTV;
 		ID3D11Texture2D* m_pDSBuffer, * m_pDSBufferForRTT, * m_pRTT;
-		ID3D11ShaderResourceView* m_pSRVForRTT;
-		ID3D11DepthStencilState* m_pDefualtDDS, * m_pMirroMarkDDS, * m_pDrawReflectionDDS;
+		ID3D11ShaderResourceView* m_pSRVForRTT, *m_pSkyBoxSRV;
+
+		ID3D11DepthStencilState* m_pDefualtDSS, * m_pMirroMarkDSS, * m_pDrawReflectionDSS, *m_pSkyBoxDSS;
 		ID3D11DepthStencilView* m_pDSV, * m_pDSVforRTT;
-		ID3D11RasterizerState* m_pRS, * m_pRasterStateCC;
+
+		ID3D11RasterizerState* m_pRS, * m_pRasterStateCC, *m_pSkyBoxRS;
 		ID3D11SamplerState* m_pSampleState;
 		ID3D11BlendState* m_pNoRenderTargetWritesBS, * m_pTransparentBS;
 
@@ -110,6 +116,7 @@ namespace wilson
 		Light* m_pLight;
 		Shader* m_pShader;
 
+		XMMATRIX m_idMat = XMMatrixIdentity();
 		int m_clientWidth;
 		int m_clientHeight;
 	};

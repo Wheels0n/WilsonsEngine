@@ -14,10 +14,21 @@ namespace wilson
 		{
 			m_pContext->IASetInputLayout(m_pInputLayout);
 		}
-		inline void SetIndexedInputLayout()
+		inline void SetSkyBoxInputLayout()
 		{
-			m_pContext->IASetInputLayout(m_pInstancedInputLayout);
+			m_pContext->IASetInputLayout(m_pSkyBoxInputLayout);
 		}
+		inline void SetShader()
+		{
+			m_pContext->VSSetShader(m_pVS, nullptr, 0);
+			m_pContext->PSSetShader(m_pPS, nullptr, 0);
+		}
+		inline void SetSkyBoxShader()
+		{
+			m_pContext->VSSetShader(m_pSkyBoxVS, nullptr, 0);
+			m_pContext->PSSetShader(m_pSkyBoxPS, nullptr, 0);
+		}
+		
 
 		Shader(ID3D11Device* pDevice, ID3D11DeviceContext* context);
 		~Shader();
@@ -27,10 +38,12 @@ namespace wilson
 		ID3D11Device* m_pDevice;
 		ID3D11DeviceContext* m_pContext;
 
-		ID3D11VertexShader* m_pVertexShader;
-		ID3D11PixelShader* m_pPixelShader;
-		ID3D11InputLayout* m_pInputLayout;
-		ID3D11InputLayout* m_pInstancedInputLayout;
+		ID3D11VertexShader* m_pVS, *m_pSkyBoxVS;
+		ID3D11PixelShader* m_pPS, *m_pSkyBoxPS;
+
+
+		ID3D11InputLayout* m_pInputLayout, *m_pSkyBoxInputLayout;
+
 	};
 }
 #endif
