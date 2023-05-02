@@ -200,27 +200,7 @@ namespace wilson
 			 {XMFLOAT3(-1.0f,  1.0f, 1.0f)},//back-upper-left   4
 			 {XMFLOAT3(1.0f,   1.0f, 1.0f)},//back-upper-right  5
 			 {XMFLOAT3(1.0f,  -1.0f, 1.0f)},//back-down-right   6
-			 {XMFLOAT3(-1.0f, -1.0f, 1.0f)},//back-down-left    7
-
-			 {XMFLOAT3(-1.0f,  1.0f, -1.0f)},//front-upper-left  8
-			 {XMFLOAT3(-1.0f, -1.0f, -1.0f)},//front-down-left   9
-			 {XMFLOAT3(-1.0f,  1.0f, 1.0f)},//back-upper-left   10
-			 {XMFLOAT3(-1.0f, -1.0f, 1.0f)},//back-down-left    11
-
-			 {XMFLOAT3(1.0f,   1.0f, -1.0f)},//front-upper-right 12
-			 {XMFLOAT3(1.0f,  -1.0f, -1.0f)},//front-down-right  13
-			 {XMFLOAT3(1.0f,   1.0f, 1.0f)},//back-upper-right  14
-			 {XMFLOAT3(1.0f,  -1.0f, 1.0f)},//back-down-right   15
-
-			 {XMFLOAT3(-1.0f,  1.0f, -1.0f)},//front-upper-left  16
-			 {XMFLOAT3(1.0f,   1.0f, -1.0f)},//front-upper-right 17
-			 {XMFLOAT3(-1.0f,  1.0f, 1.0f)},//back-upper-left   18
-			 {XMFLOAT3(1.0f,   1.0f, 1.0f)},//back-upper-right  19
-
-			 {XMFLOAT3(1.0f,  -1.0f, -1.0f)},//front-down-right  20
-			 {XMFLOAT3(-1.0f, -1.0f, -1.0f)},//front-down-left   21
-			 {XMFLOAT3(1.0f,  -1.0f, 1.0f)},//back-down-right   22
-			 {XMFLOAT3(-1.0f, -1.0f, 1.0f)} };//back-down-left    23
+			 {XMFLOAT3(-1.0f, -1.0f, 1.0f)}};//back-down-left   7
 			int vertexCount = sizeof(vertices) / sizeof(XMFLOAT3);
 			
 			 D3D11_SUBRESOURCE_DATA skyBoxVertexData;
@@ -241,26 +221,26 @@ namespace wilson
 			{
 				return false;
 			}
-
+			//시계방향 감은 면이  frontface
 			unsigned long indices[] = {
-	   0,1,2,
-	   0,2,3,
-
+	   //front
+	   0,2,1,
+	   0,3,2,
+	   //back
 	   4,5,6,
 	   4,6,7,
-
-	   8,10,11,
-	   8,11,9,
-
-	   12,14,15,
-	   12,15,13,
-
-	   16,18,19,
-	   16,19,17,
-
-	   21,23,22,
-	   21,22,20
-
+	   //left
+	   0,4,7,
+	   0,7,3,
+	   //right
+	   5,1,2,
+	   5,2,6,
+	   //top
+	   5,4,0,
+	   5,0,1,
+	   //bottom
+	   7,6,2,
+	   7,2,3
 			};
 			int indexCount = sizeof(indices) / sizeof(unsigned long);
 
@@ -292,8 +272,6 @@ namespace wilson
 
 			D3D11_DEPTH_STENCIL_DESC skyboxDSD;
 			ZeroMemory(&skyboxDSD, sizeof(D3D11_DEPTH_STENCIL_DESC));
-			skyboxDSD.DepthEnable = true;
-			skyboxDSD.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 			skyboxDSD.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 			hr = m_pDevice->CreateDepthStencilState(&skyboxDSD, &m_pSkyBoxDSS);
 			if (FAILED(hr))
@@ -303,8 +281,8 @@ namespace wilson
 
 			D3D11_RASTERIZER_DESC skyboxRD;
 			ZeroMemory(&skyboxRD, sizeof(D3D11_RASTERIZER_DESC));
-			skyboxRD.CullMode = D3D11_CULL_NONE;
 			skyboxRD.FillMode = D3D11_FILL_SOLID;
+			skyboxRD.CullMode = D3D11_CULL_BACK;
 			hr = m_pDevice->CreateRasterizerState(&skyboxRD, &m_pSkyBoxRS);
 			if (FAILED(hr))
 			{
@@ -391,7 +369,7 @@ namespace wilson
 
 		D3D11_SAMPLER_DESC samplerDesc = {};
 		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 
@@ -425,10 +403,8 @@ namespace wilson
 		{
 			return false;
 		}
-
 		float blendV[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		m_pContext->OMSetBlendState(m_pTransparentBS, blendV, 0xffffffff);
-		m_pContext->OMSetDepthStencilState(m_pDefualtDSS, 1);
 		ImGui_ImplDX11_Init(m_pDevice, m_pContext);
 		return true;
 	}
@@ -596,7 +572,7 @@ namespace wilson
 		HRESULT hr;
 		XMMATRIX m_worldMat = XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
-		UINT stride = 0;
+		UINT stride = sizeof(XMFLOAT3);
 		UINT offset = 0;
 		int drawed = 0;
 
@@ -604,6 +580,7 @@ namespace wilson
 		m_pContext->ClearRenderTargetView(m_pRTTV, color);
 		m_pContext->ClearDepthStencilView(m_pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		m_pContext->ClearDepthStencilView(m_pDSVforRTT, D3D11_CLEAR_DEPTH, 1.0f, 0);
+		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDSVforRTT);
 		//Update Light
 		m_pLight->Update();
@@ -618,20 +595,20 @@ namespace wilson
 		m_pContext->DrawIndexed(m_pCTerrain->GetIndexCount(), 0, 0);
 		*/
 		
-		/*/Draw EnvMap
+		//Draw EnvMap
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);	
+		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 		m_pMatBuffer->Update();
-		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pShader->SetSkyBoxInputLayout();
 		m_pShader->SetSkyBoxShader();
 		m_pContext->IASetVertexBuffers(0, 1, &m_pSkyBoxVertices, &stride, &offset);
 		m_pContext->IASetIndexBuffer(m_pSkyBoxIndices, DXGI_FORMAT_R32_UINT, 0);
 		m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
 		m_pContext->RSSetState(m_pSkyBoxRS);
-		//m_pContext->OMSetDepthStencilState(m_pSkyBoxDSS, 0);
-		m_pContext->DrawIndexed(30, 0, 0);*/
+		m_pContext->OMSetDepthStencilState(m_pSkyBoxDSS, 0);
+		m_pContext->DrawIndexed(36, 0, 0);
 		//Draw ENTTs
-		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pShader->SetInputLayout();
 		m_pShader->SetShader();
 		m_pContext->RSSetState(m_pRS);
@@ -639,7 +616,6 @@ namespace wilson
 		for (int i = 0; i < m_ppModels.size(); ++i)
 		{
 			m_worldMat = m_ppModels[i]->GetTransformMatrix();
-			m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 			XMFLOAT4X4 pos4;
 			XMStoreFloat4x4(&pos4, m_worldMat);
 			if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
