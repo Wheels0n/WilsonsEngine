@@ -20,10 +20,12 @@ namespace wilson {
 		};
 		bool LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* pDevice);
 		bool LoadModel(const char* extension,LPCWSTR fileName, ID3D11Device* pDevice)
-		{
+		{	
+			GetCurDir(fileName);
+
 			if (!strcmp(extension, "obj"))
 			{
-				return LoadOBJ(fileName);
+				return LoadOBJ(fileName,pDevice);
 			}
 			else if (!strcmp(extension, "fbx"))
 			{
@@ -35,12 +37,16 @@ namespace wilson {
 		~Importer();
 	private:
 		bool LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice);
-		bool LoadOBJ(LPCWSTR fileName);
-		wchar_t* TokenizeCWSTR(LPCWSTR fileName);
+		bool LoadOBJ(LPCWSTR fileName, ID3D11Device* pDevice);
+		bool LoadMTL(wchar_t* fileName, Model* pModel, ID3D11Device* pDevice);
+		void GetCurDir(LPCWSTR fileName);
+		wchar_t* GetModelName(LPCWSTR fileName);
+		wchar_t* GetMTLPath(LPCWSTR fileName, wchar_t* tok);
 		bool LoadFbxTex(std::string fileName, FbxSurfaceMaterial* pSurfaceMaterial,
 			std::unordered_set<std::string>& texSet , std::vector<TextureData>& texData, ID3D11Device* pDevice);
 		Material LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial);
 	private:
+		wchar_t* m_curDir;
 		Model* m_pModel;
 
 		DirectX::XMFLOAT3* m_pVertexCoord;

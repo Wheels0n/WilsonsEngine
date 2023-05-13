@@ -201,6 +201,10 @@ namespace wilson {
 			return false;
 		}
 
+		indexData.pSysMem = m_pIndices;
+		indexData.SysMemPitch = 0;
+		indexData.SysMemSlicePitch = 0;
+
 		indexBD.Usage = D3D11_USAGE_DEFAULT;
 		indexBD.ByteWidth = sizeof(unsigned long) * m_indexCount;
 		indexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -208,7 +212,7 @@ namespace wilson {
 		indexBD.MiscFlags = 0;
 		indexBD.StructureByteStride = 0;
 
-		hr = pDevice->CreateBuffer(&indexBD, nullptr, &m_pIndexBuffer);
+		hr = pDevice->CreateBuffer(&indexBD, &indexData, &m_pIndexBuffer);
 		if (FAILED(hr))
 		{
 			return false;
@@ -315,16 +319,30 @@ namespace wilson {
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		Material* pMaterial;
 
-		unsigned int stride;
+		unsigned int stride[2];
 		unsigned int offset;
 
-		stride = sizeof(VertexData);
+		stride[0] = sizeof(VertexData);
+		stride[1] = sizeof(DirectX::XMMATRIX);
 		offset = 0;
 
-		context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+		context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, stride, &offset);
 		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	    context->PSSetShaderResources(0, 1, &m_SRV);
+
+		hr = context->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		if (FAILED(hr))
+		{
+			return;
+		}
+
+		pMaterial = reinterpret_cast<Material*>(mappedResource.pData);
+		pMaterial->ambient = m_materials[0].ambient;
+		pMaterial->diffuse = m_materials[0].diffuse;
+		pMaterial->specular = m_materials[0].specular;
+		context->Unmap(m_pMaterialBuffer, 0);
+		context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
 		return;
 	}
 

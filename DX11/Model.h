@@ -50,6 +50,10 @@ namespace wilson {
 		void UploadBuffers(ID3D11DeviceContext* context);
 		void UploadBuffers(ID3D11DeviceContext* context, int i);
 
+		inline void AddMaterial(Material mat)
+		{
+			m_materials.push_back(mat);
+		}
 		inline DirectX::XMMATRIX* GetTranslationMatrix()
 		{
 			return &m_trMat;

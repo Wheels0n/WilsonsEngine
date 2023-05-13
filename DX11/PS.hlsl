@@ -164,7 +164,7 @@ out float4 ambient, out float4 diffuse, out float4 specular)
 float4 main(PixelInputType input) : SV_TARGET
 {   
     float4 texColor = shaderTexture.Sample(SampleType, input.tex);
-    //clip(texColor.a < 0.1f ? -1 : 1);
+    clip(texColor.a < 0.1f ? -1 : 1);
     
     float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);

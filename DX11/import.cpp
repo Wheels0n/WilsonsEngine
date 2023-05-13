@@ -1,4 +1,5 @@
 #include "Import.h"
+#include <cwchar>
 #include <filesystem>
 namespace wilson
 {
@@ -19,6 +20,7 @@ namespace wilson
 		m_pVertexData = nullptr;
 		m_pIndices = nullptr;
 		m_pSRV = nullptr;
+		m_curDir = nullptr;
 
 		m_fbxManager = FbxManager::Create();
 		m_fbxIOsettings = FbxIOSettings::Create(m_fbxManager, IOSROOT);
@@ -26,7 +28,7 @@ namespace wilson
 		m_fbxImporter = FbxImporter::Create(m_fbxManager, "");
 	}
 
-	bool Importer::LoadOBJ(LPCWSTR fileName)
+	bool Importer::LoadOBJ(LPCWSTR fileName, ID3D11Device* pDevice)
 	{
 
 		std::ifstream fin;
@@ -159,14 +161,120 @@ namespace wilson
 
 		fin.close();
 
-		wchar_t* tok = TokenizeCWSTR(fileName);
+		wchar_t* tok = GetModelName(fileName);
 
 		m_pModel = new Model(m_pVertexData, m_pIndices, m_vertexCount, m_indexCount,tok);
+		wchar_t* mtlPath = GetMTLPath(m_curDir, tok);
+		LoadMTL(mtlPath, m_pModel, pDevice);
+		delete mtlPath;
 		++m_objectCount;
 		return true;
 	}
+	bool Importer::LoadMTL(wchar_t* fileName, Model* pModel, ID3D11Device* pDevice)
+	{
+		Material mat = { 0, };
 
-	wchar_t* Importer::TokenizeCWSTR(LPCWSTR fileName)
+		const char delimiter = ' ';
+		std::ifstream fin;
+		fin.open(fileName);
+		if (fin.fail())
+		{
+			return false;
+		}
+
+		std::string line;
+		while (!fin.eof())
+		{
+			std::getline(fin, line);
+			char* tok = strtok((char*)line.c_str(), &delimiter);
+			if (tok == nullptr)
+			{
+				continue;
+			}
+
+			if (strcmp(tok, "Ka")==0)
+			{
+				tok = strtok(nullptr, &delimiter);
+				float x = std::stof(tok);
+				tok = strtok(nullptr, &delimiter);
+				float y = std::stof(tok);
+				tok = strtok(nullptr, &delimiter);
+				float z = std::stof(tok);
+
+				DirectX::XMFLOAT4 ambient4(x, y, z, 1.0f);
+				mat.ambient = DirectX::XMLoadFloat4(&ambient4);
+			}
+			else if (strcmp(tok,"Kd")==0)
+			{
+				tok = strtok(nullptr, &delimiter);
+				float x = std::stof(tok);
+				tok = strtok(nullptr, &delimiter);
+				float y = std::stof(tok);
+				tok = strtok(nullptr, &delimiter);
+				float z = std::stof(tok);
+
+				DirectX::XMFLOAT4 diffuse4(x, y, z, 1.0f);
+				mat.diffuse = DirectX::XMLoadFloat4(&diffuse4);
+			}
+			else if (strcmp(tok,"Ks")==0)
+			{
+				tok = strtok(nullptr, &delimiter);
+				float x = std::stof(tok);
+				tok = strtok(nullptr, &delimiter);
+				float y = std::stof(tok);
+				tok = strtok(nullptr, &delimiter);
+				float z = std::stof(tok);
+
+				DirectX::XMFLOAT4 specular4(x, y, z, 1.0f);
+				mat.specular = DirectX::XMLoadFloat4(&specular4);
+			}
+			else if (strcmp(tok,"map_Kd")==0)
+			{
+				tok = strtok(nullptr, &delimiter);
+				std::string str(tok);
+				std::wstring wstr(str.begin(),str.end());
+
+				int len = wcslen(m_curDir) + wstr.length() + 2;
+				wchar_t* diffuseMapPath = new wchar_t[len];
+				wcscpy(diffuseMapPath, m_curDir);
+				diffuseMapPath = wcsncat(diffuseMapPath, L"\\", 2);
+				diffuseMapPath = wcsncat(diffuseMapPath, wstr.c_str(), wstr.size());
+
+				LoadTex(pModel, diffuseMapPath, pDevice);
+				delete diffuseMapPath;
+			}
+		}
+		fin.close();
+		pModel->AddMaterial(mat);
+	}
+	
+	void Importer::GetCurDir(LPCWSTR fileName)
+	{
+		std::wstring::size_type pos = std::wstring(fileName).find_last_of(L"\\");
+		std::wstring curDirWStr = std::wstring(fileName).substr(0, pos);
+		m_curDir = new wchar_t[curDirWStr.size()+1];
+		m_curDir = wcscpy(m_curDir, curDirWStr.c_str());
+		//널문자 만나면 끝나니까 직접 추가
+		m_curDir[curDirWStr.size()] = L'\0';
+	}
+
+	wchar_t* Importer::GetMTLPath(LPCWSTR filePath, wchar_t* tok)
+	{	
+		int len = wcslen(filePath);
+		len += wcslen(tok);
+		len += 7;
+
+		wchar_t* ptr = nullptr;
+		wchar_t* tmp = new wchar_t[len];
+		tmp = wcscpy(tmp, filePath);
+		tmp = wcstok(tmp, L".", &ptr);	
+		tmp = wcsncat(tmp, L"\\", 2);
+		//strcat은 null문자 있는 곳에 그냥 이어쓰기! 메모리 초과 쓰기 주의
+		wchar_t* mtlPath = wcsncat(tmp, tok, wcslen(tok));
+		mtlPath = wcsncat(mtlPath, L".mtl\0", 5);
+		return mtlPath;
+	}
+	wchar_t* Importer::GetModelName(LPCWSTR fileName)
 	{	
 		wchar_t* tok = nullptr;
 		wchar_t* ptr = nullptr;
@@ -556,7 +664,7 @@ namespace wilson
 			}
 		}
 
-		wchar_t* tok = TokenizeCWSTR(fileName);
+		wchar_t* tok = GetModelName(fileName);
 		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos, materialVec, texVec, tok);
 		return true;
 	}
@@ -597,6 +705,12 @@ namespace wilson
 		if (m_pIndices != nullptr)
 		{
 			m_pIndices = nullptr;
+		}
+
+		if (m_curDir != nullptr)
+		{
+			delete m_curDir;
+			m_curDir = nullptr;
 		}
 
 		m_vertexCount = 0;
