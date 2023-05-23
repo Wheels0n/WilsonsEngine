@@ -65,29 +65,29 @@ namespace wilson
 				{  
 					DirectionalLight dirLight = m_pLight->GetDirLight();
 					
-						DirectX::XMFLOAT3 dir3 = dirLight.direction;
-						ImGui::Text("Direction");
+						DirectX::XMFLOAT3 pos3 = dirLight.position;
+						ImGui::Text("Position");
 						if (ImGui::Button("X"))
 						{
-							dir3.x = 0.0f;
+							pos3.x = 0.0f;
 						}
 						ImGui::SameLine();
-						ImGui::DragFloat("##X", &dir3.x, 0.1f);
+						ImGui::DragFloat("##X", &pos3.x, 1.0f, -1000.0f, 1000.0f);
 
 						if (ImGui::Button("Y"))
 						{
-							dir3.y = 0.0f;
+							pos3.y = 0.0f;
 						}
 						ImGui::SameLine();
-						ImGui::DragFloat("##Y", &dir3.y, 0.1f);
+						ImGui::DragFloat("##Y", &pos3.y, 1.0f, -1000.0f, 1000.0f);
 
 						if (ImGui::Button("Z"))
 						{
-							dir3.z = 0.0f;
+							pos3.z = 0.0f;
 						}
 						ImGui::SameLine();
-						ImGui::DragFloat("##Z", &dir3.z, 0.1f);
-						dirLight.direction = dir3;
+						ImGui::DragFloat("##Z", &pos3.z, 1.0f, -1000.0f, 1000.0f);
+						dirLight.position = pos3;
 
 						DirectX::XMFLOAT4 ambient4;
 						DirectX::XMStoreFloat4(&ambient4, dirLight.ambient);
@@ -123,21 +123,21 @@ namespace wilson
 						pos3.x = 0.0f;
 					}
 					ImGui::SameLine();
-					ImGui::DragFloat("##X", &pos3.x, 0.1f);
+					ImGui::DragFloat("##X", &pos3.x, 0.01f, 0.0f, 1.0f);
 
 					if (ImGui::Button("Y"))
 					{
 						pos3.y = 0.0f;
 					}
 					ImGui::SameLine();
-					ImGui::DragFloat("##Y", &pos3.y, 0.1f);
+					ImGui::DragFloat("##Y", &pos3.y, 0.01f, 0.0f, 1.0f);
 
 					if (ImGui::Button("Z"))
 					{
 						pos3.z = 0.0f;
 					}
 					ImGui::SameLine();
-					ImGui::DragFloat("##Z", &pos3.z, 0.1f);
+					ImGui::DragFloat("##Z", &pos3.z, 0.01f, 0.0f, 1.0f);
 					pointLight.position = pos3;
 
 					DirectX::XMFLOAT4 ambient4;

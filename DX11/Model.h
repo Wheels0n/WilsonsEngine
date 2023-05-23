@@ -4,7 +4,6 @@
 #include <DirectXMath.h>
 #include <string>
 #include <vector>
-
 namespace wilson {
 	enum EObjectType
 	{

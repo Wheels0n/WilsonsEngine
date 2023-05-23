@@ -2,6 +2,11 @@
 
 namespace wilson
 {
+	DirectX::XMMATRIX* Light::GetLightSpaceMat()
+	{	
+		m_lightSpaceMat = DirectX::XMMatrixMultiply(m_viewMat, m_projMat);
+		return &m_lightSpaceMat;
+	}
 	Light::Light(ID3D11Device* pDevice, ID3D11DeviceContext* context)
 	{
 		m_pDevice = pDevice;
@@ -17,6 +22,19 @@ namespace wilson
 		}
 		
 	}
+	void Light::UpdateViewMat(Camera* pCam)
+	{	
+		DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+		DirectX::XMVECTOR target = DirectX::XMVectorZero();
+		DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&m_dirLight.position);
+		m_viewMat = DirectX::XMMatrixLookAtLH(pos,
+			target, up);
+	}
+	void Light::UpdateProjMat(Camera* pCam)
+	{	
+		//오브젝트마다 aabb?
+		m_projMat = DirectX::XMMatrixOrthographicLH(100.0f, 100.0f, 0.1f, 100.0f); 
+	}
 	bool Light::Init()
 	{
 		D3D11_BUFFER_DESC lightCBD;
@@ -31,7 +49,7 @@ namespace wilson
 		m_dirLight.ambient = DirectX::XMVectorSet(0.2f, 0.2f, 0.2f, 1.0f);
 		m_dirLight.diffuse = DirectX::XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
 		m_dirLight.specular = DirectX::XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
-		m_dirLight.direction = DirectX::XMFLOAT3(0.57735f, -0.57735f, 0.57735f);
+		m_dirLight.position = DirectX::XMFLOAT3(0.57735f, -0.57735f, 0.57735f);
 
 		m_pointLight.ambient = DirectX::XMVectorSet(0.3f, 0.3f, 0.3f, 1.0f);
 		m_pointLight.diffuse = DirectX::XMVectorSet(0.7f, 0.7f, 0.7f, 1.0f);

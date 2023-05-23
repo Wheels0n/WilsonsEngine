@@ -134,6 +134,9 @@
     <ClCompile Include="Terrain.cpp">
       <Filter>Source Files\Component\Terrain</Filter>
     </ClCompile>
+    <ClCompile Include="ShadowMap.cpp">
+      <Filter>Source Files\Component\Light</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ImGui\imstb_rectpack.h">
@@ -223,6 +226,9 @@
     <ClInclude Include="Terrain.h">
       <Filter>Source Files\Component\Terrain</Filter>
     </ClInclude>
+    <ClInclude Include="ShadowMap.h">
+      <Filter>Source Files\Component\Light</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DX11.rc">
@@ -248,6 +254,12 @@
       <Filter>Resource Files</Filter>
     </FxCompile>
     <FxCompile Include="SkyBoxPS.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="ShadowVS.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="ShadowPS.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
   </ItemGroup>

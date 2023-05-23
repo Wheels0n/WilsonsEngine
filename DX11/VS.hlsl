@@ -3,6 +3,7 @@ cbuffer MatrixBuffer
 	matrix worldMatrix;
 	matrix viewMatrix;
 	matrix projectionMatrix;
+    matrix lightSpaceMat;
 };
 
 cbuffer CamBuffer
@@ -21,7 +22,7 @@ cbuffer PerModel
 struct VertexInputType
 {
 	float3 position : POSITION;
-	float2 tex   : TEXTURE;
+    float2 tex : TEXTURE;
 	float3 normal : NORMAL;
     row_major float4x4 instanceMat : WORLD;
     uint InstanceID : SV_InstanceID;
@@ -29,10 +30,12 @@ struct VertexInputType
 
 struct PixelInputType
 {
-	float4 position : SV_POSITION;
-	float2 tex   : TEXTURE;
-	float3 normal : NORMAL;
-	float3 toEye: VIEW;
+    float4 position : SV_POSITION;
+    float2 tex : TEXTURE;
+    float3 normal : NORMAL;
+    float3 toEye : VIEW;
+    float4 shadowPos : POSITION1;
+    float4 wPosition : POSITION2;
 };
 
 PixelInputType main(VertexInputType input)  
@@ -50,9 +53,12 @@ PixelInputType main(VertexInputType input)
     {
         output.position = mul(position, worldMatrix);
     }
+    output.wPosition = output.position;
     
-	
-    output.toEye = output.position.xyz - m_camPos.xyz;
+    output.shadowPos = output.position;
+    output.shadowPos = mul(output.shadowPos, lightSpaceMat);
+    
+    output.toEye = m_camPos.xyz-output.position.xyz;
     output.toEye = normalize(output.toEye);
 
 	output.position = mul(output.position, viewMatrix);
@@ -62,5 +68,7 @@ PixelInputType main(VertexInputType input)
 	
 	output.normal = mul(input.normal, (float3x3)worldMatrix);
 	output.normal = normalize(output.normal);
+    
+    
 	return output;
 }

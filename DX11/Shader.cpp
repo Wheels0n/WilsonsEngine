@@ -10,6 +10,7 @@ namespace wilson
 		m_pPS = nullptr;
 		m_pSkyBoxVS = nullptr;
 		m_pSkyBoxPS = nullptr;
+		m_pShadowVS = nullptr;
 		m_pInputLayout = nullptr;
 		m_pSkyBoxInputLayout = nullptr;
 	}
@@ -38,6 +39,12 @@ namespace wilson
 		{
 			m_pSkyBoxPS->Release();
 			m_pSkyBoxPS = nullptr;
+		}
+
+		if (m_pShadowVS != nullptr)
+		{
+			m_pShadowVS->Release();
+			m_pShadowVS = nullptr;
 		}
 
 		if (m_pInputLayout != nullptr)
@@ -128,8 +135,15 @@ namespace wilson
 		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSkyBoxPS);
 
 		skyBoxIED = vertexIED[0];
-
 		m_pDevice->CreateInputLayout(&skyBoxIED, 1, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pSkyBoxInputLayout);
+
+		hr = D3DX11CompileFromFile(L"ShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pVSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pShadowVS);
+
 
 		pPSBlob->Release();
 		pPSBlob = nullptr;

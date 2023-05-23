@@ -174,7 +174,7 @@ namespace wilson
 	{
 		Material mat = { 0, };
 
-		const char delimiter = ' ';
+		const char* delimiter = " ";
 		std::ifstream fin;
 		fin.open(fileName);
 		if (fin.fail())
@@ -186,7 +186,7 @@ namespace wilson
 		while (!fin.eof())
 		{
 			std::getline(fin, line);
-			char* tok = strtok((char*)line.c_str(), &delimiter);
+			char* tok = strtok((char*)line.c_str(), delimiter);
 			if (tok == nullptr)
 			{
 				continue;
@@ -194,11 +194,11 @@ namespace wilson
 
 			if (strcmp(tok, "Ka")==0)
 			{
-				tok = strtok(nullptr, &delimiter);
+				tok = strtok(nullptr, delimiter);
 				float x = std::stof(tok);
-				tok = strtok(nullptr, &delimiter);
+				tok = strtok(nullptr, delimiter);
 				float y = std::stof(tok);
-				tok = strtok(nullptr, &delimiter);
+				tok = strtok(nullptr, delimiter);
 				float z = std::stof(tok);
 
 				DirectX::XMFLOAT4 ambient4(x, y, z, 1.0f);
@@ -206,11 +206,11 @@ namespace wilson
 			}
 			else if (strcmp(tok,"Kd")==0)
 			{
-				tok = strtok(nullptr, &delimiter);
+				tok = strtok(nullptr, delimiter);
 				float x = std::stof(tok);
-				tok = strtok(nullptr, &delimiter);
+				tok = strtok(nullptr, delimiter);
 				float y = std::stof(tok);
-				tok = strtok(nullptr, &delimiter);
+				tok = strtok(nullptr, delimiter);
 				float z = std::stof(tok);
 
 				DirectX::XMFLOAT4 diffuse4(x, y, z, 1.0f);
@@ -218,11 +218,11 @@ namespace wilson
 			}
 			else if (strcmp(tok,"Ks")==0)
 			{
-				tok = strtok(nullptr, &delimiter);
+				tok = strtok(nullptr, delimiter);
 				float x = std::stof(tok);
-				tok = strtok(nullptr, &delimiter);
+				tok = strtok(nullptr, delimiter);
 				float y = std::stof(tok);
-				tok = strtok(nullptr, &delimiter);
+				tok = strtok(nullptr, delimiter);
 				float z = std::stof(tok);
 
 				DirectX::XMFLOAT4 specular4(x, y, z, 1.0f);
@@ -230,7 +230,7 @@ namespace wilson
 			}
 			else if (strcmp(tok,"map_Kd")==0)
 			{
-				tok = strtok(nullptr, &delimiter);
+				tok = strtok(nullptr, delimiter);
 				std::string str(tok);
 				std::wstring wstr(str.begin(),str.end());
 

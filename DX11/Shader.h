@@ -28,7 +28,11 @@ namespace wilson
 			m_pContext->VSSetShader(m_pSkyBoxVS, nullptr, 0);
 			m_pContext->PSSetShader(m_pSkyBoxPS, nullptr, 0);
 		}
-		
+		inline void SetShadowShader()
+		{
+			m_pContext->VSSetShader(m_pShadowVS, nullptr, 0);
+			m_pContext->PSSetShader(nullptr, nullptr, 0);
+		}
 
 		Shader(ID3D11Device* pDevice, ID3D11DeviceContext* context);
 		~Shader();
@@ -38,7 +42,7 @@ namespace wilson
 		ID3D11Device* m_pDevice;
 		ID3D11DeviceContext* m_pContext;
 
-		ID3D11VertexShader* m_pVS, *m_pSkyBoxVS;
+		ID3D11VertexShader* m_pVS, *m_pSkyBoxVS, *m_pShadowVS;
 		ID3D11PixelShader* m_pPS, *m_pSkyBoxPS;
 
 

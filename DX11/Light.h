@@ -4,6 +4,7 @@
 #include <dxgi.h>
 #include <d3d11.h>
 #include <DirectXMath.h>
+#include "Camera.h"
 
 namespace wilson
 {   
@@ -12,7 +13,7 @@ namespace wilson
 		DirectX::XMVECTOR specular;
 		DirectX::XMVECTOR ambient;
 		DirectX::XMVECTOR diffuse;
-		DirectX::XMFLOAT3 direction;
+		DirectX::XMFLOAT3 position;
 		float pad;
 	};
 	struct PointLight
@@ -55,33 +56,48 @@ namespace wilson
 		bool Init();
 		void Update();
 
+
 		inline DirectionalLight GetDirLight()
 		{
 			return m_dirLight;
 		}
-		inline PointLight       GetPointLight()
+		inline PointLight GetPointLight()
 		{
 			return m_pointLight;
 		}
-		inline SpotLight        GetSpotLight()
+		inline SpotLight GetSpotLight()
 		{
 			return m_spotLight;
 		}
-		inline void             SetDirLight(DirectionalLight dirLight)
+		inline void SetDirLight(DirectionalLight dirLight)
 		{
 			m_dirLight = dirLight;
 		}
-		inline void             SetPointLight(PointLight pointLight)
+		inline void SetPointLight(PointLight pointLight)
 		{
 			m_pointLight = pointLight;
 		}
-		inline void             SetSpotLight(SpotLight spotLight)
+		inline void SetSpotLight(SpotLight spotLight)
 		{
 			m_spotLight = spotLight;
 		}
 
+		void UpdateViewMat(Camera* pCam);
+		void UpdateProjMat(Camera* pCam);
+		DirectX::XMMATRIX* GetLightSpaceMat();
+		inline DirectX::XMMATRIX* GetLitViewMat()
+		{
+			return &m_viewMat;
+		}
+		inline DirectX::XMMATRIX* GetLitProjMat()
+		{
+			return &m_projMat;
+		}
+
 		Light(ID3D11Device* pDevice, ID3D11DeviceContext* context);
 		~Light();
+	private:
+
 	private:
 
 		ID3D11Device* m_pDevice;
@@ -91,6 +107,10 @@ namespace wilson
 		DirectionalLight m_dirLight;
 		PointLight       m_pointLight;
 		SpotLight        m_spotLight;
+
+		DirectX::XMMATRIX m_lightSpaceMat;
+		DirectX::XMMATRIX m_viewMat;
+		DirectX::XMMATRIX m_projMat;
 	};
 }
 #endif 

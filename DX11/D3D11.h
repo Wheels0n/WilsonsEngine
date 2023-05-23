@@ -20,7 +20,7 @@
 #include "Shader.h"
 #include "Terrain.h"
 #include "Import.h"
-
+#include "ShadowMap.h"
 
 //D:\DirectxSDK\Include;$(IncludePath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;$(IncludePath)
 //D:\DirectxSDK\Lib\x64;$(LibraryPath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x64;$(LibraryPath)
@@ -84,6 +84,7 @@ namespace wilson
 			ID3D11DepthStencilView**);
 		bool CreateDSS();
 
+		void DrawENTT();
 		void DestroyDSS();
 		void DestroyRTT();
 		void DestroyDSBforRTT();
@@ -107,6 +108,8 @@ namespace wilson
 		ID3D11SamplerState* m_pSampleState;
 		ID3D11BlendState* m_pNoRenderTargetWritesBS, * m_pTransparentBS;
 
+		D3D11_VIEWPORT m_viewport;
+
 		Importer* m_pImporter;
 		std::vector<Model*> m_ppModels;
 		Terrain* m_pTerrain;
@@ -115,6 +118,7 @@ namespace wilson
 		MatBuffer* m_pMatBuffer;
 		Light* m_pLight;
 		Shader* m_pShader;
+		ShadowMap* m_pShadowMap;
 
 		XMMATRIX m_idMat = XMMatrixIdentity();
 		int m_clientWidth;

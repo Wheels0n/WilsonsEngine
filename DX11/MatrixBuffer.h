@@ -13,6 +13,7 @@ struct MatrixBuffer
 	XMMATRIX m_worldMat;
 	XMMATRIX m_viewMat;
 	XMMATRIX m_projMat;
+	XMMATRIX m_lightSpaceMat;
 };
 class MatBuffer
 {
@@ -21,6 +22,10 @@ public:
 	void ShutDown();
 	void Update();
 	
+	inline void SetProjMatrix(XMMATRIX* projMat)
+	{
+		m_projMat = *projMat;
+	}
 	inline void SetViewMatrix(XMMATRIX* viewMatrix)
 	{
 		m_viewMat = *viewMatrix;
@@ -28,6 +33,10 @@ public:
 	inline void SetWorldMatrix(XMMATRIX* worldMatrix)
 	{
 		m_worldMat = *worldMatrix;
+	}
+	inline void SetLightSpaceMatrix(XMMATRIX* plightSpaceMat)
+	{
+		m_lightSpaceMat = *plightSpaceMat;
 	}
 	inline ID3D11Buffer* getMB()
 	{
@@ -43,7 +52,7 @@ private:
 	XMMATRIX m_worldMat;
 	XMMATRIX m_projMat;
 	XMMATRIX m_viewMat;
-
+	XMMATRIX m_lightSpaceMat;
 	ID3D11Buffer* m_pMatBuffer;
 };
 

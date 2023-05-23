@@ -41,6 +41,7 @@ namespace wilson
 		m_pMatBuffer = nullptr;
 		m_pLight = nullptr;
 		m_pShader = nullptr;
+		m_pShadowMap = nullptr;
 	}
 
 	bool D3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
@@ -60,7 +61,6 @@ namespace wilson
 		D3D_FEATURE_LEVEL featureLevel;
 		ID3D11Texture2D* pBackbuffer;
 		D3D11_RASTERIZER_DESC rasterDesc;
-		D3D11_VIEWPORT viewport;
 		D3D11_RENDER_TARGET_BLEND_DESC rtBlendDSC;
 		float fFOV, fScreenAspect;
 		m_bVsyncOn = bVsync;
@@ -313,7 +313,7 @@ namespace wilson
 
 		rasterDesc.AntialiasedLineEnable = false;
 		rasterDesc.CullMode = D3D11_CULL_NONE;
-		rasterDesc.DepthBias = 0;
+		rasterDesc.DepthBias = 0.0f;
 		rasterDesc.DepthBiasClamp = 0.0f;
 		rasterDesc.DepthClipEnable = true;
 		rasterDesc.FillMode = D3D11_FILL_SOLID;
@@ -330,14 +330,12 @@ namespace wilson
 
 		m_pContext->RSSetState(m_pRS);
 		
-		viewport.Width = static_cast<float>(screenWidth);
-		viewport.Height = static_cast<float>(screenHeight);
-		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth = 1.0f;
-		viewport.TopLeftX = 0.0f;
-		viewport.TopLeftY = 0.0f;
-
-		m_pContext->RSSetViewports(1, &viewport);
+		m_viewport.Width = static_cast<float>(screenWidth);
+		m_viewport.Height = static_cast<float>(screenHeight);
+		m_viewport.MinDepth = 0.0f;
+		m_viewport.MaxDepth = 1.0f;
+		m_viewport.TopLeftX = 0.0f;
+		m_viewport.TopLeftY = 0.0f;
 
 		//Set projectionMatrix, viewMatrix;
 		m_pTerrain = new Terrain;
@@ -365,6 +363,9 @@ namespace wilson
 
 		m_pShader = new Shader(m_pDevice, m_pContext);
 		m_pShader->Init();
+
+		m_pShadowMap = new ShadowMap();
+		m_pShadowMap->Init(m_pDevice, 2048, 2048);
 
 
 		D3D11_SAMPLER_DESC samplerDesc = {};
@@ -542,6 +543,12 @@ namespace wilson
 			m_pShader = nullptr;
 		}
 
+		if (m_pShadowMap != nullptr)
+		{
+			delete m_pShadowMap;
+			m_pShadowMap = nullptr;
+		}
+
 		if (m_pNoRenderTargetWritesBS != nullptr)
 		{
 			m_pNoRenderTargetWritesBS->Release();
@@ -570,23 +577,27 @@ namespace wilson
 	{
 		//clear views
 		HRESULT hr;
-		XMMATRIX m_worldMat = XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
+		XMMATRIX m_worldMat = XMMatrixIdentity();//XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
 		UINT stride = sizeof(XMFLOAT3);
 		UINT offset = 0;
 		int drawed = 0;
+		ID3D11ShaderResourceView* nullSRV = nullptr;
 
 		m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
 		m_pContext->ClearRenderTargetView(m_pRTTV, color);
 		m_pContext->ClearDepthStencilView(m_pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		m_pContext->ClearDepthStencilView(m_pDSVforRTT, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDSVforRTT);
-		//Update Light
-		m_pLight->Update();
+	
 		//Update Cam 
 		m_pCam->Update();
 		m_pFrustum->Construct(100.0f, m_pCam);
+		//Update Light
+		m_pLight->Update();
+		m_pLight->UpdateViewMat(m_pCam);
+		m_pLight->UpdateProjMat(m_pCam);
+
 		/*Draw Terrain
 		m_pCTerrain->UploadBuffers(m_pContext);
 		m_pCMBuffer->SetViewMatrix(m_pCCam->GetViewMatrix());
@@ -594,10 +605,67 @@ namespace wilson
 		m_pCMBuffer->Update();
 		m_pContext->DrawIndexed(m_pCTerrain->GetIndexCount(), 0, 0);
 		*/
-		
+		//Draw ShadowMap
+		m_pContext->PSSetShaderResources(1, 1, &nullSRV);
+		m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
+		m_pShadowMap->BindDSV(m_pContext);
+		m_pShader->SetInputLayout();
+		m_pShader->SetShadowShader();
+		//m_pMatBuffer->SetWorldMatrix(&m_worldMat);
+		m_pMatBuffer->SetViewMatrix(m_pLight->GetLitViewMat());
+		m_pMatBuffer->SetProjMatrix(m_pLight->GetLitProjMat());
+		m_pMatBuffer->SetLightSpaceMatrix(m_pLight->GetLightSpaceMat());
+		m_pContext->OMSetDepthStencilState(0, 0);
+		for (int i = 0; i < m_ppModels.size(); ++i)
+		{
+			m_worldMat = m_ppModels[i]->GetTransformMatrix();
+			XMFLOAT4X4 pos4;
+			XMStoreFloat4x4(&pos4, m_worldMat);
+			if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
+			{
+				m_pMatBuffer->SetWorldMatrix(&m_worldMat);
+				m_pMatBuffer->Update();
+
+				if (m_ppModels[i]->GetObjectType() == EObjectType::FBX)
+				{
+					m_pShader->SetInputLayout();
+					std::vector<unsigned int> indicesCount = m_ppModels[i]->GetNumIndice();
+					if (m_ppModels[i]->isInstanced())
+					{
+						std::vector<unsigned int> verticesCount = m_ppModels[i]->GetNumVertexData();
+						m_pShader->SetInputLayout();
+						int numInstance = m_ppModels[i]->GetNumInstance();
+						for (int j = 0; j < verticesCount.size(); ++j)
+						{
+							m_ppModels[i]->UploadBuffers(m_pContext, j);
+							m_pContext->DrawInstanced(verticesCount[j], numInstance, 0, 0);
+						}
+					}
+
+					else
+					{
+						for (int j = 0; j < indicesCount.size(); ++j)
+						{
+							m_ppModels[i]->UploadBuffers(m_pContext, j);
+							m_pContext->Draw(indicesCount[j], 0);
+						}
+					}
+
+				}
+				else
+				{
+					m_ppModels[i]->UploadBuffers(m_pContext);
+					m_pContext->DrawIndexed(m_ppModels[i]->GetIndexCount(), 0, 0);
+				}
+
+			}
+
+		}
 		//Draw EnvMap
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);	
 		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
+		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
+		m_pMatBuffer->SetLightSpaceMatrix(m_pLight->GetLightSpaceMat());
 		m_pMatBuffer->Update();
 		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pShader->SetSkyBoxInputLayout();
@@ -606,13 +674,19 @@ namespace wilson
 		m_pContext->IASetIndexBuffer(m_pSkyBoxIndices, DXGI_FORMAT_R32_UINT, 0);
 		m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
 		m_pContext->RSSetState(m_pSkyBoxRS);
+		m_pContext->RSSetViewports(1, &m_viewport);
 		m_pContext->OMSetDepthStencilState(m_pSkyBoxDSS, 0);
+		m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDSVforRTT);
 		m_pContext->DrawIndexed(36, 0, 0);
+	
 		//Draw ENTTs
 		m_pShader->SetInputLayout();
 		m_pShader->SetShader();
+		m_pContext->PSSetShaderResources(1, 1, m_pShadowMap->GetSRV());
+		m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetShadowSampler());
 		m_pContext->RSSetState(m_pRS);
-		m_pContext->OMSetDepthStencilState(m_pDefualtDSS, 1);
+		m_pContext->RSSetViewports(1, &m_viewport);
+		m_pContext->OMSetDepthStencilState(0, 0);
 		for (int i = 0; i < m_ppModels.size(); ++i)
 		{
 			m_worldMat = m_ppModels[i]->GetTransformMatrix();
@@ -845,6 +919,10 @@ namespace wilson
 		}
 
 		return true;
+	}
+
+	void D3D11::DrawENTT()
+	{
 	}
 
 	void D3D11::DestroyDSS()

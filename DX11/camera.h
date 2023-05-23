@@ -54,6 +54,14 @@ namespace wilson {
 		{
 			return &m_projMat;
 		}
+		inline float GetNearZ()
+		{
+			return m_fScreenNear;
+		}
+		inline float GetFarZ()
+		{
+			return m_fScreenFar;
+		}
 
 		void Rotate(int, int);
 		void Translate(DirectX::XMVECTOR);
