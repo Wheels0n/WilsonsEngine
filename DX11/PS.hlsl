@@ -71,12 +71,14 @@ static const float SMAP_DX = 1.0f / SMAP_SIZE;
 
 float CalShadowFactor(SamplerComparisonState shadowSampler,
                         Texture2D shadowMap,
-                        float4 shadowPos)
+                        float4 shadowPos,
+                        float3 normal, float3 lightDir)
 {
     shadowPos.xyz /= shadowPos.w;
     shadowPos.x = shadowPos.x * 0.5f + 0.5f;
     shadowPos.y = shadowPos.y * -0.5f + 0.5f;
-    float depth = shadowPos.z;
+    float bias = max((0.05f * (1.0f - dot(normal, lightDir))), 0.0005f);
+    float depth = shadowPos.z-bias;
     
     const float dx = SMAP_DX;
     float percentLit = 0.0f;
@@ -97,17 +99,15 @@ float CalShadowFactor(SamplerComparisonState shadowSampler,
       return percentLit /= 9.0f;
 }
 void CalDirectionalLight(Material material, DirectionalLight L,
-	float3 normal, float3 toEye, float4 wPos,
+	float3 normal, float3 toEye, float3 lightDir,
 	out float4 ambient, out float4 diffuse, out float4 specular)
 {
     ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
     diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
     specular = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    
-    float3 lightDir = normalize(L.position-wPos.xyz);
 
     ambient = material.ambient * L.ambient;
-    normal = normalize(normal);
+   
     float diffuseFactor = dot(lightDir, normal);
     if (diffuseFactor > 0.0f)
     {
@@ -199,14 +199,17 @@ float4 main(PixelInputType input) : SV_TARGET
     float4 texColor = shaderTexture.Sample(SampleType, input.tex);
     clip(texColor.a - 0.1f );
     
+    float3 lightDir = normalize(dirLight.position - input.wPosition.xyz);
+    float3 normal = normalize(input.normal);
+    
     float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 specular = float4(0.0f, 0.0f, 0.0f, 0.0f);
     
     float4 A, D, S;
-    float shadowFactor = CalShadowFactor(shadowSampler, shadowMap, input.shadowPos);
+    float shadowFactor = CalShadowFactor(shadowSampler, shadowMap, input.shadowPos, normal, lightDir);
     
-    CalDirectionalLight(gMaterial, dirLight, input.normal, input.toEye, input.wPosition, A, D, S);
+    CalDirectionalLight(gMaterial, dirLight, normal, input.toEye, lightDir, A, D, S);
     ambient += A;
     diffuse += D * shadowFactor;
     specular += S * shadowFactor;

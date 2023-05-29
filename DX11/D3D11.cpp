@@ -320,7 +320,7 @@ namespace wilson
 		rasterDesc.FrontCounterClockwise = false;
 		rasterDesc.MultisampleEnable = false;
 		rasterDesc.ScissorEnable = false;
-		rasterDesc.SlopeScaledDepthBias = 0.0f;
+		rasterDesc.SlopeScaledDepthBias = 1.0f;
 
 		hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pRS);
 		if (FAILED(hr))
