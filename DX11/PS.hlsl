@@ -108,15 +108,15 @@ void CalDirectionalLight(Material material, DirectionalLight L,
 
     ambient = material.ambient * L.ambient;
    
-    float diffuseFactor = dot(lightDir, normal);
-    if (diffuseFactor > 0.0f)
+    float diffuseFactor = max(dot(lightDir, normal), 0.0f);
+    diffuse = diffuseFactor * material.diffuse * L.diffuse;
+    if(diffuseFactor!=0.0f)
     {
-        float3 r = normalize(reflect(-lightDir, normal));
-        float specFactor = pow(max(dot(normalize(toEye),r),0.0f), material.specular.w);
-        
-        diffuse = diffuseFactor * material.diffuse * L.diffuse;
+        float3 h = normalize(toEye + lightDir);
+        float specFactor = pow(max(dot(normal, h), 0.0f), material.specular.w);
         specular = specFactor * material.specular * L.specular;
     }
+ 
 }
 void CalPointLight(Material material, PointLight L, float3 pos, float3 normal, float3 toEye,
 out float4 ambient, out float4 diffuse, out float4 specular)
