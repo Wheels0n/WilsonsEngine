@@ -63,8 +63,11 @@ namespace wilson {
 		m_pIndexBuffer = nullptr;
 
 		m_SRV = nullptr;
-		wchar_t* ptr = nullptr;
-		m_pName = wcstok(pName, (const wchar_t*)L".", &ptr);
+		
+		int len=wcslen(pName);
+		m_pName = new wchar_t[len+1];
+		wcscpy(m_pName,pName);
+		m_pName[len] = L'\0';
 
 		m_scMat = DirectX::XMMatrixIdentity();
 		m_rtMat = DirectX::XMMatrixIdentity();
@@ -139,6 +142,11 @@ namespace wilson {
 				m_textures[i].texture->Release();
 				m_textures[i].texture = nullptr;
 			}
+		}
+
+		if (m_pName != nullptr)
+		{
+			delete []m_pName;
 		}
 
 	}

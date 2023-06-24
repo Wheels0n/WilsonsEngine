@@ -1,26 +1,34 @@
 #include "Import.h"
 #include <cwchar>
 #include <filesystem>
+
+unsigned long g_vertexVecCount=0;
+unsigned long g_texVecCount=0;
+unsigned long g_normalVecCount=0;
+
 namespace wilson
 {
 	Importer::Importer()
 	{
 		m_vertexCount = 0;
-		m_vertexCoordCount = 0;
-		m_texCoordCount = 0;
-		m_normalVectorCount = 0;
+		m_vertexVecCount = 0;
+		m_texVecCount = 0;
+		m_normalVecCount = 0;
 		m_indexCount = 0;
 		m_objectCount = 0;
 		m_texCount = 0;
 
 		m_pModel = nullptr;
-		m_pVertexCoord = nullptr;
-		m_pNormalVector = nullptr;
-		m_pTexCoord = nullptr;
+		m_pVertexVecs = nullptr;
+		m_pNormalVecs = nullptr;
+		m_pTexVecs = nullptr;
 		m_pVertexData = nullptr;
 		m_pIndices = nullptr;
 		m_pSRV = nullptr;
+
 		m_curDir = nullptr;
+		m_mtlPath = nullptr;
+		m_fileName = nullptr;
 
 		m_fbxManager = FbxManager::Create();
 		m_fbxIOsettings = FbxIOSettings::Create(m_fbxManager, IOSROOT);
@@ -28,34 +36,39 @@ namespace wilson
 		m_fbxImporter = FbxImporter::Create(m_fbxManager, "");
 	}
 
-	bool Importer::LoadOBJ(LPCWSTR fileName, ID3D11Device* pDevice)
+	std::streampos Importer::GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName)
 	{
-
+		std::string line;
 		std::ifstream fin;
-		fin.open(fileName);
+		std::streampos lastPos;
+		char ch;
 
+		fin.open(fileName,std::ios_base::binary);
 		if (fin.fail())
 		{
-			return false;
+			return pos;
 		}
-		char ch;
-		std::string line;
+
+		fin.seekg(pos);
+		std::getline(fin, line);
+		objName = line;
 
 		while (!fin.eof())
-		{
+		{	
 			std::getline(fin, line, ' ');
+
 			if (line.compare("v") == 0)
 			{
-				++m_vertexCoordCount;
+				++m_vertexVecCount;
 			}
 			else if (line.compare("vt") == 0)
 			{
-				++m_texCoordCount;
+				++m_texVecCount;
 			}
 
 			else if (line.compare("vn") == 0)
 			{
-				++m_normalVectorCount;
+				++m_normalVecCount;
 			}
 
 			else if (line.compare("f") == 0)
@@ -73,59 +86,79 @@ namespace wilson
 				}
 				continue;
 			}
+			else if (line.compare("o") == 0)
+			{	
+				lastPos = fin.tellg();
+				lastPos -= 2;
+				break;
+			}
+
 			std::getline(fin, line);
 		}
-		fin.close();
-		ch = ' ';
 
-		m_pVertexCoord = new DirectX::XMFLOAT3[m_vertexCoordCount];
-		m_pTexCoord = new DirectX::XMFLOAT2[m_texCoordCount];
-		m_pNormalVector = new DirectX::XMFLOAT3[m_normalVectorCount];
+
+		fin.close();
+		return lastPos;
+	}
+	void Importer::LoadSubOBJ(LPCWSTR fileName, std::streampos pos, ID3D11Device* pDevice, std::string& objName)
+	{	
+		char ch = ' ';
+		std::string line, matName;
+		std::ifstream fin;
+		fin.open(fileName, std::ios_base::binary);
+		if (fin.fail())
+		{
+			return;
+		}
+		fin.seekg(pos);
+		std::getline(fin, line);
+
+		m_pVertexVecs = new DirectX::XMFLOAT3[m_vertexVecCount];
+		m_pTexVecs = new DirectX::XMFLOAT2[m_texVecCount];
+		m_pNormalVecs = new DirectX::XMFLOAT3[m_normalVecCount];
 
 		m_pVertexData = new VertexData[m_vertexCount];
 		m_pIndices = new unsigned long[m_vertexCount];
 
-		ZeroMemory(m_pVertexCoord, sizeof(DirectX::XMFLOAT3) * m_vertexCoordCount);
-		ZeroMemory(m_pTexCoord, sizeof(DirectX::XMFLOAT2) * m_texCoordCount);
-		ZeroMemory(m_pNormalVector, sizeof(DirectX::XMFLOAT3) * m_normalVectorCount);
+		ZeroMemory(m_pVertexVecs, sizeof(DirectX::XMFLOAT3) * m_vertexVecCount);
+		ZeroMemory(m_pTexVecs, sizeof(DirectX::XMFLOAT2) * m_texVecCount);
+		ZeroMemory(m_pNormalVecs, sizeof(DirectX::XMFLOAT3) * m_normalVecCount);
 		ZeroMemory(m_pVertexData, sizeof(VertexData) * m_vertexCount);
 
-		fin.open(fileName);
-		if (fin.fail())
-		{
-			return false;
-		}
-
 		char type;
-		int vCnt = 0, vtCnt = 0, vnCnt = 0, i;
+		int vCnt = 0, vtCnt = 0, vnCnt = 0;
 		while (!fin.eof())
 		{
 			fin.get(type);
+			if (type == 'o')//off면 안됨
+			{
+				break;
+			}
 
-			if (type == 'v')
+			else if (type == 'v')
 			{
 				fin.get(type);
 				if (type == ' ')
 				{
-					fin >> m_pVertexCoord[vCnt].x
-						>> m_pVertexCoord[vCnt].y
-						>> m_pVertexCoord[vCnt].z;
-					m_pVertexCoord[vCnt].z *= -1;
+					fin >> m_pVertexVecs[vCnt].x
+						>> m_pVertexVecs[vCnt].y
+						>> m_pVertexVecs[vCnt].z;
+					m_pVertexVecs[vCnt].z *= -1;
 					++vCnt;
 				}
 				else if (type == 't')
 				{
-					fin >> m_pTexCoord[vtCnt].x
-						>> m_pTexCoord[vtCnt].y;
-					m_pTexCoord[vtCnt].y = 1 - m_pTexCoord[vtCnt].y;
+					fin >> m_pTexVecs[vtCnt].x
+						>> m_pTexVecs[vtCnt].y;
+					m_pTexVecs[vtCnt].y = 1 - m_pTexVecs[vtCnt].y;
 					++vtCnt;
 				}
 				else if (type == 'n')
 				{
-					fin >> m_pNormalVector[vnCnt].x
-						>> m_pNormalVector[vnCnt].y
-						>> m_pNormalVector[vnCnt].z;
-					m_pNormalVector[vnCnt].z *= -1;
+					fin >> m_pNormalVecs[vnCnt].x
+						>> m_pNormalVecs[vnCnt].y
+						>> m_pNormalVecs[vnCnt].z;
+					m_pNormalVecs[vnCnt].z *= -1;
 					++vnCnt;
 				}
 			}
@@ -145,35 +178,109 @@ namespace wilson
 						if (!fin.fail())
 						{
 
-							m_pVertexData[m_indexCount].position = m_pVertexCoord[v - 1];
-							m_pVertexData[m_indexCount].UV = m_pTexCoord[vt - 1];
-							m_pVertexData[m_indexCount].norm = m_pNormalVector[vn - 1];
+							m_pVertexData[m_indexCount].position = m_pVertexVecs[v -g_vertexVecCount- 1];
+							m_pVertexData[m_indexCount].UV = m_pTexVecs[vt - g_texVecCount -1];
+							m_pVertexData[m_indexCount].norm = m_pNormalVecs[vn -g_normalVecCount- 1];
 							//오른손좌표계에서 왼손좌표계로
-							m_pIndices[m_indexCount] = m_vertexCount - m_indexCount - 1;
+							m_pIndices[m_indexCount] = m_indexCount;
 							++m_indexCount;
 						}
 
 					}
 					fin.clear();
 				}
+			
+			}
+			else if (type == 'u')
+			{
+				std::getline(fin, line,' ');
+				std::getline(fin, line);
+				matName = line;
+			}
+			else if(type=='s')
+			{
+				std::getline(fin, line);
 			}
 		}
+		g_vertexVecCount += m_vertexVecCount;
+		g_texVecCount += m_texVecCount;
+		g_normalVecCount += m_normalVecCount;
+
+		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
+		m_pModel = new Model(m_pVertexData, m_pIndices, m_vertexCount, m_indexCount, (wchar_t*)wobjName.c_str());
+		m_pModelGroup.push_back(m_pModel);
+		LoadMTL(m_mtlPath, (char*)matName.c_str(), m_pModel, pDevice);
+		++m_objectCount;
 
 		fin.close();
+		
+	}
+	bool Importer::LoadOBJ(LPCWSTR fileName, ID3D11Device* pDevice)
+	{
 
-		wchar_t* tok = GetModelName(fileName);
+		std::ifstream fin;
+		fin.open(fileName,std::ios::binary);
 
-		m_pModel = new Model(m_pVertexData, m_pIndices, m_vertexCount, m_indexCount,tok);
-		wchar_t* mtlPath = GetMTLPath(m_curDir, tok);
-		LoadMTL(mtlPath, m_pModel, pDevice);
-		delete mtlPath;
-		++m_objectCount;
+		if (fin.fail())
+		{
+			return false;
+		}
+		
+		std::string line;
+		std::string objName;
+		std::streampos curPos,nextPos;
+		while (!fin.eof())
+		{	
+			std::getline(fin, line,' ');
+			if (line.compare("o") == 0)
+			{	
+				curPos = fin.tellg();
+				nextPos=GetCnts(fileName, curPos, objName);
+				LoadSubOBJ(fileName, curPos, pDevice, objName);
+				Clear();
+				if (nextPos == 0)
+				{
+					break;
+				}
+				fin.seekg(nextPos);
+			}
+			else
+			{
+				std::getline(fin, line);
+			}
+			
+			
+		}
+		fin.close();
+
+		g_vertexVecCount = 0;
+		g_texVecCount    = 0;
+		g_normalVecCount = 0;
 		return true;
 	}
-	bool Importer::LoadMTL(wchar_t* fileName, Model* pModel, ID3D11Device* pDevice)
+	bool Importer::LoadModel(const char* extension, LPCWSTR fileName, ID3D11Device* pDevice)
+	{
+		GetCurDir(fileName);
+		int len = wcslen(fileName);
+		m_fileName = new wchar_t[len + 1];
+		wcscpy(m_fileName, fileName);
+		m_fileName[len] = L'\0';
+		m_fileName = GetModelName(m_fileName);
+		m_mtlPath = GetMTLPath(m_curDir, m_fileName);//파일명과 subMesh명이 반드시 일치x
+		if (!strcmp(extension, "obj"))
+		{
+			return LoadOBJ(fileName, pDevice);
+		}
+		else if (!strcmp(extension, "fbx"))
+		{
+			return LoadFbx(fileName, pDevice);
+		}
+
+		delete[] m_fileName;
+	}
+	bool Importer::LoadMTL(wchar_t* fileName, char* matName, Model* pModel, ID3D11Device* pDevice)
 	{
 		Material mat = { 0, };
-
 		const char* delimiter = " ";
 		std::ifstream fin;
 		fin.open(fileName);
@@ -183,16 +290,46 @@ namespace wilson
 		}
 
 		std::string line;
+		for (int i = 0; i < 3; ++i)
+		{
+			std::getline(fin, line);
+		}
+
+		while (1)
+		{
+			std::getline(fin, line, ' ');
+			if (line.compare("newmtl") == 0)
+			{	
+				std::getline(fin, line);
+				if (line.compare(matName) == 0)
+				{
+					break;
+				}
+			}
+			else
+			{
+				while (line.compare("") != 0)
+				{
+					std::getline(fin, line);
+				}
+			}
+		}
+
+		float shininess = 1.0f;
 		while (!fin.eof())
 		{
 			std::getline(fin, line);
 			char* tok = strtok((char*)line.c_str(), delimiter);
 			if (tok == nullptr)
 			{
-				continue;
+				break;
 			}
-
-			if (strcmp(tok, "Ka")==0)
+			if (strcmp(tok, "Ns") == 0)
+			{
+				tok = strtok(nullptr, delimiter);
+				shininess = std::stof(tok);
+			}
+			else if (strcmp(tok, "Ka")==0)
 			{
 				tok = strtok(nullptr, delimiter);
 				float x = std::stof(tok);
@@ -225,29 +362,31 @@ namespace wilson
 				tok = strtok(nullptr, delimiter);
 				float z = std::stof(tok);
 
-				DirectX::XMFLOAT4 specular4(x, y, z, 1.0f);
+				DirectX::XMFLOAT4 specular4(x, y, z, shininess);
 				mat.specular = DirectX::XMLoadFloat4(&specular4);
 			}
-			else if (strcmp(tok,"map_Kd")==0)
+			else if (strcmp(tok,"map_Kd")==0)//|| strcmp(tok, "map_bump") == 0)
 			{
 				tok = strtok(nullptr, delimiter);
 				std::string str(tok);
 				std::wstring wstr(str.begin(),str.end());
+				int pos = wstr.find_last_of(L'\\');
+				wstr = wstr.substr(pos + 1, std::string::npos);
 
 				int len = wcslen(m_curDir) + wstr.length() + 2;
-				wchar_t* diffuseMapPath = new wchar_t[len];
-				wcscpy(diffuseMapPath, m_curDir);
-				diffuseMapPath = wcsncat(diffuseMapPath, L"\\", 2);
-				diffuseMapPath = wcsncat(diffuseMapPath, wstr.c_str(), wstr.size());
+				wchar_t* mapPath = new wchar_t[len];
+				wcscpy(mapPath, m_curDir);
+				mapPath = wcsncat(mapPath, L"\\", 2);
+				mapPath = wcsncat(mapPath, wstr.c_str(), wstr.size());
 
-				LoadTex(pModel, diffuseMapPath, pDevice);
-				delete diffuseMapPath;
+				LoadTex(pModel, mapPath, pDevice);
+				delete [] mapPath;
 			}
+			
 		}
 		fin.close();
 		pModel->AddMaterial(mat);
 	}
-	
 	void Importer::GetCurDir(LPCWSTR fileName)
 	{
 		std::wstring::size_type pos = std::wstring(fileName).find_last_of(L"\\");
@@ -262,8 +401,7 @@ namespace wilson
 	{	
 		int len = wcslen(filePath);
 		len += wcslen(tok);
-		len += 7;
-
+		len += 7; //.mtl\0 + // + 
 		wchar_t* ptr = nullptr;
 		wchar_t* tmp = new wchar_t[len];
 		tmp = wcscpy(tmp, filePath);
@@ -293,6 +431,7 @@ namespace wilson
 
 		}
 
+		tok = wcstok(tok, L".", &ptr);
 		return tok;
 	}
 	bool Importer::LoadFbxTex(std::string fileName, FbxSurfaceMaterial* pSurfaceMaterial,
@@ -666,35 +805,42 @@ namespace wilson
 
 		wchar_t* tok = GetModelName(fileName);
 		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos, materialVec, texVec, tok);
+		m_pModelGroup.push_back(m_pModel);
 		return true;
 	}
 
 	Importer::~Importer()
 	{
 		Clear();
+		if (m_curDir != nullptr)
+		{
+			delete m_curDir;
+			m_curDir = nullptr;
+		}
+
+
 		m_fbxIOsettings->Destroy();
 		m_fbxManager->Destroy();
 	}
-
 	void Importer::Clear()
 	{
 		//m_fbxImporter->Destroy();
-		if (m_pVertexCoord != nullptr)
+		if (m_pVertexVecs != nullptr)
 		{
-			delete m_pVertexCoord;
-			m_pVertexCoord = nullptr;
+			delete m_pVertexVecs;
+			m_pVertexVecs = nullptr;
 		}
 
-		if (m_pTexCoord != nullptr)
+		if (m_pTexVecs != nullptr)
 		{
-			delete m_pTexCoord;
-			m_pTexCoord = nullptr;
+			delete m_pTexVecs;
+			m_pTexVecs = nullptr;
 		}
 
-		if (m_pNormalVector != nullptr)
+		if (m_pNormalVecs != nullptr)
 		{
-			delete m_pNormalVector;
-			m_pNormalVector = nullptr;
+			delete m_pNormalVecs;
+			m_pNormalVecs = nullptr;
 		}
 
 		if (m_pVertexData != nullptr)
@@ -707,16 +853,10 @@ namespace wilson
 			m_pIndices = nullptr;
 		}
 
-		if (m_curDir != nullptr)
-		{
-			delete m_curDir;
-			m_curDir = nullptr;
-		}
-
 		m_vertexCount = 0;
 		m_indexCount = 0;
-		m_vertexCoordCount = 0;
-		m_texCoordCount = 0;
-		m_normalVectorCount = 0;
+		m_vertexVecCount = 0;
+		m_texVecCount = 0;
+		m_normalVecCount = 0;
 	}
 }

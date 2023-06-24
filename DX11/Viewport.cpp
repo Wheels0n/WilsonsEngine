@@ -49,41 +49,44 @@ namespace wilson
 					{
 						const wchar_t* path = (const wchar_t*)payLoad->Data;
 						m_importer.LoadModel(modelFormats[i],path,m_pDevice);
-						Model* pModel = m_importer.GetModel();
-						m_importer.Clear();
-						//
-						XMMATRIX* pTrMat = pModel->GetTranslationMatrix();
-						XMFLOAT4X4 trMat4;
-						XMStoreFloat4x4(&trMat4, *pTrMat);
+						std::vector<Model*> meshGroup = m_importer.GetModel();
+						for (int i = 0; i <meshGroup.size();++i)
+						{
+							Model* pModel = meshGroup[i];
+							//
+							XMMATRIX* pTrMat = pModel->GetTranslationMatrix();
+							XMFLOAT4X4 trMat4;
+							XMStoreFloat4x4(&trMat4, *pTrMat);
 
-						XMVECTOR m_camPos = *(m_pCam->GetPosition());
-						XMFLOAT4 camPos4;
-						XMStoreFloat4(&camPos4, m_camPos);
+							XMVECTOR m_camPos = *(m_pCam->GetPosition());
+							XMFLOAT4 camPos4;
+							XMStoreFloat4(&camPos4, m_camPos);
 
-						XMMATRIX projMat = *(m_pCam->GetProjectionMatrix());
-						XMFLOAT4X4 projMat4;
-						XMStoreFloat4x4(&projMat4, projMat);
-						float ratio = width / (float)height;
+							XMMATRIX projMat = *(m_pCam->GetProjectionMatrix());
+							XMFLOAT4X4 projMat4;
+							XMStoreFloat4x4(&projMat4, projMat);
+							float ratio = width / (float)height;
 
-						float dx = (x / (width * 0.5f) - 1.0f) / (projMat4._22 * ratio);
-						float dy = (1.0f - y / (height * 0.5f)) / projMat4._22;
-						float dz = camPos4.z + 6;
+							float dx = (x / (width * 0.5f) - 1.0f) / (projMat4._22 * ratio);
+							float dy = (1.0f - y / (height * 0.5f)) / projMat4._22;
+							float dz = camPos4.z + 6;
 
-						XMVECTOR pPos = XMVectorSet(dx * dz, dy * dz, dz, 0.0f);
+							XMVECTOR pPos = XMVectorSet(dx * dz, dy * dz, dz, 0.0f);
 
-						XMMATRIX viewMat = *(m_pCam->GetViewMatrix());
-						XMMATRIX invViewMat = XMMatrixInverse(nullptr, viewMat);
-						pPos = XMVector4Transform(pPos, invViewMat);
+							XMMATRIX viewMat = *(m_pCam->GetViewMatrix());
+							XMMATRIX invViewMat = XMMatrixInverse(nullptr, viewMat);
+							pPos = XMVector4Transform(pPos, invViewMat);
 
-						XMFLOAT4 pos4;
-						XMStoreFloat4(&pos4, pPos);
-						pos4.z = camPos4.z + 1;
-						pPos = XMLoadFloat4(&pos4);
-						XMMATRIX trMat = XMMatrixTranslationFromVector(pPos);
-						*pTrMat = trMat;
-						//
-						m_pD3D11->AddModel(pModel, m_pDevice);
-						m_pScene->AddEntity(pModel);
+							XMFLOAT4 pos4;
+							XMStoreFloat4(&pos4, pPos);
+							pos4.z = camPos4.z + 1;
+							pPos = XMLoadFloat4(&pos4);
+							XMMATRIX trMat = XMMatrixTranslationFromVector(pPos);
+							*pTrMat = trMat;
+							//
+							m_pD3D11->AddModel(pModel, m_pDevice);
+							m_pScene->AddEntity(pModel);
+						}
 						break;
 					}
 				}

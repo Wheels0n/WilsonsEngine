@@ -14,31 +14,22 @@ namespace wilson {
 
 	public:
 		void Clear();
-		inline Model* GetModel()
+		inline std::vector<Model*>& GetModel()
 		{
-			return m_pModel;
+			return m_pModelGroup;
 		};
 		bool LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* pDevice);
-		bool LoadModel(const char* extension,LPCWSTR fileName, ID3D11Device* pDevice)
-		{	
-			GetCurDir(fileName);
-
-			if (!strcmp(extension, "obj"))
-			{
-				return LoadOBJ(fileName,pDevice);
-			}
-			else if (!strcmp(extension, "fbx"))
-			{
-				return LoadFbx(fileName, pDevice);
-			}
-		}
+		bool LoadModel(const char* extension, LPCWSTR fileName, ID3D11Device* pDevice);
 
 		Importer();
 		~Importer();
 	private:
+		std::streampos GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName);
+
 		bool LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice);
+		void LoadSubOBJ(LPCWSTR fileName, std::streampos pos, ID3D11Device* pDevice, std::string& objName);
 		bool LoadOBJ(LPCWSTR fileName, ID3D11Device* pDevice);
-		bool LoadMTL(wchar_t* fileName, Model* pModel, ID3D11Device* pDevice);
+		bool LoadMTL(wchar_t* fileName, char* matName, Model* pModel, ID3D11Device* pDevice);
 		void GetCurDir(LPCWSTR fileName);
 		wchar_t* GetModelName(LPCWSTR fileName);
 		wchar_t* GetMTLPath(LPCWSTR fileName, wchar_t* tok);
@@ -46,18 +37,19 @@ namespace wilson {
 			std::unordered_set<std::string>& texSet , std::vector<TextureData>& texData, ID3D11Device* pDevice);
 		Material LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial);
 	private:
-		wchar_t* m_curDir;
+		wchar_t* m_curDir, * m_mtlPath, * m_fileName;
 		Model* m_pModel;
-
-		DirectX::XMFLOAT3* m_pVertexCoord;
-		DirectX::XMFLOAT3* m_pNormalVector;
-		DirectX::XMFLOAT2* m_pTexCoord;
+		std::vector<Model*> m_pModelGroup;
+		
+		DirectX::XMFLOAT3* m_pVertexVecs;
+		DirectX::XMFLOAT3* m_pNormalVecs;
+		DirectX::XMFLOAT2* m_pTexVecs;
 		VertexData* m_pVertexData;
 		unsigned long* m_pIndices;
 		unsigned int m_vertexCount;
-		unsigned int m_vertexCoordCount;
-		unsigned int m_texCoordCount;
-		unsigned int m_normalVectorCount;
+		unsigned int m_vertexVecCount;
+		unsigned int m_texVecCount;
+		unsigned int m_normalVecCount;
 		unsigned int m_indexCount;
 		unsigned int m_objectCount;
 		unsigned int m_texCount;
