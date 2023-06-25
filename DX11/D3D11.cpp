@@ -621,7 +621,7 @@ namespace wilson
 			m_worldMat = m_ppModels[i]->GetTransformMatrix();
 			XMFLOAT4X4 pos4;
 			XMStoreFloat4x4(&pos4, m_worldMat);
-			if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
+			//if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
 			{
 				m_pMatBuffer->SetWorldMatrix(&m_worldMat);
 				m_pMatBuffer->Update();
@@ -692,7 +692,7 @@ namespace wilson
 			m_worldMat = m_ppModels[i]->GetTransformMatrix();
 			XMFLOAT4X4 pos4;
 			XMStoreFloat4x4(&pos4, m_worldMat);
-			if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
+			//if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
 			{
 				m_pMatBuffer->SetWorldMatrix(&m_worldMat);
 				m_pMatBuffer->Update();

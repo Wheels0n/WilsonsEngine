@@ -73,9 +73,5 @@ namespace wilson
 		m_pCam->Rotate(dx, dy);
 	}
 
-	void Renderer::Zoom(int dz)
-	{
-		m_pCam->Zoom(dz);
-	}
 
 }

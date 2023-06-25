@@ -25,6 +25,13 @@ namespace wilson
 				using namespace DirectX;
 				static float DragFactor = 0.1f;
 
+				float* curSpeed = m_pCam->GetTRSpeed();
+				float* curNearZ = m_pCam->GetNearZ();
+				float* curFarZ = m_pCam->GetFarZ();
+				ImGui::SliderFloat("Speed", curSpeed, 0.1f, 10.0f);
+				ImGui::SliderFloat("NearZ", curNearZ, 0.001f, 100.f);
+				ImGui::SliderFloat("FarZ", curFarZ,   100.f, 10000.f);
+
 				XMVECTOR* curPosVec = m_pCam->GetPosition();
 				XMFLOAT3 posFloat;
 				XMStoreFloat3(&posFloat, *curPosVec);
@@ -39,7 +46,6 @@ namespace wilson
 					m_pCam->ResetTranslation();
 				}
 				ImGui::PopID();
-
 
 				XMVECTOR* angleVec = m_pCam->GetRotation();
 				XMFLOAT3 angleFloat;

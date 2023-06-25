@@ -7,8 +7,8 @@
 
 constexpr bool g_bFull_SCREEN = false;
 constexpr bool g_bVSYNC_ENABLE =false;
-constexpr float g_fSCREEN_FAR = 1000.0f;
-constexpr float g_fSCREEN_NEAR = 0.01f;
+constexpr float g_fSCREEN_FAR = 3000.0f;
+constexpr float g_fSCREEN_NEAR = 0.1f;
 
 namespace wilson
 {
@@ -27,7 +27,6 @@ namespace wilson
 
 		void Translate(XMVECTOR);
 		void Rotate(int dx, int dy);
-		void Zoom(int dz);
 
 		Renderer();
 		Renderer(Renderer&) = delete;

@@ -28,10 +28,6 @@ namespace wilson {
 		}
 	}
 
-	void Camera::Zoom(int)
-	{
-	}
-
 	void Camera::ResetTranslation()
 	{
 		m_pos = DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 1.0f);
@@ -88,6 +84,8 @@ namespace wilson {
 		m_target = DirectX::XMVectorAdd(m_target, m_pos);
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
 		//m_vUp = XMVector3Transform(m_vUp, rt); no roll
+
+		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
 	}
 
 	void Camera::SetCamBuffer(ID3D11DeviceContext* pContext)
