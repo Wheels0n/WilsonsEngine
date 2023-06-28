@@ -356,10 +356,10 @@ namespace wilson
 
 		//m_pCImporter = new CImporter();
 		//m_pCImporter->LoadOBJ(L"./Models/sphere/Sphere.obj");
-		//m_ppCModels.push_back(m_pCImporter->GetModel());
+		//m_ppCModels.push_back(m_pCImporter->GetModelGroup());
 		//m_pCImporter->LoadTex(m_ppCModels[0], L"./Models/sphere/Sphere.png", m_pDevice);
 		//m_ppCModels[0]->Init(m_pDevice);
-		//m_pCImporter->Clear();
+		//m_pCImporter->ClearModel();
 
 		m_pShader = new Shader(m_pDevice, m_pContext);
 		m_pShader->Init();
@@ -561,15 +561,16 @@ namespace wilson
 			m_pTransparentBS = nullptr;
 		}
 
-		for (int i = 0; i < m_ppModels.size(); ++i)
+		for (int i = 0; i < m_pModelGroups.size(); ++i)
 		{
-			if (m_ppModels[i] != nullptr)
+			if (m_pModelGroups[i] != nullptr)
 			{
-				delete m_ppModels[i];
+				m_pModelGroups[i]->Clear();
+				delete m_pModelGroups[i];
 			}
 		}
-		m_ppModels.clear();
-		m_ppModels.shrink_to_fit();
+		m_pModelGroups.clear();
+		m_pModelGroups.shrink_to_fit();
 		return;
 	}
 
@@ -577,7 +578,7 @@ namespace wilson
 	{
 		//clear views
 		HRESULT hr;
-		XMMATRIX m_worldMat = XMMatrixIdentity();//XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
+		//XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
 		UINT stride = sizeof(XMFLOAT3);
 		UINT offset = 0;
@@ -598,74 +599,21 @@ namespace wilson
 		m_pLight->UpdateViewMat(m_pCam);
 		m_pLight->UpdateProjMat(m_pCam);
 
-		/*Draw Terrain
-		m_pCTerrain->UploadBuffers(m_pContext);
-		m_pCMBuffer->SetViewMatrix(m_pCCam->GetViewMatrix());
-		m_pCMBuffer->SetWorldMatrix(&world);
-		m_pCMBuffer->Update();
-		m_pContext->DrawIndexed(m_pCTerrain->GetIndexCount(), 0, 0);
-		*/
 		//Draw ShadowMap
 		m_pContext->PSSetShaderResources(1, 1, &nullSRV);
 		m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
 		m_pShadowMap->BindDSV(m_pContext);
 		m_pShader->SetInputLayout();
 		m_pShader->SetShadowShader();
-		//m_pMatBuffer->SetWorldMatrix(&m_worldMat);
 		m_pMatBuffer->SetViewMatrix(m_pLight->GetLitViewMat());
 		m_pMatBuffer->SetProjMatrix(m_pLight->GetLitProjMat());
 		m_pMatBuffer->SetLightSpaceMatrix(m_pLight->GetLightSpaceMat());
 		m_pContext->OMSetDepthStencilState(0, 0);
-		for (int i = 0; i < m_ppModels.size(); ++i)
-		{
-			m_worldMat = m_ppModels[i]->GetTransformMatrix();
-			XMFLOAT4X4 pos4;
-			XMStoreFloat4x4(&pos4, m_worldMat);
-			//if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
-			{
-				m_pMatBuffer->SetWorldMatrix(&m_worldMat);
-				m_pMatBuffer->Update();
-
-				if (m_ppModels[i]->GetObjectType() == EObjectType::FBX)
-				{
-					m_pShader->SetInputLayout();
-					std::vector<unsigned int> indicesCount = m_ppModels[i]->GetNumIndice();
-					if (m_ppModels[i]->isInstanced())
-					{
-						std::vector<unsigned int> verticesCount = m_ppModels[i]->GetNumVertexData();
-						m_pShader->SetInputLayout();
-						int numInstance = m_ppModels[i]->GetNumInstance();
-						for (int j = 0; j < verticesCount.size(); ++j)
-						{
-							m_ppModels[i]->UploadBuffers(m_pContext, j);
-							m_pContext->DrawInstanced(verticesCount[j], numInstance, 0, 0);
-						}
-					}
-
-					else
-					{
-						for (int j = 0; j < indicesCount.size(); ++j)
-						{
-							m_ppModels[i]->UploadBuffers(m_pContext, j);
-							m_pContext->Draw(indicesCount[j], 0);
-						}
-					}
-
-				}
-				else
-				{
-					m_ppModels[i]->UploadBuffers(m_pContext);
-					m_pContext->DrawIndexed(m_ppModels[i]->GetIndexCount(), 0, 0);
-				}
-
-			}
-
-		}
+		DrawENTT();
 		//Draw EnvMap
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);	
 		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-		m_pMatBuffer->SetLightSpaceMatrix(m_pLight->GetLightSpaceMat());
 		m_pMatBuffer->Update();
 		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pShader->SetSkyBoxInputLayout();
@@ -687,52 +635,7 @@ namespace wilson
 		m_pContext->RSSetState(m_pRS);
 		m_pContext->RSSetViewports(1, &m_viewport);
 		m_pContext->OMSetDepthStencilState(0, 0);
-		for (int i = 0; i < m_ppModels.size(); ++i)
-		{
-			m_worldMat = m_ppModels[i]->GetTransformMatrix();
-			XMFLOAT4X4 pos4;
-			XMStoreFloat4x4(&pos4, m_worldMat);
-			//if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
-			{
-				m_pMatBuffer->SetWorldMatrix(&m_worldMat);
-				m_pMatBuffer->Update();
-
-				if (m_ppModels[i]->GetObjectType() == EObjectType::FBX)
-				{
-					m_pShader->SetInputLayout();
-					std::vector<unsigned int> indicesCount = m_ppModels[i]->GetNumIndice();
-					if (m_ppModels[i]->isInstanced())
-					{
-						std::vector<unsigned int> verticesCount = m_ppModels[i]->GetNumVertexData();
-						m_pShader->SetInputLayout();
-						int numInstance = m_ppModels[i]->GetNumInstance();
-						for (int j = 0; j < verticesCount.size(); ++j)
-						{
-							m_ppModels[i]->UploadBuffers(m_pContext, j);
-							m_pContext->DrawInstanced(verticesCount[j], numInstance, 0, 0);
-						}
-					}
-					
-					else
-					{	
-						for (int j = 0; j < indicesCount.size(); ++j)
-						{
-							m_ppModels[i]->UploadBuffers(m_pContext, j);
-							m_pContext->Draw(indicesCount[j], 0);
-						}
-					}
-			
-				}
-				else
-				{	
-					m_ppModels[i]->UploadBuffers(m_pContext);
-					m_pContext->DrawIndexed(m_ppModels[i]->GetIndexCount(), 0, 0);
-				}
-				
-				++drawed;
-			}
-
-		}
+		DrawENTT();
 		m_pCam->SetENTTsInFrustum(drawed);
 		m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDSV);
 		return;
@@ -761,16 +664,21 @@ namespace wilson
 		}
 	}
 
-	void D3D11::AddModel(Model* pCModel, ID3D11Device* pDevice)
+	void D3D11::AddModelGroup(ModelGroup* pModelGroup, ID3D11Device* pDevice)
 	{
-		m_ppModels.push_back(pCModel);
-		m_ppModels.back()->Init(pDevice);
+		m_pModelGroups.push_back(pModelGroup);
+		m_pModelGroups.back()->Init(pDevice);
 	}
-
-	void D3D11::RemoveModel(int i)
+	void D3D11::RemoveModelGroup(int i)
 	{
-		delete m_ppModels[i];
-		m_ppModels.erase(m_ppModels.begin() + i);
+		delete m_pModelGroups[i];
+		m_pModelGroups.erase(m_pModelGroups.begin() + i);
+	}
+	void D3D11::RemoveModel(int i, int j)
+	{
+		std::vector<Model*>& pModels = m_pModelGroups[i]->GetModels();
+		delete pModels[j];
+		pModels.erase(pModels.begin() + j);
 	}
 
 	bool D3D11::CreateRTT(int width, int height)
@@ -825,7 +733,6 @@ namespace wilson
 
 		return true;
 	}
-
 	bool D3D11::CreateDepthBuffer(int width, int height,
 		ID3D11Texture2D** dsb,
 		ID3D11DepthStencilView** dsbv)
@@ -869,7 +776,6 @@ namespace wilson
 
 		return true;
 	}
-
 	bool D3D11::CreateDSS()
 	{
 		D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
@@ -923,6 +829,67 @@ namespace wilson
 
 	void D3D11::DrawENTT()
 	{
+		XMMATRIX worldMat;
+		for (int i = 0; i < m_pModelGroups.size(); ++i)
+		{	
+
+			std::vector<Model*> pModels = m_pModelGroups[i]->GetModels();
+			//if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
+			{
+				if (m_pModelGroups[i]->GetType() == EFileType::FBX)
+				{
+					for (int j = 0; j < pModels.size(); ++j)
+					{
+						worldMat = pModels[j]->GetTransformMatrix();
+						//XMFLOAT4X4 pos4;
+						//XMStoreFloat4x4(&pos4, worldMat);
+						m_pMatBuffer->SetWorldMatrix(&worldMat);
+						m_pMatBuffer->Update();
+						std::vector<unsigned int> indicesCount = pModels[j]->GetNumIndice();
+						if (pModels[j]->isInstanced())
+						{
+							std::vector<unsigned int> verticesCount = pModels[j]->GetNumVertexData();
+							m_pShader->SetInputLayout();
+							int numInstance = pModels[j]->GetNumInstance();
+							for (int k = 0; k < verticesCount.size(); ++k)
+							{
+								pModels[j]->UploadBuffers(m_pContext, k);
+								m_pContext->DrawInstanced(verticesCount[k], numInstance, 0, 0);
+							}
+						}
+
+						else
+						{
+							for (int k = 0; k < indicesCount.size(); ++k)
+							{
+								worldMat = pModels[j]->GetTransformMatrix();
+								m_pMatBuffer->SetWorldMatrix(&worldMat);
+								m_pMatBuffer->Update();
+
+								pModels[j]->UploadBuffers(m_pContext, k);
+								m_pContext->Draw(indicesCount[k], 0);
+							}
+						}
+					}
+
+				}
+				else
+				{
+					for (int j = 0; j < pModels.size(); ++j)
+					{	
+						worldMat = pModels[j]->GetTransformMatrix();
+						m_pMatBuffer->SetWorldMatrix(&worldMat);
+						m_pMatBuffer->Update();
+						pModels[j]->UploadBuffers(m_pContext);
+						m_pContext->DrawIndexed(pModels[j]->GetIndexCount(), 0, 0);
+					}
+
+				}
+
+				
+			}
+
+		}
 	}
 
 	void D3D11::DestroyDSS()
@@ -945,7 +912,6 @@ namespace wilson
 			m_pDrawReflectionDSS = nullptr;
 		}
 	}
-
 	void D3D11::DestroyRTT()
 	{
 		if (m_pRTT != nullptr)
@@ -966,7 +932,6 @@ namespace wilson
 			m_pSRVForRTT = nullptr;
 		}
 	}
-
 	void D3D11::DestroyDSBforRTT()
 	{
 		if (m_pDSBufferForRTT != nullptr)

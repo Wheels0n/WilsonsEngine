@@ -137,6 +137,9 @@
     <ClCompile Include="ShadowMap.cpp">
       <Filter>Source Files\Component\Light</Filter>
     </ClCompile>
+    <ClCompile Include="ModelGroup.cpp">
+      <Filter>Source Files\Component\Model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ImGui\imstb_rectpack.h">
@@ -228,6 +231,9 @@
     </ClInclude>
     <ClInclude Include="ShadowMap.h">
       <Filter>Source Files\Component\Light</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelGroup.h">
+      <Filter>Source Files\Component\Model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -29,16 +29,25 @@ namespace wilson
 {
 	class D3D11
 	{
+	private:
+		bool CreateDepthBuffer(int, int,
+			ID3D11Texture2D**,
+			ID3D11DepthStencilView**);
+		bool CreateDSS();
 
+		void DrawENTT();
+		void DestroyDSS();
+		void DestroyRTT();
+		void DestroyDSBforRTT();
 	public:
 		bool Init(int, int, bool, HWND, bool, float, float);
 		void Shutdown();
 
 		void UpdateScene();
 		void DrawScene();
-		void AddModel(Model*, ID3D11Device*);
-		void RemoveModel(int i);
-
+		void AddModelGroup(ModelGroup*, ID3D11Device*);
+		void RemoveModelGroup(int i);
+		void RemoveModel(int i, int j);
 		inline Camera* GetCam() const
 		{
 			return m_pCam;
@@ -79,15 +88,6 @@ namespace wilson
 		D3D11(const D3D11&) = delete;
 		~D3D11()=default;
 	private:
-		bool CreateDepthBuffer(int, int,
-			ID3D11Texture2D**,
-			ID3D11DepthStencilView**);
-		bool CreateDSS();
-
-		void DrawENTT();
-		void DestroyDSS();
-		void DestroyRTT();
-		void DestroyDSBforRTT();
 
 		bool m_bVsyncOn;
 		IDXGISwapChain* m_pSwapChain;
@@ -111,7 +111,7 @@ namespace wilson
 		D3D11_VIEWPORT m_viewport;
 
 		Importer* m_pImporter;
-		std::vector<Model*> m_ppModels;
+		std::vector<ModelGroup*> m_pModelGroups;
 		Terrain* m_pTerrain;
 		Camera* m_pCam;
 		Frustum* m_pFrustum;

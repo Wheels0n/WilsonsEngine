@@ -49,10 +49,12 @@ namespace wilson
 					{
 						const wchar_t* path = (const wchar_t*)payLoad->Data;
 						m_importer.LoadModel(modelFormats[i],path,m_pDevice);
-						std::vector<Model*> meshGroup = m_importer.GetModel();
-						for (int i = 0; i <meshGroup.size();++i)
+						ModelGroup* pModelGroup = m_importer.GetModelGroup();
+			
+						std::vector<Model*> pModels = pModelGroup->GetModels();
+						for (int i = 0; i <pModels.size();++i)
 						{
-							Model* pModel = meshGroup[i];
+							Model* pModel = pModels[i];
 							//
 							XMMATRIX* pTrMat = pModel->GetTranslationMatrix();
 							XMFLOAT4X4 trMat4;
@@ -84,29 +86,14 @@ namespace wilson
 							XMMATRIX trMat = XMMatrixTranslationFromVector(pPos);
 							*pTrMat = trMat;
 							//
-							m_pD3D11->AddModel(pModel, m_pDevice);
-							m_pScene->AddEntity(pModel);
+							
 						}
+						m_pD3D11->AddModelGroup(pModelGroup, m_pDevice);
+						m_pScene->AddEntity(pModelGroup);
 						break;
 					}
 				}
-				for (int i = 0; i < 3; ++i)
-				{
-					payLoad = ImGui::AcceptDragDropPayload(texFormats[i]);
-					if (payLoad != nullptr)
-					{
-						const wchar_t* path = (const wchar_t*)payLoad->Data;
-
-						//m_pCScene->Pick(GetNDCX(x) * width, GetNDCY(y) * height, width, height);
-						Entity* pENTT = nullptr;
-						pENTT = m_pScene->GetSelectedENTT();
-						if (pENTT != nullptr)
-						{
-							m_importer.LoadTex(pENTT->GetModel(), path, m_pD3D11->GetDevice());
-						}
-
-					}
-				}
+				
 				ImGui::EndDragDropTarget();
 			}
 			ImGui::End();

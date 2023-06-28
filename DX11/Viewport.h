@@ -9,11 +9,6 @@
 
 namespace wilson
 {
-	static const char* texFormats[] =
-	{
-		"bmp", "dds", "png"
-	};
-	
 	static const char* modelFormats[] =
 	{
 		"obj", "fbx"

@@ -39,6 +39,7 @@
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="MatrixBuffer.cpp" />
     <ClCompile Include="Model.cpp" />
+    <ClCompile Include="ModelGroup.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Settings.cpp" />
@@ -71,6 +72,7 @@
     <ClInclude Include="Light.h" />
     <ClInclude Include="MatrixBuffer.h" />
     <ClInclude Include="Model.h" />
+    <ClInclude Include="ModelGroup.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Scene.h" />

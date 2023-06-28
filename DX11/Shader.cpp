@@ -1,5 +1,5 @@
 #include "Shader.h"
-
+#include <D3Dcompiler.h>
 namespace wilson
 {
 	Shader::Shader(ID3D11Device* pDevice, ID3D11DeviceContext* context)
@@ -77,7 +77,7 @@ namespace wilson
 		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pVS);
 
 
-		hr = D3DX11CompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
+		hr = D3DX11CompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS|D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
 		{
 			return false;

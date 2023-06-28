@@ -2,9 +2,9 @@
 
 namespace wilson
 {
-	Entity::Entity(std::string type, Model* pModel)
+	Entity::Entity(std::string name, ModelGroup* pModelGroup)
 	{
-		m_pModel = pModel;
-		m_type = type;
+		m_pModelGroup = pModelGroup;
+		m_Name = name;
 	}
 }

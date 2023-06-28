@@ -8,7 +8,7 @@ namespace wilson
 		sceneHandler = this;
 
 		m_pD3D11 = nullptr;
-		m_pSelectedENTT = nullptr;
+		m_pSelectedModel = nullptr;
 		m_pCam = nullptr;
 	}
 	Scene::~Scene()
@@ -21,16 +21,14 @@ namespace wilson
 		m_entites.shrink_to_fit();
 	}
 
-	void Scene::AddEntity(Model* pModel)
+	void Scene::AddEntity(ModelGroup* pModelGroup)
 	{
-		std::wstring wStr(pModel->GetName());
-		std::string name = std::string(wStr.begin(), wStr.end());
+		std::string name = pModelGroup->GetName();
 		name += std::to_string(++m_entityCnt[name]);
 
-		Entity* ENTT = new Entity(name, pModel);
+		Entity* ENTT = new Entity(name, pModelGroup);
 		m_entites.push_back(ENTT);
 	}
-
 	void Scene::Draw()
 	{
 		const char* actions = "Remove";
@@ -40,26 +38,49 @@ namespace wilson
 			{
 				ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 				for (int i = 0; i < m_entites.size(); ++i)
-				{
-					std::string name = *(m_entites[i]->GetType());
-
-					ImGui::PushID(i);
-					if (ImGui::Button(name.c_str()))
-					{
-						m_pSelectedENTT = m_entites[i];
-						ImGui::OpenPopup("Edit");
-					}
-					if (ImGui::BeginPopup("Edit"))
-					{
-						ImGui::Text("Edit");
-						ImGui::Separator();
-						if (ImGui::Selectable(actions))
+				{	
+					ModelGroup* pModelGroup = m_entites[i]->GetModelGroup();
+					std::string groupName = pModelGroup->GetName();
+					std::vector<Model*>& pModels = pModelGroup->GetModels();
+					if (ImGui::TreeNode(groupName.c_str()))
+					{	
+						if (ImGui::Button(groupName.c_str()))
 						{
-							RemoveENTT(i);
+							ImGui::OpenPopup("Edit");
 						}
-						ImGui::EndPopup();
+						if (ImGui::BeginPopup("Edit"))
+						{
+							ImGui::Text("Edit");
+							ImGui::Separator();
+							if (ImGui::Selectable(actions))
+							{
+								RemoveModelGroup(i);
+							}
+							ImGui::EndPopup();
+						}
+						for (int j = 0; j < pModels.size(); ++j)
+						{
+							ImGui::PushID(i);
+							std::string modelName= pModels[j]->GetName();
+							if (ImGui::Button(modelName.c_str()))
+							{
+								m_pSelectedModel = pModels[j];
+								ImGui::OpenPopup("Edit");
+							}
+							if (ImGui::BeginPopup("Edit"))
+							{
+								ImGui::Text("Edit");
+								ImGui::Separator();
+								if (ImGui::Selectable(actions))
+								{
+									RemoveSelectedModel(i,j);
+								}
+								ImGui::EndPopup();
+							}
+							ImGui::PopID();
+						}
+						ImGui::TreePop();
 					}
-					ImGui::PopID();
 				}
 				ImGui::TreePop();
 			}
@@ -69,11 +90,11 @@ namespace wilson
 
 		if (ImGui::Begin("Properties"))
 		{
-			if (m_pSelectedENTT != nullptr)
+			if (m_pSelectedModel != nullptr)
 			{
-				std::string name = *(m_pSelectedENTT->GetType());
+				std::string name = m_pSelectedModel->GetName();
 				ImGui::Text(name.c_str());
-				Model* pModel = m_pSelectedENTT->GetModel();
+				Model* pModel = m_pSelectedModel;
 
 				DirectX::XMMATRIX* scMat = nullptr;
 				DirectX::XMMATRIX* rtMat = nullptr;
@@ -137,13 +158,13 @@ namespace wilson
 				}
 				if (ImGui::Button("Instancing On/Off"))
 				{
-					m_pSelectedENTT->ToggleInstancing();
+					m_pSelectedModel->ToggleInstancing();
 				}
 
-				int numInstance = m_pSelectedENTT->GetNumInstance();
+				int numInstance = m_pSelectedModel->GetNumInstance();
 				if (ImGui::DragInt("InstanceCount", &numInstance, 1, 1, 50))
 				{
-					m_pSelectedENTT->SetNumInstance(numInstance);
+					m_pSelectedModel->SetNumInstance(numInstance);
 				}
 				
 			}
@@ -151,7 +172,6 @@ namespace wilson
 		}
 
 	}
-
 	void Scene::DrawVec3Control(const std::string& label, float* vals)
 	{
 		ImGui::PushID(label.c_str());
@@ -213,8 +233,6 @@ namespace wilson
 
 	void Scene::Pick(float sx, float sy, int width, int height)
 	{
-		//m_pSelectionETT = nullptr;
-
 		using namespace DirectX;
 
 		XMMATRIX projMat = *(m_pCam->GetProjectionMatrix());
@@ -234,42 +252,45 @@ namespace wilson
 		float hitDistance;
 
 		for (int i = 0; i < m_entites.size(); ++i)
-		{
-			Model* pModel = m_entites[i]->GetModel();
-
-			XMMATRIX m_worldMat = pModel->GetTransformMatrix();
-			XMMATRIX invWorldMat = XMMatrixInverse(nullptr, m_worldMat);
-			XMMATRIX toLocal = XMMatrixMultiply(invViewMat, invWorldMat);
-
-			XMVECTOR rayOrigin = XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f);
-			XMVECTOR v = XMVectorSet(sx, sy, zNDC, 1.0f);
-			XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 1.0f);
-			XMVECTOR wo = XMVector3Unproject(v, 0, 0, width, height, 0, 1, projMat, viewMat, m_worldMat);
-
-			rayOrigin = XMVector3TransformCoord(rayOrigin, invViewMat);
-			rayDir = XMVector3TransformNormal(rayDir, invViewMat);
-
-			rayDir = XMVector3Normalize(rayDir);
-
-			XMFLOAT3 xfO;
-			XMStoreFloat3(&xfO, rayOrigin);
-			XMFLOAT3 xfDir;
-			XMStoreFloat3(&xfDir, rayDir);
-
-			if (RaySphereIntersect(xfO, xfDir, 0.5f, &hitDistance) == true)
+		{	
+			ModelGroup* pModelGroup = m_entites[i]->GetModelGroup();
+			std::vector<Model*> pModels = pModelGroup->GetModels();
+			for (int j = 0; j < pModels.size(); ++j)
 			{
-				if (hitDistance < closestDistance)
+				Model* pModel = pModels[j];
+
+				XMMATRIX m_worldMat = pModel->GetTransformMatrix();
+				XMMATRIX invWorldMat = XMMatrixInverse(nullptr, m_worldMat);
+				XMMATRIX toLocal = XMMatrixMultiply(invViewMat, invWorldMat);
+
+				XMVECTOR rayOrigin = XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f);
+				XMVECTOR v = XMVectorSet(sx, sy, zNDC, 1.0f);
+				XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 1.0f);
+				XMVECTOR wo = XMVector3Unproject(v, 0, 0, width, height, 0, 1, projMat, viewMat, m_worldMat);
+
+				rayOrigin = XMVector3TransformCoord(rayOrigin, invViewMat);
+				rayDir = XMVector3TransformNormal(rayDir, invViewMat);
+
+				rayDir = XMVector3Normalize(rayDir);
+
+				XMFLOAT3 xfO;
+				XMStoreFloat3(&xfO, rayOrigin);
+				XMFLOAT3 xfDir;
+				XMStoreFloat3(&xfDir, rayDir);
+
+				if (RaySphereIntersect(xfO, xfDir, 0.5f, &hitDistance) == true)
 				{
-					m_pSelectedENTT = m_entites[i];
-					closestDistance = hitDistance;
+					if (hitDistance < closestDistance)
+					{
+						m_pSelectedModel = pModel;
+						closestDistance = hitDistance;
+					}
 				}
 			}
-
 		}
 
 
 	}
-
 	bool Scene::RaySphereIntersect(XMFLOAT3 o, XMFLOAT3 dir, float r, float* hitDistance)
 	{
 		float a = (dir.x * dir.x) + (dir.y * dir.y) + (dir.z * dir.z);
@@ -286,15 +307,19 @@ namespace wilson
 		return true;
 	}
 
-	void Scene::RemoveENTT(int i)
+	void Scene::RemoveSelectedModel(int i,int j)
 	{
-		m_pD3D11->RemoveModel(i);
-
-		std::string type = *(m_entites[i]->GetType());
-		--m_entityCnt[type];
+		m_pD3D11->RemoveModel(i,j);
+		m_pSelectedModel = nullptr;
+	}
+	void Scene::RemoveModelGroup(int i)
+	{
+		ModelGroup* pModelGroup = m_entites[i]->GetModelGroup();
+		std::string groupName = pModelGroup->GetName();
+		m_pD3D11->RemoveModelGroup(i);
+		
+		--m_entityCnt[groupName];
 		delete m_entites[i];
 		m_entites.erase(m_entites.begin() + i);
-
-		m_pSelectedENTT = nullptr;
 	}
 }

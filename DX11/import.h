@@ -6,19 +6,20 @@
 #include <fbxsdk.h>
 #include <fstream>
 #include <unordered_set>
-#include "Model.h"
+#include "ModelGroup.h"
 namespace wilson {
 
 	class Importer
 	{
 
 	public:
-		void Clear();
-		inline std::vector<Model*>& GetModel()
+		void ClearModel();
+		void ClearModelGroup();
+		inline ModelGroup* GetModelGroup()
 		{
 			return m_pModelGroup;
 		};
-		bool LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* pDevice);
+		bool LoadTex(LPCWSTR fileName, ID3D11Device* pDevice);
 		bool LoadModel(const char* extension, LPCWSTR fileName, ID3D11Device* pDevice);
 
 		Importer();
@@ -29,18 +30,25 @@ namespace wilson {
 		bool LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice);
 		void LoadSubOBJ(LPCWSTR fileName, std::streampos pos, ID3D11Device* pDevice, std::string& objName);
 		bool LoadOBJ(LPCWSTR fileName, ID3D11Device* pDevice);
-		bool LoadMTL(wchar_t* fileName, char* matName, Model* pModel, ID3D11Device* pDevice);
+		bool LoadMTL(wchar_t* fileName, ID3D11Device* pDevice);
 		void GetCurDir(LPCWSTR fileName);
-		wchar_t* GetModelName(LPCWSTR fileName);
+		wchar_t* GetFileName(LPCWSTR fileName);
 		wchar_t* GetMTLPath(LPCWSTR fileName, wchar_t* tok);
 		bool LoadFbxTex(std::string fileName, FbxSurfaceMaterial* pSurfaceMaterial,
 			std::unordered_set<std::string>& texSet , std::vector<TextureData>& texData, ID3D11Device* pDevice);
-		Material LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial);
+		MaterialInfo LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial);
 	private:
 		wchar_t* m_curDir, * m_mtlPath, * m_fileName;
+		ModelGroup* m_pModelGroup;
 		Model* m_pModel;
-		std::vector<Model*> m_pModelGroup;
-		
+
+		std::vector<Model*> m_pModels;
+		std::vector<MaterialInfo>m_Materials;
+		std::vector<ID3D11ShaderResourceView*> m_pDiffMaps;
+		std::unordered_map<std::string, int> m_matHash;
+		std::unordered_map<std::string, int> m_diffHash;
+	
+
 		DirectX::XMFLOAT3* m_pVertexVecs;
 		DirectX::XMFLOAT3* m_pNormalVecs;
 		DirectX::XMFLOAT2* m_pTexVecs;
@@ -52,7 +60,6 @@ namespace wilson {
 		unsigned int m_normalVecCount;
 		unsigned int m_indexCount;
 		unsigned int m_objectCount;
-		unsigned int m_texCount;
 
 		ID3D11ShaderResourceView* m_pSRV;
 

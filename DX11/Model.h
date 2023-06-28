@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 namespace wilson {
-	enum EObjectType
+	enum EFileType
 	{
 		OBJ,
 		FBX
@@ -23,13 +23,19 @@ namespace wilson {
 		DirectX::XMFLOAT2 UV;
 		DirectX::XMFLOAT3 norm;
 	};
+
 	struct Material
 	{
 		DirectX::XMVECTOR ambient;
 		DirectX::XMVECTOR diffuse;
 		DirectX::XMVECTOR specular;//w component is SpecPower
 		DirectX::XMVECTOR reflect;
-
+	};
+	struct MaterialInfo
+	{	
+		std::string diffuseMap;
+		std::string normalMap;
+		Material material;
 	};
 	struct TextureData
 	{
@@ -46,12 +52,13 @@ namespace wilson {
 	public:
 
 		bool Init(ID3D11Device* pDevice);
+		bool Init(ID3D11Device* pDevice, Material* material, ID3D11ShaderResourceView* pDiffuse);
 		void UploadBuffers(ID3D11DeviceContext* context);
 		void UploadBuffers(ID3D11DeviceContext* context, int i);
 
-		inline void AddMaterial(Material mat)
+		inline std::string& GetMaterialName()
 		{
-			m_materials.push_back(mat);
+			return m_matName;
 		}
 		inline DirectX::XMMATRIX* GetTranslationMatrix()
 		{
@@ -74,18 +81,12 @@ namespace wilson {
 		{
 			return m_indexCount;
 		}
-		inline LPCWSTR GetName()
+		
+		inline std::string GetName()
 		{
-			return m_pName;
+			return m_Name;
 		}
-		inline EObjectType GetObjectType()
-		{
-			return m_eObjectType;
-		}
-		inline void SetTex(ID3D11ShaderResourceView* srv)
-		{
-			m_SRV = srv;
-		}
+
 		inline void SetInstanced(bool bIsInstanced)
 		{
 			m_isInstanced = bIsInstanced;
@@ -127,19 +128,19 @@ namespace wilson {
 			unsigned long* pIndices,
 			std::vector<unsigned int> vertexDataPos,
 			std::vector<unsigned int> indicesPos,
-			std::vector<Material> materialV,
-			std::vector<TextureData> texDataV,
+			std::vector<MaterialInfo> materials,
+			std::vector<TextureData> textures,
 			wchar_t* pName);
 		Model(VertexData* pVertices,
 			unsigned long* pIndices,
 			unsigned int vertexCount,
 			unsigned int indexCount,
-			wchar_t* pName);
+			wchar_t* pName,
+			std::string matName);
 		Model(const Model&) = delete;
 		~Model();
 
 	private:
-		EObjectType m_eObjectType;
 		ID3D11Buffer* m_pVertexBuffer;
 		ID3D11Buffer* m_pIndexBuffer;
 		ID3D11Buffer* m_pMaterialBuffer;
@@ -147,8 +148,9 @@ namespace wilson {
 		ID3D11Buffer* m_pPerModelBuffer;
 		ID3D11Device* m_pDevice;
 
-		wchar_t* m_pName;
-		VertexData** m_pPolygons;
+		std::string m_Name;
+		std::string m_matName;
+
 		VertexData* m_pVertexData;
 		unsigned long* m_pIndices;
 		unsigned int m_vertexCount;
@@ -158,10 +160,10 @@ namespace wilson {
 		std::vector<unsigned int> m_numVertexData;
 		std::vector<unsigned int> m_numIndices;
 
-
-		std::vector<Material> m_materials;
 		std::vector<TextureData> m_textures;
-		ID3D11ShaderResourceView* m_SRV;
+		std::vector<MaterialInfo> m_materials;
+		Material* m_pMaterial;
+		ID3D11ShaderResourceView* m_diffuseMap;
 
 		DirectX::XMMATRIX m_scMat;
 		DirectX::XMMATRIX m_rtMat;

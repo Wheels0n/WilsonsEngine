@@ -4,39 +4,35 @@
 #include <Windows.h>
 #include <DirectXMath.h>
 #include <string>
-#include "Model.h"
+#include "ModelGroup.h"
 
 namespace wilson
 {
 	class Entity
 	{
 	public:
-		inline std::string* GetType() 
+		inline ModelGroup* GetModelGroup() const
 		{
-			return &m_type;
-		};
-		inline Model* GetModel() const
-		{
-			return m_pModel;
+			return m_pModelGroup;
 		}
 		inline void ToggleInstancing()
 		{
-			m_pModel->ToggleInstancing();
+			m_pModelGroup->ToggleInstancing();
 		}
 		inline int GetNumInstance()
 		{
-			return m_pModel->GetNumInstance();
+			return m_pModelGroup->GetNumInstance();
 		}
 		inline void SetNumInstance(int n)
 		{
-			m_pModel->SetNumInstance(n);
+			m_pModelGroup->SetNumInstance(n);
 		}
-		Entity(std::string, Model*);
+		Entity(std::string, ModelGroup*);
 		Entity(const Entity&) = default;
 		~Entity() = default;
 	private:
-		Model* m_pModel;
-		std::string m_type;
+		ModelGroup* m_pModelGroup;
+		std::string m_Name;
 	};
 }
 #endif // !ENTITY_H

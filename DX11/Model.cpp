@@ -6,12 +6,10 @@ namespace wilson {
 		unsigned long* pIndices,
 		std::vector<unsigned int> vertexDataPos,
 		std::vector<unsigned int> indicesPos,
-		std::vector<Material> materialV,
-		std::vector<TextureData> texDataV,
+		std::vector<MaterialInfo> materials,
+		std::vector<TextureData> textures,
 		wchar_t* pName)
 	{   
-		m_eObjectType = FBX;
-
 		m_pVertexData = pVertices;
 		m_pIndices = pIndices;
 		m_vertexCount = vertexDataPos[vertexDataPos.size()-1];
@@ -22,12 +20,16 @@ namespace wilson {
 		m_pVertexBuffer = nullptr;
 		m_pIndexBuffer = nullptr;
 
-		m_materials = materialV;
-		m_textures = texDataV;
-		m_SRV = nullptr;
+		m_diffuseMap = nullptr;
+
+		m_materials = materials;
+		m_textures = textures;
 
 		wchar_t* ptr = nullptr;
-		m_pName = wcstok(pName, (const wchar_t*)L".", &ptr);
+		wchar_t* lpName = wcstok(pName, (const wchar_t*)L".", &ptr);
+		std::wstring wstr(lpName);
+		m_Name = std::string(wstr.begin(), wstr.end());
+		delete[] lpName;
 
 		m_scMat = DirectX::XMMatrixIdentity();
 		m_rtMat = DirectX::XMMatrixIdentity();
@@ -50,9 +52,9 @@ namespace wilson {
 		unsigned long* pIndices,
 		unsigned int vertexCount,
 		unsigned int indexCount,
-		wchar_t* pName)
+		wchar_t* pName,
+		std::string matName)
 	{
-		m_eObjectType = OBJ;
 
 		m_pVertexData = pVertices;
 		m_pIndices = pIndices;
@@ -62,12 +64,17 @@ namespace wilson {
 		m_pVertexBuffer = nullptr;
 		m_pIndexBuffer = nullptr;
 
-		m_SRV = nullptr;
+		m_diffuseMap = nullptr;
 		
 		int len=wcslen(pName);
-		m_pName = new wchar_t[len+1];
-		wcscpy(m_pName,pName);
-		m_pName[len] = L'\0';
+		wchar_t* lpName = new wchar_t[len+1];
+		wcscpy(lpName,pName);
+		pName[len] = L'\0';
+		std::wstring wstr(lpName);
+		m_Name = std::string(wstr.begin(), wstr.end());
+		delete[] lpName;
+
+		m_matName = matName;
 
 		m_scMat = DirectX::XMMatrixIdentity();
 		m_rtMat = DirectX::XMMatrixIdentity();
@@ -93,6 +100,12 @@ namespace wilson {
 			delete m_pIndices;
 			m_pIndices = nullptr;
 		}
+		m_vertexDataPos.clear();
+		m_indicesPos.clear();
+		m_numVertexData.clear();
+		m_numIndices.clear();
+		m_textures.clear();
+		m_materials.clear();
 
 		if (m_pVertexBuffer != nullptr)
 		{
@@ -129,12 +142,6 @@ namespace wilson {
 			delete[] m_instancedData;
 		}
 
-		if (m_SRV != nullptr)
-		{
-			m_SRV->Release();
-			m_SRV = nullptr;	
-		}
-
 		for (int i = 0; i < m_textures.size(); ++i)
 		{
 			if (m_textures[i].texture != nullptr)
@@ -142,11 +149,6 @@ namespace wilson {
 				m_textures[i].texture->Release();
 				m_textures[i].texture = nullptr;
 			}
-		}
-
-		if (m_pName != nullptr)
-		{
-			delete []m_pName;
 		}
 
 	}
@@ -256,6 +258,13 @@ namespace wilson {
 
 		return true;
 	}
+	bool Model::Init(ID3D11Device* pDevice, Material* pMaterial, ID3D11ShaderResourceView* pDiffuse)
+	{
+		m_pMaterial = pMaterial;
+		m_diffuseMap = pDiffuse;
+		return Init(pDevice);
+		
+	}
 
 	void Model::UploadBuffers(ID3D11DeviceContext* context, int i)
 	{
@@ -303,9 +312,9 @@ namespace wilson {
 
 			context->PSSetShaderResources(0, 1, &m_textures[i].texture);
 			pMaterial = reinterpret_cast<Material*>(mappedResource.pData);
-			pMaterial->ambient = m_materials[i].ambient;
-			pMaterial->diffuse = m_materials[i].diffuse;
-			pMaterial->specular = m_materials[i].specular;
+			pMaterial->ambient = m_materials[i].material.ambient;
+			pMaterial->diffuse = m_materials[i].material.diffuse;
+			pMaterial->specular = m_materials[i].material.specular;
 			context->Unmap(m_pMaterialBuffer, 0);
 			context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
 		}
@@ -337,7 +346,7 @@ namespace wilson {
 		context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, stride, &offset);
 		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	    context->PSSetShaderResources(0, 1, &m_SRV);
+	    context->PSSetShaderResources(0, 1, &m_diffuseMap);
 
 		hr = context->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		if (FAILED(hr))
@@ -346,14 +355,13 @@ namespace wilson {
 		}
 
 		pMaterial = reinterpret_cast<Material*>(mappedResource.pData);
-		pMaterial->ambient = m_materials[0].ambient;
-		pMaterial->diffuse = m_materials[0].diffuse;
-		pMaterial->specular = m_materials[0].specular;
+		pMaterial->ambient = m_pMaterial->ambient;
+		pMaterial->diffuse = m_pMaterial->diffuse;
+		pMaterial->specular = m_pMaterial->specular;
 		context->Unmap(m_pMaterialBuffer, 0);
 		context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
 		return;
 	}
-
 
 	DirectX::XMMATRIX Model::GetTransformMatrix()
 	{

@@ -16,7 +16,6 @@ namespace wilson
 		m_normalVecCount = 0;
 		m_indexCount = 0;
 		m_objectCount = 0;
-		m_texCount = 0;
 
 		m_pModel = nullptr;
 		m_pVertexVecs = nullptr;
@@ -29,6 +28,7 @@ namespace wilson
 		m_curDir = nullptr;
 		m_mtlPath = nullptr;
 		m_fileName = nullptr;
+		m_pModelGroup = nullptr;
 
 		m_fbxManager = FbxManager::Create();
 		m_fbxIOsettings = FbxIOSettings::Create(m_fbxManager, IOSROOT);
@@ -207,9 +207,8 @@ namespace wilson
 		g_normalVecCount += m_normalVecCount;
 
 		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
-		m_pModel = new Model(m_pVertexData, m_pIndices, m_vertexCount, m_indexCount, (wchar_t*)wobjName.c_str());
-		m_pModelGroup.push_back(m_pModel);
-		LoadMTL(m_mtlPath, (char*)matName.c_str(), m_pModel, pDevice);
+		m_pModel = new Model(m_pVertexData, m_pIndices, m_vertexCount, m_indexCount, (wchar_t*)wobjName.c_str(),matName);
+		m_pModels.push_back(m_pModel);
 		++m_objectCount;
 
 		fin.close();
@@ -237,7 +236,7 @@ namespace wilson
 				curPos = fin.tellg();
 				nextPos=GetCnts(fileName, curPos, objName);
 				LoadSubOBJ(fileName, curPos, pDevice, objName);
-				Clear();
+				ClearModel();
 				if (nextPos == 0)
 				{
 					break;
@@ -253,6 +252,12 @@ namespace wilson
 		}
 		fin.close();
 
+		LoadMTL(m_mtlPath, pDevice);
+		m_pModelGroup = new ModelGroup(m_pModels, m_Materials, m_pDiffMaps,
+			m_fileName, EFileType::OBJ, m_matHash, m_diffHash);
+		
+		ClearModel();
+		ClearModelGroup();
 		g_vertexVecCount = 0;
 		g_texVecCount    = 0;
 		g_normalVecCount = 0;
@@ -265,7 +270,7 @@ namespace wilson
 		m_fileName = new wchar_t[len + 1];
 		wcscpy(m_fileName, fileName);
 		m_fileName[len] = L'\0';
-		m_fileName = GetModelName(m_fileName);
+		m_fileName = GetFileName(m_fileName);
 		m_mtlPath = GetMTLPath(m_curDir, m_fileName);//파일명과 subMesh명이 반드시 일치x
 		if (!strcmp(extension, "obj"))
 		{
@@ -275,13 +280,10 @@ namespace wilson
 		{
 			return LoadFbx(fileName, pDevice);
 		}
-
 		delete[] m_fileName;
 	}
-	bool Importer::LoadMTL(wchar_t* fileName, char* matName, Model* pModel, ID3D11Device* pDevice)
+	bool Importer::LoadMTL(wchar_t* fileName, ID3D11Device* pDevice)
 	{
-		Material mat = { 0, };
-		const char* delimiter = " ";
 		std::ifstream fin;
 		fin.open(fileName);
 		if (fin.fail())
@@ -289,21 +291,101 @@ namespace wilson
 			return false;
 		}
 
+		MaterialInfo mat = { "","",{0,} };
+		const char* delimiter = " ";
 		std::string line;
-		for (int i = 0; i < 3; ++i)
-		{
-			std::getline(fin, line);
-		}
 
-		while (1)
+		std::getline(fin, line);
+		std::getline(fin, line, ':');//두 번째 행에 머티리얼 개수가 표시됨
+		std::getline(fin, line);
+		int matCnt = atoi(line.c_str());
+		m_Materials.reserve(matCnt);
+		std::getline(fin, line);
+
+
+		while (!fin.eof())
 		{
 			std::getline(fin, line, ' ');
 			if (line.compare("newmtl") == 0)
 			{	
 				std::getline(fin, line);
-				if (line.compare(matName) == 0)
-				{
-					break;
+				std::string matName = line;
+				m_matHash   [matName] = m_Materials.size();
+				{	
+					float shininess = 1.0f;
+					while (!fin.eof())
+					{
+						std::getline(fin, line);
+						char* tok = strtok((char*)line.c_str(), delimiter);
+						if (tok == nullptr)
+						{
+							break;
+						}
+						if (strcmp(tok, "Ns") == 0)
+						{
+							tok = strtok(nullptr, delimiter);
+							shininess = std::stof(tok);
+						}
+						else if (strcmp(tok, "Ka") == 0)
+						{
+							tok = strtok(nullptr, delimiter);
+							float x = std::stof(tok);
+							tok = strtok(nullptr, delimiter);
+							float y = std::stof(tok);
+							tok = strtok(nullptr, delimiter);
+							float z = std::stof(tok);
+
+							DirectX::XMFLOAT4 ambient4(x, y, z, 1.0f);
+							mat.material.ambient = DirectX::XMLoadFloat4(&ambient4);
+						}
+						else if (strcmp(tok, "Kd") == 0)
+						{
+							tok = strtok(nullptr, delimiter);
+							float x = std::stof(tok);
+							tok = strtok(nullptr, delimiter);
+							float y = std::stof(tok);
+							tok = strtok(nullptr, delimiter);
+							float z = std::stof(tok);
+
+							DirectX::XMFLOAT4 diffuse4(x, y, z, 1.0f);
+							mat.material.diffuse = DirectX::XMLoadFloat4(&diffuse4);
+						}
+						else if (strcmp(tok, "Ks") == 0)
+						{
+							tok = strtok(nullptr, delimiter);
+							float x = std::stof(tok);
+							tok = strtok(nullptr, delimiter);
+							float y = std::stof(tok);
+							tok = strtok(nullptr, delimiter);
+							float z = std::stof(tok);
+
+							DirectX::XMFLOAT4 specular4(x, y, z, shininess);
+							mat.material.specular = DirectX::XMLoadFloat4(&specular4);
+						}
+						else if (strcmp(tok, "map_Kd") == 0)//|| strcmp(tok, "map_bump") == 0)
+						{
+							tok = strtok(nullptr, delimiter);
+							std::string diffuseMap(tok);
+							mat.diffuseMap = diffuseMap;
+							m_diffHash[diffuseMap] = m_pDiffMaps.size();
+							std::wstring wstr(diffuseMap.begin(), diffuseMap.end());
+							int pos = wstr.find_last_of(L'\\');
+							wstr = wstr.substr(pos + 1, std::string::npos);
+
+
+							int len = wcslen(m_curDir) + wstr.length() + 2;
+							wchar_t* mapPath = new wchar_t[len];
+							wcscpy(mapPath, m_curDir);
+							mapPath = wcsncat(mapPath, L"\\", 2);
+							mapPath = wcsncat(mapPath, wstr.c_str(), wstr.size());
+
+						
+							LoadTex(mapPath, pDevice);
+							delete[] mapPath;
+						}
+
+					}
+					m_Materials.push_back(mat);
 				}
 			}
 			else
@@ -315,78 +397,9 @@ namespace wilson
 			}
 		}
 
-		float shininess = 1.0f;
-		while (!fin.eof())
-		{
-			std::getline(fin, line);
-			char* tok = strtok((char*)line.c_str(), delimiter);
-			if (tok == nullptr)
-			{
-				break;
-			}
-			if (strcmp(tok, "Ns") == 0)
-			{
-				tok = strtok(nullptr, delimiter);
-				shininess = std::stof(tok);
-			}
-			else if (strcmp(tok, "Ka")==0)
-			{
-				tok = strtok(nullptr, delimiter);
-				float x = std::stof(tok);
-				tok = strtok(nullptr, delimiter);
-				float y = std::stof(tok);
-				tok = strtok(nullptr, delimiter);
-				float z = std::stof(tok);
-
-				DirectX::XMFLOAT4 ambient4(x, y, z, 1.0f);
-				mat.ambient = DirectX::XMLoadFloat4(&ambient4);
-			}
-			else if (strcmp(tok,"Kd")==0)
-			{
-				tok = strtok(nullptr, delimiter);
-				float x = std::stof(tok);
-				tok = strtok(nullptr, delimiter);
-				float y = std::stof(tok);
-				tok = strtok(nullptr, delimiter);
-				float z = std::stof(tok);
-
-				DirectX::XMFLOAT4 diffuse4(x, y, z, 1.0f);
-				mat.diffuse = DirectX::XMLoadFloat4(&diffuse4);
-			}
-			else if (strcmp(tok,"Ks")==0)
-			{
-				tok = strtok(nullptr, delimiter);
-				float x = std::stof(tok);
-				tok = strtok(nullptr, delimiter);
-				float y = std::stof(tok);
-				tok = strtok(nullptr, delimiter);
-				float z = std::stof(tok);
-
-				DirectX::XMFLOAT4 specular4(x, y, z, shininess);
-				mat.specular = DirectX::XMLoadFloat4(&specular4);
-			}
-			else if (strcmp(tok,"map_Kd")==0)//|| strcmp(tok, "map_bump") == 0)
-			{
-				tok = strtok(nullptr, delimiter);
-				std::string str(tok);
-				std::wstring wstr(str.begin(),str.end());
-				int pos = wstr.find_last_of(L'\\');
-				wstr = wstr.substr(pos + 1, std::string::npos);
-
-				int len = wcslen(m_curDir) + wstr.length() + 2;
-				wchar_t* mapPath = new wchar_t[len];
-				wcscpy(mapPath, m_curDir);
-				mapPath = wcsncat(mapPath, L"\\", 2);
-				mapPath = wcsncat(mapPath, wstr.c_str(), wstr.size());
-
-				LoadTex(pModel, mapPath, pDevice);
-				delete [] mapPath;
-			}
-			
-		}
 		fin.close();
-		pModel->AddMaterial(mat);
 	}
+	
 	void Importer::GetCurDir(LPCWSTR fileName)
 	{
 		std::wstring::size_type pos = std::wstring(fileName).find_last_of(L"\\");
@@ -396,7 +409,6 @@ namespace wilson
 		//널문자 만나면 끝나니까 직접 추가
 		m_curDir[curDirWStr.size()] = L'\0';
 	}
-
 	wchar_t* Importer::GetMTLPath(LPCWSTR filePath, wchar_t* tok)
 	{	
 		int len = wcslen(filePath);
@@ -412,7 +424,7 @@ namespace wilson
 		mtlPath = wcsncat(mtlPath, L".mtl\0", 5);
 		return mtlPath;
 	}
-	wchar_t* Importer::GetModelName(LPCWSTR fileName)
+	wchar_t* Importer::GetFileName(LPCWSTR fileName)
 	{	
 		wchar_t* tok = nullptr;
 		wchar_t* ptr = nullptr;
@@ -481,10 +493,9 @@ namespace wilson
 		}
 		return true;
 	}
-
-	Material Importer::LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial)
+	MaterialInfo Importer::LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial)
 	{
-		Material mat = { 0, };
+		MaterialInfo mat = { 0, };
 		const FbxProperty AmbientProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sAmbient);
 		const FbxProperty AmbientFactorProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sAmbientFactor);
 		if (AmbientProperty.IsValid() && AmbientFactorProperty.IsValid())
@@ -494,7 +505,7 @@ namespace wilson
 
 			float factor = AmbientFactorProperty.Get<float>();
 			ambientVec = DirectX::XMVectorMultiply(ambientVec, DirectX::XMVectorSet(factor, factor, factor, factor));
-			mat.ambient = ambientVec;
+			mat.material.ambient = ambientVec;
 		}
 		const FbxProperty diffuseProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sDiffuse);
 		const FbxProperty diffuseFactorProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sDiffuseFactor);
@@ -505,7 +516,7 @@ namespace wilson
 
 			float factor = diffuseFactorProperty.Get<float>();
 			diffuseVec = DirectX::XMVectorMultiply(diffuseVec, DirectX::XMVectorSet(factor, factor, factor, factor));
-			mat.diffuse = diffuseVec;
+			mat.material.diffuse = diffuseVec;
 		}
 		const FbxProperty specularProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sSpecular);
 		const FbxProperty specularFactorProperty = pSurfaceMaterial->FindProperty(FbxSurfaceMaterial::sSpecularFactor);
@@ -516,12 +527,12 @@ namespace wilson
 
 			float factor = specularFactorProperty.Get<float>();
 			specularVec = DirectX::XMVectorMultiply(specularVec, DirectX::XMVectorSet(factor, factor, factor, factor));
-			mat.specular = specularVec;
+			mat.material.specular = specularVec;
 		};
 		
 		return mat;
 	}
-	bool Importer::LoadTex(Model* model, LPCWSTR fileName, ID3D11Device* pDevice)
+	bool Importer::LoadTex(LPCWSTR fileName, ID3D11Device* pDevice)
 	{
 		HRESULT hr;
 		hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, fileName, nullptr, nullptr, &m_pSRV, nullptr);
@@ -530,16 +541,15 @@ namespace wilson
 			return false;
 		}
 
-		model->SetTex(m_pSRV);
+		m_pDiffMaps.push_back(m_pSRV);
 		return true;
 	}
-
 	bool Importer::LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice)
 	{	
 		std::unordered_set<std::string> texSet;
 		std::unordered_set<FbxSurfaceMaterial*> materialSet;
 		std::vector<TextureData> texVec;
-		std::vector<Material> materialVec;
+		std::vector<MaterialInfo> materialVec;
 
 		std::vector<unsigned int> submeshStride;
 		std::vector<unsigned int> vertexDataPos;
@@ -621,7 +631,7 @@ namespace wilson
 									{	
 										if (materialSet.find(pSurfaceMaterial) == materialSet.end())
 										{
-											Material material = LoadFbxMaterial(pSurfaceMaterial);
+											MaterialInfo material = LoadFbxMaterial(pSurfaceMaterial);
 											materialVec.push_back(material);
 											materialSet.insert(pSurfaceMaterial);
 											LoadFbxTex(fileName_c, pSurfaceMaterial, texSet, texVec, pDevice);
@@ -803,15 +813,15 @@ namespace wilson
 			}
 		}
 
-		wchar_t* tok = GetModelName(fileName);
+		wchar_t* tok = GetFileName(fileName);
 		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos, materialVec, texVec, tok);
-		m_pModelGroup.push_back(m_pModel);
+		m_pModels.push_back(m_pModel);
 		return true;
 	}
 
 	Importer::~Importer()
 	{
-		Clear();
+		ClearModel();
 		if (m_curDir != nullptr)
 		{
 			delete m_curDir;
@@ -822,7 +832,16 @@ namespace wilson
 		m_fbxIOsettings->Destroy();
 		m_fbxManager->Destroy();
 	}
-	void Importer::Clear()
+	void Importer::ClearModelGroup()
+	{
+		m_objectCount = 0;
+		m_pModels.clear();
+		m_Materials.clear();
+		m_pDiffMaps.clear();
+		m_matHash.clear();
+		m_diffHash.clear();
+	}
+	void Importer::ClearModel()
 	{
 		//m_fbxImporter->Destroy();
 		if (m_pVertexVecs != nullptr)
@@ -858,5 +877,6 @@ namespace wilson
 		m_vertexVecCount = 0;
 		m_texVecCount = 0;
 		m_normalVecCount = 0;
+
 	}
 }
