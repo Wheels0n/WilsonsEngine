@@ -21,6 +21,10 @@ namespace wilson {
 		m_pIndexBuffer = nullptr;
 
 		m_diffuseMap = nullptr;
+		m_specularMap = nullptr;
+		m_normalMap = nullptr;
+		m_alphaMap = nullptr;
+		m_perModel = { FALSE, };
 
 		m_materials = materials;
 		m_textures = textures;
@@ -65,7 +69,12 @@ namespace wilson {
 		m_pIndexBuffer = nullptr;
 
 		m_diffuseMap = nullptr;
-		
+		m_specularMap = nullptr;
+		m_normalMap = nullptr;
+		m_alphaMap = nullptr;
+
+		m_perModel = { FALSE, };
+
 		int len=wcslen(pName);
 		wchar_t* lpName = new wchar_t[len+1];
 		wcscpy(lpName,pName);
@@ -244,7 +253,7 @@ namespace wilson {
 
 		D3D11_BUFFER_DESC perModelBD;
 		perModelBD.Usage = D3D11_USAGE_DYNAMIC;
-		perModelBD.ByteWidth = sizeof(CbPerModel);
+		perModelBD.ByteWidth = sizeof(PerModel);
 		perModelBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		perModelBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		perModelBD.MiscFlags = 0;
@@ -258,10 +267,30 @@ namespace wilson {
 
 		return true;
 	}
-	bool Model::Init(ID3D11Device* pDevice, Material* pMaterial, ID3D11ShaderResourceView* pDiffuse)
+	bool Model::Init(ID3D11Device* pDevice, MaterialInfo& matInfo,
+		std::unordered_map<std::string, int>& hash, std::vector<ID3D11ShaderResourceView*>& textures)
 	{
-		m_pMaterial = pMaterial;
-		m_diffuseMap = pDiffuse;
+		m_pMaterial = &matInfo.material;
+		int idx = hash[matInfo.diffuseMap];
+		m_diffuseMap = textures[idx];
+		if (!matInfo.specularMap.empty())
+		{	
+			idx = hash[matInfo.specularMap];
+			m_specularMap = textures[idx];
+			m_perModel.hasSpecular = TRUE;
+		}
+		if (!matInfo.normalMap.empty())
+		{
+			idx = hash[matInfo.normalMap];
+			m_normalMap = textures[idx];
+			m_perModel.hasNormal = TRUE;
+		}
+		if (!matInfo.alphaMap.empty())
+		{
+			idx = hash[matInfo.alphaMap];
+			m_alphaMap = textures[idx];
+			m_perModel.hasAlpha = TRUE;
+		}
 		return Init(pDevice);
 		
 	}
@@ -272,7 +301,7 @@ namespace wilson {
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		Material* pMaterial;
 		DirectX::XMMATRIX* pMatrices;
-		CbPerModel* pPerModel;
+		PerModel* pPerModel;
 
 		unsigned int stride[2];
 		unsigned int vOffset[2] = { 0, };
@@ -325,7 +354,7 @@ namespace wilson {
 			return;
 		}
 
-		pPerModel = reinterpret_cast<CbPerModel*>(mappedResource.pData);
+		pPerModel = reinterpret_cast<PerModel*>(mappedResource.pData);
 		pPerModel->isInstanced = m_isInstanced;
 		context->Unmap(m_pPerModelBuffer, 0);
 		context->VSSetConstantBuffers(2, 1, &m_pPerModelBuffer);
@@ -347,6 +376,20 @@ namespace wilson {
 		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	    context->PSSetShaderResources(0, 1, &m_diffuseMap);
+		if (m_specularMap)
+		{
+			context->PSSetShaderResources(2, 1, &m_specularMap);
+		}
+		if (m_normalMap)
+		{
+			context->PSSetShaderResources(3, 1, &m_normalMap);
+		}
+		if (m_alphaMap)
+		{
+			context->PSSetShaderResources(4, 1, &m_alphaMap);
+		}
+
+
 
 		hr = context->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		if (FAILED(hr))

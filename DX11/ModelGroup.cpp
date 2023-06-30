@@ -7,12 +7,8 @@ namespace wilson
 		{	
 			std::string matName = m_pModels[i]->GetMaterialName();
 			int index = m_matHash[matName];
-			MaterialInfo* matInfo = &m_materials[index];
 
-			index = m_diffuseHash[matInfo->diffuseMap];
-			ID3D11ShaderResourceView* pDiffuse = m_diffuseMaps[index];
-
-			m_pModels[i]->Init(pDevice, &(matInfo->material), pDiffuse);
+			m_pModels[i]->Init(pDevice, m_materials[index], m_texHash, m_texMaps);
 		}
 	}
 
@@ -24,14 +20,14 @@ namespace wilson
 		}
 		m_pModels.clear();
 	
-		for (int i = 0; i < m_diffuseMaps.size(); ++i)
+		for (int i = 0; i < m_texMaps.size(); ++i)
 		{
-			m_diffuseMaps[i]->Release();
+			m_texMaps[i]->Release();
 		}
-		m_diffuseMaps.clear();
+		m_texMaps.clear();
 		m_materials.clear();
 		m_matHash.clear();
-		m_diffuseHash.clear();
+		m_texHash.clear();
 
 	}
 	
@@ -60,9 +56,9 @@ namespace wilson
 		m_type = type;
 		m_pModels = pModels;
 		m_materials = materials;
-		m_diffuseMaps = pDiffMaps;
+		m_texMaps = pDiffMaps;
 		m_matHash = matHash;
-		m_diffuseHash = diffuseHash;
+		m_texHash = diffuseHash;
 	}
 	ModelGroup::~ModelGroup()
 	{

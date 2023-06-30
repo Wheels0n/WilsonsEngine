@@ -8,7 +8,13 @@
 #include <unordered_set>
 #include "ModelGroup.h"
 namespace wilson {
-
+	enum ETEX
+	{
+		Kd,
+		Ks,
+		bump,
+		d
+	};
 	class Importer
 	{
 
@@ -44,10 +50,10 @@ namespace wilson {
 
 		std::vector<Model*> m_pModels;
 		std::vector<MaterialInfo>m_Materials;
-		std::vector<ID3D11ShaderResourceView*> m_pDiffMaps;
+		std::vector<ID3D11ShaderResourceView*> m_pTexMaps;
 		std::unordered_map<std::string, int> m_matHash;
-		std::unordered_map<std::string, int> m_diffHash;
-	
+		std::unordered_map<std::string, int> m_texHash;
+		std::unordered_map<std::string, ETEX> m_texTypeHash;
 
 		DirectX::XMFLOAT3* m_pVertexVecs;
 		DirectX::XMFLOAT3* m_pNormalVecs;

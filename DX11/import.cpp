@@ -25,6 +25,11 @@ namespace wilson
 		m_pIndices = nullptr;
 		m_pSRV = nullptr;
 
+		m_texTypeHash["Kd"] = ETEX::Kd;
+		m_texTypeHash["Ks"] = ETEX::Ks;
+		m_texTypeHash["bump"] = ETEX::bump;
+		m_texTypeHash["d"] = ETEX::d;
+
 		m_curDir = nullptr;
 		m_mtlPath = nullptr;
 		m_fileName = nullptr;
@@ -253,8 +258,8 @@ namespace wilson
 		fin.close();
 
 		LoadMTL(m_mtlPath, pDevice);
-		m_pModelGroup = new ModelGroup(m_pModels, m_Materials, m_pDiffMaps,
-			m_fileName, EFileType::OBJ, m_matHash, m_diffHash);
+		m_pModelGroup = new ModelGroup(m_pModels, m_Materials, m_pTexMaps,
+			m_fileName, EFileType::OBJ, m_matHash, m_texHash);
 		
 		ClearModel();
 		ClearModelGroup();
@@ -291,7 +296,6 @@ namespace wilson
 			return false;
 		}
 
-		MaterialInfo mat = { "","",{0,} };
 		const char* delimiter = " ";
 		std::string line;
 
@@ -306,8 +310,10 @@ namespace wilson
 		while (!fin.eof())
 		{
 			std::getline(fin, line, ' ');
+
 			if (line.compare("newmtl") == 0)
 			{	
+				MaterialInfo mat = { "","","","",{0,}};
 				std::getline(fin, line);
 				std::string matName = line;
 				m_matHash   [matName] = m_Materials.size();
@@ -362,14 +368,18 @@ namespace wilson
 							DirectX::XMFLOAT4 specular4(x, y, z, shininess);
 							mat.material.specular = DirectX::XMLoadFloat4(&specular4);
 						}
-						else if (strcmp(tok, "map_Kd") == 0)//|| strcmp(tok, "map_bump") == 0)
+						else if (strncmp(tok, "map",3) == 0)
 						{
+							std::string texType(tok);
+							int pos = texType.find_last_of('_')+1;
+							texType = std::string(texType.begin() + pos, texType.end());
+
 							tok = strtok(nullptr, delimiter);
-							std::string diffuseMap(tok);
-							mat.diffuseMap = diffuseMap;
-							m_diffHash[diffuseMap] = m_pDiffMaps.size();
-							std::wstring wstr(diffuseMap.begin(), diffuseMap.end());
-							int pos = wstr.find_last_of(L'\\');
+							std::string texName(tok);
+							
+							m_texHash[texName] = m_pTexMaps.size();
+							std::wstring wstr(texName.begin(), texName.end());
+							pos = wstr.find_last_of(L'\\');
 							wstr = wstr.substr(pos + 1, std::string::npos);
 
 
@@ -379,7 +389,23 @@ namespace wilson
 							mapPath = wcsncat(mapPath, L"\\", 2);
 							mapPath = wcsncat(mapPath, wstr.c_str(), wstr.size());
 
-						
+							
+							switch (m_texTypeHash[texType])
+							{
+							case ETEX::Kd:
+								mat.diffuseMap = texName;
+								break;
+							case ETEX::Ks:
+								mat.specularMap = texName;
+								break;
+							case ETEX::bump:
+								mat.normalMap = texName;
+								break;
+							case ETEX::d:
+								mat.alphaMap = texName;
+								break;
+							}
+
 							LoadTex(mapPath, pDevice);
 							delete[] mapPath;
 						}
@@ -541,7 +567,7 @@ namespace wilson
 			return false;
 		}
 
-		m_pDiffMaps.push_back(m_pSRV);
+		m_pTexMaps.push_back(m_pSRV);
 		return true;
 	}
 	bool Importer::LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice)
@@ -837,9 +863,9 @@ namespace wilson
 		m_objectCount = 0;
 		m_pModels.clear();
 		m_Materials.clear();
-		m_pDiffMaps.clear();
+		m_pTexMaps.clear();
 		m_matHash.clear();
-		m_diffHash.clear();
+		m_texHash.clear();
 	}
 	void Importer::ClearModel()
 	{

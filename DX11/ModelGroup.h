@@ -32,7 +32,7 @@ namespace wilson
 		ModelGroup(std::vector<Model*> pModels, std::vector<MaterialInfo> materials, std::vector<ID3D11ShaderResourceView*> pDiffMaps,
 			wchar_t* name, EFileType type, 
 			std::unordered_map<std::string, int> matHash,
-			std::unordered_map<std::string, int> diffuseHash );
+			std::unordered_map<std::string, int> texHash );
 		~ModelGroup();
 	 private:
 		std::string           m_Name;
@@ -40,9 +40,9 @@ namespace wilson
 
 		std::vector<Model*>   m_pModels;
 		std::vector<MaterialInfo> m_materials;
-		std::vector<ID3D11ShaderResourceView*> m_diffuseMaps;
+		std::vector<ID3D11ShaderResourceView*> m_texMaps;
+		std::unordered_map<std::string, int> m_matHash, m_texHash;
 
-		std::unordered_map<std::string, int> m_matHash, m_diffuseHash;
 		int m_numOfInstances;
 	};
 }

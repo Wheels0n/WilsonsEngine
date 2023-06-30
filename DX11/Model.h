@@ -3,6 +3,7 @@
 #include <D3D11.h>
 #include <DirectXMath.h>
 #include <string>
+#include <unordered_map>
 #include <vector>
 namespace wilson {
 	enum EFileType
@@ -10,12 +11,12 @@ namespace wilson {
 		OBJ,
 		FBX
 	};
-	struct CbPerModel
+	struct PerModel
 	{
 		BOOL isInstanced;
-		BOOL hasSpecular;
 		BOOL hasNormal;
-		BOOL Padding;
+		BOOL hasSpecular;
+		BOOL hasAlpha;
 	};
 	struct VertexData
 	{
@@ -34,7 +35,9 @@ namespace wilson {
 	struct MaterialInfo
 	{	
 		std::string diffuseMap;
+		std::string specularMap;
 		std::string normalMap;
+		std::string alphaMap;
 		Material material;
 	};
 	struct TextureData
@@ -52,7 +55,8 @@ namespace wilson {
 	public:
 
 		bool Init(ID3D11Device* pDevice);
-		bool Init(ID3D11Device* pDevice, Material* material, ID3D11ShaderResourceView* pDiffuse);
+		bool Init(ID3D11Device* pDevice, MaterialInfo& matInfo,
+			std::unordered_map<std::string,int>& hash, std::vector<ID3D11ShaderResourceView*>& textures);
 		void UploadBuffers(ID3D11DeviceContext* context);
 		void UploadBuffers(ID3D11DeviceContext* context, int i);
 
@@ -163,7 +167,8 @@ namespace wilson {
 		std::vector<TextureData> m_textures;
 		std::vector<MaterialInfo> m_materials;
 		Material* m_pMaterial;
-		ID3D11ShaderResourceView* m_diffuseMap;
+		ID3D11ShaderResourceView* m_diffuseMap, * m_specularMap, * m_normalMap, * m_alphaMap;
+		PerModel m_perModel;
 
 		DirectX::XMMATRIX m_scMat;
 		DirectX::XMMATRIX m_rtMat;

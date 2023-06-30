@@ -1,5 +1,8 @@
-Texture2D shaderTexture;
+Texture2D diffuseMap;
 Texture2D shadowMap;
+Texture2D specularMap;
+Texture2D normalMap;
+Texture2D alphaMap;
 SamplerState SampleType;
 SamplerComparisonState shadowSampler;
 
@@ -196,7 +199,7 @@ out float4 ambient, out float4 diffuse, out float4 specular)
 
 float4 main(PixelInputType input) : SV_TARGET
 {   
-    float4 texColor = shaderTexture.Sample(SampleType, input.tex);
+    float4 texColor = diffuseMap.Sample(SampleType, input.tex);
     clip(texColor.a - 0.1f );
     
     float3 lightDir = normalize(dirLight.position - input.wPosition.xyz);

@@ -43,6 +43,7 @@ PixelInputType main(VertexInputType input)
 	PixelInputType output;
 
     float4 position = float4(input.position, 1.0f);
+    [branch]
     if (isInstanced==true)
     {
         output.position = mul(position,
