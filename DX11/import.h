@@ -12,7 +12,7 @@ namespace wilson {
 	{
 		Kd,
 		Ks,
-		bump,
+		Bump,
 		d
 	};
 	class Importer
@@ -58,6 +58,8 @@ namespace wilson {
 		DirectX::XMFLOAT3* m_pVertexVecs;
 		DirectX::XMFLOAT3* m_pNormalVecs;
 		DirectX::XMFLOAT2* m_pTexVecs;
+		DirectX::XMFLOAT3* m_pTangentVecs;
+		
 		VertexData* m_pVertexData;
 		unsigned long* m_pIndices;
 		unsigned int m_vertexCount;

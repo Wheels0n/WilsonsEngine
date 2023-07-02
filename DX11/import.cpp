@@ -27,7 +27,7 @@ namespace wilson
 
 		m_texTypeHash["Kd"] = ETEX::Kd;
 		m_texTypeHash["Ks"] = ETEX::Ks;
-		m_texTypeHash["bump"] = ETEX::bump;
+		m_texTypeHash["Bump"] = ETEX::Bump;
 		m_texTypeHash["d"] = ETEX::d;
 
 		m_curDir = nullptr;
@@ -108,13 +108,19 @@ namespace wilson
 	void Importer::LoadSubOBJ(LPCWSTR fileName, std::streampos pos, ID3D11Device* pDevice, std::string& objName)
 	{	
 		char ch = ' ';
-		std::string line, matName;
+		std::string line;
 		std::ifstream fin;
 		fin.open(fileName, std::ios_base::binary);
 		if (fin.fail())
 		{
 			return;
 		}
+
+		std::vector<std::string> matNames;
+		std::vector<unsigned int> vertexDataPos;
+		std::vector<unsigned int> indicesPos;
+		bool hasNormal = false;
+
 		fin.seekg(pos);
 		std::getline(fin, line);
 
@@ -172,25 +178,52 @@ namespace wilson
 			{
 				fin.get(type);
 				if (type == ' ')
-				{
-					int v, vt, vn;
-
+				{	
 					while (!fin.fail())
 					{
+						int v, vt, vn;
+
 						fin >> v >> ch;
 						fin >> vt >> ch;
 						fin >> vn;
 						if (!fin.fail())
 						{
 
-							m_pVertexData[m_indexCount].position = m_pVertexVecs[v -g_vertexVecCount- 1];
-							m_pVertexData[m_indexCount].UV = m_pTexVecs[vt - g_texVecCount -1];
-							m_pVertexData[m_indexCount].norm = m_pNormalVecs[vn -g_normalVecCount- 1];
+							m_pVertexData[m_indexCount].position = m_pVertexVecs[v - g_vertexVecCount - 1];
+							m_pVertexData[m_indexCount].uv = m_pTexVecs[vt - g_texVecCount - 1];
+							m_pVertexData[m_indexCount].norm = m_pNormalVecs[vn - g_normalVecCount - 1];
 							//¿À¸¥¼ÕÁÂÇ¥°è¿¡¼­ ¿Þ¼ÕÁÂÇ¥°è·Î
 							m_pIndices[m_indexCount] = m_indexCount;
 							++m_indexCount;
 						}
+					}
+					if (hasNormal)
+					{
+						DirectX::XMVECTOR pos1 = DirectX::XMLoadFloat3(&m_pVertexData[m_indexCount - 3].position);
+						DirectX::XMVECTOR uv1 = DirectX::XMLoadFloat2(&m_pVertexData[m_indexCount - 3].uv);
+						DirectX::XMVECTOR pos2 = DirectX::XMLoadFloat3(&m_pVertexData[m_indexCount - 2].position);
+						DirectX::XMVECTOR uv2 = DirectX::XMLoadFloat2(&m_pVertexData[m_indexCount - 2].uv);
+						DirectX::XMVECTOR pos3 = DirectX::XMLoadFloat3(&m_pVertexData[m_indexCount-1].position);
+						DirectX::XMVECTOR uv3 = DirectX::XMLoadFloat2(&m_pVertexData[m_indexCount-1].uv);
 
+						DirectX::XMFLOAT3 e1;
+						DirectX::XMStoreFloat3(&e1, DirectX::XMVectorSubtract(pos2, pos1));
+						DirectX::XMFLOAT3 e2;
+						DirectX::XMStoreFloat3(&e2, DirectX::XMVectorSubtract(pos3, pos1));
+						DirectX::XMFLOAT2 dUV1;
+						DirectX::XMStoreFloat2(&dUV1, DirectX::XMVectorSubtract(uv2, uv1));
+						DirectX::XMFLOAT2 dUV2;
+						DirectX::XMStoreFloat2(&dUV2, DirectX::XMVectorSubtract(uv3, uv1));
+
+						float det = 1.0f / (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
+						DirectX::XMFLOAT3 tangent;
+						tangent.x = det * (dUV2.y * e1.x - dUV1.y * e2.x);
+						tangent.y = det * (dUV2.y * e1.y - dUV1.y * e2.y);
+						tangent.z = det * (dUV2.y * e1.z - dUV1.y * e2.z);
+
+						m_pVertexData[m_indexCount - 1].tangent = tangent;
+						m_pVertexData[m_indexCount - 2].tangent = tangent;
+						m_pVertexData[m_indexCount - 3].tangent = tangent;
 					}
 					fin.clear();
 				}
@@ -200,19 +233,27 @@ namespace wilson
 			{
 				std::getline(fin, line,' ');
 				std::getline(fin, line);
-				matName = line;
+				matNames.push_back(line);
+
+				int idx = m_matHash[line];
+				hasNormal = !m_Materials[idx].normalMap.empty();
+				vertexDataPos.push_back(m_indexCount);
+				indicesPos.push_back(m_indexCount);
 			}
 			else if(type=='s')
 			{
 				std::getline(fin, line);
 			}
 		}
+
 		g_vertexVecCount += m_vertexVecCount;
 		g_texVecCount += m_texVecCount;
 		g_normalVecCount += m_normalVecCount;
 
+		vertexDataPos.push_back(m_vertexCount);
+		indicesPos.push_back(m_indexCount);
 		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
-		m_pModel = new Model(m_pVertexData, m_pIndices, m_vertexCount, m_indexCount, (wchar_t*)wobjName.c_str(),matName);
+		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
 		m_pModels.push_back(m_pModel);
 		++m_objectCount;
 
@@ -230,6 +271,8 @@ namespace wilson
 			return false;
 		}
 		
+		LoadMTL(m_mtlPath, pDevice);
+
 		std::string line;
 		std::string objName;
 		std::streampos curPos,nextPos;
@@ -257,7 +300,6 @@ namespace wilson
 		}
 		fin.close();
 
-		LoadMTL(m_mtlPath, pDevice);
 		m_pModelGroup = new ModelGroup(m_pModels, m_Materials, m_pTexMaps,
 			m_fileName, EFileType::OBJ, m_matHash, m_texHash);
 		
@@ -398,7 +440,7 @@ namespace wilson
 							case ETEX::Ks:
 								mat.specularMap = texName;
 								break;
-							case ETEX::bump:
+							case ETEX::Bump:
 								mat.normalMap = texName;
 								break;
 							case ETEX::d:
@@ -791,15 +833,15 @@ namespace wilson
 							{
 							case FbxGeometryElement::eDirect:
 							{
-								v.UV.x = static_cast<float>(pUV->GetDirectArray().GetAt(controlPointIndex).mData[0]);
-								v.UV.y = static_cast<float>(pUV->GetDirectArray().GetAt(controlPointIndex).mData[1]);
+								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(controlPointIndex).mData[0]);
+								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(controlPointIndex).mData[1]);
 								break;
 							}
 							case FbxGeometryElement::eIndexToDirect:
 							{
 								int idx = pUV->GetIndexArray().GetAt(controlPointIndex);
-								v.UV.x = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[0]);
-								v.UV.y = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[1]);
+								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[0]);
+								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[1]);
 								break;
 							}
 							default:
@@ -812,15 +854,15 @@ namespace wilson
 							{
 							case FbxGeometryElement::eDirect:
 							{
-								v.UV.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
-								v.UV.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
+								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
+								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
 								break;
 							}
 							case FbxGeometryElement::eIndexToDirect:
 							{
 								int idx = pUV->GetIndexArray().GetAt(uvIndx);
-								v.UV.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
-								v.UV.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
+								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
+								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
 								break;
 							}
 							default:
@@ -830,7 +872,7 @@ namespace wilson
 						 }
 						}
 
-						v.UV.y = 1 - v.UV.y;
+						v.uv.y = 1 - v.uv.y;
 						m_pVertexData[vCnt] = v;
 						++vCnt;
 					}

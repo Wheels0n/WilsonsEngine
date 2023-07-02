@@ -20,14 +20,8 @@ namespace wilson {
 		m_pVertexBuffer = nullptr;
 		m_pIndexBuffer = nullptr;
 
-		m_diffuseMap = nullptr;
-		m_specularMap = nullptr;
-		m_normalMap = nullptr;
-		m_alphaMap = nullptr;
-		m_perModel = { FALSE, };
-
-		m_materials = materials;
-		m_textures = textures;
+		m_matInfos = materials;
+		m_texDatas = textures;
 
 		wchar_t* ptr = nullptr;
 		wchar_t* lpName = wcstok(pName, (const wchar_t*)L".", &ptr);
@@ -54,26 +48,21 @@ namespace wilson {
 	}
 	Model::Model(VertexData* pVertices,
 		unsigned long* pIndices,
-		unsigned int vertexCount,
-		unsigned int indexCount,
+		std::vector<unsigned int> vertexDataPos,
+		std::vector<unsigned int> indicesPos,
 		wchar_t* pName,
-		std::string matName)
+		std::vector<std::string> matNames)
 	{
 
 		m_pVertexData = pVertices;
 		m_pIndices = pIndices;
-		m_vertexCount = vertexCount;
-		m_indexCount = indexCount;
+		m_vertexDataPos = vertexDataPos;
+		m_indicesPos = indicesPos;
+		m_vertexCount = vertexDataPos[vertexDataPos.size() - 1];
+		m_indexCount = indicesPos[indicesPos.size() - 1];
 
 		m_pVertexBuffer = nullptr;
 		m_pIndexBuffer = nullptr;
-
-		m_diffuseMap = nullptr;
-		m_specularMap = nullptr;
-		m_normalMap = nullptr;
-		m_alphaMap = nullptr;
-
-		m_perModel = { FALSE, };
 
 		int len=wcslen(pName);
 		wchar_t* lpName = new wchar_t[len+1];
@@ -83,7 +72,7 @@ namespace wilson {
 		m_Name = std::string(wstr.begin(), wstr.end());
 		delete[] lpName;
 
-		m_matName = matName;
+		m_matNames = matNames;
 
 		m_scMat = DirectX::XMMatrixIdentity();
 		m_rtMat = DirectX::XMMatrixIdentity();
@@ -91,7 +80,7 @@ namespace wilson {
 		m_angleVec = DirectX::XMVectorZero();
 
 		m_instancedData = nullptr;
-		m_isInstanced = true;
+		m_isInstanced = false;
 		m_pInstancePosBuffer = nullptr;
 		m_pPerModelBuffer = nullptr;
 	}
@@ -113,8 +102,12 @@ namespace wilson {
 		m_indicesPos.clear();
 		m_numVertexData.clear();
 		m_numIndices.clear();
+		m_texDatas.clear();
 		m_textures.clear();
-		m_materials.clear();
+		m_texHash.clear();
+		m_matInfos.clear();
+		m_matNames.clear();
+		m_perModels.clear();
 
 		if (m_pVertexBuffer != nullptr)
 		{
@@ -151,12 +144,12 @@ namespace wilson {
 			delete[] m_instancedData;
 		}
 
-		for (int i = 0; i < m_textures.size(); ++i)
+		for (int i = 0; i < m_texDatas.size(); ++i)
 		{
-			if (m_textures[i].texture != nullptr)
+			if (m_texDatas[i].texture != nullptr)
 			{
-				m_textures[i].texture->Release();
-				m_textures[i].texture = nullptr;
+				m_texDatas[i].texture->Release();
+				m_texDatas[i].texture = nullptr;
 			}
 		}
 
@@ -267,53 +260,65 @@ namespace wilson {
 
 		return true;
 	}
-	bool Model::Init(ID3D11Device* pDevice, MaterialInfo& matInfo,
-		std::unordered_map<std::string, int>& hash, std::vector<ID3D11ShaderResourceView*>& textures)
-	{
-		m_pMaterial = &matInfo.material;
-		int idx = hash[matInfo.diffuseMap];
-		m_diffuseMap = textures[idx];
-		if (!matInfo.specularMap.empty())
-		{	
-			idx = hash[matInfo.specularMap];
-			m_specularMap = textures[idx];
-			m_perModel.hasSpecular = TRUE;
-		}
-		if (!matInfo.normalMap.empty())
+	bool Model::Init(ID3D11Device* pDevice, std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
+		std::unordered_map<std::string, int>& texhash, std::vector<ID3D11ShaderResourceView*>& textures)
+	{	
+		m_matInfos.reserve(m_matNames.size());
+		m_perModels.reserve(m_matNames.size());
+		for (int i = 0; i < m_matNames.size(); ++i)
 		{
-			idx = hash[matInfo.normalMap];
-			m_normalMap = textures[idx];
-			m_perModel.hasNormal = TRUE;
-		}
-		if (!matInfo.alphaMap.empty())
-		{
-			idx = hash[matInfo.alphaMap];
-			m_alphaMap = textures[idx];
-			m_perModel.hasAlpha = TRUE;
+			PerModel perModel = { false, };
+			int idx = mathash[m_matNames[i]];
+			MaterialInfo matInfo = matInfos[idx];
+			m_matInfos.push_back(matInfo);
+
+			idx = texhash[matInfo.diffuseMap];
+			m_texHash[matInfo.diffuseMap] = m_textures.size();
+			m_textures.push_back(textures[idx]);
+
+			if (!matInfo.specularMap.empty())
+			{
+				idx = texhash[matInfo.specularMap];
+				m_texHash[matInfo.specularMap] = m_textures.size();
+				m_textures.push_back(textures[idx]);
+				perModel.hasSpecular = true;
+			}
+			if (!matInfo.normalMap.empty())
+			{
+				idx = texhash[matInfo.normalMap];
+				m_texHash[matInfo.normalMap] = m_textures.size();
+				m_textures.push_back(textures[idx]);
+				perModel.hasNormal = true;
+			}
+			if (!matInfo.alphaMap.empty())
+			{
+				idx = texhash[matInfo.alphaMap];
+				m_texHash[matInfo.alphaMap] = m_textures.size();
+				m_textures.push_back(textures[idx]);
+				perModel.hasAlpha = true;
+			}
+			m_perModels.push_back(perModel);
 		}
 		return Init(pDevice);
 		
 	}
 
 	void Model::UploadBuffers(ID3D11DeviceContext* context, int i)
-	{
+	{	
 		HRESULT hr;
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		MaterialInfo matInfo = m_matInfos[i];
 		Material* pMaterial;
-		DirectX::XMMATRIX* pMatrices;
 		PerModel* pPerModel;
-
 		unsigned int stride[2];
-		unsigned int vOffset[2] = { 0, };
-		unsigned int idxOffset;
+		unsigned int vOffset,iOffset;
+
 		stride[0] = sizeof(VertexData);
 		stride[1] = sizeof(DirectX::XMMATRIX);
-		vOffset[0] = sizeof(VertexData) * m_vertexDataPos[i];
-		idxOffset = sizeof(unsigned long) * m_indicesPos[i];
-
-
+		vOffset = sizeof(VertexData) * m_vertexDataPos[i];
+		iOffset = sizeof(UINT) * m_indicesPos[i];
 		if (m_isInstanced)
-		{	
+		{
 
 			if (m_instancedData == nullptr)
 			{
@@ -321,72 +326,31 @@ namespace wilson {
 			}
 
 			ID3D11Buffer* vbs[2] = { m_pVertexBuffer, m_pInstancePosBuffer };
-			context->IASetVertexBuffers(0, 2, vbs, stride, vOffset);
+			context->IASetVertexBuffers(0, 2, vbs, stride, &vOffset);
 		}
 		else
+		{
+			context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, stride, &vOffset);
+		}
+		
+		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, iOffset);
+		
+		int idx = m_texHash[matInfo.diffuseMap];
+	    context->PSSetShaderResources(0, 1, &m_textures[idx]);
+		if (m_perModels[i].hasSpecular)
 		{	
-			context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, stride, vOffset);
-			context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, idxOffset);
+			idx = m_texHash[matInfo.specularMap];
+			context->PSSetShaderResources(2, 1, &m_textures[idx]);
 		}
-		
-		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		
-		if (i < m_textures.size())
+		if (m_perModels[i].hasNormal)
 		{
-			hr = context->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-			if (FAILED(hr))
-			{
-				return;
-			}
-
-			context->PSSetShaderResources(0, 1, &m_textures[i].texture);
-			pMaterial = reinterpret_cast<Material*>(mappedResource.pData);
-			pMaterial->ambient = m_materials[i].material.ambient;
-			pMaterial->diffuse = m_materials[i].material.diffuse;
-			pMaterial->specular = m_materials[i].material.specular;
-			context->Unmap(m_pMaterialBuffer, 0);
-			context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
+			idx = m_texHash[matInfo.normalMap];
+			context->PSSetShaderResources(3, 1, &m_textures[idx]);
 		}
-
-		hr = context->Map(m_pPerModelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(hr))
+		if (m_perModels[i].hasAlpha)
 		{
-			return;
-		}
-
-		pPerModel = reinterpret_cast<PerModel*>(mappedResource.pData);
-		pPerModel->isInstanced = m_isInstanced;
-		context->Unmap(m_pPerModelBuffer, 0);
-		context->VSSetConstantBuffers(2, 1, &m_pPerModelBuffer);
-	}
-	void Model::UploadBuffers(ID3D11DeviceContext* context)
-	{	
-		HRESULT hr;
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		Material* pMaterial;
-
-		unsigned int stride[2];
-		unsigned int offset;
-
-		stride[0] = sizeof(VertexData);
-		stride[1] = sizeof(DirectX::XMMATRIX);
-		offset = 0;
-
-		context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, stride, &offset);
-		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	    context->PSSetShaderResources(0, 1, &m_diffuseMap);
-		if (m_specularMap)
-		{
-			context->PSSetShaderResources(2, 1, &m_specularMap);
-		}
-		if (m_normalMap)
-		{
-			context->PSSetShaderResources(3, 1, &m_normalMap);
-		}
-		if (m_alphaMap)
-		{
-			context->PSSetShaderResources(4, 1, &m_alphaMap);
+			idx = m_texHash[matInfo.alphaMap];
+			context->PSSetShaderResources(4, 1, &m_textures[idx]);
 		}
 
 
@@ -398,11 +362,28 @@ namespace wilson {
 		}
 
 		pMaterial = reinterpret_cast<Material*>(mappedResource.pData);
-		pMaterial->ambient = m_pMaterial->ambient;
-		pMaterial->diffuse = m_pMaterial->diffuse;
-		pMaterial->specular = m_pMaterial->specular;
+		pMaterial->ambient = matInfo.material.ambient;
+		pMaterial->diffuse = matInfo.material.diffuse;
+		pMaterial->specular = matInfo.material.specular;
 		context->Unmap(m_pMaterialBuffer, 0);
 		context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
+
+
+		hr = context->Map(m_pPerModelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		if (FAILED(hr))
+		{
+			return;
+		}
+
+		pPerModel = reinterpret_cast<PerModel*>(mappedResource.pData);
+		pPerModel->isInstanced = m_isInstanced;
+		pPerModel->hasSpecular = m_perModels[i].hasSpecular;
+		pPerModel->hasNormal = m_perModels[i].hasNormal;
+		pPerModel->hasAlpha = m_perModels[i].hasAlpha;
+
+		context->Unmap(m_pPerModelBuffer, 0);
+		context->VSSetConstantBuffers(2, 1, &m_pPerModelBuffer);
+		context->PSSetConstantBuffers(2, 1, &m_pPerModelBuffer);
 		return;
 	}
 

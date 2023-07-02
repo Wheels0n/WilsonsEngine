@@ -5,10 +5,7 @@ namespace wilson
 	{
 		for (int i = 0; i < m_pModels.size(); ++i)
 		{	
-			std::string matName = m_pModels[i]->GetMaterialName();
-			int index = m_matHash[matName];
-
-			m_pModels[i]->Init(pDevice, m_materials[index], m_texHash, m_texMaps);
+			m_pModels[i]->Init(pDevice, m_matHash, m_materials, m_texHash, m_texMaps);
 		}
 	}
 

@@ -21,8 +21,9 @@ namespace wilson {
 	struct VertexData
 	{
 		DirectX::XMFLOAT3 position;
-		DirectX::XMFLOAT2 UV;
+		DirectX::XMFLOAT2 uv;
 		DirectX::XMFLOAT3 norm;
+		DirectX::XMFLOAT3 tangent;
 	};
 
 	struct Material
@@ -55,15 +56,15 @@ namespace wilson {
 	public:
 
 		bool Init(ID3D11Device* pDevice);
-		bool Init(ID3D11Device* pDevice, MaterialInfo& matInfo,
-			std::unordered_map<std::string,int>& hash, std::vector<ID3D11ShaderResourceView*>& textures);
-		void UploadBuffers(ID3D11DeviceContext* context);
+		bool Init(ID3D11Device* pDevice, std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
+			std::unordered_map<std::string,int>& texhash, std::vector<ID3D11ShaderResourceView*>& textures);
 		void UploadBuffers(ID3D11DeviceContext* context, int i);
 
-		inline std::string& GetMaterialName()
+		inline UINT GetMatCount()
 		{
-			return m_matName;
+			return m_matInfos.size();
 		}
+
 		inline DirectX::XMMATRIX* GetTranslationMatrix()
 		{
 			return &m_trMat;
@@ -81,9 +82,9 @@ namespace wilson {
 		{
 			return &m_angleVec;
 		}
-		inline unsigned int GetIndexCount()
+		inline unsigned int GetIndexCount(int i)
 		{
-			return m_indexCount;
+			return m_indicesPos[i+1]-m_indicesPos[i];
 		}
 		
 		inline std::string GetName()
@@ -137,10 +138,10 @@ namespace wilson {
 			wchar_t* pName);
 		Model(VertexData* pVertices,
 			unsigned long* pIndices,
-			unsigned int vertexCount,
-			unsigned int indexCount,
+			std::vector<unsigned int> vertexDataPos,
+			std::vector<unsigned int> indicesPos,
 			wchar_t* pName,
-			std::string matName);
+			std::vector<std::string> matNames);
 		Model(const Model&) = delete;
 		~Model();
 
@@ -153,7 +154,7 @@ namespace wilson {
 		ID3D11Device* m_pDevice;
 
 		std::string m_Name;
-		std::string m_matName;
+		std::vector<std::string>m_matNames;
 
 		VertexData* m_pVertexData;
 		unsigned long* m_pIndices;
@@ -164,11 +165,11 @@ namespace wilson {
 		std::vector<unsigned int> m_numVertexData;
 		std::vector<unsigned int> m_numIndices;
 
-		std::vector<TextureData> m_textures;
-		std::vector<MaterialInfo> m_materials;
-		Material* m_pMaterial;
-		ID3D11ShaderResourceView* m_diffuseMap, * m_specularMap, * m_normalMap, * m_alphaMap;
-		PerModel m_perModel;
+		std::vector<TextureData> m_texDatas;
+		std::vector<MaterialInfo> m_matInfos;
+		std::vector<PerModel>m_perModels;
+		std::vector<ID3D11ShaderResourceView*> m_textures;
+		std::unordered_map<std::string, int> m_texHash;
 
 		DirectX::XMMATRIX m_scMat;
 		DirectX::XMMATRIX m_rtMat;

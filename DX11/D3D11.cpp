@@ -880,8 +880,12 @@ namespace wilson
 						worldMat = pModels[j]->GetTransformMatrix();
 						m_pMatBuffer->SetWorldMatrix(&worldMat);
 						m_pMatBuffer->Update();
-						pModels[j]->UploadBuffers(m_pContext);
-						m_pContext->DrawIndexed(pModels[j]->GetIndexCount(), 0, 0);
+						for (int k = 0; k < pModels[j]->GetMatCount(); ++k)
+						{
+							pModels[j]->UploadBuffers(m_pContext,k);
+							m_pContext->DrawIndexed(pModels[j]->GetIndexCount(k), 0, 0);
+						}
+						
 					}
 
 				}

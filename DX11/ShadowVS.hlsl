@@ -11,6 +11,7 @@ struct VertexInputType
     float3 position : POSITION;
     float2 tex : TEXTURE;
     float3 normal : NORMAL;
+    float3 tangent : TANGENT;
     row_major float4x4 instanceMat : WORLD;
     uint InstanceID : SV_InstanceID;
 };

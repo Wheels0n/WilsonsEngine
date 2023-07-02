@@ -63,7 +63,7 @@ namespace wilson
 	bool Shader::Init()
 	{
 		HRESULT hr;
-		D3D11_INPUT_ELEMENT_DESC vertexIED[7];
+		D3D11_INPUT_ELEMENT_DESC vertexIED[8];
 		D3D11_INPUT_ELEMENT_DESC skyBoxIED;
 		ID3DBlob* pVSBlob;
 		ID3DBlob* pPSBlob;
@@ -107,14 +107,22 @@ namespace wilson
 		vertexIED[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 		vertexIED[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 		vertexIED[2].InstanceDataStepRate = 0;
-	
-		vertexIED[3] = { "WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,
+		
+		vertexIED[3].SemanticName  = "TANGENT";
+		vertexIED[3].SemanticIndex = 0;
+		vertexIED[3].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+		vertexIED[3].InputSlot = 0;
+		vertexIED[3].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+		vertexIED[3].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+		vertexIED[3].InstanceDataStepRate = 0;
+
+		vertexIED[4] = { "WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,
 								D3D11_INPUT_PER_INSTANCE_DATA, 1 };
-		vertexIED[4] = { "WORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16,
+		vertexIED[5] = { "WORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16,
 								D3D11_INPUT_PER_INSTANCE_DATA, 1 };
-		vertexIED[5] = { "WORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32,
+		vertexIED[6] = { "WORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32,
 								D3D11_INPUT_PER_INSTANCE_DATA, 1 };
-		vertexIED[6] = { "WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48,
+		vertexIED[7] = { "WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48,
 								D3D11_INPUT_PER_INSTANCE_DATA, 1 };
 
 		m_pDevice->CreateInputLayout(vertexIED, sizeof(vertexIED) / sizeof(vertexIED[0]), pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pInputLayout);

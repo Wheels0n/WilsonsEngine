@@ -14,7 +14,6 @@ namespace wilson {
 		m_scene.SetCam(m_pD3D11->GetCam());
 		m_scene.SetSceneName(str);
 	}
-
 	void Editor::Draw()
 	{
 		m_contentBrowser.List();
@@ -23,7 +22,6 @@ namespace wilson {
 		m_settings.Draw();
 
 	}
-
 	void Editor::Pick()
 	{
 		ImGuiIO io = ImGui::GetIO();
@@ -45,7 +43,6 @@ namespace wilson {
 
 		m_scene.Pick(mappedX, mappedY, width, height);
 	}
-
 	bool Editor::CheckRange(int x, int y)
 	{
 		return m_viewport.CheckRange(x, y);

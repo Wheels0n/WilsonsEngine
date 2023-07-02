@@ -11,6 +11,8 @@ struct PixelInputType
     float4 position : SV_POSITION;
     float2 tex : TEXTURE;
     float3 normal : NORMAL;
+    float3 tangent : TANGENT;
+    float3 binormal : BINORMAL;
     float3 toEye : VIEW;
     float4 shadowPos : POSITION1;
     float4 wPosition : POSITION2;
@@ -67,6 +69,13 @@ cbuffer gLight
 cbuffer Material
 {
     Material gMaterial;
+};
+cbuffer PerModel
+{
+    bool isInstanced;
+    bool hasNormal;
+    bool hasSpecular;
+    bool hasAlpha;
 };
 
 static const float SMAP_SIZE = 2048.0f;
@@ -204,6 +213,17 @@ float4 main(PixelInputType input) : SV_TARGET
     
     float3 lightDir = normalize(dirLight.position - input.wPosition.xyz);
     float3 normal = normalize(input.normal);
+    [branch]
+    if (hasNormal==true)
+    {
+        float3 tangent = normalize(input.tangent);
+        float3 binormal = normalize(input.binormal);
+        float3x3 TBN = float3x3(tangent, binormal,normal);
+        normal = normalMap.Sample(SampleType, input.tex);
+        normal = normal * 2.0 - 1.0;
+        normal = mul(normal, TBN);
+        normal = normalize(normal);
+    }
     
     float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
