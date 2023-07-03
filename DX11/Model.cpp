@@ -61,6 +61,11 @@ namespace wilson {
 		m_vertexCount = vertexDataPos[vertexDataPos.size() - 1];
 		m_indexCount = indicesPos[indicesPos.size() - 1];
 
+		/*if (matNames.size() > 1)
+		{
+			++m_indicesPos[indicesPos.size() - 1];
+		}*/
+
 		m_pVertexBuffer = nullptr;
 		m_pIndexBuffer = nullptr;
 
@@ -310,12 +315,12 @@ namespace wilson {
 		MaterialInfo matInfo = m_matInfos[i];
 		Material* pMaterial;
 		PerModel* pPerModel;
-		unsigned int stride[2];
-		unsigned int vOffset,iOffset;
+		UINT stride[2];
+		UINT vOffset,iOffset;
 
 		stride[0] = sizeof(VertexData);
 		stride[1] = sizeof(DirectX::XMMATRIX);
-		vOffset = sizeof(VertexData) * m_vertexDataPos[i];
+		vOffset = 0;
 		iOffset = sizeof(UINT) * m_indicesPos[i];
 		if (m_isInstanced)
 		{

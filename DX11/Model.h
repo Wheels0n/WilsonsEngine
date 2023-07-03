@@ -83,7 +83,8 @@ namespace wilson {
 			return &m_angleVec;
 		}
 		inline unsigned int GetIndexCount(int i)
-		{
+		{	
+			
 			return m_indicesPos[i+1]-m_indicesPos[i];
 		}
 		

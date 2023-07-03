@@ -111,7 +111,7 @@ float CalShadowFactor(SamplerComparisonState shadowSampler,
       return percentLit /= 9.0f;
 }
 void CalDirectionalLight(Material material, DirectionalLight L,
-	float3 normal, float3 toEye, float3 lightDir,
+	float3 normal, float3 toEye, float3 lightDir, float4 specularIntensity,
 	out float4 ambient, out float4 diffuse, out float4 specular)
 {
     ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -122,11 +122,12 @@ void CalDirectionalLight(Material material, DirectionalLight L,
    
     float diffuseFactor = max(dot(lightDir, normal), 0.0f);
     diffuse = diffuseFactor * material.diffuse * L.diffuse;
+    [branch]
     if(diffuseFactor!=0.0f)
     {
         float3 h = normalize(toEye + lightDir);
         float specFactor = pow(max(dot(normal, h), 0.0f), material.specular.w);
-        specular = specFactor * material.specular * L.specular;
+        specular = specFactor * specularIntensity * material.specular * L.specular;
     }
  
 }
@@ -208,8 +209,26 @@ out float4 ambient, out float4 diffuse, out float4 specular)
 
 float4 main(PixelInputType input) : SV_TARGET
 {   
+
     float4 texColor = diffuseMap.Sample(SampleType, input.tex);
     clip(texColor.a - 0.1f );
+    
+    
+    float4 alphaIntensity = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    [branch]
+    if (hasAlpha)
+    {
+        alphaIntensity = alphaMap.Sample(SampleType, input.tex);
+        clip(dot(alphaIntensity, alphaIntensity) - 0.1f);
+    }
+    
+    float4 specularIntensity = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    [branch]
+    if (hasSpecular == true)
+    {
+        specularIntensity=specularMap.Sample(SampleType, input.tex);
+    }
+        
     
     float3 lightDir = normalize(dirLight.position - input.wPosition.xyz);
     float3 normal = normalize(input.normal);
@@ -228,11 +247,10 @@ float4 main(PixelInputType input) : SV_TARGET
     float4 ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 specular = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    
     float4 A, D, S;
     float shadowFactor = CalShadowFactor(shadowSampler, shadowMap, input.shadowPos, normal, lightDir);
-    
-    CalDirectionalLight(gMaterial, dirLight, normal, input.toEye, lightDir, A, D, S);
+  
+    CalDirectionalLight(gMaterial, dirLight, normal, input.toEye, lightDir, specularIntensity, A, D, S);
     ambient += A;
     diffuse += D * shadowFactor;
     specular += S * shadowFactor;
@@ -253,6 +271,7 @@ float4 main(PixelInputType input) : SV_TARGET
     float4 litColor = texColor * (ambient + diffuse + specular);
 
     litColor.a = texColor.a * gMaterial.diffuse.a;
-    
+    litColor = litColor * alphaIntensity;
+   
     return litColor;
 }
