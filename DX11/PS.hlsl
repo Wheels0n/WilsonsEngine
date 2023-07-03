@@ -219,7 +219,7 @@ float4 main(PixelInputType input) : SV_TARGET
     if (hasAlpha)
     {
         alphaIntensity = alphaMap.Sample(SampleType, input.tex);
-        clip(dot(alphaIntensity, alphaIntensity) - 0.1f);
+        clip(dot((float3) alphaIntensity, (float3)alphaIntensity) - 0.1f);
     }
     
     float4 specularIntensity = float4(1.0f, 1.0f, 1.0f, 1.0f);
