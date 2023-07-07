@@ -5,10 +5,11 @@ namespace wilson
 {
 	Scene::Scene()
 	{
+		m_isModel = false;
 		sceneHandler = this;
 
 		m_pD3D11 = nullptr;
-		m_pSelectedModel = nullptr;
+		m_pSelectedEntity = nullptr;
 		m_pCam = nullptr;
 	}
 	Scene::~Scene()
@@ -29,6 +30,13 @@ namespace wilson
 		Entity* ENTT = new Entity(name, pModelGroup);
 		m_entites.push_back(ENTT);
 	}
+	void Scene::AddEntity(Light* pLight, std::string type)
+	{	
+		std::string name = type;
+		name +=std::to_string(++m_entityCnt[type]);
+		Entity* ENTT = new Entity(type, pLight);
+		m_entites.push_back(ENTT);
+	}
 	void Scene::Draw()
 	{
 		const char* actions = "Remove";
@@ -39,32 +47,15 @@ namespace wilson
 				ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 				for (int i = 0; i < m_entites.size(); ++i)
 				{	
-					ModelGroup* pModelGroup = m_entites[i]->GetModelGroup();
-					std::string groupName = pModelGroup->GetName();
-					std::vector<Model*>& pModels = pModelGroup->GetModels();
-					if (ImGui::TreeNode(groupName.c_str()))
-					{	
-						if (ImGui::Button(groupName.c_str()))
+					if (m_entites[i]->isModel())
+					{
+						ModelGroup* pModelGroup = m_entites[i]->GetModelGroup();
+						std::string groupName = pModelGroup->GetName();
+						std::vector<Model*>& pModels = pModelGroup->GetModels();
+						if (ImGui::TreeNode(groupName.c_str()))
 						{
-							ImGui::OpenPopup("Edit");
-						}
-						if (ImGui::BeginPopup("Edit"))
-						{
-							ImGui::Text("Edit");
-							ImGui::Separator();
-							if (ImGui::Selectable(actions))
-							{
-								RemoveModelGroup(i);
-							}
-							ImGui::EndPopup();
-						}
-						for (int j = 0; j < pModels.size(); ++j)
-						{
-							ImGui::PushID(i);
-							std::string modelName= pModels[j]->GetName();
-							if (ImGui::Button(modelName.c_str()))
-							{
-								m_pSelectedModel = pModels[j];
+							if (ImGui::Button(groupName.c_str()))
+							{	
 								ImGui::OpenPopup("Edit");
 							}
 							if (ImGui::BeginPopup("Edit"))
@@ -73,13 +64,57 @@ namespace wilson
 								ImGui::Separator();
 								if (ImGui::Selectable(actions))
 								{
-									RemoveSelectedModel(i,j);
+									RemoveModelGroup(i);
 								}
 								ImGui::EndPopup();
 							}
-							ImGui::PopID();
+							for (int j = 0; j < pModels.size(); ++j)
+							{
+								ImGui::PushID(i);
+								std::string modelName = pModels[j]->GetName();
+								if (ImGui::Button(modelName.c_str()))
+								{	
+									m_isModel = true;
+									m_pSelectedEntity = pModels[j];
+									ImGui::OpenPopup("Edit");
+								}
+								if (ImGui::BeginPopup("Edit"))
+								{
+									ImGui::Text("Edit");
+									ImGui::Separator();
+									if (ImGui::Selectable(actions))
+									{
+										RemoveSelectedModel(i, j);
+									}
+									ImGui::EndPopup();
+								}
+								ImGui::PopID();
+							}
+							ImGui::TreePop();
 						}
-						ImGui::TreePop();
+					}
+					else
+					{	
+						ImGui::PushID(i);
+						Light* pLight = m_entites[i]->GetLight();
+						std::string type = m_entites[i]->GetName();
+						if (ImGui::Button(type.c_str()))
+						{	
+							m_isModel = false;
+							m_pSelectedEntity = pLight;
+							ImGui::OpenPopup("Edit");
+						}
+						if (ImGui::BeginPopup("Edit"))
+						{
+							ImGui::Text("Edit");
+							ImGui::Separator();
+							if (ImGui::Selectable(actions))
+							{
+								RemoveEntity(i);
+							}
+							ImGui::EndPopup();
+						}
+						ImGui::PopID();
 					}
 				}
 				ImGui::TreePop();
@@ -90,83 +125,101 @@ namespace wilson
 
 		if (ImGui::Begin("Properties"))
 		{
-			if (m_pSelectedModel != nullptr)
-			{
-				std::string name = m_pSelectedModel->GetName();
-				ImGui::Text(name.c_str());
-				Model* pModel = m_pSelectedModel;
+			if (m_pSelectedEntity != nullptr)
+			{	
+				if (m_isModel)
+				{	
+					Model* pModel = (Model*)m_pSelectedEntity;
+					std::string name = pModel->GetName();
+					ImGui::Text(name.c_str());
+					
 
-				DirectX::XMMATRIX* scMat = nullptr;
-				DirectX::XMMATRIX* rtMat = nullptr;
-				DirectX::XMMATRIX* trMat = nullptr;
+					DirectX::XMMATRIX* scMat = nullptr;
+					DirectX::XMMATRIX* rtMat = nullptr;
+					DirectX::XMMATRIX* trMat = nullptr;
 
-				static float dragFactor = 0.1f;
+					static float dragFactor = 0.1f;
 
-				scMat = pModel->GetScaleMatrix();
-				if (scMat != nullptr)
-				{
-					DirectX::XMFLOAT4X4 scMat4;
-					DirectX::XMStoreFloat4x4(&scMat4, *scMat);
-
-					float scale[3] = { scMat4._11, scMat4._22, scMat4._33 };
-					DrawVec3Control("scale", scale);
-					for (int i = 0; i < 3; ++i)
+					scMat = pModel->GetScaleMatrix();
+					if (scMat != nullptr)
 					{
-						scale[i] = scale[i] < 0.1f ? 0.1f : scale[i];
+						DirectX::XMFLOAT4X4 scMat4;
+						DirectX::XMStoreFloat4x4(&scMat4, *scMat);
+
+						float scale[3] = { scMat4._11, scMat4._22, scMat4._33 };
+						DrawVec3Control("scale", scale);
+						for (int i = 0; i < 3; ++i)
+						{
+							scale[i] = scale[i] < 0.1f ? 0.1f : scale[i];
+						}
+
+						DirectX::XMVECTOR xv = DirectX::XMVectorSet(
+							scale[0],
+							scale[1],
+							scale[2],
+							1.0f);
+						DirectX::XMMATRIX sc = DirectX::XMMatrixScalingFromVector(xv);
+						*scMat = sc;
+
 					}
 
-					DirectX::XMVECTOR xv = DirectX::XMVectorSet(
-						scale[0],
-						scale[1],
-						scale[2],
-						1.0f);
-					DirectX::XMMATRIX sc = DirectX::XMMatrixScalingFromVector(xv);
-					*scMat = sc;
+					rtMat = pModel->GetRoatationMatrix();
+					if (rtMat != nullptr)
+					{
+						DirectX::XMFLOAT3 angleFloat;
+						DirectX::XMVECTOR* angleVec = pModel->GetAngle();
+						DirectX::XMStoreFloat3(&angleFloat, *angleVec);
 
+						float newAngle[3] = { angleFloat.x, angleFloat.y, angleFloat.z };
+						DrawVec3Control("Rotation", newAngle);
+						XMVECTOR newAngleVec = DirectX::XMVectorSet(newAngle[0], newAngle[1], newAngle[2], 0.0f);
+						XMMATRIX rt = DirectX::XMMatrixRotationRollPitchYawFromVector(newAngleVec);
+						*rtMat = rt;
+						*angleVec = newAngleVec;
+
+
+					}
+
+					trMat = pModel->GetTranslationMatrix();
+					if (trMat != nullptr)
+					{
+						DirectX::XMFLOAT4X4 trMat4;
+						DirectX::XMStoreFloat4x4(&trMat4, *trMat);
+
+						float newPos[3] = { trMat4._41, trMat4._42, trMat4._43 };
+						DrawVec3Control("Position", newPos);
+
+						DirectX::XMVECTOR xv = DirectX::XMVectorSet(newPos[0], newPos[1], newPos[2], 0.0f);
+						DirectX::XMMATRIX tr = DirectX::XMMatrixTranslationFromVector(xv);
+						*trMat = tr;
+
+					}
+					if (ImGui::Button("Instancing On/Off"))
+					{
+						pModel->ToggleInstancing();
+					}
+
+					int numInstance = pModel->GetNumInstance();
+					if (ImGui::DragInt("InstanceCount", &numInstance, 1, 1, 50))
+					{
+						pModel->SetNumInstance(numInstance);
+					}
 				}
-
-				rtMat = pModel->GetRoatationMatrix();
-				if (rtMat != nullptr)
+				else
 				{
-					DirectX::XMFLOAT3 angleFloat;
-					DirectX::XMVECTOR* angleVec = pModel->GetAngle();
-					DirectX::XMStoreFloat3(&angleFloat, *angleVec);
-
-					float newAngle[3] = { angleFloat.x, angleFloat.y, angleFloat.z };
-					DrawVec3Control("Rotation", newAngle);
-					XMVECTOR newAngleVec = DirectX::XMVectorSet(newAngle[0], newAngle[1], newAngle[2], 0.0f);
-					XMMATRIX rt = DirectX::XMMatrixRotationRollPitchYawFromVector(newAngleVec);
-					*rtMat = rt;
-					*angleVec = newAngleVec;
-
-
+					Light* pLight = (Light*)m_pSelectedEntity;
+					DrawLightControl(pLight);
+					switch (pLight->GetType())
+					{
+					case ELIGHT_TYPE::PNT:
+						DrawPointLightControl(pLight);
+						break;
+					case ELIGHT_TYPE::SPT:
+						DrawSpotLightControl(pLight);
+						break;
+					}
+					pLight->UpdateProperty();
 				}
-
-				trMat = pModel->GetTranslationMatrix();
-				if (trMat != nullptr)
-				{
-					DirectX::XMFLOAT4X4 trMat4;
-					DirectX::XMStoreFloat4x4(&trMat4, *trMat);
-
-					float newPos[3] = { trMat4._41, trMat4._42, trMat4._43 };
-					DrawVec3Control("Position", newPos);
-
-					DirectX::XMVECTOR xv = DirectX::XMVectorSet(newPos[0], newPos[1], newPos[2], 0.0f);
-					DirectX::XMMATRIX tr = DirectX::XMMatrixTranslationFromVector(xv);
-					*trMat = tr;
-
-				}
-				if (ImGui::Button("Instancing On/Off"))
-				{
-					m_pSelectedModel->ToggleInstancing();
-				}
-
-				int numInstance = m_pSelectedModel->GetNumInstance();
-				if (ImGui::DragInt("InstanceCount", &numInstance, 1, 1, 50))
-				{
-					m_pSelectedModel->SetNumInstance(numInstance);
-				}
-				
 			}
 			ImGui::End();
 		}
@@ -230,11 +283,9 @@ namespace wilson
 
 		ImGui::PopID();
 	}
-
 	void Scene::Pick(float sx, float sy, int width, int height)
 	{
 		using namespace DirectX;
-
 		XMMATRIX projMat = *(m_pCam->GetProjectionMatrix());
 		XMFLOAT4X4 projMat4;
 		XMStoreFloat4x4(&projMat4, projMat);
@@ -253,6 +304,10 @@ namespace wilson
 
 		for (int i = 0; i < m_entites.size(); ++i)
 		{	
+			if (!m_entites[i]->isModel())
+			{
+				continue;
+			}
 			ModelGroup* pModelGroup = m_entites[i]->GetModelGroup();
 			std::vector<Model*> pModels = pModelGroup->GetModels();
 			for (int j = 0; j < pModels.size(); ++j)
@@ -279,10 +334,11 @@ namespace wilson
 				XMStoreFloat3(&xfDir, rayDir);
 
 				if (RaySphereIntersect(xfO, xfDir, 0.5f, &hitDistance) == true)
-				{
+				{	
+					m_isModel = true;
 					if (hitDistance < closestDistance)
 					{
-						m_pSelectedModel = pModel;
+						m_pSelectedEntity = pModel;
 						closestDistance = hitDistance;
 					}
 				}
@@ -310,15 +366,135 @@ namespace wilson
 	void Scene::RemoveSelectedModel(int i,int j)
 	{
 		m_pD3D11->RemoveModel(i,j);
-		m_pSelectedModel = nullptr;
+		m_pSelectedEntity = nullptr;
 	}
+	void Scene::DrawLightControl(Light* pLight)
+	{
+		DirectX::XMFLOAT3* pos3 = pLight->GetPos();
+		ImGui::Text("Position");
+		if (ImGui::Button("X"))
+		{
+			pos3->x = 0.0f;
+		}
+		ImGui::SameLine();
+		ImGui::DragFloat("##X", &(pos3->x), 1.0f, -1000.0f, 1000.0f);
+
+		if (ImGui::Button("Y"))
+		{
+			pos3->y = 0.0f;
+		}
+		ImGui::SameLine();
+		ImGui::DragFloat("##Y", &(pos3->y), 1.0f, -1000.0f, 1000.0f);
+
+		if (ImGui::Button("Z"))
+		{
+			pos3->z = 0.0f;
+		}
+		ImGui::SameLine();
+		ImGui::DragFloat("##Z", &(pos3->z), 1.0f, -1000.0f, 1000.0f);
+
+		DirectX::XMFLOAT4 ambient4;
+		DirectX::XMStoreFloat4(&ambient4, *(pLight->GetAmbient()));
+		float ambient[4] = { ambient4.x, ambient4.y, ambient4.z, ambient4.w };
+		ImGui::SliderFloat4("Ambient", ambient, 0.0f, 1.0f);
+		ambient4 = DirectX::XMFLOAT4(ambient[0], ambient[1], ambient[2], ambient[3]);
+		*(pLight->GetAmbient()) = DirectX::XMLoadFloat4(&ambient4);
+
+		DirectX::XMFLOAT4 diffuse4;
+		DirectX::XMStoreFloat4(&diffuse4, *(pLight->GetDiffuse()));
+		float diffuse[4] = { diffuse4.x, diffuse4.y, diffuse4.z, diffuse4.w };
+		ImGui::SliderFloat4("Diffuse", diffuse, 0.0f, 1.0f);
+		diffuse4 = DirectX::XMFLOAT4(diffuse[0], diffuse[1], diffuse[2], diffuse[3]);
+		*(pLight->GetDiffuse()) = DirectX::XMLoadFloat4(&diffuse4);
+
+		DirectX::XMFLOAT4 specular4;
+		DirectX::XMStoreFloat4(&specular4, *(pLight->GetSpecular()));
+		float specular[4] = { specular4.x, specular4.y, specular4.z, specular4.w };
+		ImGui::SliderFloat4("Specular", specular, 0.0f, 1.0f);
+		specular4 = DirectX::XMFLOAT4(specular[0], specular[1], specular[2], specular[3]);
+		*(pLight->GetSpecular()) = DirectX::XMLoadFloat4(&specular4);
+
+	}
+	void Scene::DrawPointLightControl(Light* pLight) 
+	{
+		PointLight* pPointLight = (PointLight*)pLight;
+		DirectX::XMFLOAT3 attenuation3 = *(pPointLight->GetAttenuation());
+		float attenuation[3] = { attenuation3.x, attenuation3.y, attenuation3.z };
+		ImGui::SliderFloat3("Attenuation", attenuation, 0.0f, 1.0f);
+		*(pPointLight->GetAttenuation()) = DirectX::XMFLOAT3(attenuation[0], attenuation[1], attenuation[2]);
+
+		float range = *(pPointLight->GetRange());
+		if (ImGui::Button("Range"))
+		{
+			range = 0.0f;
+		}
+		ImGui::SameLine();
+		ImGui::DragFloat("##Range", &range, 0.1f);
+		*(pPointLight->GetRange()) = range;
+
+	};
+	void Scene::DrawSpotLightControl(Light* pLight)
+	{
+		DrawPointLightControl(pLight);
+		SpotLight* pSpotLight = (SpotLight*)pLight;
+
+		DirectX::XMFLOAT3 dir3 = *(pSpotLight->GetDirection());
+		ImGui::Text("Direction");
+		if (ImGui::Button("X"))
+		{
+			dir3.x = 0.0f;
+		}
+		ImGui::SameLine();
+		ImGui::DragFloat("##X", &dir3.x, 0.1f);
+
+		if (ImGui::Button("Y"))
+		{
+			dir3.y = 0.0f;
+		}
+		ImGui::SameLine();
+		ImGui::DragFloat("##Y", &dir3.y, 0.1f);
+
+		if (ImGui::Button("Z"))
+		{
+			dir3.z = 0.0f;
+		}
+		ImGui::SameLine();
+		ImGui::DragFloat("##Z", &dir3.z, 0.1f);
+		*(pSpotLight->GetDirection()) = dir3;
+
+		DirectX::XMFLOAT3 attenuation3 = *(pSpotLight->GetAttenuation());
+		float attenuation[3] = { attenuation3.x, attenuation3.y, attenuation3.z };
+		ImGui::SliderFloat3("Attenuation", attenuation, 0.0f, 1.0f);
+		*(pSpotLight->GetAttenuation()) = DirectX::XMFLOAT3(attenuation[0], attenuation[1], attenuation[2]);
+
+		float range = *(pSpotLight->GetRange());
+		if (ImGui::Button("Range"))
+		{
+			range = 0.0f;
+		}
+		ImGui::SameLine();
+		ImGui::DragFloat("##Range", &range, 0.1f);
+		*(pSpotLight->GetRange()) = range;
+
+		float spot = *(pSpotLight->GetSpot());
+		if (ImGui::Button("Spot"))
+		{
+			spot = 0.0f;
+		}
+		ImGui::SameLine();
+		ImGui::DragFloat("##Spot", &spot, 1.0f);
+		*(pSpotLight->GetSpot()) = spot;
+
+	};
 	void Scene::RemoveModelGroup(int i)
 	{
-		ModelGroup* pModelGroup = m_entites[i]->GetModelGroup();
-		std::string groupName = pModelGroup->GetName();
 		m_pD3D11->RemoveModelGroup(i);
-		
-		--m_entityCnt[groupName];
+		RemoveEntity(i);
+	}
+	void Scene::RemoveEntity(int i)
+	{	
+		std::string name = m_entites[i]->GetName();
+		--m_entityCnt[name];
 		delete m_entites[i];
 		m_entites.erase(m_entites.begin() + i);
 	}

@@ -8,79 +8,18 @@
 
 namespace wilson
 {   
-	struct DirectionalLight
+	enum class ELIGHT_TYPE
 	{
-		DirectX::XMVECTOR specular;
-		DirectX::XMVECTOR ambient;
-		DirectX::XMVECTOR diffuse;
-		DirectX::XMFLOAT3 position;
-		float pad;
-	};
-	struct PointLight
-	{
-		DirectX::XMVECTOR ambient;
-		DirectX::XMVECTOR diffuse;
-		DirectX::XMVECTOR specular;
-
-		DirectX::XMFLOAT3 position;
-		float range;
-
-		DirectX::XMFLOAT3 attenuation;
-		float pad;
-	};
-	struct SpotLight
-	{
-		DirectX::XMVECTOR ambient;
-		DirectX::XMVECTOR diffuse;
-		DirectX::XMVECTOR specular;
-
-		DirectX::XMFLOAT3 position;
-		float range;
-
-		DirectX::XMFLOAT3 direction;
-		float spot;
-
-		DirectX::XMFLOAT3 attenuation;
-		float pad;
-	};
-	struct LightBuffer
-	{
-		DirectionalLight  dirLight;
-		PointLight        pointLight;
-		SpotLight		  spotLight;
+		DIR,
+		PNT,
+		SPT
 	};
 
 	class Light
 	{
 	public:
-		bool Init();
-		void Update();
-
-
-		inline DirectionalLight GetDirLight()
-		{
-			return m_dirLight;
-		}
-		inline PointLight GetPointLight()
-		{
-			return m_pointLight;
-		}
-		inline SpotLight GetSpotLight()
-		{
-			return m_spotLight;
-		}
-		inline void SetDirLight(DirectionalLight dirLight)
-		{
-			m_dirLight = dirLight;
-		}
-		inline void SetPointLight(PointLight pointLight)
-		{
-			m_pointLight = pointLight;
-		}
-		inline void SetSpotLight(SpotLight spotLight)
-		{
-			m_spotLight = spotLight;
-		}
+		bool virtual Init(ID3D11Device* pDevice);
+		ELIGHT_TYPE virtual GetType() { return ELIGHT_TYPE::PNT; };
 
 		void UpdateViewMat(Camera* pCam);
 		void UpdateProjMat(Camera* pCam);
@@ -93,20 +32,31 @@ namespace wilson
 		{
 			return &m_projMat;
 		}
-
-		Light(ID3D11Device* pDevice, ID3D11DeviceContext* context);
+		inline DirectX::XMFLOAT3* GetPos()
+		{
+			return &m_position;
+		}
+		inline DirectX::XMVECTOR* GetAmbient()
+		{
+			return &m_ambient;
+		}
+		inline DirectX::XMVECTOR* GetDiffuse()
+		{
+			return &m_diffuse;
+		}
+		inline DirectX::XMVECTOR* GetSpecular()
+		{
+			return &m_specular;
+		}
+		void virtual UpdateProperty() {};
+		Light();
 		~Light();
-	private:
-
-	private:
-
-		ID3D11Device* m_pDevice;
-		ID3D11DeviceContext* m_pContext;
+	protected:
 		ID3D11Buffer* m_pLightBuffer;
-
-		DirectionalLight m_dirLight;
-		PointLight       m_pointLight;
-		SpotLight        m_spotLight;
+		DirectX::XMVECTOR m_ambient;
+		DirectX::XMVECTOR m_diffuse;
+		DirectX::XMVECTOR m_specular;
+		DirectX::XMFLOAT3 m_position;
 
 		DirectX::XMMATRIX m_lightSpaceMat;
 		DirectX::XMMATRIX m_viewMat;

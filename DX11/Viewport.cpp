@@ -32,65 +32,57 @@ namespace wilson
 			m_top = pos.y;
 			m_IsFocused = ImGui::IsWindowFocused();
 
-			ImGuiIO io = ImGui::GetIO();
-			int width = m_pD3D11->GetClientWidth();
-			int height = m_pD3D11->GetClientHeight();
-			float x = GetNDCX(io.MousePos.x) * width;
-			float y = GetNDCY(io.MousePos.y) * height;
-
 			ImGui::Image((void*)m_pSRV, ImVec2(m_width, m_height));
 			if (ImGui::BeginDragDropTarget())
 			{
 				const ImGuiPayload* payLoad;
-				for (int i = 0; i < 2; ++i)
+				for (int i = 0; i < 5; ++i)
 				{
-					payLoad = ImGui::AcceptDragDropPayload(modelFormats[i]);
+					payLoad = ImGui::AcceptDragDropPayload(g_types[i]);
 					if (payLoad != nullptr)
 					{
-						const wchar_t* path = (const wchar_t*)payLoad->Data;
-						m_importer.LoadModel(modelFormats[i],path,m_pDevice);
-						ModelGroup* pModelGroup = m_importer.GetModelGroup();
-			
-						std::vector<Model*> pModels = pModelGroup->GetModels();
-						for (int i = 0; i <pModels.size();++i)
+						XMVECTOR pos = CalEntityPos();
+						if (i < 2)
 						{
-							Model* pModel = pModels[i];
-							//
-							XMMATRIX* pTrMat = pModel->GetTranslationMatrix();
-							XMFLOAT4X4 trMat4;
-							XMStoreFloat4x4(&trMat4, *pTrMat);
+							const wchar_t* path = (const wchar_t*)payLoad->Data;
+							m_importer.LoadModel(g_types[i], path, m_pDevice);
+							ModelGroup* pModelGroup = m_importer.GetModelGroup();
 
-							XMVECTOR m_camPos = *(m_pCam->GetPosition());
-							XMFLOAT4 camPos4;
-							XMStoreFloat4(&camPos4, m_camPos);
-
-							XMMATRIX projMat = *(m_pCam->GetProjectionMatrix());
-							XMFLOAT4X4 projMat4;
-							XMStoreFloat4x4(&projMat4, projMat);
-							float ratio = width / (float)height;
-
-							float dx = (x / (width * 0.5f) - 1.0f) / (projMat4._22 * ratio);
-							float dy = (1.0f - y / (height * 0.5f)) / projMat4._22;
-							float dz = camPos4.z + 6;
-
-							XMVECTOR pPos = XMVectorSet(dx * dz, dy * dz, dz, 0.0f);
-
-							XMMATRIX viewMat = *(m_pCam->GetViewMatrix());
-							XMMATRIX invViewMat = XMMatrixInverse(nullptr, viewMat);
-							pPos = XMVector4Transform(pPos, invViewMat);
-
-							XMFLOAT4 pos4;
-							XMStoreFloat4(&pos4, pPos);
-							pos4.z = camPos4.z + 1;
-							pPos = XMLoadFloat4(&pos4);
-							XMMATRIX trMat = XMMatrixTranslationFromVector(pPos);
-							*pTrMat = trMat;
-							//
-							
+							std::vector<Model*> pModels = pModelGroup->GetModels();
+							for (int i = 0; i < pModels.size(); ++i)
+							{
+								Model* pModel = pModels[i];
+								XMMATRIX* pTrMat = pModel->GetTranslationMatrix();
+								XMMATRIX trMat = XMMatrixTranslationFromVector(pos);
+								*pTrMat = trMat;
+							}
+							m_pD3D11->AddModelGroup(pModelGroup, m_pDevice);
+							m_pScene->AddEntity(pModelGroup);
+							break;
 						}
-						m_pD3D11->AddModelGroup(pModelGroup, m_pDevice);
-						m_pScene->AddEntity(pModelGroup);
-						break;
+						else
+						{	
+							Light* pLight=nullptr;
+							std::string type;
+							switch (i)
+							{
+							case 2:
+								pLight = new DirectionalLight();
+								type = "DirectionalLight";
+								break;
+							case 3:
+								pLight = new PointLight();
+								type = "PointLight";
+								break;
+							case 4:
+								pLight = new SpotLight();
+								type = "SpotLight";
+							}
+							DirectX::XMFLOAT3* pPos = pLight->GetPos();
+							DirectX::XMStoreFloat3(pPos, pos);
+							m_pD3D11->AddLight(pLight);
+							m_pScene->AddEntity(pLight, type);
+						}
 					}
 				}
 				
@@ -142,4 +134,39 @@ namespace wilson
 
 		return (float)(y - viewportY) / viewportHeight;
 	}
+
+	XMVECTOR Viewport::CalEntityPos()
+	{	
+		ImGuiIO io = ImGui::GetIO();
+		int width = m_pD3D11->GetClientWidth();
+		int height = m_pD3D11->GetClientHeight();
+		float x = GetNDCX(io.MousePos.x) * width;
+		float y = GetNDCY(io.MousePos.y) * height;
+
+		XMVECTOR m_camPos = *(m_pCam->GetPosition());
+		XMFLOAT4 camPos4;
+		XMStoreFloat4(&camPos4, m_camPos);
+
+		XMMATRIX projMat = *(m_pCam->GetProjectionMatrix());
+		XMFLOAT4X4 projMat4;
+		XMStoreFloat4x4(&projMat4, projMat);
+		float ratio = width / (float)height;
+
+		float dx = (x / (width * 0.5f) - 1.0f) / (projMat4._22 * ratio);
+		float dy = (1.0f - y / (height * 0.5f)) / projMat4._22;
+		float dz = camPos4.z + 6;
+
+		XMVECTOR pos = XMVectorSet(dx * dz, dy * dz, dz, 0.0f);
+
+		XMMATRIX viewMat = *(m_pCam->GetViewMatrix());
+		XMMATRIX invViewMat = XMMatrixInverse(nullptr, viewMat);
+		pos = XMVector4Transform(pos, invViewMat);
+
+		XMFLOAT4 pos4;
+		XMStoreFloat4(&pos4, pos);
+		pos4.z = camPos4.z + 1;
+		pos = XMLoadFloat4(&pos4);
+		return pos;
+	}
+
 }

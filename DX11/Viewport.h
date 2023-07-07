@@ -9,9 +9,9 @@
 
 namespace wilson
 {
-	static const char* modelFormats[] =
+	static const char* g_types[] =
 	{
-		"obj", "fbx"
+		"obj", "fbx", "dir", "pnt", "spt"
 	};
 
 	class Viewport
@@ -44,6 +44,8 @@ namespace wilson
 		Viewport() = default;
 		Viewport(const Viewport&) = delete;
 		~Viewport() = default;
+	private:
+		XMVECTOR CalEntityPos();
 	private:
 		bool m_IsFocused;
 

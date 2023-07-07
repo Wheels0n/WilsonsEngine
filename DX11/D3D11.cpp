@@ -38,8 +38,8 @@ namespace wilson
 		m_pImporter = nullptr;
 		m_pCam = nullptr;
 		m_pFrustum = nullptr;
+		m_pLightBuffer = nullptr;
 		m_pMatBuffer = nullptr;
-		m_pLight = nullptr;
 		m_pShader = nullptr;
 		m_pShadowMap = nullptr;
 	}
@@ -350,16 +350,7 @@ namespace wilson
 		m_pMatBuffer = new MatBuffer(m_pDevice, m_pContext, m_projMat, m_viewMat);
 		m_pMatBuffer->Init();
 
-		m_pLight = new Light(m_pDevice, m_pContext);
-		m_pLight->Init();
-		m_pLight->Update();
-
-		//m_pCImporter = new CImporter();
-		//m_pCImporter->LoadOBJ(L"./Models/sphere/Sphere.obj");
-		//m_ppCModels.push_back(m_pCImporter->GetModelGroup());
-		//m_pCImporter->LoadTex(m_ppCModels[0], L"./Models/sphere/Sphere.png", m_pDevice);
-		//m_ppCModels[0]->Init(m_pDevice);
-		//m_pCImporter->ClearModel();
+		m_pLightBuffer = new LightBuffer(m_pDevice);
 
 		m_pShader = new Shader(m_pDevice, m_pContext);
 		m_pShader->Init();
@@ -507,6 +498,12 @@ namespace wilson
 			m_pImporter = nullptr;
 		}
 
+		if (m_pLightBuffer != nullptr)
+		{
+			delete m_pLightBuffer;
+			m_pLightBuffer = nullptr;
+		}
+
 		if (m_pMatBuffer != nullptr)
 		{
 			delete m_pMatBuffer;
@@ -529,12 +526,6 @@ namespace wilson
 		{
 			delete m_pFrustum;
 			m_pFrustum = nullptr;
-		}
-
-		if (m_pLight != nullptr)
-		{
-			delete m_pLight;
-			m_pLight = nullptr;
 		}
 
 		if (m_pShader != nullptr)
@@ -593,13 +584,11 @@ namespace wilson
 	
 		//Update Cam 
 		m_pCam->Update();
-		m_pFrustum->Construct(100.0f, m_pCam);
+		m_pCam->SetCamBuffer(m_pContext);
+		//m_pFrustum->Construct(100.0f, m_pCam);
 		//Update Light
-		m_pLight->Update();
-		m_pLight->UpdateViewMat(m_pCam);
-		m_pLight->UpdateProjMat(m_pCam);
-
-		//Draw ShadowMap
+		m_pLightBuffer->UpdateLightBuffer(m_pContext);
+		/*Draw ShadowMap
 		m_pContext->PSSetShaderResources(1, 1, &nullSRV);
 		m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
 		m_pShadowMap->BindDSV(m_pContext);
@@ -609,7 +598,7 @@ namespace wilson
 		m_pMatBuffer->SetProjMatrix(m_pLight->GetLitProjMat());
 		m_pMatBuffer->SetLightSpaceMatrix(m_pLight->GetLightSpaceMat());
 		m_pContext->OMSetDepthStencilState(0, 0);
-		DrawENTT();
+		DrawENTT();*/
 		//Draw EnvMap
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);	
 		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
@@ -661,6 +650,21 @@ namespace wilson
 		else
 		{
 			m_pSwapChain->Present(0, 0);
+		}
+	}
+
+	void D3D11::AddLight(Light* pLight)
+	{
+		switch (pLight->GetType())
+		{
+		case ELIGHT_TYPE::DIR:
+			m_pLightBuffer->PushDirLight((DirectionalLight*)pLight);
+			break;
+		case ELIGHT_TYPE::PNT:
+			m_pLightBuffer->PushPointLight((PointLight*)pLight);
+			break;
+		case ELIGHT_TYPE::SPT:
+			m_pLightBuffer->PushSpotLight((SpotLight*)pLight);
 		}
 	}
 

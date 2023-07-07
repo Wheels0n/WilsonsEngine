@@ -16,7 +16,7 @@
 #include "Camera.h"
 #include "Frustum.h"
 #include "MatrixBuffer.h"
-#include "Light.h"
+#include "LightBuffer.h"
 #include "Shader.h"
 #include "Terrain.h"
 #include "Import.h"
@@ -26,7 +26,7 @@
 //D:\DirectxSDK\Lib\x64;$(LibraryPath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x64;$(LibraryPath)
 
 namespace wilson
-{
+{   
 	class D3D11
 	{
 	private:
@@ -45,6 +45,7 @@ namespace wilson
 
 		void UpdateScene();
 		void DrawScene();
+		void AddLight(Light*);
 		void AddModelGroup(ModelGroup*, ID3D11Device*);
 		void RemoveModelGroup(int i);
 		void RemoveModel(int i, int j);
@@ -52,10 +53,6 @@ namespace wilson
 		{
 			return m_pCam;
 		};
-		inline Light* GetLight() const
-		{
-			return m_pLight;
-		}
 		inline IDXGISwapChain* GetSwapChain() const
 		{
 			return m_pSwapChain;
@@ -115,8 +112,8 @@ namespace wilson
 		Terrain* m_pTerrain;
 		Camera* m_pCam;
 		Frustum* m_pFrustum;
+		LightBuffer* m_pLightBuffer;
 		MatBuffer* m_pMatBuffer;
-		Light* m_pLight;
 		Shader* m_pShader;
 		ShadowMap* m_pShadowMap;
 

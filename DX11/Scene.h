@@ -20,6 +20,7 @@ namespace wilson
 			m_pD3D11 = pD3D11;
 		}
 		void AddEntity(ModelGroup*);
+		void AddEntity(Light*, std::string);
 		void Draw();
 		void DrawVec3Control(const std::string& label, float* vals);
 		void Pick(float, float, int, int);
@@ -41,16 +42,21 @@ namespace wilson
 		Scene(const Scene&) = default;
 		~Scene();
 	private:
+		void DrawLightControl(Light*);
+		void DrawPointLightControl(Light*);
+		void DrawSpotLightControl(Light*);
 		bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float, float*);
 		void RemoveSelectedModel(int, int);
 		void RemoveModelGroup(int);
+		void RemoveEntity(int);
 	private:
 		std::unordered_map<std::string, int> m_entityCnt;
 		std::vector<Entity*> m_entites;
 		std::string m_name;
 
+		bool m_isModel;
 		D3D11* m_pD3D11;
-		Model* m_pSelectedModel;
+		void* m_pSelectedEntity;
 		Camera* m_pCam;
 		Scene* sceneHandler;
 	};

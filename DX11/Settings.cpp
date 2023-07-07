@@ -1,20 +1,25 @@
 #include "Settings.h"
-
+#include<D3DX11tex.h>
 namespace wilson
-{
-	void Settings::Init(Camera* pCCam, Light* pCLight)
+{	
+	const static float ICON_SZ = 16.0f;
+	const static float SPACING = 32.0f;
+	void Settings::Init(ID3D11Device* pDevice, Camera* pCam)
 	{
-		m_CFps.Init();
-		m_pLight = pCLight;
-		m_pCam = pCCam;
+		m_FPS.Init();
+		m_pCam = pCam;
+
+		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/sun-color-icon.png", nullptr, nullptr, &m_icons[0], nullptr);
+		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/light-bulb-color-icon.png", nullptr, nullptr, &m_icons[1], nullptr);
+		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/flashlight-icon.png", nullptr, nullptr, &m_icons[2], nullptr);
 	}
 
 	void Settings::Draw()
 	{
 		if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_MenuBar))
 		{
-			m_CFps.Frame();
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_CFps.GetFps());
+			m_FPS.Frame();
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_FPS.GetFps());
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ENTTSInFrustum:%d", m_pCam->GetENTTsInFrustum());
 
 			ImGuiIO io = ImGui::GetIO();
@@ -65,7 +70,7 @@ namespace wilson
 				ImGui::PopID();
 				ImGui::TreePop();
 			}
-			if (ImGui::TreeNode("Lighting"))
+			/*if (ImGui::TreeNode("Lighting"))
 			{   
 				if(ImGui::TreeNode("DirectionalLight"))
 				{  
@@ -129,21 +134,21 @@ namespace wilson
 						pos3.x = 0.0f;
 					}
 					ImGui::SameLine();
-					ImGui::DragFloat("##X", &pos3.x, 0.01f, 0.0f, 1.0f);
+					ImGui::DragFloat("##X", &pos3.x, 1.0f, -10000.0f, 10000.0f);
 
 					if (ImGui::Button("Y"))
 					{
 						pos3.y = 0.0f;
 					}
 					ImGui::SameLine();
-					ImGui::DragFloat("##Y", &pos3.y, 0.01f, 0.0f, 1.0f);
+					ImGui::DragFloat("##Y", &pos3.y, 1.0f, -10000.0f, 10000.0f);
 
 					if (ImGui::Button("Z"))
 					{
 						pos3.z = 0.0f;
 					}
 					ImGui::SameLine();
-					ImGui::DragFloat("##Z", &pos3.z, 0.01f, 0.0f, 1.0f);
+					ImGui::DragFloat("##Z", &pos3.z, 1.0f, -10000.0f, 10000.0f);
 					pointLight.position = pos3;
 
 					DirectX::XMFLOAT4 ambient4;
@@ -285,9 +290,52 @@ namespace wilson
 				}
 
 				ImGui::TreePop();
+			}*/
+
+			
+		}
+		ImGui::End();
+
+		if (ImGui::Begin("Light"))
+		{ 
+			ImGui::Image(m_icons[0], ImVec2(ICON_SZ, ICON_SZ));
+			ImGui::SameLine(SPACING);
+			ImGui::Text("DirectionalLight");
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+			{	
+				ImGui::SetDragDropPayload("dir",nullptr, 0, ImGuiCond_Once);
+				ImGui::EndDragDropSource();
 			}
 
-			ImGui::End();
+			ImGui::Image(m_icons[1], ImVec2(ICON_SZ, ICON_SZ));
+			ImGui::SameLine(SPACING);
+			ImGui::Text("PointLight");
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+			{
+				ImGui::SetDragDropPayload("pnt", nullptr, 0, ImGuiCond_Once);
+				ImGui::EndDragDropSource();
+			}
+
+			ImGui::Image(m_icons[2], ImVec2(ICON_SZ, ICON_SZ));
+			ImGui::SameLine(SPACING);
+			ImGui::Text("SpotLight");
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+			{
+				ImGui::SetDragDropPayload("spt", nullptr, 0, ImGuiCond_Once);
+				ImGui::EndDragDropSource();
+			}
+
+			
+		}
+		ImGui::End();
+		
+	}
+	Settings::~Settings()
+	{
+		for (int i = 0; i < 3; ++i)
+		{
+			m_icons[i]->Release();
+			m_icons[i] = nullptr;
 		}
 	}
 }

@@ -60,12 +60,17 @@ struct Material
     float4 reflect;
 };
 
-cbuffer gLight
+cbuffer cbLight
 {   
-	DirectionalLight  dirLight;
-	PointLight        pointLight;
-	SpotLight		  spotLight;
+	DirectionalLight cbDirLight[10];
+    uint dirCnt;
+    PointLight cbPointLight[48];
+    uint pntCnt;
+    SpotLight cbSpotLight[20];
+    uint sptCnt;
+    uint padding;
 };
+
 cbuffer Material
 {
     Material gMaterial;
@@ -121,51 +126,54 @@ void CalDirectionalLight(Material material, DirectionalLight L,
     ambient = material.ambient * L.ambient;
    
     float diffuseFactor = max(dot(lightDir, normal), 0.0f);
-    diffuse = diffuseFactor * material.diffuse * L.diffuse;
     [branch]
     if(diffuseFactor!=0.0f)
     {
+        diffuse = diffuseFactor * material.diffuse * L.diffuse;
+        
         float3 h = normalize(toEye + lightDir);
         float specFactor = pow(max(dot(normal, h), 0.0f), material.specular.w);
         specular = specFactor * specularIntensity * material.specular * L.specular;
     }
  
 }
-void CalPointLight(Material material, PointLight L, float3 pos, float3 normal, float3 toEye,
+void CalPointLight(Material material, PointLight L, float3 pos, float3 normal, float3 toEye, float4 specularIntensity,
 out float4 ambient, out float4 diffuse, out float4 specular)
 {
     ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
     diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
     specular = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	
-    float3 lightVec = L.position - pos;
+    float3 lightDir = L.position - pos;
 	
-    float distance = length(lightVec);
+    float distance = length(lightDir);
 	
+    [branch]
     if (distance > L.range)
     {
         return;
     }
 	
-    lightVec /= distance;
+    lightDir = normalize(lightDir);
 	
     ambient = material.ambient * L.ambient;
 	
-    float diffuseFactor = dot(lightVec, normal);
+    float diffuseFactor = max(dot(lightDir, normal), 0.0f);
 	
-    if (diffuseFactor > 0.0f)
+    if (diffuseFactor != 0.0f)
     {
-        float3 v = reflect(-lightVec, normal);
-        float specFactor = pow(max(dot(v, toEye), 0.0f), material.specular.w);
-		
         diffuse = diffuseFactor * material.diffuse * L.diffuse;
-        specular = specFactor * material.specular * L.specular;
+        
+        float3 h = normalize(toEye + lightDir);
+        float specFactor = pow(max(dot(normal, h), 0.0f), material.specular.w);
+        specular = specFactor * specularIntensity * material.specular * L.specular;
+	    
+        float att = 1.0f / dot(L.att, float3(1.0f, distance, distance * distance));
+        diffuse *= att;
+        specular *= att;
     }
 	
-    float att = 1.0f / dot(L.att, float3(1.0f, distance, distance * distance));
-	
-    diffuse *= att;
-    specular *= att;
+    
 }
 void CalSpotLight(Material material, SpotLight L, float3 pos, float3 normal, float3 toEye,
 out float4 ambient, out float4 diffuse, out float4 specular)
@@ -229,8 +237,6 @@ float4 main(PixelInputType input) : SV_TARGET
         specularIntensity=specularMap.Sample(SampleType, input.tex);
     }
         
-    
-    float3 lightDir = normalize(dirLight.position - input.wPosition.xyz);
     float3 normal = normalize(input.normal);
     [branch]
     if (hasNormal==true)
@@ -248,24 +254,32 @@ float4 main(PixelInputType input) : SV_TARGET
     float4 diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 specular = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 A, D, S;
-    float shadowFactor = CalShadowFactor(shadowSampler, shadowMap, input.shadowPos, normal, lightDir);
-  
-    CalDirectionalLight(gMaterial, dirLight, normal, input.toEye, lightDir, specularIntensity, A, D, S);
-    ambient += A;
-    diffuse += D * shadowFactor;
-    specular += S * shadowFactor;
-
-    /*CalPointLight(gMaterial, pointLight, (float3) input.position, input.normal, input.toEye, A, D, S);
-    ambient += A;
-    diffuse += D;
-    specular += S;
+    float shadowFactor=1.0f;
     
-
-    CalSpotLight(gMaterial, spotLight, (float3) input.position, input.normal, input.toEye, A, D, S);
-    ambient += A;
-    diffuse += D;
-    specular += S;
-    */
+    for (int i = 0; i< dirCnt;++i)
+    {   
+        float3 lightDir = normalize(cbDirLight[i].position - input.wPosition.xyz);
+        CalDirectionalLight(gMaterial, cbDirLight[i], normal, input.toEye, lightDir, specularIntensity, A, D, S);
+        //shadowFactor = CalShadowFactor(shadowSampler, shadowMap, input.shadowPos, normal, lightDir);
+        ambient += A;
+        diffuse += D * shadowFactor;
+        specular += S * shadowFactor;
+    }
+    for (int i = 0; i < pntCnt; ++i)
+    {
+       CalPointLight(gMaterial, cbPointLight[i], (float3) input.wPosition, normal, input.toEye, specularIntensity, A, D, S);
+       ambient += A;
+       diffuse += D * shadowFactor;
+       specular += S * shadowFactor;
+    }
+    
+    for (int i = 0; i < sptCnt; ++i)
+    {
+        CalSpotLight(gMaterial, cbSpotLight[i], (float3) input.position, input.normal, input.toEye, A, D, S);
+        ambient += A;
+        diffuse += D * shadowFactor;
+        specular += S * shadowFactor;
+    }
 
 
     float4 litColor = texColor * (ambient + diffuse + specular);

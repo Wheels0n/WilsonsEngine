@@ -10,14 +10,16 @@ namespace wilson
 	class Settings
 	{
 	public:
-		void Init(Camera*, Light*);
+		void Init(ID3D11Device*, Camera*);
 		void Draw();
 
 		Settings() = default;
 		Settings(const Settings&) = default;
-		~Settings() = default;
+		~Settings();
 	private:
-		FPS m_CFps;
+		ID3D11ShaderResourceView* m_icons[3];//dir, point, spot;
+
+		FPS m_FPS;
 		Light* m_pLight;
 		Camera* m_pCam;
 	};

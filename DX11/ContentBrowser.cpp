@@ -2,7 +2,7 @@
 
 namespace wilson {
 	const static std::filesystem::path assetsPath = "Assets";
-	const static float iconSz = 128.0f;
+	const static float ICON_SZ = 128.0f;
 	const static float padding = 16.0f;
 
 	ContentBrowser::~ContentBrowser()
@@ -23,7 +23,6 @@ namespace wilson {
 	void ContentBrowser::Init(ID3D11Device* pDevice)
 	{
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/folderIcon.png", nullptr, nullptr, &m_pDirIcon, nullptr);
-		m_pDirIcon->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof("icon") - 1, "icon");
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/fileIcon.png", nullptr, nullptr, &m_pFileIcon, nullptr);
 	}
 
@@ -41,7 +40,7 @@ namespace wilson {
 		}
 
 		float panelWidth = ImGui::GetContentRegionAvail().x;
-		unsigned int colCount = (int)(panelWidth / (iconSz + padding));
+		unsigned int colCount = (int)(panelWidth / (ICON_SZ + padding));
 		if (colCount < 1)
 		{
 			colCount = 1;
@@ -56,7 +55,7 @@ namespace wilson {
 			std::string fileName = item.path().filename().string();
 			void* icon = item.is_directory() ? m_pDirIcon : m_pFileIcon;
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-			ImGui::ImageButton(icon, ImVec2(iconSz, iconSz));
+			ImGui::ImageButton(icon, ImVec2(ICON_SZ, ICON_SZ));
 
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{
