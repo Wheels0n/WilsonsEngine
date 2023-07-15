@@ -18,6 +18,9 @@ namespace wilson
             return false;
         }
 
+        m_projMat = DirectX::XMMatrixOrthographicLH(100.0f, 100.0f, 0.1f, 100.0f);
+        UpdateViewMat();
+
         Light::Init(pDevice);
         return true;
     }
@@ -29,4 +32,21 @@ namespace wilson
         m_dirLightProperty.specular = m_specular;
         m_dirLightProperty.position = m_position;
     }
+
+    void DirectionalLight::UpdateViewMat()
+    {
+        DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+        DirectX::XMVECTOR target = DirectX::XMVectorZero();
+        DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&m_position);
+        m_viewMat = DirectX::XMMatrixLookAtLH(pos,
+            target, up);
+        m_lightSpaceMat = DirectX::XMMatrixMultiply(m_viewMat, m_projMat);//전치행렬 속성
+        m_lightSpaceMat = DirectX::XMMatrixTranspose(m_lightSpaceMat);
+    }
+    void DirectionalLight::UpdateProjMat()
+    {
+        //오브젝트마다 aabb?
+        m_projMat = DirectX::XMMatrixOrthographicLH(100.0f, 100.0f, 0.1f, 100.0f);
+    }
+
 }

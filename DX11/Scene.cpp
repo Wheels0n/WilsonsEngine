@@ -22,19 +22,19 @@ namespace wilson
 		m_entites.shrink_to_fit();
 	}
 
-	void Scene::AddEntity(ModelGroup* pModelGroup)
+	void Scene::AddEntity(ModelGroup* pModelGroup, UINT idx)
 	{
 		std::string name = pModelGroup->GetName();
 		name += std::to_string(++m_entityCnt[name]);
 
-		Entity* ENTT = new Entity(name, pModelGroup);
+		Entity* ENTT = new Entity(name, idx, pModelGroup);
 		m_entites.push_back(ENTT);
 	}
-	void Scene::AddEntity(Light* pLight, std::string type)
+	void Scene::AddEntity(Light* pLight, std::string type, UINT idx)
 	{	
 		std::string name = type;
 		name +=std::to_string(++m_entityCnt[type]);
-		Entity* ENTT = new Entity(type, pLight);
+		Entity* ENTT = new Entity(type, idx, pLight);
 		m_entites.push_back(ENTT);
 	}
 	void Scene::Draw()
@@ -47,6 +47,7 @@ namespace wilson
 				ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 				for (int i = 0; i < m_entites.size(); ++i)
 				{	
+					int idx = m_entites[i]->GetIndex();
 					if (m_entites[i]->isModel())
 					{
 						ModelGroup* pModelGroup = m_entites[i]->GetModelGroup();
@@ -64,7 +65,14 @@ namespace wilson
 								ImGui::Separator();
 								if (ImGui::Selectable(actions))
 								{
-									RemoveModelGroup(i);
+									RemoveModelGroup(idx);
+									for (int j = i; j < m_entites.size(); ++j)
+									{
+										if (m_entites[j]->isModel())
+										{
+											m_entites[j]->DecreaseIndex();
+										}
+									}
 								}
 								ImGui::EndPopup();
 							}
@@ -84,7 +92,7 @@ namespace wilson
 									ImGui::Separator();
 									if (ImGui::Selectable(actions))
 									{
-										RemoveSelectedModel(i, j);
+										RemoveSelectedModel(idx, j);
 									}
 									ImGui::EndPopup();
 								}
@@ -109,8 +117,17 @@ namespace wilson
 							ImGui::Text("Edit");
 							ImGui::Separator();
 							if (ImGui::Selectable(actions))
-							{
-								RemoveEntity(i);
+							{	
+								ELIGHT_TYPE type = pLight->GetType();
+								RemoveLight(idx, pLight);
+								for (int j = i; j < m_entites.size(); ++j)
+								{
+									if (!m_entites[j]->isModel()&&
+										(m_entites[j]->GetLight()->GetType()) == type)
+									{
+										m_entites[j]->DecreaseIndex();
+									}
+								}
 							}
 							ImGui::EndPopup();
 						}
@@ -371,6 +388,7 @@ namespace wilson
 	void Scene::DrawLightControl(Light* pLight)
 	{
 		DirectX::XMFLOAT3* pos3 = pLight->GetPos();
+		DirectX::XMFLOAT3 copyPos3 = *pos3;
 		ImGui::Text("Position");
 		if (ImGui::Button("X"))
 		{
@@ -392,6 +410,20 @@ namespace wilson
 		}
 		ImGui::SameLine();
 		ImGui::DragFloat("##Z", &(pos3->z), 1.0f, -1000.0f, 1000.0f);
+		if (pos3->x != copyPos3.x || pos3->y != copyPos3.y || pos3->z != copyPos3.z)
+		{
+			switch (pLight->GetType())
+			{
+			case ELIGHT_TYPE::DIR:
+				((DirectionalLight*)pLight)->UpdateViewMat();
+				break;
+			case ELIGHT_TYPE::PNT:
+				((PointLight*)pLight)->CreateShadowMatrices();
+				break;
+			}
+			
+		}
+
 
 		DirectX::XMFLOAT4 ambient4;
 		DirectX::XMStoreFloat4(&ambient4, *(pLight->GetAmbient()));
@@ -490,6 +522,7 @@ namespace wilson
 	{
 		m_pD3D11->RemoveModelGroup(i);
 		RemoveEntity(i);
+	
 	}
 	void Scene::RemoveEntity(int i)
 	{	
@@ -497,5 +530,11 @@ namespace wilson
 		--m_entityCnt[name];
 		delete m_entites[i];
 		m_entites.erase(m_entites.begin() + i);
+		m_pSelectedEntity = nullptr;
+	}
+	void Scene::RemoveLight(int i, Light* pLight)
+	{	
+		m_pD3D11->RemoveLight(i, pLight);
+		RemoveEntity(i);
 	}
 }

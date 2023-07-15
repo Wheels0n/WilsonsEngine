@@ -66,7 +66,7 @@ void MatBuffer::Update()
 	pMatrices->m_worldMat = XMMatrixTranspose(m_worldMat);
 	pMatrices->m_viewMat = XMMatrixTranspose(m_viewMat);
 	pMatrices->m_projMat = XMMatrixTranspose(m_projMat);
-	pMatrices->m_lightSpaceMat = XMMatrixTranspose(m_lightSpaceMat);
+	pMatrices->m_lightSpaceMat = m_lightSpaceMat;
 	m_pContext->Unmap(m_pMatBuffer, 0);
 
  	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatBuffer);

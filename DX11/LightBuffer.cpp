@@ -2,11 +2,47 @@
 
 namespace wilson
 {
+	void LightBuffer::UpdateDirLightByIndex(ID3D11DeviceContext* pContext, UINT i)
+	{
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		DirLightMatrices* pMatrices;
+		HRESULT hr = pContext->Map(m_pLitMatricesBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		if (FAILED(hr))
+		{
+			return;
+		}
+		pMatrices = reinterpret_cast<DirLightMatrices*>(mappedResource.pData);
+		pMatrices->dirCnt = m_pDirLights.size();
+		for (int i = 0; i < m_pDirLights.size(); ++i)
+		{
+			pMatrices->matrices[i] = *(m_pDirLights[i]->GetLightSpaceMat());
+		}
+		pContext->Unmap(m_pLitMatricesBuffer, 0);
+		pContext->VSSetConstantBuffers(3, 1, &m_pLitMatricesBuffer);
+	}
+	void LightBuffer::UpdateDirLightMatrices(ID3D11DeviceContext* pContext)
+	{
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		DirLightMatrices* pMatrices;
+		HRESULT hr = pContext->Map(m_pLitMatricesBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		if (FAILED(hr))
+		{
+			return;
+		}
+		pMatrices = reinterpret_cast<DirLightMatrices*>(mappedResource.pData);
+		pMatrices->dirCnt = m_pDirLights.size();
+		for (int i = 0; i < m_pDirLights.size(); ++i)
+		{
+			pMatrices->matrices[i] = *(m_pDirLights[i]->GetLightSpaceMat());
+		}
+		pContext->Unmap(m_pLitMatricesBuffer, 0);
+		pContext->VSSetConstantBuffers(3, 1, &m_pLitMatricesBuffer);
+	}
 	void LightBuffer::UpdateLightBuffer(ID3D11DeviceContext* pContext)
 	{
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		LightBufferProperty* plbProperty;
-		HRESULT hr = pContext->Map(m_pLightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		HRESULT hr = pContext->Map(m_pLightPropertyBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		if (FAILED(hr))
 		{
 			return;
@@ -17,6 +53,7 @@ namespace wilson
 		{
 			plbProperty->dirLights[i] = *m_pDirLights[i]->GetProperty(); 
 		}
+		
 		plbProperty->pntCnt = m_pPointLights.size();
 		for (int i = 0; i < m_pPointLights.size(); ++i)
 		{
@@ -27,14 +64,16 @@ namespace wilson
 		{
 			plbProperty->sptLights[i] = *m_pSpotLights[i]->GetProperty(); 
 		}
-		pContext->Unmap(m_pLightBuffer,0);
-		pContext->PSSetConstantBuffers(0, 1, &m_pLightBuffer);
+		pContext->Unmap(m_pLightPropertyBuffer,0);
+		pContext->PSSetConstantBuffers(0, 1, &m_pLightPropertyBuffer);
 		
 		
 	}
 	LightBuffer::LightBuffer(ID3D11Device* pDevice)
 	{	
-		m_pLightBuffer = nullptr;
+		m_pLightPropertyBuffer = nullptr;
+		m_pLitMatricesBuffer = nullptr;
+
 		D3D11_BUFFER_DESC bdc;
 		bdc.Usage = D3D11_USAGE_DYNAMIC;
 		bdc.ByteWidth = sizeof(LightBufferProperty);
@@ -42,18 +81,28 @@ namespace wilson
 		bdc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		bdc.MiscFlags = 0;
 		bdc.StructureByteStride = 0;
-		pDevice->CreateBuffer(&bdc, 0, &m_pLightBuffer);
+		pDevice->CreateBuffer(&bdc, 0, &m_pLightPropertyBuffer);
+
+		bdc.ByteWidth = sizeof(DirLightMatrices);
+		pDevice->CreateBuffer(&bdc, 0, &m_pLitMatricesBuffer);
 
 		m_pDirLights.reserve(MAX_DIR_LIGHTS);
 		m_pPointLights.reserve(MAX_PNT_LIGHTS);
 		m_pSpotLights.reserve(MAX_SPT_LIGHTS);
+
 	}
 	LightBuffer::~LightBuffer()
 	{	
-		if (m_pLightBuffer != nullptr)
+		if (m_pLightPropertyBuffer != nullptr)
 		{
-			m_pLightBuffer->Release();
-			m_pLightBuffer = nullptr;
+			m_pLightPropertyBuffer->Release();
+			m_pLightPropertyBuffer = nullptr;
+		}
+
+		if (m_pLitMatricesBuffer != nullptr)
+		{
+			m_pLitMatricesBuffer->Release();
+			m_pLitMatricesBuffer = nullptr;
 		}
 
 		for (int i = 0; i < m_pDirLights.size(); ++i)

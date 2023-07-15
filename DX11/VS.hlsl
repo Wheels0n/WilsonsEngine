@@ -1,3 +1,4 @@
+
 cbuffer MatrixBuffer
 {
 	matrix worldMatrix;
@@ -19,6 +20,12 @@ cbuffer PerModel
     bool hasAlpha;
 };
 
+cbuffer DirLightMatrices
+{
+    matrix dirLightMatrices[10];
+    uint dirLightCnt;
+};
+
 struct VertexInputType
 {
 	float3 position : POSITION;
@@ -36,9 +43,9 @@ struct PixelInputType
     float3 normal  : NORMAL;
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
-    float3 toEye   : VIEW;
-    float4 shadowPos : POSITION1;
-    float4 wPosition : POSITION2;
+    float3 viewDir  : VIEW;
+    float4 shadowPos[10] : POSITION0;
+    float4 wPosition : POSITION10;
 };
 
 PixelInputType main(VertexInputType input)  
@@ -59,11 +66,18 @@ PixelInputType main(VertexInputType input)
     }
     output.wPosition = output.position;
     
-    output.shadowPos = output.position;
-    output.shadowPos = mul(output.shadowPos, lightSpaceMat);
+    for (int i = 0; i < 10; ++i)
+    {
+        output.shadowPos[i] = output.wPosition;
+    }
     
-    output.toEye = m_camPos.xyz-output.position.xyz;
-    output.toEye = normalize(output.toEye);
+    for (int j = 0; j < dirLightCnt;++j)
+    {
+        output.shadowPos[j] = mul(output.shadowPos[j], dirLightMatrices[j]);
+    }
+    
+    output.viewDir = m_camPos.xyz - output.position.xyz;
+    output.viewDir = normalize(output.viewDir);
 
 	output.position = mul(output.position, viewMatrix);
 	output.position = mul(output.position, projectionMatrix);

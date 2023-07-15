@@ -19,8 +19,8 @@ namespace wilson
 		{
 			m_pD3D11 = pD3D11;
 		}
-		void AddEntity(ModelGroup*);
-		void AddEntity(Light*, std::string);
+		void AddEntity(ModelGroup*, UINT idx);
+		void AddEntity(Light*, std::string, UINT idx);
 		void Draw();
 		void DrawVec3Control(const std::string& label, float* vals);
 		void Pick(float, float, int, int);
@@ -48,6 +48,7 @@ namespace wilson
 		bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float, float*);
 		void RemoveSelectedModel(int, int);
 		void RemoveModelGroup(int);
+		void RemoveLight(int, Light*);
 		void RemoveEntity(int);
 	private:
 		std::unordered_map<std::string, int> m_entityCnt;

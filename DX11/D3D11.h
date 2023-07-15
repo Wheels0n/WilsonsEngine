@@ -27,6 +27,7 @@
 
 namespace wilson
 {   
+	constexpr UINT SHADOWMAP_SIZE = 1024;
 	class D3D11
 	{
 	private:
@@ -48,6 +49,7 @@ namespace wilson
 		void AddLight(Light*);
 		void AddModelGroup(ModelGroup*, ID3D11Device*);
 		void RemoveModelGroup(int i);
+		void RemoveLight(int i, Light* pLight);
 		void RemoveModel(int i, int j);
 		inline Camera* GetCam() const
 		{
@@ -73,6 +75,11 @@ namespace wilson
 		{
 			return m_clientHeight;
 		};
+		inline UINT GetModelGroupSize()
+		{
+			return m_pModelGroups.size();
+		}
+		UINT GetLightSize(Light* pLight);
 
 		bool CreateRTT(int, int);
 		bool CreateDSBforRTT(int w, int h)

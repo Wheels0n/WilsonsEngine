@@ -14,6 +14,21 @@ namespace wilson
 	class DirectionalLight : public Light
 	{
 	public:
+
+		void UpdateViewMat();
+		void UpdateProjMat();
+		inline DirectX::XMMATRIX* GetLightSpaceMat()
+		{
+			return &m_lightSpaceMat;
+		}
+		inline DirectX::XMMATRIX* GetLitViewMat()
+		{
+			return &m_viewMat;
+		}
+		inline DirectX::XMMATRIX* GetLitProjMat()
+		{
+			return &m_projMat;
+		}
 		inline DirLightProperty* GetProperty()
 		{
 			return &m_dirLightProperty;
@@ -22,10 +37,14 @@ namespace wilson
 		void UpdateProperty();
 		ELIGHT_TYPE GetType() { return ELIGHT_TYPE::DIR; };
 
-		DirectionalLight() = default;
+		DirectionalLight()=default;
 		DirectionalLight(const DirectionalLight&) = default;
 		~DirectionalLight() { Light::~Light(); };
 	private:
 		DirLightProperty m_dirLightProperty;
+
+		DirectX::XMMATRIX m_lightSpaceMat;
+		DirectX::XMMATRIX m_viewMat;
+		DirectX::XMMATRIX m_projMat;
 	};
 }

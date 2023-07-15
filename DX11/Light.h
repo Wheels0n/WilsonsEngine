@@ -21,17 +21,6 @@ namespace wilson
 		bool virtual Init(ID3D11Device* pDevice);
 		ELIGHT_TYPE virtual GetType() { return ELIGHT_TYPE::PNT; };
 
-		void UpdateViewMat(Camera* pCam);
-		void UpdateProjMat(Camera* pCam);
-		DirectX::XMMATRIX* GetLightSpaceMat();
-		inline DirectX::XMMATRIX* GetLitViewMat()
-		{
-			return &m_viewMat;
-		}
-		inline DirectX::XMMATRIX* GetLitProjMat()
-		{
-			return &m_projMat;
-		}
 		inline DirectX::XMFLOAT3* GetPos()
 		{
 			return &m_position;
@@ -58,9 +47,6 @@ namespace wilson
 		DirectX::XMVECTOR m_specular;
 		DirectX::XMFLOAT3 m_position;
 
-		DirectX::XMMATRIX m_lightSpaceMat;
-		DirectX::XMMATRIX m_viewMat;
-		DirectX::XMMATRIX m_projMat;
 	};
 }
 #endif 

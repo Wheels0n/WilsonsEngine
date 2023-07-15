@@ -30,6 +30,14 @@ namespace wilson
 		{
 			return m_Name;
 		}
+		inline UINT GetIndex()
+		{
+			return m_idx;
+		}
+		inline void DecreaseIndex()
+		{
+			--m_idx;
+		}
 		inline void ToggleInstancing()
 		{
 			m_pModelGroup->ToggleInstancing();
@@ -42,8 +50,8 @@ namespace wilson
 		{
 			m_pModelGroup->SetNumInstance(n);
 		}
-		Entity(std::string, ModelGroup*);
-		Entity(std::string, Light*);
+		Entity(std::string, UINT idx, ModelGroup*);
+		Entity(std::string, UINT idx, Light*);
 		Entity(const Entity&) = default;
 		~Entity() = default;
 	private:
@@ -52,6 +60,7 @@ namespace wilson
 		ModelGroup* m_pModelGroup;
 		Model* m_pSelectedModel;
 		std::string m_Name;
+		UINT m_idx;
 	};
 }
 #endif // !ENTITY_H

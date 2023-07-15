@@ -1,10 +1,12 @@
 Texture2D diffuseMap;
-Texture2D shadowMap;
 Texture2D specularMap;
 Texture2D normalMap;
 Texture2D alphaMap;
-SamplerState SampleType;
-SamplerComparisonState shadowSampler;
+Texture2D dirShadowMaps[1];
+TextureCube omniDirShadowMaps[1];
+SamplerState SampleType : register(s0);
+SamplerState g_cubeShadowSampler : register(s1);
+SamplerComparisonState g_dirShadowSampler : register(s2);
 
 struct PixelInputType
 {
@@ -13,9 +15,9 @@ struct PixelInputType
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
-    float3 toEye : VIEW;
-    float4 shadowPos : POSITION1;
-    float4 wPosition : POSITION2;
+    float3 viewDir : VIEW;
+    float4 shadowPos[10] : POSITION0;
+    float4 wPosition : POSITION10;
 };
 struct DirectionalLight
 {
@@ -62,7 +64,7 @@ struct Material
 
 cbuffer cbLight
 {   
-	DirectionalLight cbDirLight[10];
+    DirectionalLight cbDirLight[10];
     uint dirCnt;
     PointLight cbPointLight[48];
     uint pntCnt;
@@ -71,7 +73,7 @@ cbuffer cbLight
     uint padding;
 };
 
-cbuffer Material
+cbuffer cbMaterial
 {
     Material gMaterial;
 };
@@ -83,10 +85,11 @@ cbuffer PerModel
     bool hasAlpha;
 };
 
-static const float SMAP_SIZE = 2048.0f;
+static const float SMAP_SIZE = 1024.0f;
 static const float SMAP_DX = 1.0f / SMAP_SIZE;
+static const float FAR_PLANE = 25.0f;
 
-float CalShadowFactor(SamplerComparisonState shadowSampler,
+float CalDirShadowFactor(SamplerComparisonState shadowSampler,
                         Texture2D shadowMap,
                         float4 shadowPos,
                         float3 normal, float3 lightDir)
@@ -115,8 +118,38 @@ float CalShadowFactor(SamplerComparisonState shadowSampler,
    
       return percentLit /= 9.0f;
 }
+float CalOmniDirShadowFactor(SamplerState shadowSampler,
+                        TextureCube shadowMap, float3 fragToLight)
+{  
+    
+    const float dx = SMAP_DX;
+    const float3 offesets[20] =
+    {
+        float3(dx, dx, dx), float3(dx, -dx, dx), float3(-dx, -dx, dx), float3(-dx, dx, dx),
+        float3(dx, dx, -dx), float3(dx, -dx, -dx), float3(-dx, -dx, -dx), float3(-dx, dx, -dx),
+        float3(dx, dx, 0), float3(dx, -dx, 0), float3(-dx, -dx, 0), float3(-dx, dx, 0),
+        float3(dx, 0, dx), float3(-dx, 0, dx), float3(dx, 0, -dx), float3(-dx, 0, -dx),
+        float3(0, dx, dx), float3(0, -dx, dx), float3(0, -dx, -dx), float3(0, dx, -dx)
+    };
+    
+    float percentLit = 0.0f;
+    float bias = 0.05f;
+    float curDepth = length(fragToLight);
+    for (int i = 0; i < 20;++i)
+    {   
+        float sampledDepth = shadowMap.Sample(shadowSampler, fragToLight + offesets[i]).r;
+        sampledDepth *= FAR_PLANE;
+        if(sampledDepth>curDepth)
+        {
+            percentLit += 1.0f;
+        }
+        
+    }
+    return percentLit /= 20.0f;
+
+}
 void CalDirectionalLight(Material material, DirectionalLight L,
-	float3 normal, float3 toEye, float3 lightDir, float4 specularIntensity,
+	float3 normal, float3 viewDir, float3 lightDir, float4 specularIntensity,
 	out float4 ambient, out float4 diffuse, out float4 specular)
 {
     ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -131,20 +164,19 @@ void CalDirectionalLight(Material material, DirectionalLight L,
     {
         diffuse = diffuseFactor * material.diffuse * L.diffuse;
         
-        float3 h = normalize(toEye + lightDir);
+        float3 h = normalize(viewDir + lightDir);
         float specFactor = pow(max(dot(normal, h), 0.0f), material.specular.w);
         specular = specFactor * specularIntensity * material.specular * L.specular;
     }
  
 }
-void CalPointLight(Material material, PointLight L, float3 pos, float3 normal, float3 toEye, float4 specularIntensity,
+void CalPointLight(Material material, PointLight L, float3 lightDir, float3 normal, float3 toEye, float4 specularIntensity,
 out float4 ambient, out float4 diffuse, out float4 specular)
 {
     ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
     diffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
     specular = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	
-    float3 lightDir = L.position - pos;
 	
     float distance = length(lightDir);
 	
@@ -255,27 +287,29 @@ float4 main(PixelInputType input) : SV_TARGET
     float4 specular = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 A, D, S;
     float shadowFactor=1.0f;
-    
-    for (int i = 0; i< dirCnt;++i)
+    input.viewDir = normalize(input.viewDir);
+    for (int i = 0; i < dirCnt; ++i)
     {   
         float3 lightDir = normalize(cbDirLight[i].position - input.wPosition.xyz);
-        CalDirectionalLight(gMaterial, cbDirLight[i], normal, input.toEye, lightDir, specularIntensity, A, D, S);
-        //shadowFactor = CalShadowFactor(shadowSampler, shadowMap, input.shadowPos, normal, lightDir);
+        CalDirectionalLight(gMaterial, cbDirLight[i], normal, input.viewDir, lightDir, specularIntensity, A, D, S);
+        shadowFactor = CalDirShadowFactor(g_dirShadowSampler, dirShadowMaps[i], input.shadowPos[i], normal, lightDir);
         ambient += A;
         diffuse += D * shadowFactor;
         specular += S * shadowFactor;
     }
-    for (int i = 0; i < pntCnt; ++i)
-    {
-       CalPointLight(gMaterial, cbPointLight[i], (float3) input.wPosition, normal, input.toEye, specularIntensity, A, D, S);
+    for (int j = 0; j < pntCnt; ++j)
+    {   
+       float3 lightDir = cbPointLight[j].position - input.wPosition.xyz;
+       CalPointLight(gMaterial, cbPointLight[j], lightDir, normal, input.viewDir, specularIntensity, A, D, S);
+       shadowFactor = CalOmniDirShadowFactor(g_cubeShadowSampler, omniDirShadowMaps[j], -lightDir);
        ambient += A;
        diffuse += D * shadowFactor;
        specular += S * shadowFactor;
     }
     
-    for (int i = 0; i < sptCnt; ++i)
+    for (int k = 0; k < sptCnt; ++k)
     {
-        CalSpotLight(gMaterial, cbSpotLight[i], (float3) input.position, input.normal, input.toEye, A, D, S);
+        CalSpotLight(gMaterial, cbSpotLight[k], (float3) input.position, input.normal, input.viewDir, A, D, S);
         ambient += A;
         diffuse += D * shadowFactor;
         specular += S * shadowFactor;

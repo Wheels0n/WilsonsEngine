@@ -356,7 +356,8 @@ namespace wilson
 		m_pShader->Init();
 
 		m_pShadowMap = new ShadowMap();
-		m_pShadowMap->Init(m_pDevice, 2048, 2048);
+		m_pShadowMap->Init(m_pDevice, SHADOWMAP_SIZE, SHADOWMAP_SIZE, 
+			m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity());
 
 
 		D3D11_SAMPLER_DESC samplerDesc = {};
@@ -400,7 +401,6 @@ namespace wilson
 		ImGui_ImplDX11_Init(m_pDevice, m_pContext);
 		return true;
 	}
-
 	void D3D11::Shutdown()
 	{
 		ImGui_ImplDX11_Shutdown();
@@ -574,7 +574,7 @@ namespace wilson
 		UINT stride = sizeof(XMFLOAT3);
 		UINT offset = 0;
 		int drawed = 0;
-		ID3D11ShaderResourceView* nullSRV = nullptr;
+		ID3D11ShaderResourceView* nullSRV[48] = { nullptr, };
 
 		m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
 		m_pContext->ClearRenderTargetView(m_pRTTV, color);
@@ -585,51 +585,68 @@ namespace wilson
 		//Update Cam 
 		m_pCam->Update();
 		m_pCam->SetCamBuffer(m_pContext);
-		//m_pFrustum->Construct(100.0f, m_pCam);
 		//Update Light
-		m_pLightBuffer->UpdateLightBuffer(m_pContext);
-		/*Draw ShadowMap
-		m_pContext->PSSetShaderResources(1, 1, &nullSRV);
-		m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
-		m_pShadowMap->BindDSV(m_pContext);
-		m_pShader->SetInputLayout();
-		m_pShader->SetShadowShader();
-		m_pMatBuffer->SetViewMatrix(m_pLight->GetLitViewMat());
-		m_pMatBuffer->SetProjMatrix(m_pLight->GetLitProjMat());
-		m_pMatBuffer->SetLightSpaceMatrix(m_pLight->GetLightSpaceMat());
-		m_pContext->OMSetDepthStencilState(0, 0);
-		DrawENTT();*/
+		std::vector<DirectionalLight*>& dirLights = m_pLightBuffer->GetDirLights();
+		std::vector<PointLight*>& pointLights = m_pLightBuffer->GetPointLights();
+		//Draw ShadowMap
+		{	
+			m_pContext->PSSetShaderResources(4, 1, nullSRV);
+			m_pContext->PSSetShaderResources(5, 1, nullSRV);
+			m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
+			m_pContext->OMSetDepthStencilState(0, 0);
+			
+			m_pShader->SetInputLayout();
+			m_pShader->SetShadowShader();
+			
+			for (int i = 0; i < dirLights.size(); ++i)
+			{	
+				m_pMatBuffer->SetLightSpaceMatrix(dirLights[i]->GetLightSpaceMat());
+				m_pShadowMap->BindDirDSV(m_pContext,i);
+				DrawENTT();
+			}
+			m_pContext->RSSetState(m_pSkyBoxRS);
+			m_pShader->SetPosOnlyInputLayout();
+			m_pShader->SetOmniDirShadowShader();
+			for (int i = 0; i < pointLights.size(); ++i)
+			{
+				m_pShadowMap->BindCubeDSV(m_pContext, i);
+				pointLights[i]->SetShadowMatrices(m_pContext);
+				pointLights[i]->SetLightPos(m_pContext);
+				DrawENTT();
+			}
+			
+		}
 		//Draw EnvMap
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);	
 		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
 		m_pMatBuffer->Update();
-		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_pShader->SetSkyBoxInputLayout();
 		m_pShader->SetSkyBoxShader();
+		m_pContext->RSSetState(m_pSkyBoxRS);
 		m_pContext->IASetVertexBuffers(0, 1, &m_pSkyBoxVertices, &stride, &offset);
 		m_pContext->IASetIndexBuffer(m_pSkyBoxIndices, DXGI_FORMAT_R32_UINT, 0);
 		m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
-		m_pContext->RSSetState(m_pSkyBoxRS);
 		m_pContext->RSSetViewports(1, &m_viewport);
 		m_pContext->OMSetDepthStencilState(m_pSkyBoxDSS, 0);
 		m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDSVforRTT);
 		m_pContext->DrawIndexed(36, 0, 0);
 	
 		//Draw ENTTs
+		m_pLightBuffer->UpdateDirLightMatrices(m_pContext);
+		m_pLightBuffer->UpdateLightBuffer(m_pContext);
 		m_pShader->SetInputLayout();
 		m_pShader->SetShader();
-		m_pContext->PSSetShaderResources(1, 1, m_pShadowMap->GetSRV());
-		m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetShadowSampler());
+		m_pContext->PSSetShaderResources(4,   1, m_pShadowMap->GetDirSRV());
+		m_pContext->PSSetShaderResources(5,   1, m_pShadowMap->GetCubeSRV());
+		m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetCubeShadowSampler());
+		m_pContext->PSSetSamplers(2, 1, m_pShadowMap->GetDirShadowSampler());
 		m_pContext->RSSetState(m_pRS);
-		m_pContext->RSSetViewports(1, &m_viewport);
 		m_pContext->OMSetDepthStencilState(0, 0);
 		DrawENTT();
 		m_pCam->SetENTTsInFrustum(drawed);
 		m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDSV);
 		return;
 	}
-
 	void D3D11::DrawScene()
 	{
 		ImGuiIO& io = ImGui::GetIO();
@@ -654,7 +671,8 @@ namespace wilson
 	}
 
 	void D3D11::AddLight(Light* pLight)
-	{
+	{	
+		pLight->Init(m_pDevice);
 		switch (pLight->GetType())
 		{
 		case ELIGHT_TYPE::DIR:
@@ -667,7 +685,6 @@ namespace wilson
 			m_pLightBuffer->PushSpotLight((SpotLight*)pLight);
 		}
 	}
-
 	void D3D11::AddModelGroup(ModelGroup* pModelGroup, ID3D11Device* pDevice)
 	{
 		m_pModelGroups.push_back(pModelGroup);
@@ -678,11 +695,48 @@ namespace wilson
 		delete m_pModelGroups[i];
 		m_pModelGroups.erase(m_pModelGroups.begin() + i);
 	}
+	void D3D11::RemoveLight(int i, Light* pLight)
+	{	
+		std::vector<DirectionalLight*>& pDirLights = m_pLightBuffer->GetDirLights();;
+		std::vector<PointLight*>& pPointLights= m_pLightBuffer->GetPointLights();
+		std::vector<SpotLight*>& pSpotLights = m_pLightBuffer->GetSpotLights();
+		switch (pLight->GetType())
+		{
+		case ELIGHT_TYPE::DIR:
+			delete pDirLights[i];
+			pDirLights.erase(pDirLights.begin() + i);
+			break;
+		case ELIGHT_TYPE::PNT:
+			delete pPointLights[i];
+			pPointLights.erase(pPointLights.begin() + i);
+			break;
+		case ELIGHT_TYPE::SPT:
+			delete pSpotLights[i];
+			pSpotLights.erase(pSpotLights.begin() + i);
+			break;
+		}
+	}
 	void D3D11::RemoveModel(int i, int j)
 	{
 		std::vector<Model*>& pModels = m_pModelGroups[i]->GetModels();
 		delete pModels[j];
 		pModels.erase(pModels.begin() + j);
+	}
+	UINT D3D11::GetLightSize(Light* pLight)
+	{
+		UINT size=0;
+		switch (pLight->GetType())
+		{
+		case ELIGHT_TYPE::DIR:
+			size = m_pLightBuffer->GetDirLightSize();
+			break;
+		case ELIGHT_TYPE::PNT:
+			size = m_pLightBuffer->GetPointLightSize();
+			break;
+		case ELIGHT_TYPE::SPT:
+			size = m_pLightBuffer->GetSpotLightSize();
+		}
+		return size;
 	}
 
 	bool D3D11::CreateRTT(int width, int height)
@@ -954,5 +1008,5 @@ namespace wilson
 			m_pDSVforRTT = nullptr;
 		}
 	}
-
+	
 }

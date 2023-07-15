@@ -345,17 +345,17 @@ namespace wilson {
 		if (m_perModels[i].hasSpecular)
 		{	
 			idx = m_texHash[matInfo.specularMap];
-			context->PSSetShaderResources(2, 1, &m_textures[idx]);
+			context->PSSetShaderResources(1, 1, &m_textures[idx]);
 		}
 		if (m_perModels[i].hasNormal)
 		{
 			idx = m_texHash[matInfo.normalMap];
-			context->PSSetShaderResources(3, 1, &m_textures[idx]);
+			context->PSSetShaderResources(2, 1, &m_textures[idx]);
 		}
 		if (m_perModels[i].hasAlpha)
 		{
 			idx = m_texHash[matInfo.alphaMap];
-			context->PSSetShaderResources(4, 1, &m_textures[idx]);
+			context->PSSetShaderResources(3, 1, &m_textures[idx]);
 		}
 
 
@@ -395,9 +395,9 @@ namespace wilson {
 	DirectX::XMMATRIX Model::GetTransformMatrix()
 	{
 		DirectX::XMMATRIX srMat = XMMatrixMultiply(m_scMat, m_rtMat);
-		DirectX::XMMATRIX srtMat = XMMatrixMultiply(srMat, m_trMat);
+		DirectX::XMMATRIX rtMat = XMMatrixMultiply(srMat,m_trMat);
 
-		return srtMat;
+		return rtMat;
 	}
 
 }
