@@ -83,7 +83,7 @@ namespace wilson
         {
             DirectX::XMMATRIX viewMat =
                 DirectX::XMMatrixLookAtLH(pos, DirectX::XMVectorAdd(pos, g_dirVectors[i]), g_upVectors[i]);
-            m_cubeMats[i] = DirectX::XMMatrixMultiply(g_perspectiveMat, viewMat);
+            m_cubeMats[i] = DirectX::XMMatrixMultiply(viewMat, g_perspectiveMat);
             m_cubeMats[i] = DirectX::XMMatrixTranspose(m_cubeMats[i]);
         }
     }
