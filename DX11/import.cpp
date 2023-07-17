@@ -431,10 +431,11 @@ namespace wilson
 							mapPath = wcsncat(mapPath, L"\\", 2);
 							mapPath = wcsncat(mapPath, wstr.c_str(), wstr.size());
 
-							
+							bool isDiffuse = false;
 							switch (m_texTypeHash[texType])
 							{
 							case ETEX::Kd:
+								isDiffuse = true;
 								mat.diffuseMap = texName;
 								break;
 							case ETEX::Ks:
@@ -448,7 +449,7 @@ namespace wilson
 								break;
 							}
 
-							LoadTex(mapPath, pDevice);
+							LoadTex(mapPath, pDevice,isDiffuse);
 							delete[] mapPath;
 						}
 
@@ -600,10 +601,14 @@ namespace wilson
 		
 		return mat;
 	}
-	bool Importer::LoadTex(LPCWSTR fileName, ID3D11Device* pDevice)
-	{
-		HRESULT hr;
-		hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, fileName, nullptr, nullptr, &m_pSRV, nullptr);
+	bool Importer::LoadTex(LPCWSTR fileName, ID3D11Device* pDevice, bool isDiffuse)
+	{  
+		D3DX11_IMAGE_LOAD_INFO info;
+		if (isDiffuse)
+		{
+			info.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		}
+		HRESULT hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, fileName, &info, nullptr, &m_pSRV, nullptr);
 		if (FAILED(hr))
 		{
 			return false;

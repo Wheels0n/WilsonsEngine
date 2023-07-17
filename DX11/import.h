@@ -25,7 +25,7 @@ namespace wilson {
 		{
 			return m_pModelGroup;
 		};
-		bool LoadTex(LPCWSTR fileName, ID3D11Device* pDevice);
+		bool LoadTex(LPCWSTR fileName, ID3D11Device* pDevice, bool isDiffuse);
 		bool LoadModel(const char* extension, LPCWSTR fileName, ID3D11Device* pDevice);
 
 		Importer();

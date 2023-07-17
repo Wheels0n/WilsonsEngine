@@ -85,6 +85,7 @@ cbuffer PerModel
     bool hasAlpha;
 };
 
+static const float GAMMA = 2.2f;
 static const float SMAP_SIZE = 1024.0f;
 static const float SMAP_DX = 1.0f / SMAP_SIZE;
 static const float FAR_PLANE = 25.0f;
@@ -316,10 +317,11 @@ float4 main(PixelInputType input) : SV_TARGET
     }
 
 
-    float4 litColor = texColor * (ambient + diffuse + specular);
+    float4 fragColor = texColor * (ambient + diffuse + specular);
 
-    litColor.a = texColor.a * gMaterial.diffuse.a;
-    litColor = litColor * alphaIntensity;
+    fragColor.a = texColor.a * gMaterial.diffuse.a;
+    fragColor = fragColor * alphaIntensity;
+    fragColor.rgb = pow(fragColor.rgb, float3(1.0f / GAMMA, 1.0f / GAMMA, 1.0f / GAMMA));
    
-    return litColor;
+    return fragColor;
 }
