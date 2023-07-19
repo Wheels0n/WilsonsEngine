@@ -17,9 +17,9 @@ namespace wilson
 	}
 	bool Light::Init(ID3D11Device* pDevice)
 	{
-		m_ambient = DirectX::XMVectorZero();
-		m_diffuse = DirectX::XMVectorZero();
-		m_specular = DirectX::XMVectorZero();
+		m_ambient = DirectX::XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
+		m_diffuse = m_ambient;
+		m_specular = m_ambient;
 		m_position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.5f);
 		return true;
 	}

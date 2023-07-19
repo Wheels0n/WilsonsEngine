@@ -86,7 +86,7 @@ namespace wilson
 		}
 
 		//Each monitor has a set of display modes it supports. A display mode refers to the following data in DXGI_MODE_DESC
-		hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_ENUM_MODES_INTERLACED, &numModes, nullptr);
+		hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, nullptr);
 		if (FAILED(hr))
 		{
 			return false;
@@ -99,7 +99,7 @@ namespace wilson
 			return false;
 		}
 
-		hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_ENUM_MODES_INTERLACED, &numModes, pDisplayModeList);
+		hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, pDisplayModeList);
 		if (FAILED(hr))
 		{
 			return false;
@@ -378,7 +378,7 @@ namespace wilson
 		rtBlendDSC.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
 		rtBlendDSC.BlendOp = D3D11_BLEND_OP_ADD;
 		rtBlendDSC.SrcBlendAlpha = D3D11_BLEND_ONE;
-		rtBlendDSC.DestBlendAlpha = D3D11_BLEND_ONE;
+		rtBlendDSC.DestBlendAlpha = D3D11_BLEND_ZERO;
 		rtBlendDSC.BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		rtBlendDSC.RenderTargetWriteMask = 0;
 

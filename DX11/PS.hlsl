@@ -316,12 +316,12 @@ float4 main(PixelInputType input) : SV_TARGET
         specular += S * shadowFactor;
     }
 
-
-    float4 fragColor = texColor * (ambient + diffuse + specular);
+    float4 fragColor = texColor * (ambient + diffuse) + specular;
 
     fragColor.a = texColor.a * gMaterial.diffuse.a;
     fragColor = fragColor * alphaIntensity;
+    fragColor.rgb = float3(1.0f, 1.0f, 1.0f) - exp(-fragColor.rgb * 1.01); //fragColor.rgb / (fragColor.rgb + float3(1.0f, 1.0f, 1.0f));
     fragColor.rgb = pow(fragColor.rgb, float3(1.0f / GAMMA, 1.0f / GAMMA, 1.0f / GAMMA));
-   
+  
     return fragColor;
 }

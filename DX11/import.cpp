@@ -603,12 +603,13 @@ namespace wilson
 	}
 	bool Importer::LoadTex(LPCWSTR fileName, ID3D11Device* pDevice, bool isDiffuse)
 	{  
-		D3DX11_IMAGE_LOAD_INFO info;
+		D3DX11_IMAGE_LOAD_INFO loadInfo = {};
 		if (isDiffuse)
-		{
-			info.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		{	
+			loadInfo.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+			loadInfo.Filter = D3DX11_FILTER_SRGB|D3DX11_FILTER_NONE;
 		}
-		HRESULT hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, fileName, &info, nullptr, &m_pSRV, nullptr);
+		HRESULT hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, fileName, &loadInfo, nullptr, &m_pSRV, nullptr);
 		if (FAILED(hr))
 		{
 			return false;

@@ -428,21 +428,21 @@ namespace wilson
 		DirectX::XMFLOAT4 ambient4;
 		DirectX::XMStoreFloat4(&ambient4, *(pLight->GetAmbient()));
 		float ambient[4] = { ambient4.x, ambient4.y, ambient4.z, ambient4.w };
-		ImGui::SliderFloat4("Ambient", ambient, 0.0f, 1.0f);
+		ImGui::SliderFloat4("Ambient", ambient, 0.0f, 1000.0f);
 		ambient4 = DirectX::XMFLOAT4(ambient[0], ambient[1], ambient[2], ambient[3]);
 		*(pLight->GetAmbient()) = DirectX::XMLoadFloat4(&ambient4);
 
 		DirectX::XMFLOAT4 diffuse4;
 		DirectX::XMStoreFloat4(&diffuse4, *(pLight->GetDiffuse()));
 		float diffuse[4] = { diffuse4.x, diffuse4.y, diffuse4.z, diffuse4.w };
-		ImGui::SliderFloat4("Diffuse", diffuse, 0.0f, 1.0f);
+		ImGui::SliderFloat4("Diffuse", diffuse, 0.0f, 1000.0f);
 		diffuse4 = DirectX::XMFLOAT4(diffuse[0], diffuse[1], diffuse[2], diffuse[3]);
 		*(pLight->GetDiffuse()) = DirectX::XMLoadFloat4(&diffuse4);
 
 		DirectX::XMFLOAT4 specular4;
 		DirectX::XMStoreFloat4(&specular4, *(pLight->GetSpecular()));
 		float specular[4] = { specular4.x, specular4.y, specular4.z, specular4.w };
-		ImGui::SliderFloat4("Specular", specular, 0.0f, 1.0f);
+		ImGui::SliderFloat4("Specular", specular, 0.0f, 1000.0f);
 		specular4 = DirectX::XMFLOAT4(specular[0], specular[1], specular[2], specular[3]);
 		*(pLight->GetSpecular()) = DirectX::XMLoadFloat4(&specular4);
 
