@@ -27,6 +27,11 @@
 
 namespace wilson
 {   
+	struct QUAD
+	{
+		XMFLOAT3 pos;
+		XMFLOAT2 tex;
+	};
 	constexpr UINT SHADOWMAP_SIZE = 1024;
 	class D3D11
 	{
@@ -61,7 +66,7 @@ namespace wilson
 		}
 		inline ID3D11ShaderResourceView* GetRTT() const
 		{
-			return m_pSRVForRTT;
+			return m_pViewportSRV;
 		};
 		inline ID3D11Device* GetDevice() const
 		{
@@ -85,7 +90,7 @@ namespace wilson
 		bool CreateDSBforRTT(int w, int h)
 		{
 			DestroyDSBforRTT();
-			return CreateDepthBuffer(w, h, &m_pDSBufferForRTT, &m_pDSVforRTT);
+			return CreateDepthBuffer(w, h, &m_pDSBufferForRTT, &m_pSceneDSV);
 		};
 
 		D3D11();
@@ -98,15 +103,19 @@ namespace wilson
 		ID3D11Device* m_pDevice;
 		ID3D11DeviceContext* m_pContext;
 
-		ID3D11Buffer* m_pSkyBoxVertices;
-		ID3D11Buffer* m_pSkyBoxIndices;
+		ID3D11Buffer* m_pSkyBoxVertices, *m_pQuadVB;
+		ID3D11Buffer* m_pSkyBoxIndices, *m_pQuadIB;
+		ID3D11Buffer* m_pBoolBuffer;
 
-		ID3D11RenderTargetView* m_pRenderTargetView, * m_pRTTV;
-		ID3D11Texture2D* m_pDSBuffer, * m_pDSBufferForRTT, * m_pRTT;
-		ID3D11ShaderResourceView* m_pSRVForRTT, *m_pSkyBoxSRV;
+		ID3D11RenderTargetView* m_pScreenRTTV, * m_pSceneRTTV, * m_pBrightRTTV, *m_pViewportRTTV;
+		ID3D11RenderTargetView* m_pPingPongRTTV[2];
+		ID3D11Texture2D* m_pDSBuffer, * m_pDSBufferForRTT, * m_pSceneRTT, *m_pBrightRTT, *m_pViewportRTT;
+		ID3D11Texture2D* m_pPingPongRTT[2];
+		ID3D11ShaderResourceView* m_pSceneSRV, * m_pBrightSRV, *m_pSkyBoxSRV, *m_pViewportSRV;
+		ID3D11ShaderResourceView* m_pPingPongSRV[2];
 
 		ID3D11DepthStencilState* m_pDefualtDSS, * m_pMirroMarkDSS, * m_pDrawReflectionDSS, *m_pSkyBoxDSS;
-		ID3D11DepthStencilView* m_pDSV, * m_pDSVforRTT;
+		ID3D11DepthStencilView* m_pScreenDSV, * m_pSceneDSV;
 
 		ID3D11RasterizerState* m_pRS, * m_pRasterStateCC, *m_pSkyBoxRS;
 		ID3D11SamplerState* m_pSampleState;

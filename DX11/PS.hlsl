@@ -8,6 +8,11 @@ SamplerState SampleType : register(s0);
 SamplerState g_cubeShadowSampler : register(s1);
 SamplerComparisonState g_dirShadowSampler : register(s2);
 
+struct PixelOuput
+{
+    float4 mainColor : SV_Target0;
+    float4 brightColor : SV_Target1;
+};
 struct PixelInputType
 {
     float4 position : SV_POSITION;
@@ -72,7 +77,6 @@ cbuffer cbLight
     uint sptCnt;
     uint padding;
 };
-
 cbuffer cbMaterial
 {
     Material gMaterial;
@@ -84,8 +88,6 @@ cbuffer PerModel
     bool hasSpecular;
     bool hasAlpha;
 };
-
-static const float GAMMA = 2.2f;
 static const float SMAP_SIZE = 1024.0f;
 static const float SMAP_DX = 1.0f / SMAP_SIZE;
 static const float FAR_PLANE = 25.0f;
@@ -248,7 +250,7 @@ out float4 ambient, out float4 diffuse, out float4 specular)
     specular *= att;
 }
 
-float4 main(PixelInputType input) : SV_TARGET
+PixelOuput main(PixelInputType input)
 {   
 
     float4 texColor = diffuseMap.Sample(SampleType, input.tex);
@@ -316,12 +318,22 @@ float4 main(PixelInputType input) : SV_TARGET
         specular += S * shadowFactor;
     }
 
-    float4 fragColor = texColor * (ambient + diffuse) + specular;
+    PixelOuput output;
+    output.mainColor = texColor * (ambient + diffuse) + specular;
 
-    fragColor.a = texColor.a * gMaterial.diffuse.a;
-    fragColor = fragColor * alphaIntensity;
-    fragColor.rgb = float3(1.0f, 1.0f, 1.0f) - exp(-fragColor.rgb * 1.01); //fragColor.rgb / (fragColor.rgb + float3(1.0f, 1.0f, 1.0f));
-    fragColor.rgb = pow(fragColor.rgb, float3(1.0f / GAMMA, 1.0f / GAMMA, 1.0f / GAMMA));
-  
-    return fragColor;
+    output.mainColor.a = texColor.a * gMaterial.diffuse.a;
+    output.mainColor = output.mainColor * alphaIntensity;
+    float brightness = dot(output.mainColor.rgb, float3(0.2126, 0.7152, 0.0722));
+    [branch]
+    if(brightness>1.0f)
+    {
+        output.brightColor = float4(output.mainColor.rgb, 1.0f);
+    }
+    else
+    {
+        output.brightColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+
+    }
+    
+    return output;
 }

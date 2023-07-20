@@ -53,9 +53,6 @@ void MatBuffer::Update()
 	MatrixBuffer* pMatrices;
 
 	//ROW-MAJOR(CPU) TO COL-MAJOR(GPU)
-	//m_worldMatrix = XMMatrixTranspose(m_worldMatrix);
-	//m_viewMatrix  = XMMatrixTranspose(m_viewMatrix);
-	//m_projectionMatrix = XMMatrixTranspose(m_projectionMatrix);
 	//write CPU data into GPU mem;
 	hr = m_pContext->Map(m_pMatBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if (FAILED(hr))

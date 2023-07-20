@@ -14,18 +14,28 @@ namespace wilson
 		m_pSkyBoxDSS = nullptr;
 		m_pSkyBoxRS = nullptr;
 
-		m_pRenderTargetView = nullptr;
+		m_pQuadVB = nullptr;
+		m_pQuadIB = nullptr;
+		m_pBoolBuffer = nullptr;
+
+		m_pScreenRTTV = nullptr;
 		m_pDSBuffer = nullptr;
 		m_pDSBufferForRTT = nullptr;
 		m_pDefualtDSS = nullptr;
 		m_pMirroMarkDSS = nullptr;
 		m_pDrawReflectionDSS = nullptr;
-		m_pRTT = nullptr;
-		m_pRTTV = nullptr;
-		m_pSRVForRTT = nullptr;
+		m_pViewportRTT = nullptr;
+		m_pViewportRTTV = nullptr;
+		m_pViewportSRV = nullptr;
+		m_pSceneRTT = nullptr;
+		m_pSceneRTTV = nullptr;
+		m_pSceneSRV = nullptr;
+		m_pBrightRTT = nullptr;
+		m_pBrightRTTV = nullptr;
+		m_pBrightSRV = nullptr;
 		m_pSkyBoxSRV = nullptr;
-		m_pDSV = nullptr;
-		m_pDSVforRTT = nullptr;
+		m_pScreenDSV = nullptr;
+		m_pSceneDSV = nullptr;
 		m_pRS = nullptr;
 		m_pRasterStateCC = nullptr;
 
@@ -182,7 +192,7 @@ namespace wilson
 			return false;
 		}
 
-		hr = m_pDevice->CreateRenderTargetView(pBackbuffer, nullptr, &m_pRenderTargetView);
+		hr = m_pDevice->CreateRenderTargetView(pBackbuffer, nullptr, &m_pScreenRTTV);
 		if (FAILED(hr))
 		{
 			return false;
@@ -190,6 +200,61 @@ namespace wilson
 
 		pBackbuffer->Release();
 		pBackbuffer = nullptr;
+		{
+			XMFLOAT3 vertices[] = {
+				{XMFLOAT3(-1.0f, -1.0f, 0.0f)},
+				{XMFLOAT3(-1.0f, 1.0f, 0.0f)},
+				{XMFLOAT3(1.0f, 1.0f, 0.0f)},
+				{XMFLOAT3(1.0f, -1.0f, 0.0f)}
+			};
+			XMFLOAT2 texCoords[] = {
+				{XMFLOAT2(0.0f, 1.0f)},
+				{XMFLOAT2(0.0f, 0.0f)},
+				{XMFLOAT2(1.0f, 0.0f)},
+				{XMFLOAT2(1.0f, 1.0f)}
+			};
+
+			QUAD quads[4];
+			for (int i = 0; i < 4; ++i)
+			{
+				quads[i].pos = vertices[i];
+				quads[i].tex = texCoords[i];
+			}
+
+			D3D11_SUBRESOURCE_DATA quadData;
+			quadData.pSysMem = quads;
+			quadData.SysMemPitch = 0;
+			quadData.SysMemSlicePitch = 0;
+
+			D3D11_BUFFER_DESC quadBDSC = {0,};
+			quadBDSC.Usage = D3D11_USAGE_DEFAULT;
+			quadBDSC.ByteWidth = sizeof(QUAD) * 4;
+			quadBDSC.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		
+
+			hr = m_pDevice->CreateBuffer(&quadBDSC, &quadData, &m_pQuadVB);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+			unsigned long indices[6] = { 0,1,2, 2,3,0 };
+			D3D11_SUBRESOURCE_DATA indexData;
+			indexData.pSysMem = indices;
+			indexData.SysMemPitch = 0;
+			indexData.SysMemSlicePitch = 0;
+
+			D3D11_BUFFER_DESC indexBD = { 0, };
+			indexBD.Usage = D3D11_USAGE_DEFAULT;
+			indexBD.ByteWidth = sizeof(unsigned long) * 6;
+			indexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+			hr = m_pDevice->CreateBuffer(&indexBD, &indexData, &m_pQuadIB);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+		}
 		{	
 			XMFLOAT3 vertices[] = {
 			 {XMFLOAT3(-1.0f,  1.0f, -1.0f)},//front-upper-left  0
@@ -262,9 +327,12 @@ namespace wilson
 			{
 				return false;
 			}
-
+			D3DX11_IMAGE_LOAD_INFO loadInfo = {};
+			loadInfo.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+			loadInfo.Filter = D3DX11_FILTER_SRGB | D3DX11_FILTER_NONE;
+			
 			hr = D3DX11CreateShaderResourceViewFromFileW(m_pDevice, L"./Assets/Textures/ocean.dds",
-				0, 0, &m_pSkyBoxSRV, 0);
+				&loadInfo, 0, &m_pSkyBoxSRV, 0);
 			if (FAILED(hr))
 			{
 				return false;
@@ -291,6 +359,19 @@ namespace wilson
 
 		}
 
+		{
+		  D3D11_BUFFER_DESC bds = {0,};
+		  bds.ByteWidth = sizeof(BOOL)*4;
+		  bds.Usage = D3D11_USAGE_DYNAMIC;
+		  bds.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		  bds.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		  hr = m_pDevice->CreateBuffer(&bds, 0, &m_pBoolBuffer);
+		  if (FAILED(hr))
+		  {
+			  return false;
+		  }
+        }
+
 		if (!CreateRTT(m_clientWidth, m_clientHeight))
 		{
 			return false;
@@ -301,12 +382,12 @@ namespace wilson
 			return false;
 		}
 
-		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pDSBuffer, &m_pDSV))
+		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pDSBuffer, &m_pScreenDSV))
 		{
 			return false;
 		}
 		
-		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pDSBufferForRTT, &m_pDSVforRTT))
+		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pDSBufferForRTT, &m_pSceneDSV))
 		{
 			return false;
 		}
@@ -404,7 +485,16 @@ namespace wilson
 	void D3D11::Shutdown()
 	{
 		ImGui_ImplDX11_Shutdown();
-
+		if (m_pQuadVB != nullptr)
+		{
+			m_pQuadVB->Release();
+			m_pQuadVB = nullptr;
+		}
+		if (m_pQuadIB != nullptr)
+		{
+			m_pQuadIB->Release();
+			m_pQuadIB = nullptr;
+		}
 		if (m_pSkyBoxVertices != nullptr)
 		{
 			m_pSkyBoxVertices->Release();
@@ -449,10 +539,10 @@ namespace wilson
 			m_pDSBuffer = nullptr;
 		}
 
-		if (m_pDSV != nullptr)
+		if (m_pScreenDSV != nullptr)
 		{
-			m_pDSV->Release();
-			m_pDSV = nullptr;
+			m_pScreenDSV->Release();
+			m_pScreenDSV = nullptr;
 		}
 
 		DestroyDSS();
@@ -462,10 +552,10 @@ namespace wilson
 			m_pSkyBoxSRV = nullptr;
 		}
 
-		if (m_pRenderTargetView != nullptr)
+		if (m_pScreenRTTV != nullptr)
 		{
-			m_pRenderTargetView->Release();
-			m_pRenderTargetView = nullptr;
+			m_pScreenRTTV->Release();
+			m_pScreenRTTV = nullptr;
 		}
 
 		if (m_pContext != nullptr)
@@ -498,6 +588,11 @@ namespace wilson
 			m_pImporter = nullptr;
 		}
 
+		if (m_pBoolBuffer != nullptr)
+		{
+			m_pBoolBuffer->Release();
+			m_pBoolBuffer = nullptr;
+		}
 		if (m_pLightBuffer != nullptr)
 		{
 			delete m_pLightBuffer;
@@ -569,17 +664,24 @@ namespace wilson
 	{
 		//clear views
 		HRESULT hr;
-		//XMMatrixTranslationFromVector(XMVectorSet(-50.0f, 5.0f, -1.0f, 1.0f));
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
-		UINT stride = sizeof(XMFLOAT3);
+		UINT stride;
 		UINT offset = 0;
 		int drawed = 0;
+		bool isBlurPass = false;
 		ID3D11ShaderResourceView* nullSRV[48] = { nullptr, };
+		ID3D11ShaderResourceView* finalSRV[2] = { m_pSceneSRV, m_pPingPongSRV[1]};
+		ID3D11RenderTargetView* bloomRTV[2] = { m_pSceneRTTV, m_pBrightRTTV };
+		
+		m_pContext->ClearRenderTargetView(m_pScreenRTTV, color);
+		m_pContext->ClearRenderTargetView(m_pViewportRTTV, color);
+		m_pContext->ClearRenderTargetView(m_pSceneRTTV, color);
+		m_pContext->ClearRenderTargetView(m_pBrightRTTV, color);
+		m_pContext->ClearRenderTargetView(m_pPingPongRTTV[0], color);
+		m_pContext->ClearRenderTargetView(m_pPingPongRTTV[1], color);
 
-		m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
-		m_pContext->ClearRenderTargetView(m_pRTTV, color);
-		m_pContext->ClearDepthStencilView(m_pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
-		m_pContext->ClearDepthStencilView(m_pDSVforRTT, D3D11_CLEAR_DEPTH, 1.0f, 0);
+		m_pContext->ClearDepthStencilView(m_pScreenDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
+		m_pContext->ClearDepthStencilView(m_pSceneDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	
 		//Update Cam 
@@ -590,8 +692,7 @@ namespace wilson
 		std::vector<PointLight*>& pointLights = m_pLightBuffer->GetPointLights();
 		//Draw ShadowMap
 		{	
-			m_pContext->PSSetShaderResources(4, 1, nullSRV);
-			m_pContext->PSSetShaderResources(5, 1, nullSRV);
+			m_pContext->PSSetShaderResources(0, 6, nullSRV);
 			m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
 			m_pContext->OMSetDepthStencilState(0, 0);
 			
@@ -617,6 +718,7 @@ namespace wilson
 			
 		}
 		//Draw EnvMap
+		stride = sizeof(XMFLOAT3);
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);	
 		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
@@ -628,10 +730,10 @@ namespace wilson
 		m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
 		m_pContext->RSSetViewports(1, &m_viewport);
 		m_pContext->OMSetDepthStencilState(m_pSkyBoxDSS, 0);
-		m_pContext->OMSetRenderTargets(1, &m_pRTTV, m_pDSVforRTT);
+		m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, m_pSceneDSV);
 		m_pContext->DrawIndexed(36, 0, 0);
 	
-		//Draw ENTTs
+		//Draw ENTTs and Get Bright Texture 
 		m_pLightBuffer->UpdateDirLightMatrices(m_pContext);
 		m_pLightBuffer->UpdateLightBuffer(m_pContext);
 		m_pShader->SetInputLayout();
@@ -642,9 +744,40 @@ namespace wilson
 		m_pContext->PSSetSamplers(2, 1, m_pShadowMap->GetDirShadowSampler());
 		m_pContext->RSSetState(m_pRS);
 		m_pContext->OMSetDepthStencilState(0, 0);
+		m_pContext->OMSetRenderTargets(2, bloomRTV, m_pSceneDSV);
 		DrawENTT();
-		m_pCam->SetENTTsInFrustum(drawed);
-		m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDSV);
+		//Apply Gaussian-Blur
+		m_pShader->SetBlurShader();
+		m_pShader->SetTexInputlayout();
+		stride = sizeof(QUAD);
+		m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
+		m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
+		BOOL horizontal = TRUE;
+		int reps = 10;
+		
+		for (int i = 0; i < reps; ++i)
+		{	
+			D3D11_MAPPED_SUBRESOURCE mappedResource;
+			BOOL* pBool;
+			m_pContext->Map(m_pBoolBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			pBool = (BOOL*)mappedResource.pData;
+			*pBool = (BOOL)horizontal;
+			m_pContext->Unmap(m_pBoolBuffer, 0);
+
+			m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
+			m_pContext->PSSetShaderResources(0, 1, i == 0 ? &m_pBrightSRV : &m_pPingPongSRV[!horizontal]);
+			m_pContext->OMSetRenderTargets(1, &m_pPingPongRTTV[horizontal], nullptr);
+			m_pContext->DrawIndexed(6, 0, 0);
+			horizontal = !horizontal;
+		}
+		
+		//Submit Result
+		m_pShader->SetFinalShader();
+		m_pContext->PSSetShaderResources(0, 2, finalSRV);
+		m_pContext->OMSetRenderTargets(1, &m_pViewportRTTV, nullptr);
+		m_pContext->DrawIndexed(6, 0, 0);
+		//DrawUI
+		m_pContext->OMSetRenderTargets(1, &m_pScreenRTTV, m_pScreenDSV);
 		return;
 	}
 	void D3D11::DrawScene()
@@ -761,7 +894,28 @@ namespace wilson
 		RTTDesc.CPUAccessFlags = 0;
 		RTTDesc.MiscFlags = 0;
 
-		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pRTT);
+		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pViewportRTT);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSceneRTT);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pBrightRTT);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
+		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pPingPongRTT[0]);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pPingPongRTT[1]);
 		if (FAILED(hr))
 		{
 			return false;
@@ -771,19 +925,58 @@ namespace wilson
 		RTTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 		RTTVDesc.Texture2D.MipSlice = 0;
 
-		hr = m_pDevice->CreateRenderTargetView(m_pRTT, &RTTVDesc, &m_pRTTV);
+		hr = m_pDevice->CreateRenderTargetView(m_pViewportRTT, &RTTVDesc, &m_pViewportRTTV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
-
+		hr = m_pDevice->CreateRenderTargetView(m_pSceneRTT, &RTTVDesc, &m_pSceneRTTV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateRenderTargetView(m_pBrightRTT, &RTTVDesc, &m_pBrightRTTV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateRenderTargetView(m_pPingPongRTT[0], &RTTVDesc, &m_pPingPongRTTV[0]);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateRenderTargetView(m_pPingPongRTT[1], &RTTVDesc, &m_pPingPongRTTV[1]);
+		if (FAILED(hr))
+		{
+			return false;
+		}
 
 		SRVDesc.Format = RTTDesc.Format;
 		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		SRVDesc.Texture2D.MostDetailedMip = 0;
 		SRVDesc.Texture2D.MipLevels = 1;
 
-		hr = m_pDevice->CreateShaderResourceView(m_pRTT, &SRVDesc, &m_pSRVForRTT);
+		hr = m_pDevice->CreateShaderResourceView(m_pViewportRTT, &SRVDesc, &m_pViewportSRV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateShaderResourceView(m_pSceneRTT, &SRVDesc, &m_pSceneSRV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateShaderResourceView(m_pBrightRTT, &SRVDesc, &m_pBrightSRV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateShaderResourceView(m_pPingPongRTT[0], &SRVDesc, &m_pPingPongSRV[0]);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateShaderResourceView(m_pPingPongRTT[1], &SRVDesc, &m_pPingPongSRV[1]);
 		if (FAILED(hr))
 		{
 			return false;
@@ -940,7 +1133,7 @@ namespace wilson
 						m_pMatBuffer->Update();
 						for (int k = 0; k < pModels[j]->GetMatCount(); ++k)
 						{
-							pModels[j]->UploadBuffers(m_pContext,k);
+							pModels[j]->UploadBuffers(m_pContext,k,isBlurPass);
 							m_pContext->DrawIndexed(pModels[j]->GetIndexCount(k), 0, 0);
 						}
 						
@@ -976,22 +1169,81 @@ namespace wilson
 	}
 	void D3D11::DestroyRTT()
 	{
-		if (m_pRTT != nullptr)
+		if (m_pSceneRTT != nullptr)
 		{
-			m_pRTT->Release();
-			m_pRTT = nullptr;
+			m_pSceneRTT->Release();
+			m_pSceneRTT = nullptr;
 		}
 
-		if (m_pRTTV != nullptr)
+		if (m_pSceneRTTV != nullptr)
 		{
-			m_pRTTV->Release();
-			m_pRTTV = nullptr;
+			m_pSceneRTTV->Release();
+			m_pSceneRTTV = nullptr;
 		}
 
-		if (m_pSRVForRTT != nullptr)
+		if (m_pSceneSRV != nullptr)
 		{
-			m_pSRVForRTT->Release();
-			m_pSRVForRTT = nullptr;
+			m_pSceneSRV->Release();
+			m_pSceneSRV = nullptr;
+		}
+
+		if (m_pBrightRTT != nullptr)
+		{
+			m_pBrightRTT->Release();
+			m_pBrightRTT = nullptr;
+		}
+
+
+		if (m_pBrightRTTV != nullptr)
+		{
+			m_pBrightRTTV->Release();
+			m_pBrightRTTV = nullptr;
+		}
+
+
+		if (m_pBrightSRV != nullptr)
+		{
+			m_pBrightSRV->Release();
+			m_pBrightSRV = nullptr;
+		}
+
+		if (m_pViewportRTT != nullptr)
+		{
+			m_pViewportRTT->Release();
+			m_pViewportRTT = nullptr;
+		}
+
+		if (m_pViewportRTTV != nullptr)
+		{
+			m_pViewportRTTV->Release();
+			m_pViewportRTTV = nullptr;
+		}
+
+		if (m_pViewportSRV != nullptr)
+		{
+			m_pViewportSRV->Release();
+			m_pViewportSRV = nullptr;
+		}
+
+		for (int i = 0; i < 2; ++i)
+		{
+			if (m_pPingPongRTT[i] != nullptr)
+			{
+				m_pPingPongRTT[i]->Release();
+				m_pPingPongRTT[i] = nullptr;
+			}
+
+			if (m_pPingPongRTTV[i] != nullptr)
+			{
+				m_pPingPongRTTV[i]->Release();
+				m_pPingPongRTTV[i] = nullptr;
+			}
+
+			if (m_pPingPongSRV[i] != nullptr)
+			{
+				m_pPingPongSRV[i]->Release();
+				m_pPingPongSRV[i] = nullptr;
+			}
 		}
 	}
 	void D3D11::DestroyDSBforRTT()
@@ -1002,10 +1254,10 @@ namespace wilson
 			m_pDSBufferForRTT = nullptr;
 		}
 
-		if (m_pDSVforRTT != nullptr)
+		if (m_pSceneDSV != nullptr)
 		{
-			m_pDSVforRTT->Release();
-			m_pDSVforRTT = nullptr;
+			m_pSceneDSV->Release();
+			m_pSceneDSV = nullptr;
 		}
 	}
 	

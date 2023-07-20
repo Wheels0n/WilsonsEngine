@@ -340,55 +340,58 @@ namespace wilson {
 		
 		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, iOffset);
 		
-		int idx = m_texHash[matInfo.diffuseMap];
-	    context->PSSetShaderResources(0, 1, &m_textures[idx]);
-		if (m_perModels[i].hasSpecular)
-		{	
-			idx = m_texHash[matInfo.specularMap];
-			context->PSSetShaderResources(1, 1, &m_textures[idx]);
-		}
-		if (m_perModels[i].hasNormal)
+		
 		{
-			idx = m_texHash[matInfo.normalMap];
-			context->PSSetShaderResources(2, 1, &m_textures[idx]);
+			int idx = m_texHash[matInfo.diffuseMap];
+			context->PSSetShaderResources(0, 1, &m_textures[idx]);
+			if (m_perModels[i].hasSpecular)
+			{
+				idx = m_texHash[matInfo.specularMap];
+				context->PSSetShaderResources(1, 1, &m_textures[idx]);
+			}
+			if (m_perModels[i].hasNormal)
+			{
+				idx = m_texHash[matInfo.normalMap];
+				context->PSSetShaderResources(2, 1, &m_textures[idx]);
+			}
+			if (m_perModels[i].hasAlpha)
+			{
+				idx = m_texHash[matInfo.alphaMap];
+				context->PSSetShaderResources(3, 1, &m_textures[idx]);
+			}
+
+
+
+			hr = context->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			if (FAILED(hr))
+			{
+				return;
+			}
+
+			pMaterial = reinterpret_cast<Material*>(mappedResource.pData);
+			pMaterial->ambient = matInfo.material.ambient;
+			pMaterial->diffuse = matInfo.material.diffuse;
+			pMaterial->specular = matInfo.material.specular;
+			context->Unmap(m_pMaterialBuffer, 0);
+			context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
+
+
+			hr = context->Map(m_pPerModelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			if (FAILED(hr))
+			{
+				return;
+			}
+
+			pPerModel = reinterpret_cast<PerModel*>(mappedResource.pData);
+			pPerModel->isInstanced = m_isInstanced;
+			pPerModel->hasSpecular = m_perModels[i].hasSpecular;
+			pPerModel->hasNormal = m_perModels[i].hasNormal;
+			pPerModel->hasAlpha = m_perModels[i].hasAlpha;
+
+			context->Unmap(m_pPerModelBuffer, 0);
+			context->VSSetConstantBuffers(2, 1, &m_pPerModelBuffer);
+			context->PSSetConstantBuffers(2, 1, &m_pPerModelBuffer);
 		}
-		if (m_perModels[i].hasAlpha)
-		{
-			idx = m_texHash[matInfo.alphaMap];
-			context->PSSetShaderResources(3, 1, &m_textures[idx]);
-		}
-
-
-
-		hr = context->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(hr))
-		{
-			return;
-		}
-
-		pMaterial = reinterpret_cast<Material*>(mappedResource.pData);
-		pMaterial->ambient = matInfo.material.ambient;
-		pMaterial->diffuse = matInfo.material.diffuse;
-		pMaterial->specular = matInfo.material.specular;
-		context->Unmap(m_pMaterialBuffer, 0);
-		context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
-
-
-		hr = context->Map(m_pPerModelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(hr))
-		{
-			return;
-		}
-
-		pPerModel = reinterpret_cast<PerModel*>(mappedResource.pData);
-		pPerModel->isInstanced = m_isInstanced;
-		pPerModel->hasSpecular = m_perModels[i].hasSpecular;
-		pPerModel->hasNormal = m_perModels[i].hasNormal;
-		pPerModel->hasAlpha = m_perModels[i].hasAlpha;
-
-		context->Unmap(m_pPerModelBuffer, 0);
-		context->VSSetConstantBuffers(2, 1, &m_pPerModelBuffer);
-		context->PSSetConstantBuffers(2, 1, &m_pPerModelBuffer);
 		return;
 	}
 
