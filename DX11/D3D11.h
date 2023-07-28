@@ -41,7 +41,7 @@ namespace wilson
 			ID3D11DepthStencilView**);
 		bool CreateDSS();
 
-		void DrawENTT();
+		void DrawENTT(bool bGeoPass);
 		void DestroyDSS();
 		void DestroyRTT();
 		void DestroyDSBforRTT();
@@ -109,17 +109,20 @@ namespace wilson
 
 		ID3D11RenderTargetView* m_pScreenRTTV, * m_pSceneRTTV, * m_pBrightRTTV, *m_pViewportRTTV;
 		ID3D11RenderTargetView* m_pPingPongRTTV[2];
+		ID3D11RenderTargetView* m_pGbufferRTTV[4];//0:pos, 1:normal, 2:albedo, 3:specular
 		ID3D11Texture2D* m_pDSBuffer, * m_pDSBufferForRTT, * m_pSceneRTT, *m_pBrightRTT, *m_pViewportRTT;
 		ID3D11Texture2D* m_pPingPongRTT[2];
+		ID3D11Texture2D* m_pGbufferRTT[4];
 		ID3D11ShaderResourceView* m_pSceneSRV, * m_pBrightSRV, *m_pSkyBoxSRV, *m_pViewportSRV;
 		ID3D11ShaderResourceView* m_pPingPongSRV[2];
+		ID3D11ShaderResourceView* m_pGbufferSRV[4];
 
 		ID3D11DepthStencilState* m_pDefualtDSS, * m_pMirroMarkDSS, * m_pDrawReflectionDSS, *m_pSkyBoxDSS;
 		ID3D11DepthStencilView* m_pScreenDSV, * m_pSceneDSV;
 
-		ID3D11RasterizerState* m_pRS, * m_pRasterStateCC, *m_pSkyBoxRS;
+		ID3D11RasterizerState* m_pGeoRS, * m_pRasterStateCC, *m_pSkyBoxRS, *m_pQuadRS;
 		ID3D11SamplerState* m_pSampleState;
-		ID3D11BlendState* m_pNoRenderTargetWritesBS, * m_pTransparentBS;
+		ID3D11BlendState* m_pGBufferWriteBS, * m_pLightingPassBS;
 
 		D3D11_VIEWPORT m_viewport;
 

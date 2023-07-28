@@ -58,7 +58,7 @@ namespace wilson {
 		bool Init(ID3D11Device* pDevice);
 		bool Init(ID3D11Device* pDevice, std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
 			std::unordered_map<std::string,int>& texhash, std::vector<ID3D11ShaderResourceView*>& textures);
-		void UploadBuffers(ID3D11DeviceContext* context, int i);
+		void UploadBuffers(ID3D11DeviceContext* context, int i, bool bGeoPass);
 
 		inline UINT GetMatCount()
 		{

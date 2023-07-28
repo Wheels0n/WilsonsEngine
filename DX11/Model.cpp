@@ -308,7 +308,7 @@ namespace wilson {
 		
 	}
 
-	void Model::UploadBuffers(ID3D11DeviceContext* context, int i)
+	void Model::UploadBuffers(ID3D11DeviceContext* context, int i, bool bGeoPass)
 	{	
 		HRESULT hr;
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -340,7 +340,7 @@ namespace wilson {
 		
 		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, iOffset);
 		
-		
+		if (bGeoPass)
 		{
 			int idx = m_texHash[matInfo.diffuseMap];
 			context->PSSetShaderResources(0, 1, &m_textures[idx]);
@@ -373,7 +373,7 @@ namespace wilson {
 			pMaterial->diffuse = matInfo.material.diffuse;
 			pMaterial->specular = matInfo.material.specular;
 			context->Unmap(m_pMaterialBuffer, 0);
-			context->PSSetConstantBuffers(1, 1, &m_pMaterialBuffer);
+			context->PSSetConstantBuffers(0, 1, &m_pMaterialBuffer);
 
 
 			hr = context->Map(m_pPerModelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
@@ -389,8 +389,8 @@ namespace wilson {
 			pPerModel->hasAlpha = m_perModels[i].hasAlpha;
 
 			context->Unmap(m_pPerModelBuffer, 0);
-			context->VSSetConstantBuffers(2, 1, &m_pPerModelBuffer);
-			context->PSSetConstantBuffers(2, 1, &m_pPerModelBuffer);
+			context->VSSetConstantBuffers(1, 1, &m_pPerModelBuffer);
+			context->PSSetConstantBuffers(1, 1, &m_pPerModelBuffer);
 		}
 		return;
 	}

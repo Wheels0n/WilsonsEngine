@@ -22,6 +22,10 @@ namespace wilson
 		{
 			m_pContext->IASetInputLayout(m_pTexInputLayout);
 		}
+		inline void SetDeferredGeoLayout()
+		{
+			m_pContext->IASetInputLayout(m_pDeferredGeoLayout);
+		}
 		inline void SetShader()
 		{
 			m_pContext->VSSetShader(m_pVS, nullptr, 0);
@@ -46,6 +50,18 @@ namespace wilson
 			m_pContext->GSSetShader(m_pOmniDirShadowGS, nullptr, 0);
 			m_pContext->PSSetShader(m_pOmniDirShadowPS, nullptr, 0);
 		}
+		inline void SetDeferredGeoShader()
+		{
+			m_pContext->VSSetShader(m_pGeometryVS, nullptr, 0);
+			m_pContext->GSSetShader(nullptr, nullptr, 0);
+			m_pContext->PSSetShader(m_pGeometryPS, nullptr, 0);
+		}
+		inline void SetDeferredLightingShader()
+		{
+			m_pContext->VSSetShader(m_pTexVS, nullptr, 0);
+			m_pContext->GSSetShader(nullptr, nullptr, 0);
+			m_pContext->PSSetShader(m_pDeferredPS, nullptr, 0);
+		}
 		inline void SetBlurShader()
 		{
 			m_pContext->VSSetShader(m_pTexVS, nullptr, 0);
@@ -67,12 +83,12 @@ namespace wilson
 		ID3D11Device* m_pDevice;
 		ID3D11DeviceContext* m_pContext;
 
-		ID3D11VertexShader* m_pVS, *m_pSkyBoxVS, *m_pShadowVS, *m_pOmniDirShadowVS, *m_pTexVS;
+		ID3D11VertexShader* m_pVS, *m_pSkyBoxVS, *m_pShadowVS, *m_pOmniDirShadowVS, *m_pTexVS, *m_pGeometryVS;
 		ID3D11GeometryShader* m_pOmniDirShadowGS;
-		ID3D11PixelShader* m_pPS, *m_pSkyBoxPS, *m_pOmniDirShadowPS, *m_pBlurPS, *m_pFinPS;
+		ID3D11PixelShader* m_pPS, *m_pSkyBoxPS, *m_pOmniDirShadowPS, *m_pGeometryPS, *m_pDeferredPS, *m_pBlurPS, *m_pFinPS;
 
 
-		ID3D11InputLayout* m_pInputLayout, *m_pPosOnlyInputLayout, *m_pTexInputLayout;
+		ID3D11InputLayout* m_pInputLayout, * m_pPosOnlyInputLayout, * m_pTexInputLayout, * m_pDeferredGeoLayout;
 
 	};
 }

@@ -140,7 +140,7 @@ float CalOmniDirShadowFactor(SamplerState shadowSampler,
     float curDepth = length(fragToLight);
     for (int i = 0; i < 20;++i)
     {   
-        float sampledDepth = shadowMap.Sample(shadowSampler, fragToLight + offesets[i]).r;
+        float sampledDepth = shadowMap.SampleLevel(shadowSampler, fragToLight + offesets[i],0).r;
         sampledDepth *= FAR_PLANE;
         if(sampledDepth>curDepth)
         {
@@ -274,7 +274,7 @@ PixelOuput main(PixelInputType input)
         
     float3 normal = normalize(input.normal);
     [branch]
-    if (hasNormal==true)
+    if (hasNormal)
     {
         float3 tangent = normalize(input.tangent);
         float3 binormal = normalize(input.binormal);

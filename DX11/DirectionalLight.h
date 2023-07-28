@@ -4,9 +4,9 @@ namespace wilson
 {	
 	struct DirLightProperty
 	{
-		DirectX::XMVECTOR specular;
 		DirectX::XMVECTOR ambient;
 		DirectX::XMVECTOR diffuse;
+		DirectX::XMVECTOR specular;
 		DirectX::XMFLOAT3 position;
 		float pad;
 	};

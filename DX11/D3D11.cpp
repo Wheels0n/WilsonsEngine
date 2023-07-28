@@ -36,13 +36,27 @@ namespace wilson
 		m_pSkyBoxSRV = nullptr;
 		m_pScreenDSV = nullptr;
 		m_pSceneDSV = nullptr;
-		m_pRS = nullptr;
+		for (int i = 0; i < 2; ++i)
+		{
+			m_pPingPongRTT[i]  = nullptr;
+			m_pPingPongRTTV[i] = nullptr;
+			m_pPingPongSRV[i] =  nullptr;
+		}
+		for (int i = 0; i < 4; ++i)
+		{
+			m_pGbufferRTT[i] = nullptr;
+			m_pGbufferRTTV[i] = nullptr;
+			m_pGbufferSRV[i] = nullptr;
+		}
+
+		m_pQuadRS = nullptr;
+		m_pGeoRS = nullptr;
 		m_pRasterStateCC = nullptr;
 
 		m_pSampleState = nullptr;
 
-		m_pNoRenderTargetWritesBS = nullptr;
-		m_pTransparentBS = nullptr;
+		m_pGBufferWriteBS = nullptr;
+		m_pLightingPassBS = nullptr;
 
 		m_pTerrain = nullptr;
 		m_pImporter = nullptr;
@@ -393,23 +407,28 @@ namespace wilson
 		}
 
 		rasterDesc.AntialiasedLineEnable = false;
-		rasterDesc.CullMode = D3D11_CULL_NONE;
+		rasterDesc.CullMode = D3D11_CULL_BACK;
 		rasterDesc.DepthBias = 0.0f;
 		rasterDesc.DepthBiasClamp = 0.0f;
 		rasterDesc.DepthClipEnable = true;
 		rasterDesc.FillMode = D3D11_FILL_SOLID;
-		rasterDesc.FrontCounterClockwise = false;
+		rasterDesc.FrontCounterClockwise = true;
 		rasterDesc.MultisampleEnable = false;
 		rasterDesc.ScissorEnable = false;
 		rasterDesc.SlopeScaledDepthBias = 1.0f;
 
-		hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pRS);
+		hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pGeoRS);
 		if (FAILED(hr))
 		{
 			return false;
 		}
 
-		m_pContext->RSSetState(m_pRS);
+		rasterDesc.FrontCounterClockwise = false;
+		hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pQuadRS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
 		
 		m_viewport.Width = static_cast<float>(screenWidth);
 		m_viewport.Height = static_cast<float>(screenHeight);
@@ -428,7 +447,7 @@ namespace wilson
 		XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
 		m_pFrustum = new Frustum();
 		m_pFrustum->Construct(100.0f, m_pCam);
-		m_pMatBuffer = new MatBuffer(m_pDevice, m_pContext, m_projMat, m_viewMat);
+		m_pMatBuffer = new MatBuffer(m_pDevice, m_pContext,  m_viewMat, m_projMat);
 		m_pMatBuffer->Init();
 
 		m_pLightBuffer = new LightBuffer(m_pDevice);
@@ -455,30 +474,29 @@ namespace wilson
 		m_pContext->PSSetSamplers(0, 1, &m_pSampleState);
 
 		rtBlendDSC.BlendEnable = TRUE;
-		rtBlendDSC.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		rtBlendDSC.SrcBlend = D3D11_BLEND_ONE;
 		rtBlendDSC.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
 		rtBlendDSC.BlendOp = D3D11_BLEND_OP_ADD;
 		rtBlendDSC.SrcBlendAlpha = D3D11_BLEND_ONE;
 		rtBlendDSC.DestBlendAlpha = D3D11_BLEND_ZERO;
 		rtBlendDSC.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		rtBlendDSC.RenderTargetWriteMask = 0;
+		rtBlendDSC.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 		D3D11_BLEND_DESC blendDSC = { false, false, rtBlendDSC };
-		hr = m_pDevice->CreateBlendState(&blendDSC, &m_pNoRenderTargetWritesBS);
+		hr = m_pDevice->CreateBlendState(&blendDSC, &m_pGBufferWriteBS);
 		if (FAILED(hr))
 		{
 			return false;
 		}
 
-		rtBlendDSC.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		rtBlendDSC.SrcBlend = D3D11_BLEND_SRC_ALPHA;
 		blendDSC.RenderTarget[0] = rtBlendDSC;
-		hr = m_pDevice->CreateBlendState(&blendDSC, &m_pTransparentBS);
+		hr = m_pDevice->CreateBlendState(&blendDSC, &m_pLightingPassBS);
 		if (FAILED(hr))
 		{
 			return false;
 		}
-		float blendV[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		m_pContext->OMSetBlendState(m_pTransparentBS, blendV, 0xffffffff);
+	
 		ImGui_ImplDX11_Init(m_pDevice, m_pContext);
 		return true;
 	}
@@ -495,6 +513,13 @@ namespace wilson
 			m_pQuadIB->Release();
 			m_pQuadIB = nullptr;
 		}
+
+		if (m_pQuadRS != nullptr)
+		{
+			m_pQuadRS->Release();
+			m_pQuadRS = nullptr;
+		}
+
 		if (m_pSkyBoxVertices != nullptr)
 		{
 			m_pSkyBoxVertices->Release();
@@ -519,10 +544,10 @@ namespace wilson
 			m_pSkyBoxRS = nullptr;
 		}
 
-		if (m_pRS != nullptr)
+		if (m_pGeoRS != nullptr)
 		{
-			m_pRS->Release();
-			m_pRS = nullptr;
+			m_pGeoRS->Release();
+			m_pGeoRS = nullptr;
 		}
 
 		if (m_pRasterStateCC != nullptr)
@@ -635,16 +660,16 @@ namespace wilson
 			m_pShadowMap = nullptr;
 		}
 
-		if (m_pNoRenderTargetWritesBS != nullptr)
+		if (m_pGBufferWriteBS != nullptr)
 		{
-			m_pNoRenderTargetWritesBS->Release();
-			m_pNoRenderTargetWritesBS = nullptr;
+			m_pGBufferWriteBS->Release();
+			m_pGBufferWriteBS = nullptr;
 		}
 
-		if (m_pTransparentBS != nullptr)
+		if (m_pLightingPassBS != nullptr)
 		{
-			m_pTransparentBS->Release();
-			m_pTransparentBS = nullptr;
+			m_pLightingPassBS->Release();
+			m_pLightingPassBS = nullptr;
 		}
 
 		for (int i = 0; i < m_pModelGroups.size(); ++i)
@@ -668,7 +693,7 @@ namespace wilson
 		UINT stride;
 		UINT offset = 0;
 		int drawed = 0;
-		bool isBlurPass = false;
+		bool bGeoPass = false;
 		ID3D11ShaderResourceView* nullSRV[48] = { nullptr, };
 		ID3D11ShaderResourceView* finalSRV[2] = { m_pSceneSRV, m_pPingPongSRV[1]};
 		ID3D11RenderTargetView* bloomRTV[2] = { m_pSceneRTTV, m_pBrightRTTV };
@@ -679,6 +704,10 @@ namespace wilson
 		m_pContext->ClearRenderTargetView(m_pBrightRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pPingPongRTTV[0], color);
 		m_pContext->ClearRenderTargetView(m_pPingPongRTTV[1], color);
+		for (int i = 0; i < 4; ++i)
+		{
+			m_pContext->ClearRenderTargetView(m_pGbufferRTTV[i], color);
+		}
 
 		m_pContext->ClearDepthStencilView(m_pScreenDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 		m_pContext->ClearDepthStencilView(m_pSceneDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -686,7 +715,6 @@ namespace wilson
 	
 		//Update Cam 
 		m_pCam->Update();
-		m_pCam->SetCamBuffer(m_pContext);
 		//Update Light
 		std::vector<DirectionalLight*>& dirLights = m_pLightBuffer->GetDirLights();
 		std::vector<PointLight*>& pointLights = m_pLightBuffer->GetPointLights();
@@ -696,24 +724,23 @@ namespace wilson
 			m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
 			m_pContext->OMSetDepthStencilState(0, 0);
 			
-			m_pShader->SetInputLayout();
+			m_pShader->SetPosOnlyInputLayout();
 			m_pShader->SetShadowShader();
 			
 			for (int i = 0; i < dirLights.size(); ++i)
 			{	
 				m_pMatBuffer->SetLightSpaceMatrix(dirLights[i]->GetLightSpaceMat());
 				m_pShadowMap->BindDirDSV(m_pContext,i);
-				DrawENTT();
+				DrawENTT(bGeoPass);
 			}
 			m_pContext->RSSetState(m_pSkyBoxRS);
-			m_pShader->SetPosOnlyInputLayout();
 			m_pShader->SetOmniDirShadowShader();
 			for (int i = 0; i < pointLights.size(); ++i)
 			{
 				m_pShadowMap->BindCubeDSV(m_pContext, i);
 				pointLights[i]->SetShadowMatrices(m_pContext);
 				pointLights[i]->SetLightPos(m_pContext);
-				DrawENTT();
+				DrawENTT(bGeoPass);
 			}
 			
 		}
@@ -724,55 +751,72 @@ namespace wilson
 		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
 		m_pMatBuffer->Update();
 		m_pShader->SetSkyBoxShader();
-		m_pContext->RSSetState(m_pSkyBoxRS);
 		m_pContext->IASetVertexBuffers(0, 1, &m_pSkyBoxVertices, &stride, &offset);
 		m_pContext->IASetIndexBuffer(m_pSkyBoxIndices, DXGI_FORMAT_R32_UINT, 0);
 		m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
 		m_pContext->RSSetViewports(1, &m_viewport);
 		m_pContext->OMSetDepthStencilState(m_pSkyBoxDSS, 0);
-		m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, m_pSceneDSV);
+		m_pContext->OMSetRenderTargets(1, &m_pGbufferRTTV[2], m_pSceneDSV);
 		m_pContext->DrawIndexed(36, 0, 0);
 	
-		//Draw ENTTs and Get Bright Texture 
-		m_pLightBuffer->UpdateDirLightMatrices(m_pContext);
-		m_pLightBuffer->UpdateLightBuffer(m_pContext);
-		m_pShader->SetInputLayout();
-		m_pShader->SetShader();
-		m_pContext->PSSetShaderResources(4,   1, m_pShadowMap->GetDirSRV());
-		m_pContext->PSSetShaderResources(5,   1, m_pShadowMap->GetCubeSRV());
-		m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetCubeShadowSampler());
-		m_pContext->PSSetSamplers(2, 1, m_pShadowMap->GetDirShadowSampler());
-		m_pContext->RSSetState(m_pRS);
-		m_pContext->OMSetDepthStencilState(0, 0);
-		m_pContext->OMSetRenderTargets(2, bloomRTV, m_pSceneDSV);
-		DrawENTT();
-		//Apply Gaussian-Blur
-		m_pShader->SetBlurShader();
-		m_pShader->SetTexInputlayout();
 		stride = sizeof(QUAD);
 		m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
 		m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
-		BOOL horizontal = TRUE;
-		int reps = 10;
-		
-		for (int i = 0; i < reps; ++i)
-		{	
-			D3D11_MAPPED_SUBRESOURCE mappedResource;
-			BOOL* pBool;
-			m_pContext->Map(m_pBoolBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-			pBool = (BOOL*)mappedResource.pData;
-			*pBool = (BOOL)horizontal;
-			m_pContext->Unmap(m_pBoolBuffer, 0);
+		//Deferred Shading First Pass
+		if (!m_pModelGroups.empty())
+		{
+			m_pShader->SetDeferredGeoLayout();
+			m_pShader->SetDeferredGeoShader();
+			m_pContext->OMSetDepthStencilState(0, 0);
+			m_pContext->RSSetState(m_pGeoRS);
+			m_pContext->OMSetBlendState(m_pGBufferWriteBS, color, 0xffffffff);
+			m_pContext->OMSetRenderTargets(4, m_pGbufferRTTV, m_pSceneDSV);
+			DrawENTT(!bGeoPass);
 
-			m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
-			m_pContext->PSSetShaderResources(0, 1, i == 0 ? &m_pBrightSRV : &m_pPingPongSRV[!horizontal]);
-			m_pContext->OMSetRenderTargets(1, &m_pPingPongRTTV[horizontal], nullptr);
+			//Deferred Shading Second Pass and Get Bright Texture
+			stride = sizeof(QUAD);
+			m_pLightBuffer->UpdateDirLightMatrices(m_pContext);
+			m_pLightBuffer->UpdateLightBuffer(m_pContext);
+			m_pShader->SetTexInputlayout();
+			m_pShader->SetDeferredLightingShader();
+			m_pCam->SetCamBuffer(m_pContext);
+			m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
+			m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
+			m_pContext->RSSetState(m_pQuadRS);
+			m_pContext->OMSetRenderTargets(2, bloomRTV, nullptr);
+			m_pContext->OMSetBlendState(nullptr, color, 0xffffffff);
+			m_pContext->PSSetShaderResources(0, 4, m_pGbufferSRV);
+			m_pContext->PSSetShaderResources(4, 1, m_pShadowMap->GetDirSRV());
+			m_pContext->PSSetShaderResources(5, 1, m_pShadowMap->GetCubeSRV());
+			m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetCubeShadowSampler());
+			m_pContext->PSSetSamplers(2, 1, m_pShadowMap->GetDirShadowSampler());
 			m_pContext->DrawIndexed(6, 0, 0);
-			horizontal = !horizontal;
+			//Apply Gaussian-Blur
+			m_pShader->SetBlurShader();
+			BOOL horizontal = TRUE;
+			int reps = 10;
+
+			for (int i = 0; i < reps; ++i)
+			{
+				D3D11_MAPPED_SUBRESOURCE mappedResource;
+				BOOL* pBool;
+				m_pContext->Map(m_pBoolBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+				pBool = (BOOL*)mappedResource.pData;
+				*pBool = (BOOL)horizontal;
+				m_pContext->Unmap(m_pBoolBuffer, 0);
+
+				m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
+				m_pContext->PSSetShaderResources(0, 1, i == 0 ? &m_pBrightSRV : &m_pPingPongSRV[!horizontal]);
+				m_pContext->OMSetRenderTargets(1, &m_pPingPongRTTV[horizontal], nullptr);
+				m_pContext->DrawIndexed(6, 0, 0);
+				horizontal = !horizontal;
+			}
 		}
-		
 		//Submit Result
+		m_pShader->SetTexInputlayout();
 		m_pShader->SetFinalShader();
+		m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
+		finalSRV[0] = m_pModelGroups.empty() ? m_pGbufferSRV[2]: finalSRV[0];
 		m_pContext->PSSetShaderResources(0, 2, finalSRV);
 		m_pContext->OMSetRenderTargets(1, &m_pViewportRTTV, nullptr);
 		m_pContext->DrawIndexed(6, 0, 0);
@@ -909,16 +953,21 @@ namespace wilson
 		{
 			return false;
 		}
-
-		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pPingPongRTT[0]);
-		if (FAILED(hr))
+		for (int i = 0; i < 2; ++i)
 		{
-			return false;
+			hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pPingPongRTT[i]);
+			if (FAILED(hr))
+			{
+				return false;
+			}
 		}
-		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pPingPongRTT[1]);
-		if (FAILED(hr))
+		for (int i = 0; i < 4; ++i)
 		{
-			return false;
+			hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pGbufferRTT[i]);
+			if (FAILED(hr))
+			{
+				return false;
+			}
 		}
 
 		RTTVDesc.Format = RTTDesc.Format;
@@ -940,16 +989,23 @@ namespace wilson
 		{
 			return false;
 		}
-		hr = m_pDevice->CreateRenderTargetView(m_pPingPongRTT[0], &RTTVDesc, &m_pPingPongRTTV[0]);
-		if (FAILED(hr))
+		for (int i = 0; i < 2; ++i)
 		{
-			return false;
+			hr = m_pDevice->CreateRenderTargetView(m_pPingPongRTT[i], &RTTVDesc, &m_pPingPongRTTV[i]);
+			if (FAILED(hr))
+			{
+				return false;
+			}
 		}
-		hr = m_pDevice->CreateRenderTargetView(m_pPingPongRTT[1], &RTTVDesc, &m_pPingPongRTTV[1]);
-		if (FAILED(hr))
+		for (int i = 0; i < 4; ++i)
 		{
-			return false;
+			hr = m_pDevice->CreateRenderTargetView(m_pGbufferRTT[i], &RTTVDesc, &m_pGbufferRTTV[i]);
+			if (FAILED(hr))
+			{
+				return false;
+			}
 		}
+
 
 		SRVDesc.Format = RTTDesc.Format;
 		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
@@ -971,15 +1027,21 @@ namespace wilson
 		{
 			return false;
 		}
-		hr = m_pDevice->CreateShaderResourceView(m_pPingPongRTT[0], &SRVDesc, &m_pPingPongSRV[0]);
-		if (FAILED(hr))
+		for (int i = 0; i < 2; ++i)
 		{
-			return false;
+			hr = m_pDevice->CreateShaderResourceView(m_pPingPongRTT[i], &SRVDesc, &m_pPingPongSRV[i]);
+			if (FAILED(hr))
+			{
+				return false;
+			}
 		}
-		hr = m_pDevice->CreateShaderResourceView(m_pPingPongRTT[1], &SRVDesc, &m_pPingPongSRV[1]);
-		if (FAILED(hr))
+		for (int i = 0; i < 4; ++i)
 		{
-			return false;
+			hr = m_pDevice->CreateShaderResourceView(m_pGbufferRTT[i], &SRVDesc, &m_pGbufferSRV[i]);
+			if (FAILED(hr))
+			{
+				return false;
+			}
 		}
 
 		return true;
@@ -1078,7 +1140,7 @@ namespace wilson
 		return true;
 	}
 
-	void D3D11::DrawENTT()
+	void D3D11::DrawENTT(bool bGeoPass)
 	{
 		XMMATRIX worldMat;
 		for (int i = 0; i < m_pModelGroups.size(); ++i)
@@ -1104,7 +1166,7 @@ namespace wilson
 							int numInstance = pModels[j]->GetNumInstance();
 							for (int k = 0; k < verticesCount.size(); ++k)
 							{
-								pModels[j]->UploadBuffers(m_pContext, k);
+								pModels[j]->UploadBuffers(m_pContext, k, bGeoPass);
 								m_pContext->DrawInstanced(verticesCount[k], numInstance, 0, 0);
 							}
 						}
@@ -1117,7 +1179,7 @@ namespace wilson
 								m_pMatBuffer->SetWorldMatrix(&worldMat);
 								m_pMatBuffer->Update();
 
-								pModels[j]->UploadBuffers(m_pContext, k);
+								pModels[j]->UploadBuffers(m_pContext, k, bGeoPass);
 								m_pContext->Draw(indicesCount[k], 0);
 							}
 						}
@@ -1133,7 +1195,7 @@ namespace wilson
 						m_pMatBuffer->Update();
 						for (int k = 0; k < pModels[j]->GetMatCount(); ++k)
 						{
-							pModels[j]->UploadBuffers(m_pContext,k,isBlurPass);
+							pModels[j]->UploadBuffers(m_pContext,k, bGeoPass);
 							m_pContext->DrawIndexed(pModels[j]->GetIndexCount(k), 0, 0);
 						}
 						
@@ -1243,6 +1305,26 @@ namespace wilson
 			{
 				m_pPingPongSRV[i]->Release();
 				m_pPingPongSRV[i] = nullptr;
+			}
+		}
+		for (int i = 0; i < 4; ++i)
+		{
+			if (m_pGbufferRTT[i] != nullptr)
+			{
+				m_pGbufferRTT[i]->Release();
+				m_pGbufferRTT[i]= nullptr;
+			}
+
+			if (m_pGbufferRTTV[i] != nullptr)
+			{
+				m_pGbufferRTTV[i]->Release();
+				m_pGbufferRTTV[i] = nullptr;
+			}
+
+			if (m_pGbufferSRV[i] != nullptr)
+			{
+				m_pGbufferSRV[i]->Release();
+				m_pGbufferSRV[i] = nullptr;
 			}
 		}
 	}
