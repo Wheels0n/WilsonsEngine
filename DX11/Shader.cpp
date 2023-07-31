@@ -25,6 +25,9 @@ namespace wilson
 		m_pGeometryPS = nullptr;
 		m_pDeferredPS = nullptr;
 
+		m_pLightCubeVS = nullptr;
+		m_pLightCubePS = nullptr;
+
 		m_pBlurPS = nullptr;
 		m_pFinPS = nullptr;
 
@@ -104,6 +107,18 @@ namespace wilson
 		{
 			m_pDeferredPS->Release();
 			m_pDeferredPS = nullptr;
+		}
+
+		if (m_pLightCubeVS != nullptr)
+		{
+			m_pLightCubeVS->Release();
+			m_pLightCubeVS = nullptr;
+		}
+
+		if (m_pLightCubePS != nullptr)
+		{
+			m_pLightCubePS->Release();
+			m_pLightCubePS = nullptr;
 		}
 
 		if (m_pBlurPS != nullptr)
@@ -304,6 +319,22 @@ namespace wilson
 		}
 		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pDeferredPS);
 
+
+		hr = D3DX11CompileFromFile(L"LightCubeVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pVSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pLightCubeVS);
+
+		hr = D3DX11CompileFromFile(L"LightCubePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pLightCubePS);
 
 		hr = D3DX11CompileFromFile(L"BlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))

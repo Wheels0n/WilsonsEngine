@@ -9,14 +9,15 @@ namespace wilson
 		m_pDevice = nullptr;
 		m_pContext = nullptr;
 
-		m_pSkyBoxVertices = nullptr;
-		m_pSkyBoxIndices = nullptr;
+		m_pCubeVertices = nullptr;
+		m_pCubeIndices = nullptr;
 		m_pSkyBoxDSS = nullptr;
 		m_pSkyBoxRS = nullptr;
 
 		m_pQuadVB = nullptr;
 		m_pQuadIB = nullptr;
 		m_pBoolBuffer = nullptr;
+		m_pColorBuffer = nullptr;
 
 		m_pScreenRTTV = nullptr;
 		m_pDSBuffer = nullptr;
@@ -295,7 +296,7 @@ namespace wilson
 			skyBoxVertexBD.MiscFlags = 0;
 			skyBoxVertexBD.StructureByteStride = 0;
 
-		    hr = m_pDevice->CreateBuffer(&skyBoxVertexBD,&skyBoxVertexData, &m_pSkyBoxVertices);
+		    hr = m_pDevice->CreateBuffer(&skyBoxVertexBD,&skyBoxVertexData, &m_pCubeVertices);
 			if (FAILED(hr))
 			{
 				return false;
@@ -336,7 +337,7 @@ namespace wilson
 			skyBoxIndexBD.MiscFlags = 0;
 			skyBoxIndexBD.StructureByteStride = 0;
 
-			hr = m_pDevice->CreateBuffer(&skyBoxIndexBD, &skyBoxIndexData, &m_pSkyBoxIndices);
+			hr = m_pDevice->CreateBuffer(&skyBoxIndexBD, &skyBoxIndexData, &m_pCubeIndices);
 			if(FAILED(hr))
 			{
 				return false;
@@ -380,6 +381,13 @@ namespace wilson
 		  bds.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		  bds.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		  hr = m_pDevice->CreateBuffer(&bds, 0, &m_pBoolBuffer);
+		  if (FAILED(hr))
+		  {
+			  return false;
+		  }
+
+		  bds.ByteWidth = sizeof(XMVECTOR);
+		  hr = m_pDevice->CreateBuffer(&bds, 0, &m_pColorBuffer);
 		  if (FAILED(hr))
 		  {
 			  return false;
@@ -520,16 +528,16 @@ namespace wilson
 			m_pQuadRS = nullptr;
 		}
 
-		if (m_pSkyBoxVertices != nullptr)
+		if (m_pCubeVertices != nullptr)
 		{
-			m_pSkyBoxVertices->Release();
-			m_pSkyBoxVertices = nullptr;
+			m_pCubeVertices->Release();
+			m_pCubeVertices = nullptr;
 		}
 
-		if (m_pSkyBoxIndices != nullptr)
+		if (m_pCubeIndices != nullptr)
 		{
-			m_pSkyBoxIndices->Release();
-			m_pSkyBoxIndices = nullptr;
+			m_pCubeIndices->Release();
+			m_pCubeIndices = nullptr;
 		}
 
 		if (m_pSkyBoxDSS != nullptr)
@@ -618,6 +626,13 @@ namespace wilson
 			m_pBoolBuffer->Release();
 			m_pBoolBuffer = nullptr;
 		}
+
+		if (m_pColorBuffer != nullptr)
+		{
+			m_pColorBuffer->Release();
+			m_pColorBuffer = nullptr;
+		}
+
 		if (m_pLightBuffer != nullptr)
 		{
 			delete m_pLightBuffer;
@@ -694,7 +709,6 @@ namespace wilson
 		UINT offset = 0;
 		int drawed = 0;
 		bool bGeoPass = false;
-		ID3D11ShaderResourceView* nullSRV[48] = { nullptr, };
 		ID3D11ShaderResourceView* finalSRV[2] = { m_pSceneSRV, m_pPingPongSRV[1]};
 		ID3D11RenderTargetView* bloomRTV[2] = { m_pSceneRTTV, m_pBrightRTTV };
 		
@@ -720,7 +734,7 @@ namespace wilson
 		std::vector<PointLight*>& pointLights = m_pLightBuffer->GetPointLights();
 		//Draw ShadowMap
 		{	
-			m_pContext->PSSetShaderResources(0, 6, nullSRV);
+			m_pContext->PSSetShaderResources(0, 4+dirLights.capacity()+pointLights.capacity(), m_pLightBuffer->GetNullSRVs());
 			m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
 			m_pContext->OMSetDepthStencilState(0, 0);
 			
@@ -751,17 +765,14 @@ namespace wilson
 		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
 		m_pMatBuffer->Update();
 		m_pShader->SetSkyBoxShader();
-		m_pContext->IASetVertexBuffers(0, 1, &m_pSkyBoxVertices, &stride, &offset);
-		m_pContext->IASetIndexBuffer(m_pSkyBoxIndices, DXGI_FORMAT_R32_UINT, 0);
+		m_pContext->IASetVertexBuffers(0, 1, &m_pCubeVertices, &stride, &offset);
+		m_pContext->IASetIndexBuffer(m_pCubeIndices, DXGI_FORMAT_R32_UINT, 0);
 		m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
 		m_pContext->RSSetViewports(1, &m_viewport);
 		m_pContext->OMSetDepthStencilState(m_pSkyBoxDSS, 0);
 		m_pContext->OMSetRenderTargets(1, &m_pGbufferRTTV[2], m_pSceneDSV);
 		m_pContext->DrawIndexed(36, 0, 0);
 	
-		stride = sizeof(QUAD);
-		m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
-		m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
 		//Deferred Shading First Pass
 		if (!m_pModelGroups.empty())
 		{
@@ -784,10 +795,10 @@ namespace wilson
 			m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
 			m_pContext->RSSetState(m_pQuadRS);
 			m_pContext->OMSetRenderTargets(2, bloomRTV, nullptr);
-			m_pContext->OMSetBlendState(nullptr, color, 0xffffffff);
+			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
 			m_pContext->PSSetShaderResources(0, 4, m_pGbufferSRV);
-			m_pContext->PSSetShaderResources(4, 1, m_pShadowMap->GetDirSRV());
-			m_pContext->PSSetShaderResources(5, 1, m_pShadowMap->GetCubeSRV());
+			m_pContext->PSSetShaderResources(4, dirLights.capacity(), m_pShadowMap->GetDirSRV());
+			m_pContext->PSSetShaderResources(4+dirLights.capacity(), pointLights.capacity(), m_pShadowMap->GetCubeSRV());
 			m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetCubeShadowSampler());
 			m_pContext->PSSetSamplers(2, 1, m_pShadowMap->GetDirShadowSampler());
 			m_pContext->DrawIndexed(6, 0, 0);
@@ -812,9 +823,44 @@ namespace wilson
 				horizontal = !horizontal;
 			}
 		}
+		//Draw point light cubes
+		stride = sizeof(XMFLOAT3);
+		m_pContext->IASetVertexBuffers(0, 1, &m_pCubeVertices, &stride, &offset);
+		m_pContext->IASetIndexBuffer(m_pCubeIndices, DXGI_FORMAT_R32_UINT, 0);
+		m_pContext->RSSetState(m_pGeoRS);
+		m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, m_pSceneDSV);
+		m_pShader->SetPosOnlyInputLayout();
+		m_pShader->SetCubeShader();
+
+		XMFLOAT4 scF = XMFLOAT4(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+		XMVECTOR scV = XMLoadFloat4(&scF);
+		XMMATRIX sc = XMMatrixScalingFromVector(scV);
+		for (int i = 0; i < pointLights.size(); ++i)
+		{	
+			D3D11_MAPPED_SUBRESOURCE mappedResource;
+			XMVECTOR* pColor;
+			XMVECTOR color = *(pointLights[i]->GetDiffuse());
+			m_pContext->Map(m_pColorBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			pColor = (XMVECTOR*)mappedResource.pData;
+			*pColor = color;
+			m_pContext->Unmap(m_pColorBuffer, 0);
+			m_pContext->PSSetConstantBuffers(0, 1, &m_pColorBuffer);
+
+			XMVECTOR posV = XMLoadFloat3(pointLights[i]->GetPos());
+			XMMATRIX tr = XMMatrixTranslationFromVector(posV);
+			tr = XMMatrixMultiply(sc, tr);
+			m_pMatBuffer->SetWorldMatrix(&tr);
+			m_pMatBuffer->Update();
+			m_pContext->DrawIndexed(36, 0, 0);
+		}
+		
 		//Submit Result
+		stride = sizeof(QUAD);
+		m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
+		m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
 		m_pShader->SetTexInputlayout();
 		m_pShader->SetFinalShader();
+		m_pContext->RSSetState(m_pQuadRS);
 		m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
 		finalSRV[0] = m_pModelGroups.empty() ? m_pGbufferSRV[2]: finalSRV[0];
 		m_pContext->PSSetShaderResources(0, 2, finalSRV);

@@ -73,6 +73,10 @@ namespace wilson
 		{
 			return MAX_PNT_LIGHTS;
 	    }
+		inline ID3D11ShaderResourceView** GetNullSRVs()
+		{
+			return &m_pNullSRVs[0];
+		}
 		void UpdateDirLightByIndex(ID3D11DeviceContext* pContext, UINT i);
 		void UpdateDirLightMatrices(ID3D11DeviceContext* pContext);
 		void UpdateLightBuffer(ID3D11DeviceContext* pContext);
@@ -80,6 +84,7 @@ namespace wilson
 		~LightBuffer();
 	private:
 		ID3D11Buffer* m_pLightPropertyBuffer, *m_pLitMatricesBuffer;
+		std::vector< ID3D11ShaderResourceView*> m_pNullSRVs;
 		std::vector<DirectionalLight*> m_pDirLights;
 		std::vector<PointLight*>m_pPointLights;
 		std::vector<SpotLight*>m_pSpotLights;

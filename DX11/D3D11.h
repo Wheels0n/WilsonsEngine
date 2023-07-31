@@ -33,6 +33,7 @@ namespace wilson
 		XMFLOAT2 tex;
 	};
 	constexpr UINT SHADOWMAP_SIZE = 1024;
+	constexpr float CUBE_SIZE = 0.25;
 	class D3D11
 	{
 	private:
@@ -103,9 +104,9 @@ namespace wilson
 		ID3D11Device* m_pDevice;
 		ID3D11DeviceContext* m_pContext;
 
-		ID3D11Buffer* m_pSkyBoxVertices, *m_pQuadVB;
-		ID3D11Buffer* m_pSkyBoxIndices, *m_pQuadIB;
-		ID3D11Buffer* m_pBoolBuffer;
+		ID3D11Buffer* m_pCubeVertices, *m_pQuadVB;
+		ID3D11Buffer* m_pCubeIndices, *m_pQuadIB;
+		ID3D11Buffer* m_pBoolBuffer, *m_pColorBuffer;
 
 		ID3D11RenderTargetView* m_pScreenRTTV, * m_pSceneRTTV, * m_pBrightRTTV, *m_pViewportRTTV;
 		ID3D11RenderTargetView* m_pPingPongRTTV[2];
