@@ -13,10 +13,10 @@ namespace wilson
 		float range;
 
 		DirectX::XMFLOAT3 direction;
-		float spot;
+		float cutoff;
 
 		DirectX::XMFLOAT3 attenuation;
-		float pad;
+		float outerCutoff;
 	};
 
 	class SpotLight:public Light
@@ -34,9 +34,13 @@ namespace wilson
 		{
 			return &m_range;
 		}
-		inline float* GetSpot()
+		inline float* GetCutoff()
 		{
-			return &m_spot;
+			return &m_cutoff;
+		}
+		inline float* GetOuterCutoff()
+		{
+			return &m_outerCutoff;
 		}
 		inline SpotLightProperty* GetProperty()
 		{
@@ -53,7 +57,7 @@ namespace wilson
 	private:
 		SpotLightProperty m_spotLightProperty;
 		float m_range;
-		float m_spot;
+		float m_cutoff, m_outerCutoff;
 		DirectX::XMFLOAT3 m_direction;
 		DirectX::XMFLOAT3 m_attenuation;
 	};

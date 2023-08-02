@@ -39,18 +39,18 @@ struct SpotLight
     float range;
 
     float3 direction;
-    float spot;
-
+    float cutOff;
+    
     float3 att;
-    float pad;
+    float outerCutOff;
 };
 
 Texture2D posTex;
 Texture2D normalTex;
 Texture2D abeldoTex;
 Texture2D specualrTex;
-Texture2D dirShadowMaps[10];
-TextureCube omniDirShadowMaps[45];
+Texture2D dirShadowMaps[1];
+TextureCube omniDirShadowMaps[1];
 SamplerState SampleType : register(s0);
 SamplerState g_cubeShadowSampler : register(s1);
 SamplerComparisonState g_dirShadowSampler : register(s2);
@@ -161,7 +161,7 @@ void CalDirectionalLight(DirectionalLight L,
     }
  
 }
-void CalPointLight(float4 albedo, PointLight L, float3 lightDir, float3 normal, float3 toEye, float4 specularIntensity,
+void CalPointLight(PointLight L, float3 lightDir, float3 normal, float3 toEye, float4 specularIntensity,
 out float4 ambient, out float4 diffuse, out float4 specular)
 {
     ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -170,7 +170,7 @@ out float4 ambient, out float4 diffuse, out float4 specular)
 	
 	
     float distance = length(lightDir);
-	
+    float att = 1.0f / dot(L.att, float3(1.0f, distance, distance * distance));
     [branch]
     if (distance > L.range)
     {
@@ -179,26 +179,24 @@ out float4 ambient, out float4 diffuse, out float4 specular)
 	
     lightDir = normalize(lightDir);
 	
-    ambient = float4(albedo.rgb, 1.0f) * L.ambient;
-	
+    ambient = L.ambient * att;//광원이 여러 개면 누적이 되버림
     float diffuseFactor = max(dot(lightDir, normal), 0.0f);
 	
     if (diffuseFactor != 0.0f)
     {
-        diffuse = diffuseFactor * float4(albedo.rgb, 1.0f) * L.diffuse;
+        diffuse = diffuseFactor * float4(L.diffuse.rgb, 1.0f);
         
         float3 h = normalize(toEye + lightDir);
         float specFactor = pow(max(dot(normal, h), 0.0f), specularIntensity.w);
         specular = float4(specFactor * specularIntensity.rgb * L.specular.rgb, 1.0f);
 	    
-        float att = 1.0f / dot(L.att, float3(1.0f, distance, distance * distance));
         diffuse *= att;
         specular *= att;
     }
 	
     
 }
-void CalSpotLight(float4 albedo, SpotLight L, float3 lightDir, float3 normal, float3 toEye, float4 specularIntensity,
+void CalSpotLight(SpotLight L, float3 lightDir, float3 normal, float3 toEye, float4 specularIntensity,
 out float4 ambient, out float4 diffuse, out float4 specular)
 {
     ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -206,34 +204,29 @@ out float4 ambient, out float4 diffuse, out float4 specular)
     specular = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	
     float distance = length(lightDir);
-	
-    if (distance > L.range)
-    {
-        return;
-    }
-	
+    float att = 1.0f / dot(L.att, float3(1.0f, distance, distance * distance));
+    ambient = L.ambient * att;
+    
     lightDir = normalize(lightDir);
-	
-    ambient = float4(albedo.rgb, 1.0f) * L.ambient;
-	
+    float theta = dot(lightDir, normalize(-L.direction));//cos그래프 참조
+    float epsilon = (L.cutOff - L.outerCutOff);
+    float intensity = clamp((theta - L.outerCutOff) / epsilon, 0.0f, 1.0f);
+    
     float diffuseFactor = dot(lightDir, normal);
-	
     if (diffuseFactor > 0.0f)
     {
         float3 h = normalize(toEye + lightDir);
         float specFactor = pow(max(dot(normal, h), 0.0f), specularIntensity.w);
 		
-        diffuse = diffuseFactor * float4(albedo.rgb, 1.0f) * L.diffuse;
+        diffuse = diffuseFactor * float4(L.diffuse.rgb, 1.0f);
         specular = float4(specFactor * specularIntensity.rgb * L.specular.rgb, 1.0f);
+        
+        diffuse *= intensity;
+        specular *= intensity;
+        diffuse *= att;
+        specular *= att;
     }
 	
-    float spot = pow(max(dot(lightDir, L.direction), 0.0f), L.spot);
-	
-    float att = spot / dot(L.att, float3(1.0f, distance, distance * distance));
-	
-    ambient *= spot;
-    diffuse *= att;
-    specular *= att;
 }
 
 PixelOutput main(PixelInput input)
@@ -278,7 +271,7 @@ PixelOutput main(PixelInput input)
     for (int j = 0; j < pntCnt; ++j)
     {
         float3 lightDir = cbPointLight[j].position - wPos.xyz;
-        CalPointLight(albedo, cbPointLight[j], lightDir, normal, viewDir, spec, A, D, S);
+        CalPointLight(cbPointLight[j], lightDir, normal, viewDir, spec, A, D, S);
         shadowFactor = CalOmniDirShadowFactor(g_cubeShadowSampler, omniDirShadowMaps[j], -lightDir);
         lightVal += (A + shadowFactor * (D + S)) * albedo;
     }
@@ -286,7 +279,7 @@ PixelOutput main(PixelInput input)
     for (int k = 0; k < sptCnt; ++k)
     {   
         float3 lightDir = (cbSpotLight[i].position - wPos.xyz);
-        CalSpotLight(albedo, cbSpotLight[k], lightDir, normal, viewDir, spec, A, D, S);
+        CalSpotLight(cbSpotLight[k], lightDir, normal, viewDir, spec, A, D, S);
         lightVal += (A + shadowFactor * (D + S)) * albedo;
     }
 

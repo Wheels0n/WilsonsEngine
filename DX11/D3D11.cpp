@@ -732,9 +732,10 @@ namespace wilson
 		//Update Light
 		std::vector<DirectionalLight*>& dirLights = m_pLightBuffer->GetDirLights();
 		std::vector<PointLight*>& pointLights = m_pLightBuffer->GetPointLights();
+		std::vector<SpotLight*>& spotLights = m_pLightBuffer->GetSpotLights();
 		//Draw ShadowMap
 		{	
-			m_pContext->PSSetShaderResources(0, 4+dirLights.capacity()+pointLights.capacity(), m_pLightBuffer->GetNullSRVs());
+			m_pContext->PSSetShaderResources(0, 4 +dirLights.capacity()+ pointLights.capacity(), m_pLightBuffer->GetNullSRVs());
 			m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
 			m_pContext->OMSetDepthStencilState(0, 0);
 			
@@ -797,8 +798,8 @@ namespace wilson
 			m_pContext->OMSetRenderTargets(2, bloomRTV, nullptr);
 			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
 			m_pContext->PSSetShaderResources(0, 4, m_pGbufferSRV);
-			m_pContext->PSSetShaderResources(4, dirLights.capacity(), m_pShadowMap->GetDirSRV());
-			m_pContext->PSSetShaderResources(4+dirLights.capacity(), pointLights.capacity(), m_pShadowMap->GetCubeSRV());
+			m_pContext->PSSetShaderResources(4, dirLights.size(), m_pShadowMap->GetDirSRV());
+			m_pContext->PSSetShaderResources(4+dirLights.capacity(), pointLights.size(), m_pShadowMap->GetCubeSRV());
 			m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetCubeShadowSampler());
 			m_pContext->PSSetSamplers(2, 1, m_pShadowMap->GetDirShadowSampler());
 			m_pContext->DrawIndexed(6, 0, 0);

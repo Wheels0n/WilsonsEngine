@@ -90,11 +90,8 @@ namespace wilson
 		m_pPointLights.reserve(MAX_PNT_LIGHTS);
 		m_pSpotLights.reserve(MAX_SPT_LIGHTS);
 
-		m_pNullSRVs.reserve(MAX_DIR_LIGHTS + MAX_PNT_LIGHTS + MAX_SPT_LIGHTS);
-		for (int i = 0; i < m_pNullSRVs.capacity(); ++i)
-		{
-			m_pNullSRVs.push_back(nullptr);
-		}
+		m_pNullSRVs.resize(MAX_DIR_LIGHTS + MAX_PNT_LIGHTS + MAX_SPT_LIGHTS+4, nullptr);
+	
 
 	}
 	LightBuffer::~LightBuffer()
