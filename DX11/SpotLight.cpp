@@ -1,7 +1,8 @@
 #include "SpotLight.h"
 
 namespace wilson
-{
+{   
+
 	bool SpotLight::Init(ID3D11Device* pDevice)
 	{	
         D3D11_BUFFER_DESC lightCBD;
@@ -25,8 +26,32 @@ namespace wilson
         m_outerCutoff = 25.0f;
         m_range = 10000.0f;
 
+
+        UpdateViewMat();
+        UpdateProjMat();
+
 		return true;
 	}
+    void SpotLight::UpdateViewMat()
+    {
+        m_viewMat = DirectX::XMMatrixLookAtLH(
+            DirectX::XMLoadFloat3(&m_position),
+            DirectX::XMLoadFloat3(&m_direction),
+            DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+        UpdateLitMat();
+    }
+    void SpotLight::UpdateProjMat()
+    {
+        m_perspectiveMat = DirectX::XMMatrixPerspectiveFovLH(
+            DirectX::XMConvertToRadians(m_outerCutoff * 2.0f), 1.0f, s_near, s_far);
+        UpdateLitMat();
+    }
+
+    void SpotLight::UpdateLitMat()
+    {
+        m_lightSpaceMat = DirectX::XMMatrixMultiplyTranspose(m_viewMat, m_perspectiveMat);
+    }
+
     void SpotLight::UpdateProperty()
     {   
         m_spotLightProperty.ambient = m_ambient;
@@ -38,7 +63,7 @@ namespace wilson
         m_spotLightProperty.specular = m_specular;
         m_spotLightProperty.cutoff = DirectX::XMScalarCos(DirectX::XMConvertToRadians(m_cutoff));
         m_spotLightProperty.outerCutoff = DirectX::XMScalarCos(DirectX::XMConvertToRadians(m_outerCutoff));
-   
+    
     }
 	
 }

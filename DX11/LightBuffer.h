@@ -14,6 +14,11 @@ namespace wilson
 		DirectX::XMMATRIX matrices[MAX_DIR_LIGHTS];
 		UINT dirCnt;
 	};
+	struct SpotLightMatrices
+	{
+		DirectX::XMMATRIX matrices[MAX_SPT_LIGHTS];
+		UINT spotCnt;
+	};
 
 	struct LightBufferProperty
 	{	
@@ -73,17 +78,22 @@ namespace wilson
 		{
 			return MAX_PNT_LIGHTS;
 	    }
+		inline UINT GetSpotLightCapacity()
+		{
+			return MAX_SPT_LIGHTS;
+		}
 		inline ID3D11ShaderResourceView** GetNullSRVs()
 		{
 			return &m_pNullSRVs[0];
 		}
 		void UpdateDirLightByIndex(ID3D11DeviceContext* pContext, UINT i);
 		void UpdateDirLightMatrices(ID3D11DeviceContext* pContext);
+		void UpdateSpotLightMatrices(ID3D11DeviceContext* pContext);
 		void UpdateLightBuffer(ID3D11DeviceContext* pContext);
 		LightBuffer(ID3D11Device*);
 		~LightBuffer();
 	private:
-		ID3D11Buffer* m_pLightPropertyBuffer, *m_pLitMatricesBuffer;
+		ID3D11Buffer* m_pLightPropertyBuffer, *m_pDirLitMatricesBuffer, *m_pSpotLitMatricesBuffer;
 		std::vector< ID3D11ShaderResourceView*> m_pNullSRVs;
 		std::vector<DirectionalLight*> m_pDirLights;
 		std::vector<PointLight*>m_pPointLights;

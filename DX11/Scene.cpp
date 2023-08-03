@@ -420,6 +420,8 @@ namespace wilson
 			case ELIGHT_TYPE::PNT:
 				((PointLight*)pLight)->CreateShadowMatrices();
 				break;
+			case ELIGHT_TYPE::SPT:
+				((SpotLight*)pLight)->UpdateViewMat();
 			}
 			
 		}
@@ -476,6 +478,7 @@ namespace wilson
 
 
 		DirectX::XMFLOAT3 dir3 = *(pSpotLight->GetDirection());
+		DirectX::XMFLOAT3 copyDir3 = dir3;
 		ImGui::Text("Direction");
 		if (ImGui::Button("X"))
 		{
@@ -498,6 +501,10 @@ namespace wilson
 		ImGui::SameLine();
 		ImGui::DragFloat("##DZ", &dir3.z, 0.1f);
 		*(pSpotLight->GetDirection()) = dir3;
+		if (dir3.x != copyDir3.x || dir3.y != copyDir3.y || dir3.z != copyDir3.z)
+		{
+			pSpotLight->UpdateViewMat();
+		}
 
 		float cutoff = *(pSpotLight->GetCutoff());
 		if (ImGui::Button("cutoff"))
@@ -509,6 +516,7 @@ namespace wilson
 		*(pSpotLight->GetCutoff()) = cutoff;
 		
 		float outerCutoff = *(pSpotLight->GetOuterCutoff());
+		float oldOuterCutOff = outerCutoff;
 		if (ImGui::Button("OuterCutoff"))
 		{
 			outerCutoff = 25.0f;
@@ -516,6 +524,11 @@ namespace wilson
 		ImGui::SameLine();
 		ImGui::DragFloat("##OuterCutoff", &outerCutoff, 0.01f, 0.0f, 360.0f);
 		*(pSpotLight->GetOuterCutoff()) = outerCutoff;
+		if (outerCutoff != oldOuterCutOff)
+		{
+			pSpotLight->UpdateProjMat();
+		}
+		
 
 	};
 	void Scene::RemoveModelGroup(int i)

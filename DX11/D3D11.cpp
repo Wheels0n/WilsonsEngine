@@ -465,7 +465,7 @@ namespace wilson
 
 		m_pShadowMap = new ShadowMap();
 		m_pShadowMap->Init(m_pDevice, SHADOWMAP_SIZE, SHADOWMAP_SIZE, 
-			m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity());
+			m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
 
 
 		D3D11_SAMPLER_DESC samplerDesc = {};
@@ -735,8 +735,9 @@ namespace wilson
 		std::vector<SpotLight*>& spotLights = m_pLightBuffer->GetSpotLights();
 		//Draw ShadowMap
 		{	
-			m_pContext->PSSetShaderResources(0, 4 +dirLights.capacity()+ pointLights.capacity(), m_pLightBuffer->GetNullSRVs());
+			m_pContext->PSSetShaderResources(0, 4 +dirLights.capacity()+ pointLights.capacity()+ spotLights.capacity(), m_pLightBuffer->GetNullSRVs());
 			m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
+			m_pContext->RSSetState(m_pGeoRS);
 			m_pContext->OMSetDepthStencilState(0, 0);
 			
 			m_pShader->SetPosOnlyInputLayout();
@@ -748,6 +749,14 @@ namespace wilson
 				m_pShadowMap->BindDirDSV(m_pContext,i);
 				DrawENTT(bGeoPass);
 			}
+			for (int i = 0; i < spotLights.size(); ++i)
+			{
+				m_pMatBuffer->SetLightSpaceMatrix(spotLights[i]->GetLightSpaceMat());
+				m_pShadowMap->BindSpotDSV(m_pContext, i);
+				DrawENTT(bGeoPass);
+			}
+
+
 			m_pContext->RSSetState(m_pSkyBoxRS);
 			m_pShader->SetOmniDirShadowShader();
 			for (int i = 0; i < pointLights.size(); ++i)
@@ -788,6 +797,7 @@ namespace wilson
 			//Deferred Shading Second Pass and Get Bright Texture
 			stride = sizeof(QUAD);
 			m_pLightBuffer->UpdateDirLightMatrices(m_pContext);
+			m_pLightBuffer->UpdateSpotLightMatrices(m_pContext);
 			m_pLightBuffer->UpdateLightBuffer(m_pContext);
 			m_pShader->SetTexInputlayout();
 			m_pShader->SetDeferredLightingShader();
@@ -798,8 +808,10 @@ namespace wilson
 			m_pContext->OMSetRenderTargets(2, bloomRTV, nullptr);
 			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
 			m_pContext->PSSetShaderResources(0, 4, m_pGbufferSRV);
-			m_pContext->PSSetShaderResources(4, dirLights.size(), m_pShadowMap->GetDirSRV());
-			m_pContext->PSSetShaderResources(4+dirLights.capacity(), pointLights.size(), m_pShadowMap->GetCubeSRV());
+			m_pContext->PSSetShaderResources(4, spotLights.size(), m_pShadowMap->GetSpotSRV());
+			//m_pContext->PSSetShaderResources(4,  dirLights.size(), m_pShadowMap->GetDirSRV());
+			//m_pContext->PSSetShaderResources(4 + dirLights.capacity(), pointLights.size(), m_pShadowMap->GetCubeSRV());
+			//m_pContext->PSSetShaderResources(4 + dirLights.capacity() + pointLights.capacity(), spotLights.size(), m_pShadowMap->GetSpotSRV());
 			m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetCubeShadowSampler());
 			m_pContext->PSSetSamplers(2, 1, m_pShadowMap->GetDirShadowSampler());
 			m_pContext->DrawIndexed(6, 0, 0);

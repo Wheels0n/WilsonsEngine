@@ -3,6 +3,8 @@
 
 namespace wilson
 {	
+	constexpr float s_near = 0.1f;
+	constexpr float s_far = 100.0f;
 	struct SpotLightProperty
 	{
 		DirectX::XMVECTOR ambient;
@@ -22,6 +24,10 @@ namespace wilson
 	class SpotLight:public Light
 	{
 	public:
+		inline DirectX::XMMATRIX* GetLightSpaceMat()
+		{
+			return &m_lightSpaceMat;
+		}
 		inline DirectX::XMFLOAT3* GetAttenuation()
 		{
 			return &m_attenuation;
@@ -48,6 +54,9 @@ namespace wilson
 		}
 
 		bool Init(ID3D11Device*);
+		void UpdateViewMat();
+		void UpdateProjMat();
+		void UpdateLitMat();
 		void UpdateProperty();
 		ELIGHT_TYPE GetType() { return ELIGHT_TYPE::SPT; };
 
@@ -60,5 +69,8 @@ namespace wilson
 		float m_cutoff, m_outerCutoff;
 		DirectX::XMFLOAT3 m_direction;
 		DirectX::XMFLOAT3 m_attenuation;
+		DirectX::XMMATRIX m_perspectiveMat;
+		DirectX::XMMATRIX m_viewMat;
+		DirectX::XMMATRIX m_lightSpaceMat;
 	};
 }

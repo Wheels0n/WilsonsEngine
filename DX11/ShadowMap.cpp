@@ -2,14 +2,17 @@
 namespace wilson
 {	
 	bool ShadowMap::Init(ID3D11Device* pDevice, int width, int height,
-		int dirLightCap, int pntLightCap)
+		int dirLightCap, int pntLightCap, int spotLightCap)
 	{
-		m_dirDepthMaps.resize(dirLightCap);
-		m_cubeDepthMaps.resize(pntLightCap);
+		m_dirTex.resize(dirLightCap);
+		m_cubeTex.resize(pntLightCap);
+		m_spotTex.resize(spotLightCap);
 		m_dirSRVs.resize(dirLightCap);
 		m_cubeSRVs.resize(pntLightCap);
+		m_spotSRVs.resize(spotLightCap);
 		m_dirDSVs.resize(dirLightCap);
 		m_cubeDSVs.resize(pntLightCap);
+		m_spotDSVs.resize(spotLightCap);
 		m_pDirShadowSamplerState = nullptr;
 		m_pCubeShadowSamplerState = nullptr;
 
@@ -52,27 +55,49 @@ namespace wilson
 		srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
 		srvDesc.Texture2D.MostDetailedMip = 0;
 
-		for (int i = 0; i < m_dirDepthMaps.size(); ++i)
+		for (int i = 0; i < m_dirTex.size(); ++i)
 		{
-			hr = pDevice->CreateTexture2D(&texDesc, 0, &m_dirDepthMaps[i]);
+			hr = pDevice->CreateTexture2D(&texDesc, 0, &m_dirTex[i]);
 			if (FAILED(hr))
 			{
 				return false;
 			}
 
 
-			hr = pDevice->CreateDepthStencilView(m_dirDepthMaps[i], &dsvDesc, &m_dirDSVs[i]);
+			hr = pDevice->CreateDepthStencilView(m_dirTex[i], &dsvDesc, &m_dirDSVs[i]);
 			if (FAILED(hr))
 			{
 				return false;
 			}
 
-			hr = pDevice->CreateShaderResourceView(m_dirDepthMaps[i], &srvDesc, &m_dirSRVs[i]);
+			hr = pDevice->CreateShaderResourceView(m_dirTex[i], &srvDesc, &m_dirSRVs[i]);
 			if (FAILED(hr))
 			{
 				return false;
 			}
 		}
+		for (int i = 0; i < m_spotTex.size(); ++i)
+		{
+			hr = pDevice->CreateTexture2D(&texDesc, 0, &m_spotTex[i]);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+
+			hr = pDevice->CreateDepthStencilView(m_spotTex[i], &dsvDesc, &m_spotDSVs[i]);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+			hr = pDevice->CreateShaderResourceView(m_spotTex[i], &srvDesc, &m_spotSRVs[i]);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+		}
+
 
 		samDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
 		samDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
@@ -110,21 +135,21 @@ namespace wilson
 			srvDesc.Texture2DArray.FirstArraySlice=0;
 			srvDesc.Texture2DArray.MipLevels = texDesc.MipLevels;
 			srvDesc.Texture2DArray.MostDetailedMip = 0;
-			for (int i = 0; i < m_cubeDepthMaps.size(); ++i)
+			for (int i = 0; i < m_cubeTex.size(); ++i)
 			{
-				hr = pDevice->CreateTexture2D(&texDesc, 0, &m_cubeDepthMaps[i]);
+				hr = pDevice->CreateTexture2D(&texDesc, 0, &m_cubeTex[i]);
 				if (FAILED(hr))
 				{
 					return false;
 				}
 
-				hr = pDevice->CreateDepthStencilView(m_cubeDepthMaps[i], &dsvDesc, &m_cubeDSVs[i]);
+				hr = pDevice->CreateDepthStencilView(m_cubeTex[i], &dsvDesc, &m_cubeDSVs[i]);
 				if (FAILED(hr))
 				{
 					return false;
 				}
 
-				hr = pDevice->CreateShaderResourceView(m_cubeDepthMaps[i], &srvDesc, &m_cubeSRVs[i]);
+				hr = pDevice->CreateShaderResourceView(m_cubeTex[i], &srvDesc, &m_cubeSRVs[i]);
 				if (FAILED(hr))
 				{
 					return false;
@@ -161,14 +186,21 @@ namespace wilson
 		pContext->ClearDepthStencilView(m_cubeDSVs[i], D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
 	}
 
+	void ShadowMap::BindSpotDSV(ID3D11DeviceContext* pContext, UINT i)
+	{
+		ID3D11RenderTargetView* renderTargets[1] = { nullptr };
+		pContext->OMSetRenderTargets(1, renderTargets, m_spotDSVs[i]);
+		pContext->ClearDepthStencilView(m_spotDSVs[i], D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+	}
+
 	ShadowMap::~ShadowMap()
 	{	
-		for (int i = 0; i < m_dirDepthMaps.size(); ++i)
+		for (int i = 0; i < m_dirTex.size(); ++i)
 		{
-			if (m_dirDepthMaps[i] != nullptr)
+			if (m_dirTex[i] != nullptr)
 			{
-				m_dirDepthMaps[i]->Release();
-				m_dirDepthMaps[i] = nullptr;
+				m_dirTex[i]->Release();
+				m_dirTex[i] = nullptr;
 			}
 
 			if (m_dirDSVs[i] != nullptr)
@@ -184,12 +216,12 @@ namespace wilson
 			}
 		}
 
-		for (int i = 0; i < m_cubeDepthMaps.size(); ++i)
+		for (int i = 0; i < m_cubeTex.size(); ++i)
 		{
-			if (m_cubeDepthMaps[i] != nullptr)
+			if (m_cubeTex[i] != nullptr)
 			{
-				m_cubeDepthMaps[i]->Release();
-				m_cubeDepthMaps[i] = nullptr;
+				m_cubeTex[i]->Release();
+				m_cubeTex[i] = nullptr;
 			}
 
 			if (m_cubeDSVs[i] != nullptr)
@@ -205,6 +237,29 @@ namespace wilson
 				m_cubeSRVs[i] = nullptr;
 			}
 		}
+
+		for (int i = 0; i < m_spotTex.size(); ++i)
+		{
+			if (m_spotTex[i] != nullptr)
+			{
+				m_spotTex[i]->Release();
+				m_spotTex[i] = nullptr;
+			}
+
+			if (m_spotDSVs[i] != nullptr)
+			{
+				m_spotDSVs[i]->Release();
+				m_spotDSVs[i] = nullptr;
+			}
+
+			if (m_spotSRVs[i] != nullptr)
+			{
+				m_spotSRVs[i]->Release();
+				m_spotSRVs[i] = nullptr;
+			}
+		}
+
+
 		if (m_pDirShadowSamplerState != nullptr)
 		{
 			m_pDirShadowSamplerState->Release();
@@ -223,12 +278,15 @@ namespace wilson
 		{
 			m_pTex->Release();
 		}
-		m_dirDepthMaps.clear();
+		m_dirTex.clear();
 		m_dirDSVs.clear();
 		m_dirSRVs.clear();
-		m_cubeDepthMaps.clear();
+		m_cubeTex.clear();
 		m_cubeDSVs.clear();
 		m_cubeSRVs.clear();
+		m_spotTex.clear();
+		m_spotDSVs.clear();
+		m_spotSRVs.clear();
 	}
 
 }

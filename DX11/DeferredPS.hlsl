@@ -49,11 +49,12 @@ Texture2D posTex;
 Texture2D normalTex;
 Texture2D abeldoTex;
 Texture2D specualrTex;
-Texture2D dirShadowMaps[1];
-TextureCube omniDirShadowMaps[1];
+//Texture2D dirShadowMaps[1];
+//TextureCube omniDirShadowMaps[1];
+Texture2D spotShadowMaps[1];
 SamplerState SampleType : register(s0);
 SamplerState g_cubeShadowSampler : register(s1);
-SamplerComparisonState g_dirShadowSampler : register(s2);
+SamplerComparisonState g_shadowSampler : register(s2);
 
 cbuffer cbLight
 {
@@ -70,6 +71,11 @@ cbuffer DirLightMatrices
     matrix dirLightMatrices[10];
     uint dirLightCnt;
 };
+cbuffer SpotLightMatrices
+{
+    matrix spotLightMatrices[20];
+    uint spotLightCnt;
+};
 cbuffer CamBuffer
 {
     float4 g_camPos;
@@ -79,7 +85,7 @@ static const float SMAP_SIZE = 1024.0f;
 static const float SMAP_DX = 1.0f / SMAP_SIZE;
 static const float FAR_PLANE = 25.0f;
 
-float CalDirShadowFactor(SamplerComparisonState shadowSampler,
+float CalShadowFactor(SamplerComparisonState shadowSampler,
                         Texture2D shadowMap,
                         float4 shadowPos,
                         float3 normal, float3 lightDir)
@@ -87,7 +93,7 @@ float CalDirShadowFactor(SamplerComparisonState shadowSampler,
     shadowPos.xyz /= shadowPos.w;
     shadowPos.x = shadowPos.x * 0.5f + 0.5f;
     shadowPos.y = shadowPos.y * -0.5f + 0.5f;
-    float bias = max((0.05f * (1.0f - dot(normal, lightDir))), 0.0005f);
+    float bias = max((0.00025f * (1.0f - dot(normal, lightDir))), 0.000005f); // max((0.05f * (1.0f - dot(normal, lightDir))), 0.005f);
     float depth = shadowPos.z - bias;
     
     const float dx = SMAP_DX;
@@ -99,7 +105,7 @@ float CalDirShadowFactor(SamplerComparisonState shadowSampler,
        float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
        float2(-dx, +dx), float2(0.0f, +dx), float2(dx, +dx)
     };
-
+    
     for (int i = 0; i < 9; ++i)
     {
         percentLit += shadowMap.SampleCmpLevelZero(shadowSampler,
@@ -252,34 +258,42 @@ PixelOutput main(PixelInput input)
     float shadowFactor = 1.0f;
     
     float4 dirShadowPos[10];
-    [Flatten]
+    float4 spotShadowPos[20];
+    [unroll]
     for (int i = 0; i < dirCnt; ++i)
     {
         dirShadowPos[i] = mul(wPos, dirLightMatrices[i]);
     }
+    [unroll]
+    for (int i = 0; i < sptCnt; ++i)
+    {
+        spotShadowPos[i] = mul(wPos, spotLightMatrices[i]);
+    }
     
-    [flatten]
+    [unroll]
     for (int i = 0; i < dirCnt; ++i)
     {
         float3 lightDir = normalize(cbDirLight[i].position.xyz - wPos.xyz);
         CalDirectionalLight(cbDirLight[i], normal, viewDir, lightDir, spec, A, D, S);
-        shadowFactor = CalDirShadowFactor(g_dirShadowSampler, dirShadowMaps[i], dirShadowPos[i], normal, lightDir);
+        //shadowFactor = CalShadowFactor(g_shadowSampler, dirShadowMaps[i], dirShadowPos[i], normal, lightDir);
         lightVal += (A + shadowFactor * (D + S))*albedo;
         
     }
-    [flatten]
+    [unroll]
     for (int j = 0; j < pntCnt; ++j)
     {
         float3 lightDir = cbPointLight[j].position - wPos.xyz;
         CalPointLight(cbPointLight[j], lightDir, normal, viewDir, spec, A, D, S);
-        shadowFactor = CalOmniDirShadowFactor(g_cubeShadowSampler, omniDirShadowMaps[j], -lightDir);
+        //shadowFactor = CalOmniDirShadowFactor(g_cubeShadowSampler, omniDirShadowMaps[j], -lightDir);
         lightVal += (A + shadowFactor * (D + S)) * albedo;
     }
-    [flatten]
+    [unroll]
     for (int k = 0; k < sptCnt; ++k)
     {   
-        float3 lightDir = (cbSpotLight[i].position - wPos.xyz);
+        float3 lightDir = (cbSpotLight[k].position - wPos.xyz);
         CalSpotLight(cbSpotLight[k], lightDir, normal, viewDir, spec, A, D, S);
+        lightDir = normalize(lightDir);
+        shadowFactor = CalShadowFactor(g_shadowSampler, spotShadowMaps[k], spotShadowPos[k], normal, lightDir);
         lightVal += (A + shadowFactor * (D + S)) * albedo;
     }
 
