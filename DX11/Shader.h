@@ -74,6 +74,12 @@ namespace wilson
 			m_pContext->GSSetShader(nullptr, nullptr, 0);
 			m_pContext->PSSetShader(m_pBlurPS, nullptr, 0);
 		}
+		inline void SetOutlinerShader()
+		{
+			m_pContext->VSSetShader(m_pLightCubeVS, nullptr, 0);
+			m_pContext->GSSetShader(nullptr, nullptr, 0);
+			m_pContext->PSSetShader(m_pOutlinerPS, nullptr, 0);
+		}
 		inline void SetFinalShader()
 		{
 			m_pContext->VSSetShader(m_pTexVS, nullptr, 0);
@@ -91,7 +97,7 @@ namespace wilson
 
 		ID3D11VertexShader* m_pVS, *m_pSkyBoxVS, *m_pShadowVS, *m_pOmniDirShadowVS, *m_pTexVS, *m_pGeometryVS, *m_pLightCubeVS;
 		ID3D11GeometryShader* m_pOmniDirShadowGS;
-		ID3D11PixelShader* m_pPS, *m_pSkyBoxPS, *m_pOmniDirShadowPS, *m_pGeometryPS, *m_pDeferredPS, *m_pBlurPS, * m_pLightCubePS, *m_pFinPS;
+		ID3D11PixelShader* m_pPS, *m_pSkyBoxPS, *m_pOmniDirShadowPS, *m_pGeometryPS, *m_pDeferredPS, *m_pBlurPS, * m_pLightCubePS, *m_pOutlinerPS, *m_pFinPS;
 
 
 		ID3D11InputLayout* m_pInputLayout, * m_pPosOnlyInputLayout, * m_pTexInputLayout, * m_pDeferredGeoLayout;

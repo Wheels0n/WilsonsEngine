@@ -150,7 +150,7 @@ namespace wilson
 					std::string name = pModel->GetName();
 					ImGui::Text(name.c_str());
 					
-
+					DirectX::XMMATRIX* outlinerMat = nullptr;
 					DirectX::XMMATRIX* scMat = nullptr;
 					DirectX::XMMATRIX* rtMat = nullptr;
 					DirectX::XMMATRIX* trMat = nullptr;
@@ -178,6 +178,13 @@ namespace wilson
 						DirectX::XMMATRIX sc = DirectX::XMMatrixScalingFromVector(xv);
 						*scMat = sc;
 
+						xv = DirectX::XMVectorScale(xv, 1.01f);
+						DirectX::XMMATRIX outliner = DirectX::XMMatrixScalingFromVector(xv);
+						outlinerMat = pModel->GetOutlinerScaleMatrix();
+						if (outlinerMat != nullptr)
+						{
+							*outlinerMat = outliner;
+						}
 					}
 
 					rtMat = pModel->GetRoatationMatrix();
@@ -319,6 +326,8 @@ namespace wilson
 		float closestDistance = FLT_MAX;
 		float hitDistance;
 
+		m_pSelectedEntity = nullptr;
+		m_pD3D11->PickModel(-1, -1);
 		for (int i = 0; i < m_entites.size(); ++i)
 		{	
 			if (!m_entites[i]->isModel())
@@ -331,7 +340,7 @@ namespace wilson
 			{
 				Model* pModel = pModels[j];
 
-				XMMATRIX m_worldMat = pModel->GetTransformMatrix();
+				XMMATRIX m_worldMat = pModel->GetTransformMatrix(false);
 				XMMATRIX invWorldMat = XMMatrixInverse(nullptr, m_worldMat);
 				XMMATRIX toLocal = XMMatrixMultiply(invViewMat, invWorldMat);
 
@@ -356,6 +365,7 @@ namespace wilson
 					if (hitDistance < closestDistance)
 					{
 						m_pSelectedEntity = pModel;
+						m_pD3D11->PickModel(i, j);
 						closestDistance = hitDistance;
 					}
 				}
@@ -381,8 +391,9 @@ namespace wilson
 	}
 
 	void Scene::RemoveSelectedModel(int i,int j)
-	{
+	{   
 		m_pD3D11->RemoveModel(i,j);
+		RemoveEntity(j);
 		m_pSelectedEntity = nullptr;
 	}
 	void Scene::DrawLightControl(Light* pLight)
@@ -532,13 +543,13 @@ namespace wilson
 
 	};
 	void Scene::RemoveModelGroup(int i)
-	{
+	{	
 		m_pD3D11->RemoveModelGroup(i);
-		RemoveEntity(i);
-	
+		RemoveEntity(i);	
 	}
 	void Scene::RemoveEntity(int i)
 	{	
+		m_pD3D11->PickModel(-1, -1);
 		std::string name = m_entites[i]->GetName();
 		--m_entityCnt[name];
 		delete m_entites[i];

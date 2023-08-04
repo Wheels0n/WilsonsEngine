@@ -85,6 +85,11 @@ namespace wilson
 		{
 			return m_pModelGroups.size();
 		}
+		inline void PickModel(int i, int j)
+		{
+			m_selectedModelGroup = i;
+			m_selectedModel = j;
+		}
 		UINT GetLightSize(Light* pLight);
 
 		bool CreateRTT(int, int);
@@ -118,7 +123,7 @@ namespace wilson
 		ID3D11ShaderResourceView* m_pPingPongSRV[2];
 		ID3D11ShaderResourceView* m_pGbufferSRV[4];
 
-		ID3D11DepthStencilState* m_pDefualtDSS, * m_pMirroMarkDSS, * m_pDrawReflectionDSS, *m_pSkyBoxDSS;
+		ID3D11DepthStencilState* m_pOutlinerSetupDSS, * m_pOutlinerTestDSS, * m_pDrawReflectionDSS, *m_pSkyBoxDSS;
 		ID3D11DepthStencilView* m_pScreenDSV, * m_pSceneDSV;
 
 		ID3D11RasterizerState* m_pGeoRS, * m_pRasterStateCC, *m_pSkyBoxRS, *m_pQuadRS;
@@ -140,6 +145,8 @@ namespace wilson
 		XMMATRIX m_idMat = XMMatrixIdentity();
 		int m_clientWidth;
 		int m_clientHeight;
+		int m_selectedModelGroup;
+		int m_selectedModel;
 	};
 }
 #endif // !_D3D11_H_

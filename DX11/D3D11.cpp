@@ -22,8 +22,8 @@ namespace wilson
 		m_pScreenRTTV = nullptr;
 		m_pDSBuffer = nullptr;
 		m_pDSBufferForRTT = nullptr;
-		m_pDefualtDSS = nullptr;
-		m_pMirroMarkDSS = nullptr;
+		m_pOutlinerSetupDSS = nullptr;
+		m_pOutlinerTestDSS = nullptr;
 		m_pDrawReflectionDSS = nullptr;
 		m_pViewportRTT = nullptr;
 		m_pViewportRTTV = nullptr;
@@ -67,6 +67,9 @@ namespace wilson
 		m_pMatBuffer = nullptr;
 		m_pShader = nullptr;
 		m_pShadowMap = nullptr;
+
+		m_selectedModelGroup = -1;
+		m_selectedModel = -1;
 	}
 
 	bool D3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
@@ -723,8 +726,8 @@ namespace wilson
 			m_pContext->ClearRenderTargetView(m_pGbufferRTTV[i], color);
 		}
 
-		m_pContext->ClearDepthStencilView(m_pScreenDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
-		m_pContext->ClearDepthStencilView(m_pSceneDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
+		m_pContext->ClearDepthStencilView(m_pScreenDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		m_pContext->ClearDepthStencilView(m_pSceneDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	
 		//Update Cam 
@@ -866,7 +869,22 @@ namespace wilson
 			m_pMatBuffer->Update();
 			m_pContext->DrawIndexed(36, 0, 0);
 		}
-		
+		//Draw picked Model's Outline
+		m_pShader->SetOutlinerShader();
+		m_pContext->OMSetDepthStencilState(m_pOutlinerTestDSS, 1);
+		if (m_selectedModelGroup != -1)
+		{
+			std::vector<Model*> pModels = m_pModelGroups[m_selectedModelGroup]->GetModels();
+			XMMATRIX worldMat = pModels[m_selectedModel]->GetTransformMatrix(true);
+			m_pMatBuffer->SetWorldMatrix(&worldMat);
+			m_pMatBuffer->Update();
+
+			for (int k = 0; k < pModels[m_selectedModel]->GetMatCount(); ++k)
+			{
+				pModels[m_selectedModel]->UploadBuffers(m_pContext, k, bGeoPass);
+				m_pContext->DrawIndexed(pModels[m_selectedModel]->GetIndexCount(k), 0, 0);
+			}
+		}
 		//Submit Result
 		stride = sizeof(QUAD);
 		m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
@@ -878,6 +896,7 @@ namespace wilson
 		finalSRV[0] = m_pModelGroups.empty() ? m_pGbufferSRV[2]: finalSRV[0];
 		m_pContext->PSSetShaderResources(0, 2, finalSRV);
 		m_pContext->OMSetRenderTargets(1, &m_pViewportRTTV, nullptr);
+		m_pContext->OMSetDepthStencilState(0, 0);
 		m_pContext->DrawIndexed(6, 0, 0);
 		//DrawUI
 		m_pContext->OMSetRenderTargets(1, &m_pScreenRTTV, m_pScreenDSV);
@@ -1164,25 +1183,27 @@ namespace wilson
 		depthStencilDesc.StencilReadMask = 0xFF;
 		depthStencilDesc.StencilWriteMask = 0xFF;
 		depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-		depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-		depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
 		depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 		depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-		depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-		depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
 		depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
-		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDefualtDSS);
+		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pOutlinerSetupDSS);
 		if (FAILED(hr))
 		{
 			return false;
 		}
 
+		depthStencilDesc.DepthEnable = false;
+		depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL;
+		depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL;
 
-		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-		depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-		depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
-		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pMirroMarkDSS);
+		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pOutlinerTestDSS);
 		if (FAILED(hr))
 		{
 			return false;
@@ -1212,7 +1233,7 @@ namespace wilson
 				{
 					for (int j = 0; j < pModels.size(); ++j)
 					{
-						worldMat = pModels[j]->GetTransformMatrix();
+						worldMat = pModels[j]->GetTransformMatrix(false);
 						//XMFLOAT4X4 pos4;
 						//XMStoreFloat4x4(&pos4, worldMat);
 						m_pMatBuffer->SetWorldMatrix(&worldMat);
@@ -1234,7 +1255,7 @@ namespace wilson
 						{
 							for (int k = 0; k < indicesCount.size(); ++k)
 							{
-								worldMat = pModels[j]->GetTransformMatrix();
+								worldMat = pModels[j]->GetTransformMatrix(false);
 								m_pMatBuffer->SetWorldMatrix(&worldMat);
 								m_pMatBuffer->Update();
 
@@ -1249,13 +1270,24 @@ namespace wilson
 				{
 					for (int j = 0; j < pModels.size(); ++j)
 					{	
-						worldMat = pModels[j]->GetTransformMatrix();
+						bool isSelected = (i == m_selectedModelGroup && j == m_selectedModel);
+						if (isSelected)
+						{
+							m_pContext->OMSetDepthStencilState(m_pOutlinerSetupDSS, 1);
+						}
+						worldMat = pModels[j]->GetTransformMatrix(false);
 						m_pMatBuffer->SetWorldMatrix(&worldMat);
 						m_pMatBuffer->Update();
+						
 						for (int k = 0; k < pModels[j]->GetMatCount(); ++k)
 						{
 							pModels[j]->UploadBuffers(m_pContext,k, bGeoPass);
 							m_pContext->DrawIndexed(pModels[j]->GetIndexCount(k), 0, 0);
+						}
+
+						if (isSelected)
+						{
+							m_pContext->OMSetDepthStencilState(0, 0);
 						}
 						
 					}
@@ -1270,16 +1302,16 @@ namespace wilson
 
 	void D3D11::DestroyDSS()
 	{
-		if (m_pDefualtDSS != nullptr)
+		if (m_pOutlinerSetupDSS != nullptr)
 		{
-			m_pDefualtDSS->Release();
-			m_pDefualtDSS = nullptr;
+			m_pOutlinerSetupDSS->Release();
+			m_pOutlinerSetupDSS = nullptr;
 		}
 
-		if (m_pMirroMarkDSS != nullptr)
+		if (m_pOutlinerTestDSS != nullptr)
 		{
-			m_pMirroMarkDSS->Release();
-			m_pMirroMarkDSS = nullptr;
+			m_pOutlinerTestDSS->Release();
+			m_pOutlinerTestDSS = nullptr;
 		}
 
 		if (m_pDrawReflectionDSS != nullptr)

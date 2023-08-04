@@ -395,9 +395,18 @@ namespace wilson {
 		return;
 	}
 
-	DirectX::XMMATRIX Model::GetTransformMatrix()
-	{
-		DirectX::XMMATRIX srMat = XMMatrixMultiply(m_scMat, m_rtMat);
+	DirectX::XMMATRIX Model::GetTransformMatrix(bool bOutliner)
+	{	
+		
+		DirectX::XMMATRIX srMat;
+		if (bOutliner)
+		{
+			srMat = XMMatrixMultiply(m_outlinerScaleMat, m_rtMat);
+		}
+		else
+		{
+			srMat = XMMatrixMultiply(m_scMat, m_rtMat);
+		}
 		DirectX::XMMATRIX rtMat = XMMatrixMultiply(srMat,m_trMat);
 
 		return rtMat;

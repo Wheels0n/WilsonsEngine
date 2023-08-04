@@ -73,11 +73,15 @@ namespace wilson {
 		{
 			return &m_scMat;
 		}
+		inline DirectX::XMMATRIX* GetOutlinerScaleMatrix()
+		{
+			return &m_outlinerScaleMat;
+		}
 		inline DirectX::XMMATRIX* GetRoatationMatrix()
 		{
 			return &m_rtMat;
 		}
-		DirectX::XMMATRIX GetTransformMatrix();
+		DirectX::XMMATRIX GetTransformMatrix(bool);
 		inline DirectX::XMVECTOR* GetAngle()
 		{
 			return &m_angleVec;
@@ -172,6 +176,7 @@ namespace wilson {
 		std::vector<ID3D11ShaderResourceView*> m_textures;
 		std::unordered_map<std::string, int> m_texHash;
 
+		DirectX::XMMATRIX m_outlinerScaleMat;
 		DirectX::XMMATRIX m_scMat;
 		DirectX::XMMATRIX m_rtMat;
 		DirectX::XMMATRIX m_trMat;

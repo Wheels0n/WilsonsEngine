@@ -28,6 +28,7 @@ namespace wilson
 		m_pLightCubeVS = nullptr;
 		m_pLightCubePS = nullptr;
 
+		m_pOutlinerPS = nullptr;
 		m_pBlurPS = nullptr;
 		m_pFinPS = nullptr;
 
@@ -119,6 +120,12 @@ namespace wilson
 		{
 			m_pLightCubePS->Release();
 			m_pLightCubePS = nullptr;
+		}
+
+		if (m_pOutlinerPS != nullptr)
+		{
+			m_pOutlinerPS->Release();
+			m_pOutlinerPS = nullptr;
 		}
 
 		if (m_pBlurPS != nullptr)
@@ -335,6 +342,14 @@ namespace wilson
 			return false;
 		}
 		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pLightCubePS);
+
+		hr = D3DX11CompileFromFile(L"OutlinerPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pOutlinerPS);
 
 		hr = D3DX11CompileFromFile(L"BlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
