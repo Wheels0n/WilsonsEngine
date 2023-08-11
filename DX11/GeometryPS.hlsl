@@ -8,9 +8,11 @@ struct PixelInputType
     float4 position : SV_POSITION;
     float2 tex : TEXTURE;
     float3 normal : NORMAL;
+    float3 vNormal : NORMAL1;
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
     float4 wPosition : POSITION0;
+    float4 vPosition : POSITIONT1;
 };
 
 struct PixelOutputType
@@ -19,6 +21,8 @@ struct PixelOutputType
     float4 normal : SV_Target1;
     float4 albeldo : SV_Target2;
     float4 specular : SV_Target3;
+    float4 vPos : SV_Target4;
+    float4 vNormal : SV_Target5;
 };
 
 struct Material
@@ -54,6 +58,7 @@ PixelOutputType main(PixelInputType input)
     }
     
     output.position = input.wPosition;
+    output.vPos = input.vPosition;
     
     float3 normal = normalize(input.normal);
     [branch]
@@ -68,7 +73,7 @@ PixelOutputType main(PixelInputType input)
         normal = normalize(normal);
     }
     output.normal = float4(normal, 1.0f);
-   
+    output.vNormal = float4(normalize(input.vNormal), 1.0f);
     
     output.albeldo = diffuseMap.Sample(SampleType, input.tex);
     clip(output.albeldo.a - 0.1f);

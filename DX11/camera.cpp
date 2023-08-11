@@ -14,17 +14,17 @@ namespace wilson {
 
 		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
-		m_pCamBuffer = nullptr;
+		m_pCamPosBuffer = nullptr;
 		m_ENTTsInFrustum = 0;
 
 	}
 
 	Camera::~Camera()
 	{
-		if (m_pCamBuffer != nullptr)
+		if (m_pCamPosBuffer != nullptr)
 		{
-			m_pCamBuffer->Release();
-			m_pCamBuffer = nullptr;
+			m_pCamPosBuffer->Release();
+			m_pCamPosBuffer = nullptr;
 		}
 	}
 
@@ -74,7 +74,7 @@ namespace wilson {
 		camCBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		camCBD.MiscFlags = 0;
 		camCBD.StructureByteStride = 0;
-		pDevice->CreateBuffer(&camCBD, nullptr, &m_pCamBuffer);
+		pDevice->CreateBuffer(&camCBD, nullptr, &m_pCamPosBuffer);
 	}
 
 	void Camera::Update()
@@ -88,17 +88,18 @@ namespace wilson {
 		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
 	}
 
-	void Camera::SetCamBuffer(ID3D11DeviceContext* pContext)
+	void Camera::SetCamPos(ID3D11DeviceContext* pContext)
 	{
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		CamBuffer* pCamBuffer;
 
-		pContext->Map(m_pCamBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		pContext->Map(m_pCamPosBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		pCamBuffer = reinterpret_cast<CamBuffer*>(mappedResource.pData);
 		pCamBuffer->m_camPos = m_pos;
-		pContext->Unmap(m_pCamBuffer, 0);
-		pContext->PSSetConstantBuffers(3, 1, &m_pCamBuffer);
+		pContext->Unmap(m_pCamPosBuffer, 0);
+		pContext->PSSetConstantBuffers(3, 1, &m_pCamPosBuffer);
 
 		return;
 	}
+
 }

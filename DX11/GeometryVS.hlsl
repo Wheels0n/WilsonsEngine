@@ -11,9 +11,11 @@ struct PixelInputType
     float4 position : SV_POSITION;
     float2 tex : TEXTURE;
     float3 normal : NORMAL;
+    float3 vNormal : NORMAL1;
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
     float4 wPosition : POSITION0;
+    float4 vPosition : POSITIONT1;
 };
 
 cbuffer MatrixBuffer
@@ -40,11 +42,14 @@ PixelInputType main(VertexInputType input)
     output.wPosition = output.position;
    
     output.position = mul(output.position, viewMatrix);
+    output.vPosition = output.position;
     output.position = mul(output.position, projectionMatrix);
     
     output.tex = input.tex;
     
     output.normal = mul(input.normal, (float3x3)worldMatrix);
+    output.vNormal = mul(output.normal, (float3x3) viewMatrix);
+    output.vNormal = normalize(output.vNormal);
     output.normal = normalize(output.normal);
     
     output.tangent = float3(0.0f, 0.0f, 0.0f);

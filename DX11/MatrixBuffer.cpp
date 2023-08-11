@@ -6,6 +6,7 @@ MatBuffer::MatBuffer(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,
  	m_pContext = pContext;
 	m_pDevice = pDevice;
 	m_pMatBuffer = nullptr;
+	m_pProjMatBuffer = nullptr;
 
 	m_viewMat =  *pViewMat;
 	m_projMat = *pProjMat;
@@ -33,6 +34,12 @@ bool MatBuffer::Init()
 		return false;
 	}
 
+	matCBD.ByteWidth = sizeof(XMMATRIX);
+	hr = m_pDevice->CreateBuffer(&matCBD, 0, &m_pProjMatBuffer);
+	if (FAILED(hr))
+	{
+		return false;
+	}
 	return true;
 }
 
@@ -44,6 +51,11 @@ void MatBuffer::ShutDown()
 		m_pMatBuffer = nullptr;
 	}
 
+	if (m_pProjMatBuffer != nullptr)
+	{
+		m_pProjMatBuffer->Release();
+		m_pProjMatBuffer = nullptr;
+	}
 }
 
 void MatBuffer::Update()
@@ -67,5 +79,23 @@ void MatBuffer::Update()
 	m_pContext->Unmap(m_pMatBuffer, 0);
 
  	m_pContext->VSSetConstantBuffers(0, 1, &m_pMatBuffer);
+	return;
+}
+
+void MatBuffer::UploadProjMat()
+{
+	HRESULT hr;
+	D3D11_MAPPED_SUBRESOURCE mappedResource;
+	XMMATRIX* pMatrix;
+	hr = m_pContext->Map(m_pProjMatBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	if (FAILED(hr))
+	{
+		return;
+	}
+	pMatrix = reinterpret_cast<XMMATRIX*>(mappedResource.pData);
+	*pMatrix= XMMatrixTranspose(m_projMat);
+
+	m_pContext->Unmap(m_pProjMatBuffer, 0);
+	m_pContext->PSSetConstantBuffers(1, 1, &m_pProjMatBuffer);
 	return;
 }

@@ -1,3 +1,4 @@
+#include <random>
 #include "D3D11.h"
 #include  "../ImGui/imgui_impl_dx11.h"
 
@@ -18,6 +19,7 @@ namespace wilson
 		m_pQuadIB = nullptr;
 		m_pBoolBuffer = nullptr;
 		m_pColorBuffer = nullptr;
+		m_pSSAOKernelBuffer = nullptr;
 
 		m_pScreenRTTV = nullptr;
 		m_pDSBuffer = nullptr;
@@ -25,6 +27,12 @@ namespace wilson
 		m_pOutlinerSetupDSS = nullptr;
 		m_pOutlinerTestDSS = nullptr;
 		m_pDrawReflectionDSS = nullptr;
+		m_pSSAORTT = nullptr;
+		m_pSSAORTTV = nullptr;
+		m_pSSAOSRV = nullptr;
+		m_pSSAOBlurRTT = nullptr;
+		m_pSSAOBlurRTTV = nullptr;
+		m_pSSAOBlurSRV = nullptr;
 		m_pViewportRTT = nullptr;
 		m_pViewportRTTV = nullptr;
 		m_pViewportSRV = nullptr;
@@ -43,18 +51,21 @@ namespace wilson
 			m_pPingPongRTTV[i] = nullptr;
 			m_pPingPongSRV[i] =  nullptr;
 		}
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
 			m_pGbufferRTT[i] = nullptr;
 			m_pGbufferRTTV[i] = nullptr;
 			m_pGbufferSRV[i] = nullptr;
 		}
+		m_pNoiseRTT = nullptr;
+		m_pNoiseSRV = nullptr;
 
 		m_pQuadRS = nullptr;
 		m_pGeoRS = nullptr;
 		m_pRasterStateCC = nullptr;
 
 		m_pSampleState = nullptr;
+		m_pSSAOPosSS = nullptr;
 
 		m_pGBufferWriteBS = nullptr;
 		m_pLightingPassBS = nullptr;
@@ -70,6 +81,7 @@ namespace wilson
 
 		m_selectedModelGroup = -1;
 		m_selectedModel = -1;
+		m_rotationVecs.reserve(16);
 	}
 
 	bool D3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
@@ -377,26 +389,6 @@ namespace wilson
 
 		}
 
-		{
-		  D3D11_BUFFER_DESC bds = {0,};
-		  bds.ByteWidth = sizeof(BOOL)*4;
-		  bds.Usage = D3D11_USAGE_DYNAMIC;
-		  bds.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		  bds.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		  hr = m_pDevice->CreateBuffer(&bds, 0, &m_pBoolBuffer);
-		  if (FAILED(hr))
-		  {
-			  return false;
-		  }
-
-		  bds.ByteWidth = sizeof(XMVECTOR);
-		  hr = m_pDevice->CreateBuffer(&bds, 0, &m_pColorBuffer);
-		  if (FAILED(hr))
-		  {
-			  return false;
-		  }
-        }
-
 		if (!CreateRTT(m_clientWidth, m_clientHeight))
 		{
 			return false;
@@ -448,29 +440,6 @@ namespace wilson
 		m_viewport.TopLeftX = 0.0f;
 		m_viewport.TopLeftY = 0.0f;
 
-		//Set projectionMatrix, viewMatrix;
-		m_pTerrain = new Terrain;
-		m_pTerrain->Init(m_pDevice, 100, 100);
-		m_pCam = new Camera(screenWidth, screenHeight, fScreenFar, fScreenNear);
-		m_pCam->Init(m_pDevice);
-		m_pCam->SetCamBuffer(m_pContext);
-		XMMATRIX* m_projMat = m_pCam->GetProjectionMatrix();
-		XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
-		m_pFrustum = new Frustum();
-		m_pFrustum->Construct(100.0f, m_pCam);
-		m_pMatBuffer = new MatBuffer(m_pDevice, m_pContext,  m_viewMat, m_projMat);
-		m_pMatBuffer->Init();
-
-		m_pLightBuffer = new LightBuffer(m_pDevice);
-
-		m_pShader = new Shader(m_pDevice, m_pContext);
-		m_pShader->Init();
-
-		m_pShadowMap = new ShadowMap();
-		m_pShadowMap->Init(m_pDevice, SHADOWMAP_SIZE, SHADOWMAP_SIZE, 
-			m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
-
-
 		D3D11_SAMPLER_DESC samplerDesc = {};
 		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -482,7 +451,16 @@ namespace wilson
 		{
 			return false;
 		}
-		m_pContext->PSSetSamplers(0, 1, &m_pSampleState);
+
+		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		hr = m_pDevice->CreateSamplerState(&samplerDesc, &m_pSSAOPosSS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
 
 		rtBlendDSC.BlendEnable = TRUE;
 		rtBlendDSC.SrcBlend = D3D11_BLEND_ONE;
@@ -507,7 +485,127 @@ namespace wilson
 		{
 			return false;
 		}
-	
+		
+		//Set projectionMatrix, viewMatrix;
+		m_pTerrain = new Terrain;
+		m_pTerrain->Init(m_pDevice, 100, 100);
+		m_pCam = new Camera(screenWidth, screenHeight, fScreenFar, fScreenNear);
+		m_pCam->Init(m_pDevice);
+		m_pCam->SetCamPos(m_pContext);
+		XMMATRIX* m_projMat = m_pCam->GetProjectionMatrix();
+		XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
+		m_pFrustum = new Frustum();
+		m_pFrustum->Construct(100.0f, m_pCam);
+		m_pMatBuffer = new MatBuffer(m_pDevice, m_pContext, m_viewMat, m_projMat);
+		m_pMatBuffer->Init();
+
+		m_pLightBuffer = new LightBuffer(m_pDevice);
+
+		m_pShader = new Shader(m_pDevice, m_pContext);
+		m_pShader->Init();
+
+		m_pShadowMap = new ShadowMap();
+		m_pShadowMap->Init(m_pDevice, SHADOWMAP_SIZE, SHADOWMAP_SIZE,
+			m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
+		{
+			D3D11_BUFFER_DESC bds = { 0, };
+			bds.ByteWidth = sizeof(BOOL) * 4;
+			bds.Usage = D3D11_USAGE_DYNAMIC;
+			bds.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			bds.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pBoolBuffer);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+			bds.ByteWidth = sizeof(XMVECTOR);
+			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pColorBuffer);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+			
+			bds.ByteWidth = sizeof(SamplePoints);
+			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pSSAOKernelBuffer);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+		}
+		{	
+
+			//Gen Sample points
+			D3D11_MAPPED_SUBRESOURCE mappedResource;
+			SamplePoints* pSamplePoints;
+			hr = m_pContext->Map(m_pSSAOKernelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+			pSamplePoints = (SamplePoints*)mappedResource.pData;
+
+			std::uniform_real_distribution<float> randomFloats(0.0, 1.0f);
+			std::default_random_engine gen;
+			for (int i = 0; i < 64; ++i)
+			{	
+				XMFLOAT3 sample(
+					randomFloats(gen) * 2.0f - 1.0f,
+					randomFloats(gen) * 2.0f - 1.0f,
+					randomFloats(gen));
+				XMVECTOR sampleV = XMLoadFloat3(&sample);
+				sampleV = DirectX::XMVector3Normalize(sampleV);
+				sampleV = XMVectorScale(sampleV, randomFloats(gen));
+				float scale = i / 64.0f;
+				scale = 0.1f + (1.0f - 0.1f) * scale * scale;
+				sampleV = XMVectorScale(sampleV, scale);
+
+				pSamplePoints->coord[i] = sampleV;
+			}
+			m_pContext->Unmap(m_pSSAOKernelBuffer, 0);
+
+
+			//Gen noise texture
+			for (int i = 0; i < 16; ++i)
+			{
+				XMFLOAT3 rot(
+					randomFloats(gen) * 2.0f - 1.0f,
+					randomFloats(gen) * 2.0f - 1.0f,
+					0.0f);
+				m_rotationVecs.push_back(rot);
+			}
+			D3D11_TEXTURE2D_DESC texDesc = {};
+			texDesc.Width = 4;
+			texDesc.Height = 4;
+			texDesc.Usage = D3D11_USAGE_DEFAULT;
+			texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			texDesc.ArraySize = 1;
+			texDesc.MipLevels = 1;
+			texDesc.SampleDesc.Count = 1;
+			D3D11_SUBRESOURCE_DATA data = { 0, };
+			data.pSysMem = &m_rotationVecs[0];
+			data.SysMemPitch = texDesc.Width * sizeof(XMFLOAT3);
+
+			hr = m_pDevice->CreateTexture2D(&texDesc, &data, &m_pNoiseRTT);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Format = texDesc.Format;
+			srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
+			srvDesc.Texture2D.MostDetailedMip = 0;
+			hr = m_pDevice->CreateShaderResourceView(m_pNoiseRTT, &srvDesc, &m_pNoiseSRV);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+		}
+
 		ImGui_ImplDX11_Init(m_pDevice, m_pContext);
 		return true;
 	}
@@ -594,6 +692,18 @@ namespace wilson
 			m_pScreenRTTV = nullptr;
 		}
 
+		if (m_pNoiseRTT != nullptr)
+		{
+			m_pNoiseRTT->Release();
+			m_pNoiseRTT = nullptr;
+		}
+
+		if (m_pNoiseSRV != nullptr)
+		{
+			m_pNoiseSRV->Release();
+			m_pNoiseSRV = nullptr;
+		}
+
 		if (m_pContext != nullptr)
 		{
 			m_pContext->Release();
@@ -618,6 +728,12 @@ namespace wilson
 			m_pSampleState = nullptr;
 		}
 
+		if (m_pSSAOPosSS != nullptr)
+		{
+			m_pSSAOPosSS->Release();
+			m_pSSAOPosSS = nullptr;
+		}
+
 		if (m_pImporter != nullptr)
 		{
 			delete m_pImporter;
@@ -634,6 +750,12 @@ namespace wilson
 		{
 			m_pColorBuffer->Release();
 			m_pColorBuffer = nullptr;
+		}
+
+		if (m_pSSAOKernelBuffer != nullptr)
+		{
+			m_pSSAOKernelBuffer->Release();
+			m_pSSAOKernelBuffer = nullptr;
 		}
 
 		if (m_pLightBuffer != nullptr)
@@ -718,10 +840,12 @@ namespace wilson
 		m_pContext->ClearRenderTargetView(m_pScreenRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pViewportRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pSceneRTTV, color);
+		m_pContext->ClearRenderTargetView(m_pSSAOBlurRTTV, color);
+		m_pContext->ClearRenderTargetView(m_pSSAORTTV, color);
 		m_pContext->ClearRenderTargetView(m_pBrightRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pPingPongRTTV[0], color);
 		m_pContext->ClearRenderTargetView(m_pPingPongRTTV[1], color);
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
 			m_pContext->ClearRenderTargetView(m_pGbufferRTTV[i], color);
 		}
@@ -729,7 +853,7 @@ namespace wilson
 		m_pContext->ClearDepthStencilView(m_pScreenDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		m_pContext->ClearDepthStencilView(m_pSceneDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	
+		m_pContext->PSSetSamplers(0, 1, &m_pSampleState);
 		//Update Cam 
 		m_pCam->Update();
 		//Update Light
@@ -794,24 +918,45 @@ namespace wilson
 			m_pContext->OMSetDepthStencilState(0, 0);
 			m_pContext->RSSetState(m_pGeoRS);
 			m_pContext->OMSetBlendState(m_pGBufferWriteBS, color, 0xffffffff);
-			m_pContext->OMSetRenderTargets(4, m_pGbufferRTTV, m_pSceneDSV);
+			m_pContext->OMSetRenderTargets(_GBUF_CNT, m_pGbufferRTTV, m_pSceneDSV);
 			DrawENTT(!bGeoPass);
 
-			//Deferred Shading Second Pass and Get Bright Texture
+			//Calculate Occlusion Factor 
 			stride = sizeof(QUAD);
+			m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
+			m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
+			m_pContext->RSSetState(m_pQuadRS);
+
+			m_pShader->SetTexInputlayout();
+			m_pShader->SetSSAOShader();
+
+			m_pContext->PSSetConstantBuffers(0, 1, &m_pSSAOKernelBuffer);
+			m_pMatBuffer->UploadProjMat();
+			m_pContext->OMSetRenderTargets(1, &m_pSSAORTTV, nullptr);
+			m_pContext->PSSetShaderResources(0, 2, &m_pGbufferSRV[4]);
+			m_pContext->PSSetShaderResources(2, 1, &m_pNoiseSRV);
+			m_pContext->PSSetSamplers(0, 1, &m_pSampleState);
+			m_pContext->PSSetSamplers(1, 1, &m_pSSAOPosSS);
+			m_pContext->DrawIndexed(6, 0, 0);
+			//Blur SSAOTex
+			m_pShader->SetSSAOBlurShader();
+			m_pContext->OMSetRenderTargets(1, &m_pSSAOBlurRTTV, nullptr);
+			m_pContext->PSSetShaderResources(0, 1, &m_pSSAOSRV);
+			m_pContext->DrawIndexed(6, 0, 0);
+			//Deferred Shading Second Pass and Get Bright Texture
+			
 			m_pLightBuffer->UpdateDirLightMatrices(m_pContext);
 			m_pLightBuffer->UpdateSpotLightMatrices(m_pContext);
 			m_pLightBuffer->UpdateLightBuffer(m_pContext);
 			m_pShader->SetTexInputlayout();
 			m_pShader->SetDeferredLightingShader();
-			m_pCam->SetCamBuffer(m_pContext);
-			m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
-			m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
-			m_pContext->RSSetState(m_pQuadRS);
+			m_pCam->SetCamPos(m_pContext);
+			
 			m_pContext->OMSetRenderTargets(2, bloomRTV, nullptr);
 			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
-			m_pContext->PSSetShaderResources(0, 4, m_pGbufferSRV);
-			m_pContext->PSSetShaderResources(4, spotLights.size(), m_pShadowMap->GetSpotSRV());
+			m_pContext->PSSetShaderResources(0, _GBUF_CNT-2, m_pGbufferSRV);
+			m_pContext->PSSetShaderResources(4, 1, &m_pSSAOBlurSRV);
+			m_pContext->PSSetShaderResources(5, spotLights.size(), m_pShadowMap->GetSpotSRV());
 			//m_pContext->PSSetShaderResources(4,  dirLights.size(), m_pShadowMap->GetDirSRV());
 			//m_pContext->PSSetShaderResources(4 + dirLights.capacity(), pointLights.size(), m_pShadowMap->GetCubeSRV());
 			//m_pContext->PSSetShaderResources(4 + dirLights.capacity() + pointLights.capacity(), spotLights.size(), m_pShadowMap->GetSpotSRV());
@@ -1039,7 +1184,7 @@ namespace wilson
 				return false;
 			}
 		}
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
 			hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pGbufferRTT[i]);
 			if (FAILED(hr))
@@ -1047,6 +1192,7 @@ namespace wilson
 				return false;
 			}
 		}
+
 
 		RTTVDesc.Format = RTTDesc.Format;
 		RTTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
@@ -1075,7 +1221,7 @@ namespace wilson
 				return false;
 			}
 		}
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
 			hr = m_pDevice->CreateRenderTargetView(m_pGbufferRTT[i], &RTTVDesc, &m_pGbufferRTTV[i]);
 			if (FAILED(hr))
@@ -1113,7 +1259,7 @@ namespace wilson
 				return false;
 			}
 		}
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
 			hr = m_pDevice->CreateShaderResourceView(m_pGbufferRTT[i], &SRVDesc, &m_pGbufferSRV[i]);
 			if (FAILED(hr))
@@ -1122,6 +1268,39 @@ namespace wilson
 			}
 		}
 
+		RTTDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSSAORTT);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSSAOBlurRTT);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		RTTVDesc.Format = RTTDesc.Format;
+		hr = m_pDevice->CreateRenderTargetView(m_pSSAORTT, &RTTVDesc, &m_pSSAORTTV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateRenderTargetView(m_pSSAOBlurRTT, &RTTVDesc, &m_pSSAOBlurRTTV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		SRVDesc.Format = RTTVDesc.Format;
+		hr = m_pDevice->CreateShaderResourceView(m_pSSAORTT, &SRVDesc, &m_pSSAOSRV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		hr = m_pDevice->CreateShaderResourceView(m_pSSAOBlurRTT, &SRVDesc, &m_pSSAOBlurSRV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
 		return true;
 	}
 	bool D3D11::CreateDepthBuffer(int width, int height,
@@ -1340,6 +1519,42 @@ namespace wilson
 			m_pSceneSRV = nullptr;
 		}
 
+		if (m_pSSAORTT != nullptr)
+		{
+			m_pSSAORTT->Release();
+			m_pSSAORTT = nullptr;
+		}
+
+		if (m_pSSAORTTV != nullptr)
+		{
+			m_pSSAORTTV->Release();
+			m_pSSAORTTV = nullptr;
+		}
+
+		if (m_pSSAOSRV != nullptr)
+		{
+			m_pSSAOSRV->Release();
+			m_pSSAOSRV = nullptr;
+		}
+		
+		if (m_pSSAOBlurRTT != nullptr)
+		{
+			m_pSSAOBlurRTT->Release();
+			m_pSSAOBlurRTT = nullptr;
+		}
+
+		if (m_pSSAOBlurRTTV != nullptr)
+		{
+			m_pSSAOBlurRTTV->Release();
+			m_pSSAOBlurRTTV = nullptr;
+		}
+
+		if (m_pSSAOBlurSRV != nullptr)
+		{
+			m_pSSAOBlurSRV->Release();
+			m_pSSAOBlurSRV = nullptr;
+		}
+
 		if (m_pBrightRTT != nullptr)
 		{
 			m_pBrightRTT->Release();
@@ -1398,7 +1613,7 @@ namespace wilson
 				m_pPingPongSRV[i] = nullptr;
 			}
 		}
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
 			if (m_pGbufferRTT[i] != nullptr)
 			{

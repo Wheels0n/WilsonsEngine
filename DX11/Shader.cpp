@@ -23,6 +23,8 @@ namespace wilson
 
 		m_pGeometryVS = nullptr;
 		m_pGeometryPS = nullptr;
+		m_pSSAOPS = nullptr;
+		m_pSSAOBlurPS = nullptr;
 		m_pDeferredPS = nullptr;
 
 		m_pLightCubeVS = nullptr;
@@ -104,6 +106,17 @@ namespace wilson
 			m_pGeometryPS->Release();
 			m_pGeometryPS = nullptr;
 		}
+		if (m_pSSAOPS != nullptr)
+		{
+			m_pSSAOPS->Release();
+			m_pSSAOPS = nullptr;
+		}
+		if (m_pSSAOBlurPS != nullptr)
+		{
+			m_pSSAOBlurPS->Release();
+			m_pSSAOBlurPS = nullptr;
+		}
+
 		if (m_pDeferredPS != nullptr)
 		{
 			m_pDeferredPS->Release();
@@ -316,7 +329,22 @@ namespace wilson
 			return false;
 		}
 		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pGeometryPS);
-	
+		
+		hr=D3DX11CompileFromFile(L"SSAOPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSSAOPS);
+
+		hr = D3DX11CompileFromFile(L"SSAOBlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSSAOBlurPS);
 
 		hr = D3DX11CompileFromFile(L"DeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0",  D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))

@@ -21,7 +21,8 @@ public:
 	bool Init();
 	void ShutDown();
 	void Update();
-	
+	void UploadProjMat();
+
 	inline void SetProjMatrix(XMMATRIX* projMat)
 	{
 		m_projMat = *projMat;
@@ -53,7 +54,7 @@ private:
 	XMMATRIX m_projMat;
 	XMMATRIX m_viewMat;
 	XMMATRIX m_lightSpaceMat;
-	ID3D11Buffer* m_pMatBuffer;
+	ID3D11Buffer* m_pMatBuffer, *m_pProjMatBuffer;
 };
 
 #endif

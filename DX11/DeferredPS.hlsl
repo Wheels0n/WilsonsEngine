@@ -49,6 +49,7 @@ Texture2D posTex;
 Texture2D normalTex;
 Texture2D abeldoTex;
 Texture2D specualrTex;
+Texture2D SSAOTex;
 //Texture2D dirShadowMaps[1];
 //TextureCube omniDirShadowMaps[1];
 Texture2D spotShadowMaps[1];
@@ -243,6 +244,7 @@ PixelOutput main(PixelInput input)
     float4 albedo = abeldoTex.Sample(SampleType, input.tex);
     float4 spec = specualrTex.Sample(SampleType, input.tex);
     float3 viewDir = normalize(g_camPos.xyz - wPos.xyz);
+    float occlusion = SSAOTex.Sample(SampleType, input.tex);
     
     bool isCubeMap = length(normal) ? false : true;
     [branch]
@@ -276,7 +278,7 @@ PixelOutput main(PixelInput input)
         float3 lightDir = normalize(cbDirLight[i].position.xyz - wPos.xyz);
         CalDirectionalLight(cbDirLight[i], normal, viewDir, lightDir, spec, A, D, S);
         //shadowFactor = CalShadowFactor(g_shadowSampler, dirShadowMaps[i], dirShadowPos[i], normal, lightDir);
-        lightVal += (A + shadowFactor * (D + S))*albedo;
+        lightVal += (occlusion * A + shadowFactor * (D + S)) * albedo;
         
     }
     [unroll]
@@ -285,7 +287,7 @@ PixelOutput main(PixelInput input)
         float3 lightDir = cbPointLight[j].position - wPos.xyz;
         CalPointLight(cbPointLight[j], lightDir, normal, viewDir, spec, A, D, S);
         //shadowFactor = CalOmniDirShadowFactor(g_cubeShadowSampler, omniDirShadowMaps[j], -lightDir);
-        lightVal += (A + shadowFactor * (D + S)) * albedo;
+        lightVal += (occlusion * A + shadowFactor * (D + S)) * albedo;
     }
     [unroll]
     for (int k = 0; k < sptCnt; ++k)
@@ -294,7 +296,7 @@ PixelOutput main(PixelInput input)
         CalSpotLight(cbSpotLight[k], lightDir, normal, viewDir, spec, A, D, S);
         lightDir = normalize(lightDir);
         shadowFactor = CalShadowFactor(g_shadowSampler, spotShadowMaps[k], spotShadowPos[k], normal, lightDir);
-        lightVal += (A + shadowFactor * (D + S)) * albedo;
+        lightVal += (occlusion * A + shadowFactor * (D + S)) * albedo;
     }
 
     output.mainColor = lightVal;

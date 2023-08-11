@@ -32,8 +32,13 @@ namespace wilson
 		XMFLOAT3 pos;
 		XMFLOAT2 tex;
 	};
+	struct SamplePoints
+	{
+		XMVECTOR coord[64];
+	};
 	constexpr UINT SHADOWMAP_SIZE = 1024;
 	constexpr float CUBE_SIZE = 0.25;
+	constexpr UINT _GBUF_CNT = 6;
 	class D3D11
 	{
 	private:
@@ -111,23 +116,25 @@ namespace wilson
 
 		ID3D11Buffer* m_pCubeVertices, *m_pQuadVB;
 		ID3D11Buffer* m_pCubeIndices, *m_pQuadIB;
-		ID3D11Buffer* m_pBoolBuffer, *m_pColorBuffer;
+		ID3D11Buffer* m_pBoolBuffer, *m_pColorBuffer, *m_pSSAOKernelBuffer;
 
-		ID3D11RenderTargetView* m_pScreenRTTV, * m_pSceneRTTV, * m_pBrightRTTV, *m_pViewportRTTV;
+		ID3D11RenderTargetView* m_pScreenRTTV, * m_pSceneRTTV, *m_pSSAORTTV, * m_pSSAOBlurRTTV, * m_pBrightRTTV, *m_pViewportRTTV;
 		ID3D11RenderTargetView* m_pPingPongRTTV[2];
-		ID3D11RenderTargetView* m_pGbufferRTTV[4];//0:pos, 1:normal, 2:albedo, 3:specular
-		ID3D11Texture2D* m_pDSBuffer, * m_pDSBufferForRTT, * m_pSceneRTT, *m_pBrightRTT, *m_pViewportRTT;
+		ID3D11RenderTargetView* m_pGbufferRTTV[_GBUF_CNT];//0:pos, 1:normal, 2:albedo, 3:specular, 4:vPos, 5:vNormal
+		ID3D11Texture2D* m_pDSBuffer, * m_pDSBufferForRTT, * m_pSceneRTT, *m_pSSAORTT, * m_pSSAOBlurRTT, *m_pBrightRTT, *m_pViewportRTT;
 		ID3D11Texture2D* m_pPingPongRTT[2];
-		ID3D11Texture2D* m_pGbufferRTT[4];
-		ID3D11ShaderResourceView* m_pSceneSRV, * m_pBrightSRV, *m_pSkyBoxSRV, *m_pViewportSRV;
+		ID3D11Texture2D* m_pGbufferRTT[_GBUF_CNT];
+		ID3D11Texture2D* m_pNoiseRTT;
+		ID3D11ShaderResourceView* m_pNoiseSRV;
+		ID3D11ShaderResourceView* m_pSceneSRV, *m_pSSAOSRV, *m_pSSAOBlurSRV, * m_pBrightSRV, *m_pSkyBoxSRV, *m_pViewportSRV;
 		ID3D11ShaderResourceView* m_pPingPongSRV[2];
-		ID3D11ShaderResourceView* m_pGbufferSRV[4];
+		ID3D11ShaderResourceView* m_pGbufferSRV[_GBUF_CNT];
 
 		ID3D11DepthStencilState* m_pOutlinerSetupDSS, * m_pOutlinerTestDSS, * m_pDrawReflectionDSS, *m_pSkyBoxDSS;
 		ID3D11DepthStencilView* m_pScreenDSV, * m_pSceneDSV;
 
 		ID3D11RasterizerState* m_pGeoRS, * m_pRasterStateCC, *m_pSkyBoxRS, *m_pQuadRS;
-		ID3D11SamplerState* m_pSampleState;
+		ID3D11SamplerState* m_pSampleState, *m_pSSAOPosSS;
 		ID3D11BlendState* m_pGBufferWriteBS, * m_pLightingPassBS;
 
 		D3D11_VIEWPORT m_viewport;
@@ -147,6 +154,8 @@ namespace wilson
 		int m_clientHeight;
 		int m_selectedModelGroup;
 		int m_selectedModel;
+		std::vector<XMFLOAT3> m_rotationVecs;
+		
 	};
 }
 #endif // !_D3D11_H_

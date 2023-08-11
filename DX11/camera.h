@@ -18,7 +18,7 @@ namespace wilson {
 
 		void Init(ID3D11Device* device);
 		void Update();
-		void SetCamBuffer(ID3D11DeviceContext* context);
+		void SetCamPos(ID3D11DeviceContext* context);
 		void ResetTranslation();
 		inline void ResetRotation()
 		{
@@ -83,7 +83,7 @@ namespace wilson {
 		DirectX::XMMATRIX m_viewMat;
 		DirectX::XMMATRIX m_projMat;// think of the frustum as the lens of our camera, for it controls our view
 
-		ID3D11Buffer* m_pCamBuffer;
+		ID3D11Buffer* m_pCamPosBuffer;
 
 		int m_ENTTsInFrustum;
 
