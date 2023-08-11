@@ -21,7 +21,7 @@ DX11을 이용한 렌더링 엔진
 - [ ] 프러스텀 컬링(대형 OBJ들로 인해 리팩토링 필요)
 - [ ] 큐브맵을 이용한 반사
 - [X] Deferred Shading
-- [ ] SSAO
+- [X] SSAO
 - [ ] PBR 
 ## References
  + [LearnOpenGL](https://learnopengl.com/)
