@@ -7,7 +7,7 @@ namespace wilson {
 
 		m_viewport.Init(m_pD3D11, m_scene.GetScene());
 		m_contentBrowser.Init(m_pD3D11->GetDevice());
-		m_settings.Init(m_pD3D11->GetDevice(),m_pD3D11->GetCam());
+		m_settings.Init(m_pD3D11);
 		m_scene.Init(pCD3D11);
 
 		std::string str = "Scene";

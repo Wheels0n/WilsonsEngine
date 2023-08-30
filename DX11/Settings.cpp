@@ -4,11 +4,13 @@ namespace wilson
 {	
 	const static float ICON_SZ = 16.0f;
 	const static float SPACING = 32.0f;
-	void Settings::Init(ID3D11Device* pDevice, Camera* pCam)
+	void Settings::Init(D3D11* pD3D11)
 	{
 		m_FPS.Init();
-		m_pCam = pCam;
+		m_pCam = pD3D11->GetCam();
+		m_pExposure = pD3D11->GetExposure();
 
+		ID3D11Device* pDevice= pD3D11->GetDevice();
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/sun-color-icon.png", nullptr, nullptr, &m_icons[0], nullptr);
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/light-bulb-color-icon.png", nullptr, nullptr, &m_icons[1], nullptr);
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/flashlight-icon.png", nullptr, nullptr, &m_icons[2], nullptr);
@@ -107,6 +109,11 @@ namespace wilson
 		}
 		ImGui::End();
 		
+		if (ImGui::Begin("Exposure"))
+		{
+			ImGui::DragFloat("Exposure", m_pExposure, 0.01f, 0.1f, 5.0f);
+		}
+		ImGui::End();
 	}
 	Settings::~Settings()
 	{

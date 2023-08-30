@@ -20,6 +20,7 @@ namespace wilson
 		m_pBoolBuffer = nullptr;
 		m_pColorBuffer = nullptr;
 		m_pSSAOKernelBuffer = nullptr;
+		m_pExposureBuffer = nullptr;
 
 		m_pScreenRTTV = nullptr;
 		m_pDSBuffer = nullptr;
@@ -532,6 +533,13 @@ namespace wilson
 			{
 				return false;
 			}
+
+			bds.ByteWidth = sizeof(XMFLOAT4);
+			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pExposureBuffer);
+			if (FAILED(hr))
+			{
+				return false;
+			}
 		}
 		{	
 
@@ -756,6 +764,12 @@ namespace wilson
 		{
 			m_pSSAOKernelBuffer->Release();
 			m_pSSAOKernelBuffer = nullptr;
+		}
+
+		if (m_pExposureBuffer != nullptr)
+		{
+			m_pExposureBuffer->Release();
+			m_pExposureBuffer = nullptr;
 		}
 
 		if (m_pLightBuffer != nullptr)
@@ -1039,6 +1053,16 @@ namespace wilson
 		m_pContext->RSSetState(m_pQuadRS);
 		m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
 		finalSRV[0] = m_pModelGroups.empty() ? m_pGbufferSRV[2]: finalSRV[0];
+		{	
+			D3D11_MAPPED_SUBRESOURCE mappedResource;
+			XMFLOAT3* pExposure;
+			m_pContext->Map(m_pExposureBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			pExposure = (XMFLOAT3*)mappedResource.pData;
+			pExposure->x = m_exposure;
+			m_pContext->Unmap(m_pExposureBuffer, 0);
+			m_pContext->PSSetConstantBuffers(0, 1, &m_pExposureBuffer);
+		}
+		
 		m_pContext->PSSetShaderResources(0, 2, finalSRV);
 		m_pContext->OMSetRenderTargets(1, &m_pViewportRTTV, nullptr);
 		m_pContext->OMSetDepthStencilState(0, 0);

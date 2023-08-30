@@ -1,6 +1,6 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
-
+#include"D3D11.h"
 #include"FPS.h"
 #include"Camera.h"
 #include"Light.h"
@@ -10,7 +10,7 @@ namespace wilson
 	class Settings
 	{
 	public:
-		void Init(ID3D11Device*, Camera*);
+		void Init(D3D11* pD3D11);
 		void Draw();
 
 		Settings() = default;
@@ -22,6 +22,7 @@ namespace wilson
 		FPS m_FPS;
 		Light* m_pLight;
 		Camera* m_pCam;
+		float* m_pExposure;
 	};
 }
 #endif // !SETTINGS_H

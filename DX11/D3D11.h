@@ -78,6 +78,10 @@ namespace wilson
 		{
 			return m_pDevice;
 		};
+		inline float* GetExposure()
+		{
+			return &m_exposure;
+		}
 		inline int GetClientWidth() const
 		{
 			return m_clientWidth;
@@ -116,7 +120,7 @@ namespace wilson
 
 		ID3D11Buffer* m_pCubeVertices, *m_pQuadVB;
 		ID3D11Buffer* m_pCubeIndices, *m_pQuadIB;
-		ID3D11Buffer* m_pBoolBuffer, *m_pColorBuffer, *m_pSSAOKernelBuffer;
+		ID3D11Buffer* m_pBoolBuffer, *m_pColorBuffer, *m_pSSAOKernelBuffer, *m_pExposureBuffer;
 
 		ID3D11RenderTargetView* m_pScreenRTTV, * m_pSceneRTTV, *m_pSSAORTTV, * m_pSSAOBlurRTTV, * m_pBrightRTTV, *m_pViewportRTTV;
 		ID3D11RenderTargetView* m_pPingPongRTTV[2];
@@ -150,6 +154,7 @@ namespace wilson
 		ShadowMap* m_pShadowMap;
 
 		XMMATRIX m_idMat = XMMatrixIdentity();
+		float m_exposure;
 		int m_clientWidth;
 		int m_clientHeight;
 		int m_selectedModelGroup;
