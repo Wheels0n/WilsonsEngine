@@ -1432,44 +1432,7 @@ namespace wilson
 			std::vector<Model*> pModels = m_pModelGroups[i]->GetModels();
 			//if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
 			{
-				if (m_pModelGroups[i]->GetType() == EFileType::FBX)
-				{
-					for (int j = 0; j < pModels.size(); ++j)
-					{
-						worldMat = pModels[j]->GetTransformMatrix(false);
-						//XMFLOAT4X4 pos4;
-						//XMStoreFloat4x4(&pos4, worldMat);
-						m_pMatBuffer->SetWorldMatrix(&worldMat);
-						m_pMatBuffer->Update();
-						std::vector<unsigned int> indicesCount = pModels[j]->GetNumIndice();
-						if (pModels[j]->isInstanced())
-						{
-							std::vector<unsigned int> verticesCount = pModels[j]->GetNumVertexData();
-							m_pShader->SetInputLayout();
-							int numInstance = pModels[j]->GetNumInstance();
-							for (int k = 0; k < verticesCount.size(); ++k)
-							{
-								pModels[j]->UploadBuffers(m_pContext, k, bGeoPass);
-								m_pContext->DrawInstanced(verticesCount[k], numInstance, 0, 0);
-							}
-						}
-
-						else
-						{
-							for (int k = 0; k < indicesCount.size(); ++k)
-							{
-								worldMat = pModels[j]->GetTransformMatrix(false);
-								m_pMatBuffer->SetWorldMatrix(&worldMat);
-								m_pMatBuffer->Update();
-
-								pModels[j]->UploadBuffers(m_pContext, k, bGeoPass);
-								m_pContext->Draw(indicesCount[k], 0);
-							}
-						}
-					}
-
-				}
-				else
+				
 				{
 					for (int j = 0; j < pModels.size(); ++j)
 					{	

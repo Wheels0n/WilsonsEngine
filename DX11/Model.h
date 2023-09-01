@@ -41,12 +41,6 @@ namespace wilson {
 		std::string alphaMap;
 		Material material;
 	};
-	struct TextureData
-	{
-		std::string name;
-		std::string path;
-		ID3D11ShaderResourceView* texture;
-	};
 
 	constexpr int MAX_INSTANCES = 50;
 	class Model
@@ -138,13 +132,6 @@ namespace wilson {
 			unsigned long* pIndices,
 			std::vector<unsigned int> vertexDataPos,
 			std::vector<unsigned int> indicesPos,
-			std::vector<MaterialInfo> materials,
-			std::vector<TextureData> textures,
-			wchar_t* pName);
-		Model(VertexData* pVertices,
-			unsigned long* pIndices,
-			std::vector<unsigned int> vertexDataPos,
-			std::vector<unsigned int> indicesPos,
 			wchar_t* pName,
 			std::vector<std::string> matNames);
 		Model(const Model&) = delete;
@@ -170,7 +157,6 @@ namespace wilson {
 		std::vector<unsigned int> m_numVertexData;
 		std::vector<unsigned int> m_numIndices;
 
-		std::vector<TextureData> m_texDatas;
 		std::vector<MaterialInfo> m_matInfos;
 		std::vector<PerModel>m_perModels;
 		std::vector<ID3D11ShaderResourceView*> m_textures;

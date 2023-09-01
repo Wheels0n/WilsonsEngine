@@ -6,50 +6,6 @@ namespace wilson {
 		unsigned long* pIndices,
 		std::vector<unsigned int> vertexDataPos,
 		std::vector<unsigned int> indicesPos,
-		std::vector<MaterialInfo> materials,
-		std::vector<TextureData> textures,
-		wchar_t* pName)
-	{   
-		m_pVertexData = pVertices;
-		m_pIndices = pIndices;
-		m_vertexCount = vertexDataPos[vertexDataPos.size()-1];
-		m_indexCount = indicesPos[indicesPos.size()-1];
-		m_vertexDataPos = vertexDataPos;
-		m_indicesPos = indicesPos;
-
-		m_pVertexBuffer = nullptr;
-		m_pIndexBuffer = nullptr;
-
-		m_matInfos = materials;
-		m_texDatas = textures;
-
-		wchar_t* ptr = nullptr;
-		wchar_t* lpName = wcstok(pName, (const wchar_t*)L".", &ptr);
-		std::wstring wstr(lpName);
-		m_Name = std::string(wstr.begin(), wstr.end());
-		delete[] lpName;
-
-		m_scMat = DirectX::XMMatrixIdentity();
-		m_rtMat = DirectX::XMMatrixIdentity();
-		m_trMat = DirectX::XMMatrixIdentity();
-		m_angleVec = DirectX::XMVectorZero();
-
-		for (int i = 0; i < m_vertexDataPos.size()-1; ++i)
-		{
-			m_numVertexData.push_back(m_vertexDataPos[i + 1] - m_vertexDataPos[i]);
-			m_numIndices.push_back(m_indicesPos[i + 1] - m_indicesPos[i]);
-		}
-
-		m_numInstance = 1;
-		m_instancedData = nullptr;
-		m_isInstanced = false;
-		m_pInstancePosBuffer = nullptr;
-		m_pPerModelBuffer = nullptr;
-	}
-	Model::Model(VertexData* pVertices,
-		unsigned long* pIndices,
-		std::vector<unsigned int> vertexDataPos,
-		std::vector<unsigned int> indicesPos,
 		wchar_t* pName,
 		std::vector<std::string> matNames)
 	{
@@ -107,7 +63,6 @@ namespace wilson {
 		m_indicesPos.clear();
 		m_numVertexData.clear();
 		m_numIndices.clear();
-		m_texDatas.clear();
 		m_textures.clear();
 		m_texHash.clear();
 		m_matInfos.clear();
@@ -149,14 +104,6 @@ namespace wilson {
 			delete[] m_instancedData;
 		}
 
-		for (int i = 0; i < m_texDatas.size(); ++i)
-		{
-			if (m_texDatas[i].texture != nullptr)
-			{
-				m_texDatas[i].texture->Release();
-				m_texDatas[i].texture = nullptr;
-			}
-		}
 
 	}
 

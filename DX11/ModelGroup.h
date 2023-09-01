@@ -29,7 +29,7 @@ namespace wilson
 			return m_pModels;
 		}
 
-		ModelGroup(std::vector<Model*> pModels, std::vector<MaterialInfo> materials, std::vector<ID3D11ShaderResourceView*> pDiffMaps,
+		ModelGroup(std::vector<Model*> pModels, std::vector<MaterialInfo> materials, std::vector<ID3D11ShaderResourceView*> pTextures,
 			wchar_t* name, EFileType type, 
 			std::unordered_map<std::string, int> matHash,
 			std::unordered_map<std::string, int> texHash );

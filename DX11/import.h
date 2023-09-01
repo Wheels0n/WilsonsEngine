@@ -33,6 +33,8 @@ namespace wilson {
 	private:
 		std::streampos GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName);
 
+		void LoadSubFbx(FbxMesh* pMesh, FbxVector4* pVertices, 
+			std::vector<UINT>& vertexDataPos, std::vector<UINT>& indicesPos, std::vector<UINT>& submeshStride, std::vector<std::string>& matNames);
 		bool LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice);
 		void LoadSubOBJ(LPCWSTR fileName, std::streampos pos, ID3D11Device* pDevice, std::string& objName);
 		bool LoadOBJ(LPCWSTR fileName, ID3D11Device* pDevice);
@@ -40,9 +42,8 @@ namespace wilson {
 		void GetCurDir(LPCWSTR fileName);
 		wchar_t* GetFileName(LPCWSTR fileName);
 		wchar_t* GetMTLPath(LPCWSTR fileName, wchar_t* tok);
-		bool LoadFbxTex(std::string fileName, FbxSurfaceMaterial* pSurfaceMaterial,
-			std::unordered_set<std::string>& texSet , std::vector<TextureData>& texData, ID3D11Device* pDevice);
-		MaterialInfo LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial);
+		bool LoadFbxTex(std::string filePath, FbxSurfaceMaterial* pSurfaceMaterial, MaterialInfo* pMatInfo, std::vector<std::string>& matNames, ID3D11Device* pDevice);
+		Material LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial);
 	private:
 		wchar_t* m_curDir, * m_mtlPath, * m_fileName;
 		ModelGroup* m_pModelGroup;
