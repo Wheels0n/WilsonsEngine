@@ -969,8 +969,10 @@ namespace wilson
 			m_pContext->OMSetRenderTargets(2, bloomRTV, nullptr);
 			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
 			m_pContext->PSSetShaderResources(0, _GBUF_CNT-2, m_pGbufferSRV);
-			m_pContext->PSSetShaderResources(4, 1, &m_pSSAOBlurSRV);
-			m_pContext->PSSetShaderResources(5, spotLights.size(), m_pShadowMap->GetSpotSRV());
+			m_pContext->PSSetShaderResources(4, 1, &m_pGbufferSRV[_GBUF_CNT-1]);
+			m_pContext->PSSetShaderResources(5, 1, &m_pSSAOBlurSRV);
+			m_pContext->PSSetShaderResources(6, spotLights.size(), m_pShadowMap->GetSpotSRV());
+			m_pContext->PSSetShaderResources(7+spotLights.size(), 1, &m_pSkyBoxSRV);
 			//m_pContext->PSSetShaderResources(4,  dirLights.size(), m_pShadowMap->GetDirSRV());
 			//m_pContext->PSSetShaderResources(4 + dirLights.capacity(), pointLights.size(), m_pShadowMap->GetCubeSRV());
 			//m_pContext->PSSetShaderResources(4 + dirLights.capacity() + pointLights.capacity(), spotLights.size(), m_pShadowMap->GetSpotSRV());

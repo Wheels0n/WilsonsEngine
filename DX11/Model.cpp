@@ -319,6 +319,7 @@ namespace wilson {
 			pMaterial->ambient = matInfo.material.ambient;
 			pMaterial->diffuse = matInfo.material.diffuse;
 			pMaterial->specular = matInfo.material.specular;
+			pMaterial->reflect = matInfo.material.reflect;
 			context->Unmap(m_pMaterialBuffer, 0);
 			context->PSSetConstantBuffers(0, 1, &m_pMaterialBuffer);
 

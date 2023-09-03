@@ -23,6 +23,7 @@ struct PixelOutputType
     float4 specular : SV_Target3;
     float4 vPos : SV_Target4;
     float4 vNormal : SV_Target5;
+    float4 reflectivity : SV_Target6;
 };
 
 struct Material
@@ -72,7 +73,7 @@ PixelOutputType main(PixelInputType input)
         normal = mul(normal, TBN);
         normal = normalize(normal);
     }
-    output.normal = float4(normal, 1.0f);
+    output.normal = float4(normal,1.0f);
     output.vNormal = float4(normalize(input.vNormal), 1.0f);
     
     output.albeldo = diffuseMap.Sample(SampleType, input.tex);
@@ -84,7 +85,7 @@ PixelOutputType main(PixelInputType input)
     {
         output.specular.rgb = specularMap.Sample(SampleType, input.tex);
     }
-        
+    output.reflectivity = gMaterial.reflect;
     
 	return output;
 }

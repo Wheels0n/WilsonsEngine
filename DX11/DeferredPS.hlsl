@@ -49,10 +49,12 @@ Texture2D posTex;
 Texture2D normalTex;
 Texture2D abeldoTex;
 Texture2D specualrTex;
+Texture2D reflectivityTex;
 Texture2D SSAOTex;
 //Texture2D dirShadowMaps[1];
 //TextureCube omniDirShadowMaps[1];
 Texture2D spotShadowMaps[1];
+TextureCube EnvMap;
 SamplerState SampleType : register(s0);
 SamplerState g_cubeShadowSampler : register(s1);
 SamplerComparisonState g_shadowSampler : register(s2);
@@ -240,7 +242,8 @@ PixelOutput main(PixelInput input)
 {   
     PixelOutput output;
     float4 wPos = posTex.Sample(SampleType, input.tex);
-    float3 normal = normalTex.Sample(SampleType, input.tex);
+    float4 normal = normalTex.Sample(SampleType, input.tex);
+    float reflection = reflectivityTex.Sample(SampleType, input.tex);
     float4 albedo = abeldoTex.Sample(SampleType, input.tex);
     float4 spec = specualrTex.Sample(SampleType, input.tex);
     float3 viewDir = normalize(g_camPos.xyz - wPos.xyz);
@@ -299,7 +302,13 @@ PixelOutput main(PixelInput input)
         lightVal += (occlusion * A + shadowFactor * (D + S)) * albedo;
     }
 
-    output.mainColor = lightVal;
+    wPos.z = 1.0f;
+    viewDir = g_camPos - wPos;
+    float3 r = reflect(viewDir, normal);
+    float3 envColor = EnvMap.Sample(g_cubeShadowSampler, r);
+    envColor *= reflection; //a=reflection;
+    lightVal.xyz = (1.0 - reflection) * lightVal.xyz;
+    output.mainColor.xyz = lightVal.xyz+envColor;
     output.mainColor.a = 1.0f;
     float brightness = dot(output.mainColor.rgb, float3(0.2126, 0.7152, 0.0722));
     [branch]

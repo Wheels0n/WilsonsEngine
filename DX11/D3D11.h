@@ -38,7 +38,7 @@ namespace wilson
 	};
 	constexpr UINT SHADOWMAP_SIZE = 1024;
 	constexpr float CUBE_SIZE = 0.25;
-	constexpr UINT _GBUF_CNT = 6;
+	constexpr UINT _GBUF_CNT = 7;
 	class D3D11
 	{
 	private:
