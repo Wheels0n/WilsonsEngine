@@ -39,6 +39,9 @@ namespace wilson {
 		std::string specularMap;
 		std::string normalMap;
 		std::string alphaMap;
+		std::string AOMap;
+		std::string roughnessMap;
+		std::string metalnessMap;
 		Material material;
 	};
 

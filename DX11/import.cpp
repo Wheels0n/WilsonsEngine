@@ -521,11 +521,12 @@ namespace wilson
 		std::filesystem::path fbxPath = fileName.c_str();
 		std::string texturesPath = fbxPath.parent_path().string() + "\\";
 		
-		const char* mapTypes[3] = { FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sNormalMap, FbxSurfaceMaterial::sSpecular };
-		for (int i = 0; i < 3; ++i)
+		const char* mapTypes[4] = { FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sNormalMap, FbxSurfaceMaterial::sSpecular, 
+			FbxSurfaceMaterial::sSpecularFactor};//reflectioFactor==metallic
+		for (int i = 0; i < 4; ++i)
 		{	
 			D3DX11_IMAGE_LOAD_INFO loadInfo = {};
-			if (i==1)
+			if (i==0)
 			{
 				loadInfo.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 				loadInfo.Filter = D3DX11_FILTER_SRGB | D3DX11_FILTER_NONE;
@@ -554,7 +555,7 @@ namespace wilson
 						hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, wPath.c_str(), &loadInfo, nullptr, &m_pSRV, nullptr);
 						if (FAILED(hr))
 						{
-							return false;
+							//return false;
 						}
 
 						m_pTexMaps.push_back(m_pSRV);
@@ -641,7 +642,7 @@ namespace wilson
 		int submeshCount = 0;
 		for (int j = 0; j < pMesh->GetPolygonCount(); ++j)
 		{
-			if (submeshStride[submeshCount + 1] == j)
+			if (submeshStride.size()>1&&submeshStride[submeshCount + 1] == j)
 			{
 				++submeshCount;
 				vertexDataPos.push_back(m_vertexCount);

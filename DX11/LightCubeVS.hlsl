@@ -1,7 +1,14 @@
 struct VertexInputType
 {
     float3 position : POSITION;
+    float2 tex : TEXCOORD;
 };
+struct PixelInputType
+{
+    float4 position : SV_POSITION;
+    float2 tex : TEXTURE;
+};
+
 cbuffer MatrixBuffer
 {
     matrix worldMatrix;
@@ -10,12 +17,16 @@ cbuffer MatrixBuffer
     matrix lightSpaceMat;
 };
 
-float4 main(VertexInputType input) :SV_Position
+PixelInputType main(VertexInputType input) 
 {   
-    float4 output = float4(input.position, 1.0f);
-    output = mul(output, worldMatrix);
-    output = mul(output, viewMatrix);
-    output = mul(output, projectionMatrix);
+    PixelInputType output;
+    
+    output.position = float4(input.position, 1.0f);
+    output.position = mul(output.position, worldMatrix);
+    output.position = mul(output.position, viewMatrix);
+    output.position = mul(output.position, projectionMatrix);
+    
+    output.tex = input.tex;
     
     return output;
 }

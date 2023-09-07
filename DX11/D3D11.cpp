@@ -465,7 +465,7 @@ namespace wilson
 
 		rtBlendDSC.BlendEnable = TRUE;
 		rtBlendDSC.SrcBlend = D3D11_BLEND_ONE;
-		rtBlendDSC.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		rtBlendDSC.DestBlend = D3D11_BLEND_ZERO;
 		rtBlendDSC.BlendOp = D3D11_BLEND_OP_ADD;
 		rtBlendDSC.SrcBlendAlpha = D3D11_BLEND_ONE;
 		rtBlendDSC.DestBlendAlpha = D3D11_BLEND_ZERO;
@@ -848,17 +848,12 @@ namespace wilson
 		UINT offset = 0;
 		int drawed = 0;
 		bool bGeoPass = false;
-		ID3D11ShaderResourceView* finalSRV[2] = { m_pSceneSRV, m_pPingPongSRV[1]};
-		ID3D11RenderTargetView* bloomRTV[2] = { m_pSceneRTTV, m_pBrightRTTV };
 		
+		ID3D11RenderTargetView* nullRTV[_GBUF_CNT] = { nullptr, };
+
 		m_pContext->ClearRenderTargetView(m_pScreenRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pViewportRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pSceneRTTV, color);
-		m_pContext->ClearRenderTargetView(m_pSSAOBlurRTTV, color);
-		m_pContext->ClearRenderTargetView(m_pSSAORTTV, color);
-		m_pContext->ClearRenderTargetView(m_pBrightRTTV, color);
-		m_pContext->ClearRenderTargetView(m_pPingPongRTTV[0], color);
-		m_pContext->ClearRenderTargetView(m_pPingPongRTTV[1], color);
 		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
 			m_pContext->ClearRenderTargetView(m_pGbufferRTTV[i], color);
@@ -881,7 +876,7 @@ namespace wilson
 			m_pContext->RSSetState(m_pGeoRS);
 			m_pContext->OMSetDepthStencilState(0, 0);
 			
-			m_pShader->SetPosOnlyInputLayout();
+			m_pShader->SetTexInputlayout();
 			m_pShader->SetShadowShader();
 			
 			for (int i = 0; i < dirLights.size(); ++i)
@@ -928,109 +923,38 @@ namespace wilson
 		if (!m_pModelGroups.empty())
 		{
 			m_pShader->SetDeferredGeoLayout();
-			m_pShader->SetDeferredGeoShader();
+			m_pShader->SetPBRDeferredGeoShader();
 			m_pContext->OMSetDepthStencilState(0, 0);
-			m_pContext->RSSetState(m_pGeoRS);
+			m_pContext->RSSetState(m_pQuadRS);
 			m_pContext->OMSetBlendState(m_pGBufferWriteBS, color, 0xffffffff);
 			m_pContext->OMSetRenderTargets(_GBUF_CNT, m_pGbufferRTTV, m_pSceneDSV);
 			DrawENTT(!bGeoPass);
 
-			//Calculate Occlusion Factor 
+			// PBR FBX들은 대부분 AO 맵이 달려온다.
+			m_pShader->SetTexInputlayout();
+			m_pShader->SetPBRDeferredLightingShader();
+			m_pLightBuffer->UpdateDirLightMatrices(m_pContext);
+			m_pLightBuffer->UpdateSpotLightMatrices(m_pContext);
+			m_pLightBuffer->UpdateLightBuffer(m_pContext);
+			m_pCam->SetCamPos(m_pContext);
 			stride = sizeof(QUAD);
 			m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
 			m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
 			m_pContext->RSSetState(m_pQuadRS);
-
-			m_pShader->SetTexInputlayout();
-			m_pShader->SetSSAOShader();
-
-			m_pContext->PSSetConstantBuffers(0, 1, &m_pSSAOKernelBuffer);
-			m_pMatBuffer->UploadProjMat();
-			m_pContext->OMSetRenderTargets(1, &m_pSSAORTTV, nullptr);
-			m_pContext->PSSetShaderResources(0, 2, &m_pGbufferSRV[4]);
-			m_pContext->PSSetShaderResources(2, 1, &m_pNoiseSRV);
-			m_pContext->PSSetSamplers(0, 1, &m_pSampleState);
-			m_pContext->PSSetSamplers(1, 1, &m_pSSAOPosSS);
-			m_pContext->DrawIndexed(6, 0, 0);
-			//Blur SSAOTex
-			m_pShader->SetSSAOBlurShader();
-			m_pContext->OMSetRenderTargets(1, &m_pSSAOBlurRTTV, nullptr);
-			m_pContext->PSSetShaderResources(0, 1, &m_pSSAOSRV);
-			m_pContext->DrawIndexed(6, 0, 0);
-			//Deferred Shading Second Pass and Get Bright Texture
-			
-			m_pLightBuffer->UpdateDirLightMatrices(m_pContext);
-			m_pLightBuffer->UpdateSpotLightMatrices(m_pContext);
-			m_pLightBuffer->UpdateLightBuffer(m_pContext);
-			m_pShader->SetTexInputlayout();
-			m_pShader->SetDeferredLightingShader();
-			m_pCam->SetCamPos(m_pContext);
-			
-			m_pContext->OMSetRenderTargets(2, bloomRTV, nullptr);
+			m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, nullptr);
 			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
-			m_pContext->PSSetShaderResources(0, _GBUF_CNT-2, m_pGbufferSRV);
-			m_pContext->PSSetShaderResources(4, 1, &m_pGbufferSRV[_GBUF_CNT-1]);
-			m_pContext->PSSetShaderResources(5, 1, &m_pSSAOBlurSRV);
-			m_pContext->PSSetShaderResources(6, spotLights.size(), m_pShadowMap->GetSpotSRV());
-			m_pContext->PSSetShaderResources(7+spotLights.size(), 1, &m_pSkyBoxSRV);
-			//m_pContext->PSSetShaderResources(4,  dirLights.size(), m_pShadowMap->GetDirSRV());
-			//m_pContext->PSSetShaderResources(4 + dirLights.capacity(), pointLights.size(), m_pShadowMap->GetCubeSRV());
-			//m_pContext->PSSetShaderResources(4 + dirLights.capacity() + pointLights.capacity(), spotLights.size(), m_pShadowMap->GetSpotSRV());
+			m_pContext->PSSetShaderResources(0, _GBUF_CNT, m_pGbufferSRV);
+			m_pContext->PSSetShaderResources(_GBUF_CNT,  dirLights.capacity(), m_pShadowMap->GetDirSRV());
+			m_pContext->PSSetShaderResources(_GBUF_CNT + dirLights.capacity(), spotLights.capacity(), m_pShadowMap->GetSpotSRV());
+			m_pContext->PSSetShaderResources(_GBUF_CNT + dirLights.capacity() + spotLights.capacity(), pointLights.capacity(), m_pShadowMap->GetCubeSRV());
 			m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetCubeShadowSampler());
 			m_pContext->PSSetSamplers(2, 1, m_pShadowMap->GetDirShadowSampler());
 			m_pContext->DrawIndexed(6, 0, 0);
-			//Apply Gaussian-Blur
-			m_pShader->SetBlurShader();
-			BOOL horizontal = TRUE;
-			int reps = 10;
-
-			for (int i = 0; i < reps; ++i)
-			{
-				D3D11_MAPPED_SUBRESOURCE mappedResource;
-				BOOL* pBool;
-				m_pContext->Map(m_pBoolBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-				pBool = (BOOL*)mappedResource.pData;
-				*pBool = (BOOL)horizontal;
-				m_pContext->Unmap(m_pBoolBuffer, 0);
-
-				m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
-				m_pContext->PSSetShaderResources(0, 1, i == 0 ? &m_pBrightSRV : &m_pPingPongSRV[!horizontal]);
-				m_pContext->OMSetRenderTargets(1, &m_pPingPongRTTV[horizontal], nullptr);
-				m_pContext->DrawIndexed(6, 0, 0);
-				horizontal = !horizontal;
-			}
+			
 		}
-		//Draw point light cubes
-		stride = sizeof(XMFLOAT3);
-		m_pContext->IASetVertexBuffers(0, 1, &m_pCubeVertices, &stride, &offset);
-		m_pContext->IASetIndexBuffer(m_pCubeIndices, DXGI_FORMAT_R32_UINT, 0);
-		m_pContext->RSSetState(m_pGeoRS);
-		m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, m_pSceneDSV);
-		m_pShader->SetPosOnlyInputLayout();
-		m_pShader->SetCubeShader();
-
-		XMFLOAT4 scF = XMFLOAT4(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
-		XMVECTOR scV = XMLoadFloat4(&scF);
-		XMMATRIX sc = XMMatrixScalingFromVector(scV);
-		for (int i = 0; i < pointLights.size(); ++i)
-		{	
-			D3D11_MAPPED_SUBRESOURCE mappedResource;
-			XMVECTOR* pColor;
-			XMVECTOR color = *(pointLights[i]->GetDiffuse());
-			m_pContext->Map(m_pColorBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-			pColor = (XMVECTOR*)mappedResource.pData;
-			*pColor = color;
-			m_pContext->Unmap(m_pColorBuffer, 0);
-			m_pContext->PSSetConstantBuffers(0, 1, &m_pColorBuffer);
-
-			XMVECTOR posV = XMLoadFloat3(pointLights[i]->GetPos());
-			XMMATRIX tr = XMMatrixTranslationFromVector(posV);
-			tr = XMMatrixMultiply(sc, tr);
-			m_pMatBuffer->SetWorldMatrix(&tr);
-			m_pMatBuffer->Update();
-			m_pContext->DrawIndexed(36, 0, 0);
-		}
+		
 		//Draw picked Model's Outline
+		m_pShader->SetTexInputlayout();
 		m_pShader->SetOutlinerShader();
 		m_pContext->OMSetDepthStencilState(m_pOutlinerTestDSS, 1);
 		if (m_selectedModelGroup != -1)
@@ -1054,7 +978,6 @@ namespace wilson
 		m_pShader->SetFinalShader();
 		m_pContext->RSSetState(m_pQuadRS);
 		m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
-		finalSRV[0] = m_pModelGroups.empty() ? m_pGbufferSRV[2]: finalSRV[0];
 		{	
 			D3D11_MAPPED_SUBRESOURCE mappedResource;
 			XMFLOAT3* pExposure;
@@ -1065,7 +988,7 @@ namespace wilson
 			m_pContext->PSSetConstantBuffers(0, 1, &m_pExposureBuffer);
 		}
 		
-		m_pContext->PSSetShaderResources(0, 2, finalSRV);
+		m_pContext->PSSetShaderResources(0, 1, m_pModelGroups.empty() ? &m_pGbufferSRV[2] : &m_pSceneSRV);
 		m_pContext->OMSetRenderTargets(1, &m_pViewportRTTV, nullptr);
 		m_pContext->OMSetDepthStencilState(0, 0);
 		m_pContext->DrawIndexed(6, 0, 0);

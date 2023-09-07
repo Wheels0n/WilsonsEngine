@@ -3,8 +3,10 @@ struct PixelInputType
     float4 position : SV_POSITION;
     float2 tex : TEXTURE;
 };
-
-float4 main() : SV_TARGET
-{
-	return float4(1.0f, 1.0f, 1.0f, 1.0f);
+Texture2D abeldoTex;
+SamplerState SampleType : register(s0);
+void  main(PixelInputType input)
+{   
+    float4 color = abeldoTex.Sample(SampleType, input.tex);
+    clip(color.a - 0.1f);
 }

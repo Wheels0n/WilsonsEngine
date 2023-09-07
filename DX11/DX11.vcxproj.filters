@@ -334,5 +334,14 @@
     <FxCompile Include="SSAOPS.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
+    <FxCompile Include="PBRDeferredPS.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="PBRGeometryVS.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="PBRGeometryPS.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

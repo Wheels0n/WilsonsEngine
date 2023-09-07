@@ -235,6 +235,23 @@ namespace wilson {
 				m_textures.push_back(textures[idx]);
 				perModel.hasSpecular = true;
 			}
+			else
+			{	
+				perModel.hasSpecular = false;
+				
+				idx = texhash[matInfo.AOMap];
+				m_texHash[matInfo.AOMap] = m_textures.size();
+				m_textures.push_back(textures[idx]);
+
+				idx = texhash[matInfo.roughnessMap];
+				m_texHash[matInfo.roughnessMap] = m_textures.size();
+				m_textures.push_back(textures[idx]);
+				
+				idx = texhash[matInfo.metalnessMap];
+				m_texHash[matInfo.metalnessMap] = m_textures.size();
+				m_textures.push_back(textures[idx]);
+			}
+
 			if (!matInfo.normalMap.empty())
 			{
 				idx = texhash[matInfo.normalMap];
@@ -287,24 +304,26 @@ namespace wilson {
 		
 		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, iOffset);
 		
+		int texCnt = 0;
+		int idx = m_texHash[matInfo.diffuseMap];
+		context->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
 		if (bGeoPass)
-		{
-			int idx = m_texHash[matInfo.diffuseMap];
-			context->PSSetShaderResources(0, 1, &m_textures[idx]);
-			if (m_perModels[i].hasSpecular)
-			{
-				idx = m_texHash[matInfo.specularMap];
-				context->PSSetShaderResources(1, 1, &m_textures[idx]);
-			}
+		{	
 			if (m_perModels[i].hasNormal)
 			{
 				idx = m_texHash[matInfo.normalMap];
-				context->PSSetShaderResources(2, 1, &m_textures[idx]);
+				context->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
 			}
+			if (m_perModels[i].hasSpecular)
+			{
+				idx = m_texHash[matInfo.specularMap];
+				context->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
+			}
+		
 			if (m_perModels[i].hasAlpha)
 			{
 				idx = m_texHash[matInfo.alphaMap];
-				context->PSSetShaderResources(3, 1, &m_textures[idx]);
+				context->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
 			}
 
 

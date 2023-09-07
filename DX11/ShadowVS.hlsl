@@ -9,11 +9,13 @@ cbuffer MatrixBuffer
 struct VertexInputType
 {
     float3 position : POSITION;
+    float2 tex : TEXTURE;
 };
 
 struct PixelInputType
 {
     float4 position : SV_POSITION;
+    float2 tex : TEXTURE;
 };
 
 PixelInputType main(VertexInputType input)
@@ -24,6 +26,8 @@ PixelInputType main(VertexInputType input)
     
     output.position = mul(pos, worldMatrix);
     output.position = mul(output.position, lightSpaceMat);
+    
+    output.tex = input.tex;
     
 	return output;
 }

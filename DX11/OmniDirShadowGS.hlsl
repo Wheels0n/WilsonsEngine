@@ -2,11 +2,13 @@ struct PS_INPUT
 {
 	float4 pos : SV_POSITION;
     float4 wPos : POSITION;
+    float2 tex : TEXTURE;
     uint RTIndex : SV_RenderTargetArrayIndex;
 };
 struct GS_INPUT
 {
     float4 pos : SV_Position;
+    float2 tex : TEXTURE;
 };
 
 cbuffer cubeMap
@@ -29,6 +31,7 @@ void main(
         {   
             output.wPos = input[v].pos;
             output.pos = mul(input[v].pos, lightViewMatrices[face]);
+            output.tex = input[v].tex;
             cubeMapStream.Append(output);
         }
         cubeMapStream.RestartStrip();//기본이 Strip이라 List로 하려면 삼각형마다 갱신
