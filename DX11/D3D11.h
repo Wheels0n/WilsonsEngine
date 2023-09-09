@@ -22,9 +22,6 @@
 #include "Import.h"
 #include "ShadowMap.h"
 
-//D:\DirectxSDK\Include;$(IncludePath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;$(IncludePath)
-//D:\DirectxSDK\Lib\x64;$(LibraryPath)  C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x64;$(LibraryPath)
-
 namespace wilson
 {   
 	struct QUAD
@@ -120,28 +117,31 @@ namespace wilson
 
 		ID3D11Buffer* m_pCubeVertices, *m_pQuadVB;
 		ID3D11Buffer* m_pCubeIndices, *m_pQuadIB;
-		ID3D11Buffer* m_pBoolBuffer, *m_pColorBuffer, *m_pSSAOKernelBuffer, *m_pExposureBuffer;
+		ID3D11Buffer* m_pBoolBuffer, *m_pColorBuffer, *m_pSSAOKernelBuffer, *m_pExposureBuffer, *m_pEquirect2CubeBuffer;
 
 		ID3D11RenderTargetView* m_pScreenRTTV, * m_pSceneRTTV, *m_pSSAORTTV, * m_pSSAOBlurRTTV, * m_pBrightRTTV, *m_pViewportRTTV;
 		ID3D11RenderTargetView* m_pPingPongRTTV[2];
 		ID3D11RenderTargetView* m_pGbufferRTTV[_GBUF_CNT];//0:pos, 1:normal, 2:albedo, 3:specular
+		ID3D11RenderTargetView* m_pSkyBoxRTTV,* m_pDiffIrradianceRTTV;
 		ID3D11Texture2D* m_pDSBuffer, * m_pDSBufferForRTT, * m_pSceneRTT, *m_pSSAORTT, * m_pSSAOBlurRTT, *m_pBrightRTT, *m_pViewportRTT;
 		ID3D11Texture2D* m_pPingPongRTT[2];
 		ID3D11Texture2D* m_pGbufferRTT[_GBUF_CNT];
 		ID3D11Texture2D* m_pNoiseRTT;
+		ID3D11Texture2D* m_pHDRRTT, *m_pSkyBoxRTT,*m_pDiffIrradianceRTT;
 		ID3D11ShaderResourceView* m_pNoiseSRV;
-		ID3D11ShaderResourceView* m_pSceneSRV, *m_pSSAOSRV, *m_pSSAOBlurSRV, * m_pBrightSRV, *m_pSkyBoxSRV, *m_pViewportSRV;
+		ID3D11ShaderResourceView* m_pSceneSRV, *m_pSSAOSRV, *m_pSSAOBlurSRV, * m_pBrightSRV,  *m_pViewportSRV;
 		ID3D11ShaderResourceView* m_pPingPongSRV[2];
 		ID3D11ShaderResourceView* m_pGbufferSRV[_GBUF_CNT];
+		ID3D11ShaderResourceView* m_pHDRSRV, * m_pSkyBoxSRV, *m_pDiffIrradianceSRV;
 
 		ID3D11DepthStencilState* m_pOutlinerSetupDSS, * m_pOutlinerTestDSS, * m_pDrawReflectionDSS, *m_pSkyBoxDSS;
 		ID3D11DepthStencilView* m_pScreenDSV, * m_pSceneDSV;
 
 		ID3D11RasterizerState* m_pGeoRS, * m_pRasterStateCC, *m_pSkyBoxRS, *m_pQuadRS;
-		ID3D11SamplerState* m_pSampleState, *m_pSSAOPosSS;
+		ID3D11SamplerState* m_pWrapSS, *m_pClampSS;
 		ID3D11BlendState* m_pGBufferWriteBS, * m_pLightingPassBS;
 
-		D3D11_VIEWPORT m_viewport;
+		D3D11_VIEWPORT m_viewport, m_diffIrradViewport;
 
 		Importer* m_pImporter;
 		std::vector<ModelGroup*> m_pModelGroups;

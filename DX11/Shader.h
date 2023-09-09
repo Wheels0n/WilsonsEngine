@@ -32,6 +32,18 @@ namespace wilson
 			m_pContext->GSSetShader(nullptr, nullptr, 0);
 			m_pContext->PSSetShader(m_pPS, nullptr, 0);
 		}
+		inline void SetEquirect2CubeShader()
+		{
+			m_pContext->VSSetShader(m_pPosOnlyVS, nullptr, 0);
+			m_pContext->GSSetShader(m_pEquirect2CubeGS, nullptr, 0);
+			m_pContext->PSSetShader(m_pEquirect2CubePS, nullptr, 0);
+		}
+		inline void SetDiffuseIrradianceShader()
+		{
+			m_pContext->VSSetShader(m_pPosOnlyVS, nullptr, 0);
+			m_pContext->GSSetShader(m_pEquirect2CubeGS, nullptr, 0);
+			m_pContext->PSSetShader(m_pDiffuseIrradiancePS, nullptr, 0);
+		}
 		inline void SetSkyBoxShader()
 		{
 			m_pContext->VSSetShader(m_pSkyBoxVS, nullptr, 0);
@@ -119,9 +131,10 @@ namespace wilson
 		ID3D11Device* m_pDevice;
 		ID3D11DeviceContext* m_pContext;
 
-		ID3D11VertexShader* m_pVS, *m_pSkyBoxVS, *m_pShadowVS, *m_pOmniDirShadowVS, *m_pTexVS, *m_pGeometryVS, *m_pPBRGeometryVS, *m_pLightCubeVS;
-		ID3D11GeometryShader* m_pOmniDirShadowGS;
-		ID3D11PixelShader* m_pPS, *m_pSkyBoxPS, * m_pShadowPS, *m_pOmniDirShadowPS, *m_pGeometryPS, * m_pPBRGeometryPS,
+		ID3D11VertexShader* m_pVS, * m_pSkyBoxVS, * m_pShadowVS, * m_pOmniDirShadowVS, * m_pTexVS, * m_pGeometryVS, * m_pPBRGeometryVS, * m_pLightCubeVS,
+			*m_pPosOnlyVS;
+		ID3D11GeometryShader* m_pOmniDirShadowGS, *m_pEquirect2CubeGS;
+		ID3D11PixelShader* m_pPS, *m_pSkyBoxPS, * m_pShadowPS, *m_pOmniDirShadowPS, *m_pGeometryPS, * m_pPBRGeometryPS, * m_pEquirect2CubePS, *m_pDiffuseIrradiancePS,
 			*m_pSSAOPS, *m_pSSAOBlurPS, *m_pDeferredPS, *m_pPBRDeferredPS, *m_pBlurPS, * m_pLightCubePS, *m_pOutlinerPS, *m_pFinPS;
 
 

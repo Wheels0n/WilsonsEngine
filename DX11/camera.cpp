@@ -97,7 +97,7 @@ namespace wilson {
 		pCamBuffer = reinterpret_cast<CamBuffer*>(mappedResource.pData);
 		pCamBuffer->m_camPos = m_pos;
 		pContext->Unmap(m_pCamPosBuffer, 0);
-		pContext->PSSetConstantBuffers(3, 1, &m_pCamPosBuffer);
+		pContext->PSSetConstantBuffers(0, 1, &m_pCamPosBuffer);
 
 		return;
 	}

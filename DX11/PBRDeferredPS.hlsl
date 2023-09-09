@@ -48,13 +48,18 @@ Texture2D posTex;
 Texture2D normalTex;
 Texture2D abeldoTex;
 Texture2D specualrTex;//R:AO, G:Roughness, B:Metalness
-//Texture2D dirShadowMaps[10];
-Texture2D spotShadowMaps[1];
+TextureCube irradianceMap;
+Texture2D dirShadowMaps[1];
+//Texture2D spotShadowMaps[20];
 //TextureCube omniDirShadowMaps[48];
 SamplerState SampleType : register(s0);
 SamplerState g_cubeShadowSampler : register(s1);
 SamplerComparisonState g_shadowSampler : register(s2);
 
+cbuffer CamBuffer
+{
+    float4 g_camPos;
+};
 cbuffer cbLight
 {
     DirectionalLight cbDirLight[10];
@@ -74,10 +79,6 @@ cbuffer SpotLightMatrices
 {
     matrix spotLightMatrices[20];
     uint spotLightCnt;
-};
-cbuffer CamBuffer
-{
-    float4 g_camPos;
 };
 
 static const float SMAP_SIZE = 1024.0f;
@@ -124,6 +125,11 @@ float GeometrySmith(float3 normal, float3 viewDir, float3 lightDir, float roughn
 float3 fresnelSchlick(float cosTheta, float3 F0)
 {
     return F0 + (1.0f - F0) * pow(clamp(1.0f - cosTheta, 0.0f, 1.0f), 5.0f);
+}
+float3 fresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
+{   
+    return F0 + (max(float3(1.0f - roughness, 1.0f - roughness, 1.0f - roughness), F0) - F0) * 
+    pow(clamp(1.0f - cosTheta, 0.0f, 1.0f), 5.0f);
 }
 
 float CalShadowFactor(SamplerComparisonState shadowSampler,
@@ -194,7 +200,7 @@ out float3 L0)
 { 
     
     L0 = float3(0.0f, 0.0f, 0.0f);
-	
+    
     float3 h = normalize(viewDir + lightDir);
     float3 radiance = L.diffuse;
     
@@ -210,6 +216,7 @@ out float3 L0)
     float3 kS = F;
     float3 kD = float3(1.0f, 1.0f, 1.0f) - kS;
     kD *= 1.0f - metalness;
+    
     float NdotL = max(dot(normal, lightDir), 0.0f);
     L0 += (kD * albedo / PI + specular) * radiance * NdotL;
 }
@@ -238,6 +245,7 @@ out float3 L0)
     float3 kS = F;
     float3 kD = float3(1.0f, 1.0f, 1.0f) - kS;
     kD *= 1.0f - metalness;
+    
     float NdotL = max(dot(normal, lightDir), 0.0f);
     L0 += (kD * albedo / PI + specular) * radiance * NdotL;
     
@@ -271,6 +279,7 @@ out float3 L0)
     float3 kS = F;
     float3 kD = float3(1.0f, 1.0f, 1.0f) - kS;
     kD *= 1.0f - metalness;
+   
     float NdotL = max(dot(normal, lightDir), 0.0f);
     L0 += (kD * albedo / PI + specular) * radiance * NdotL;
 }
@@ -282,13 +291,13 @@ PixelOutput main(PixelInput input)
     float4 normal = normalTex.Sample(SampleType, input.tex);
     float4 albedo = abeldoTex.Sample(SampleType, input.tex);
     float4 spec = specualrTex.Sample(SampleType, input.tex);
-    float ao = spec.r * 0.03f;
-    float3 occlusion = float3(ao, ao, ao);
+    
+    float3 occlusion = float3(spec.r, spec.r, spec.r);
     float roughness = spec.g;
     float metalness =spec.b;
     
     float3 F0 = float3(0.04, 0.04, 0.04);
-    F0 = lerp(F0, albedo, metalness);
+    F0 = lerp(F0, albedo.xyz, metalness);
     
     float3 viewDir = normalize(g_camPos.xyz - wPos.xyz);
     bool isCubeMap = length(normal.xyz) ? false : true;
@@ -323,31 +332,39 @@ PixelOutput main(PixelInput input)
         float3 lightDir = normalize(cbDirLight[i].position.xyz - wPos.xyz);
         CalDirectionalLight(cbDirLight[i], lightDir, normal.xyz, viewDir,
         albedo.xyz, metalness, roughness, F0, L);
-        //shadowFactor = CalShadowFactor(g_shadowSampler, dirShadowMaps[i], dirShadowPos[i], normal.xyz, lightDir);
-        lightVal.xyz += (occlusion * albedo.xyz + shadowFactor * L);
+        shadowFactor = CalShadowFactor(g_shadowSampler, dirShadowMaps[i], dirShadowPos[i], normal.xyz, lightDir);
+        lightVal.xyz +=  shadowFactor * L;
         
     }
     [unroll]
     for (int j = 0; j < pntCnt; ++j)
-    {
+    {   
         float3 lightDir = cbPointLight[j].position - wPos.xyz;
         CalPointLight(cbPointLight[j], lightDir, normal.xyz, viewDir, 
         albedo.xyz, metalness, roughness, F0, L);
-       // shadowFactor = CalOmniDirShadowFactor(g_cubeShadowSampler, omniDirShadowMaps[j], -lightDir);
-        lightVal.xyz += (occlusion * albedo.xyz + shadowFactor * L);
+        //shadowFactor = CalOmniDirShadowFactor(g_cubeShadowSampler, omniDirShadowMaps[j], -lightDir);
+    
+        lightVal.xyz += shadowFactor * L;
     }
     [unroll]
     for (int k = 0; k < sptCnt; ++k)
-    {
+    {   
         float3 lightDir = (cbSpotLight[k].position - wPos.xyz);
         CalSpotLight(cbSpotLight[k], lightDir, normal.xyz, viewDir,
         albedo.xyz, metalness, roughness, F0, L);
         lightDir = normalize(lightDir);
-        shadowFactor = CalShadowFactor(g_shadowSampler, spotShadowMaps[k], spotShadowPos[k], normal.xyz, lightDir);
-        lightVal.xyz += (occlusion * albedo.xyz + shadowFactor * L);
+        //shadowFactor = CalShadowFactor(g_shadowSampler, spotShadowMaps[k], spotShadowPos[k], normal.xyz, lightDir);
+        lightVal.xyz += shadowFactor * L;
         
     }
-    output.mainColor.xyz = lightVal.xyz;
+    float3 kS = fresnelSchlick(max(dot(normal.xyz, viewDir.xyz), 0.0f), F0);
+    float3 kD = 1.0f - kS;
+    kD *= 1.0f - metalness;
+    float3 irradiance = irradianceMap.Sample(SampleType, normal.xyz);
+    float3 diffuse = irradiance * albedo.xyz;
+    float3 ambient = (kD * diffuse) * occlusion;
+   
+    output.mainColor.xyz = lightVal.xyz+ambient;
     output.mainColor.a = 1.0f;
  
     return output;

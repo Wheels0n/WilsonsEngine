@@ -36,7 +36,7 @@ namespace wilson
 			pMatrices->matrices[i] = *(m_pDirLights[i]->GetLightSpaceMat());
 		}
 		pContext->Unmap(m_pDirLitMatricesBuffer, 0);
-		pContext->PSSetConstantBuffers(1, 1, &m_pDirLitMatricesBuffer);
+		pContext->PSSetConstantBuffers(2, 1, &m_pDirLitMatricesBuffer);
 	}
 	void LightBuffer::UpdateSpotLightMatrices(ID3D11DeviceContext* pContext)
 	{
@@ -54,7 +54,7 @@ namespace wilson
 			pMatrices->matrices[i] = *(m_pSpotLights[i]->GetLightSpaceMat());
 		}
 		pContext->Unmap(m_pSpotLitMatricesBuffer, 0);
-		pContext->PSSetConstantBuffers(m_pDirLights.empty()?1:2, 1, &m_pSpotLitMatricesBuffer);
+		pContext->PSSetConstantBuffers(m_pDirLights.empty()?2:3, 1, &m_pSpotLitMatricesBuffer);
 	}
 	void LightBuffer::UpdateLightBuffer(ID3D11DeviceContext* pContext)
 	{
@@ -83,7 +83,7 @@ namespace wilson
 			plbProperty->sptLights[i] = *m_pSpotLights[i]->GetProperty(); 
 		}
 		pContext->Unmap(m_pLightPropertyBuffer,0);
-		pContext->PSSetConstantBuffers(0, 1, &m_pLightPropertyBuffer);
+		pContext->PSSetConstantBuffers(1, 1, &m_pLightPropertyBuffer);
 		
 		
 	}

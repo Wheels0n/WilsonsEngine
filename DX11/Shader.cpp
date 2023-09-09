@@ -10,6 +10,11 @@ namespace wilson
 		m_pVS = nullptr;
 		m_pPS = nullptr;
 
+		m_pPosOnlyVS = nullptr;
+		m_pEquirect2CubeGS = nullptr;
+		m_pEquirect2CubePS = nullptr;
+		m_pDiffuseIrradiancePS = nullptr;
+
 		m_pSkyBoxVS = nullptr;
 		m_pSkyBoxPS = nullptr;
 
@@ -83,6 +88,31 @@ namespace wilson
 			m_pShadowPS->Release();
 			m_pShadowPS = nullptr;
 		}
+
+
+
+		if (m_pPosOnlyVS != nullptr)
+		{
+			m_pPosOnlyVS->Release();
+			m_pPosOnlyVS = nullptr;
+		}
+		if (m_pEquirect2CubeGS != nullptr)
+		{
+			m_pEquirect2CubeGS->Release();
+			m_pEquirect2CubeGS = nullptr;
+		}
+		if (m_pEquirect2CubePS != nullptr)
+		{
+			m_pEquirect2CubePS->Release();
+			m_pEquirect2CubePS = nullptr;
+		}
+		if (m_pDiffuseIrradiancePS != nullptr)
+		{
+			m_pDiffuseIrradiancePS->Release();
+			m_pDiffuseIrradiancePS = nullptr;
+		}
+
+
 
 
 		if (m_pOmniDirShadowVS != nullptr)
@@ -280,6 +310,38 @@ namespace wilson
 
 		m_pDevice->CreateInputLayout(vertexIED, sizeof(vertexIED) / sizeof(vertexIED[0]), pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pInputLayout);
 		
+		hr = D3DX11CompileFromFile(L"PosOnlyVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pVSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pPosOnlyVS);
+		
+		hr = D3DX11CompileFromFile(L"Equirectangular2CubeMapGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pGSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		m_pDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &m_pEquirect2CubeGS);
+
+		hr = D3DX11CompileFromFile(L"Equirectangular2CubeMapPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pEquirect2CubePS);
+		hr = D3DX11CompileFromFile(L"DiffuseIrradiancePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pDiffuseIrradiancePS);
+
+
 
 		hr = D3DX11CompileFromFile(L"SkyBoxVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pVSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))

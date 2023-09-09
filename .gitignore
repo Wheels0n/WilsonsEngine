@@ -362,3 +362,5 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /DX11/Assets/Models/FBX/PBR_Sphere
+/DX11/Assets/Models/FBX/Bistro_v5_2/Bistro_v5_2
+/DX11/stb_image.h

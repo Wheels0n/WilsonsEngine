@@ -58,13 +58,11 @@ PixelOutputType main(PixelInputType input)
         normal = normalize(normal);
     }
     output.normal = float4(normal, 1.0f);
-    [branch]
-    if(hasSpecular)
-    {
-        output.specular.rgb = specularMap.SampleLevel(g_defaultSampler, input.tex,1);
-        output.specular.a = 1.0f;
+   
+    output.specular.rgb = specularMap.SampleLevel(g_defaultSampler, input.tex,1);
+    output.specular.a = 1.0f;
 
-    }
+    
     
     
     
