@@ -6,8 +6,8 @@ DX11을 이용한 렌더링 엔진
 - [x] 노멀 매핑
 - [x] 스페큘러 매핑
 - [x] 알파 매핑  
-- [x] obj로더
-- [ ] FBX로더
+- [ ] obj로더(PBR파이프라인으로의 변경으로 인한 리팩토링 필요)
+- [ ] FBX로더(애니메이션 미구현)
 - [X] 개체 아웃라이너
 - [ ] GIZMO
 - [x] 감마보정+HDR(Exposure패널)
@@ -19,10 +19,10 @@ DX11을 이용한 렌더링 엔진
 - [ ] 캐서캐이트 그림자
 - [ ] 인스턴싱(코드 갱신으로 인한 리팩토링 필요)
 - [ ] 프러스텀 컬링(대형 OBJ들로 인해 리팩토링 필요)
-- [ ] 큐브맵을 이용한 반사
+- [x] 큐브맵을 이용한 반사(동적x)
 - [X] Deferred Shading
 - [X] SSAO
-- [ ] PBR 
+- [x] PBR 
 ## References
  + [LearnOpenGL](https://learnopengl.com/)
  + [chilitomatonoodle's C++ 3D DirectX Programming](https://www.youtube.com/playlist?list=PLqCJpWy5Fohd3S7ICFXwUomYW0Wv67pDD)
