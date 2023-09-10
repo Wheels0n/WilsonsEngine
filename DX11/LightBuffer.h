@@ -1,32 +1,35 @@
 #pragma once
+
 #include<vector>
+
 #include"DirectionalLight.h"
 #include"PointLight.h"
 #include"SpotLight.h"
+
 namespace wilson
 {	
-	constexpr UINT MAX_DIR_LIGHTS = 10;
-	constexpr UINT MAX_PNT_LIGHTS = 48;
-	constexpr UINT MAX_SPT_LIGHTS = 20;
+	constexpr UINT _MAX_DIR_LIGHTS = 10;
+	constexpr UINT _MAX_PNT_LIGHTS = 48;
+	constexpr UINT _MAX_SPT_LIGHTS = 20;
 
 	struct DirLightMatrices
 	{
-		DirectX::XMMATRIX matrices[MAX_DIR_LIGHTS];
+		DirectX::XMMATRIX matrices[_MAX_DIR_LIGHTS];
 		UINT dirCnt;
 	};
 	struct SpotLightMatrices
 	{
-		DirectX::XMMATRIX matrices[MAX_SPT_LIGHTS];
+		DirectX::XMMATRIX matrices[_MAX_SPT_LIGHTS];
 		UINT spotCnt;
 	};
 
 	struct LightBufferProperty
 	{	
-		DirLightProperty dirLights[MAX_DIR_LIGHTS];
+		DirLightProperty dirLights[_MAX_DIR_LIGHTS];
 		UINT dirCnt;
-		PointLightProperty pntLights[MAX_PNT_LIGHTS];
+		PointLightProperty pntLights[_MAX_PNT_LIGHTS];
 		UINT pntCnt;
-		SpotLightProperty  sptLights[MAX_SPT_LIGHTS];
+		SpotLightProperty  sptLights[_MAX_SPT_LIGHTS];
 		UINT sptCnt;
 		UINT padding;
 	};
@@ -54,46 +57,50 @@ namespace wilson
 		{
 			return m_pPointLights;
 		}
-		inline std::vector<SpotLight*>& GetSpotLights()
+		inline std::vector<SpotLight*>& GetSpotLights() 
 		{
 			return m_pSpotLights;
 		}
-		inline UINT GetDirLightSize()
+		inline UINT GetDirLightSize() const
 		{
 			return m_pDirLights.size();
 		}
-		inline UINT GetPointLightSize()
+		inline UINT GetPointLightSize() const
 		{
 			return m_pPointLights.size();
 		}
-		inline UINT GetSpotLightSize()
+		inline UINT GetSpotLightSize() const
 		{
 			return m_pSpotLights.size();
 		}
-		inline UINT GetDirLightCapacity()
+		inline UINT GetDirLightCapacity() const
 		{
-			return MAX_DIR_LIGHTS;
+			return _MAX_DIR_LIGHTS;
 		}
-		inline UINT GetPointLightCapacity()
+		inline UINT GetPointLightCapacity() const
 		{
-			return MAX_PNT_LIGHTS;
+			return _MAX_PNT_LIGHTS;
 	    }
-		inline UINT GetSpotLightCapacity()
+		inline UINT GetSpotLightCapacity() const
 		{
-			return MAX_SPT_LIGHTS;
+			return _MAX_SPT_LIGHTS;
 		}
-		inline ID3D11ShaderResourceView** GetNullSRVs()
+		inline ID3D11ShaderResourceView** GetNullSRVs() 
 		{
 			return &m_pNullSRVs[0];
 		}
-		void UpdateDirLightByIndex(ID3D11DeviceContext* pContext, UINT i);
+
 		void UpdateDirLightMatrices(ID3D11DeviceContext* pContext);
 		void UpdateSpotLightMatrices(ID3D11DeviceContext* pContext);
 		void UpdateLightBuffer(ID3D11DeviceContext* pContext);
+		
 		LightBuffer(ID3D11Device*);
 		~LightBuffer();
 	private:
-		ID3D11Buffer* m_pLightPropertyBuffer, *m_pDirLitMatricesBuffer, *m_pSpotLitMatricesBuffer;
+		ID3D11Buffer* m_pLightPropertyBuffer;
+		ID3D11Buffer* m_pDirLitMatricesBuffer;
+		ID3D11Buffer* m_pSpotLitMatricesBuffer;
+
 		std::vector< ID3D11ShaderResourceView*> m_pNullSRVs;
 		std::vector<DirectionalLight*> m_pDirLights;
 		std::vector<PointLight*>m_pPointLights;

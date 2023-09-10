@@ -32,8 +32,8 @@ namespace wilson {
 			return;
 		}
 
-		int width = m_pD3D11->GetClientWidth();
-		int height = m_pD3D11->GetClientHeight();
+		UINT width = m_pD3D11->GetClientWidth();
+		UINT height = m_pD3D11->GetClientHeight();
 
 		float ndcX = m_viewport.GetNDCX(x);
 		float ndcY = m_viewport.GetNDCY(y);

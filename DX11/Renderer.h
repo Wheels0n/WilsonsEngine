@@ -1,11 +1,11 @@
-#ifndef _RENDERER_H_
-#define _RENDERER_H_
+#pragma once
 
 #include<Windows.h>
+
 #include "D3D11.h"
 #include "ImGuiManager.h"
 
-constexpr bool g_bFull_SCREEN = false;
+constexpr bool g_bFULL_SCREEN = false;
 constexpr bool g_bVSYNC_ENABLE =false;
 constexpr float g_fSCREEN_FAR = 3000.0f;
 constexpr float g_fSCREEN_NEAR = 0.1f;
@@ -38,4 +38,3 @@ namespace wilson
 		Camera* m_pCam;
 	};
 }
-#endif

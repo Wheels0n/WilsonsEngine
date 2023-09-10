@@ -41,7 +41,7 @@ namespace wilson
 					payLoad = ImGui::AcceptDragDropPayload(g_types[i]);
 					if (payLoad != nullptr)
 					{
-						int idx;
+						int idx =m_pScene->GetEntitySize();
 						XMVECTOR pos = CalEntityPos();
 						if (i < 2)
 						{
@@ -57,9 +57,9 @@ namespace wilson
 								XMMATRIX trMat = XMMatrixTranslationFromVector(pos);
 								*pTrMat = trMat;
 							}
-							idx = m_pD3D11->GetModelGroupSize();
+							int modelIdx = m_pD3D11->GetModelGroupSize();
 							m_pD3D11->AddModelGroup(pModelGroup, m_pDevice);
-							m_pScene->AddEntity(pModelGroup,idx);
+							m_pScene->AddModelEntity(pModelGroup,idx,modelIdx);
 							break;
 						}
 						else
@@ -80,12 +80,12 @@ namespace wilson
 								pLight = new SpotLight();
 								type = "SpotLight";
 							}
-							idx = m_pD3D11->GetLightSize(pLight);
+							int lightIdx = m_pD3D11->GetLightSize(pLight);
 							DirectX::XMFLOAT3* pPos = pLight->GetPos();
 							DirectX::XMStoreFloat3(pPos, pos);
 							
 							m_pD3D11->AddLight(pLight);
-							m_pScene->AddEntity(pLight, type, idx);
+							m_pScene->AddLightEntity(pLight, type, idx, lightIdx);
 						}
 					}
 				}

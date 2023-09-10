@@ -1,9 +1,9 @@
 cbuffer MatrixBuffer
 {
-    matrix worldMatrix;
-    matrix viewMatrix;
-    matrix projectionMatrix;
-    matrix lightSpaceMat;
+    matrix g_worldMatrix;
+    matrix g_viewMatrix;
+    matrix g_projectionMatrix;
+    matrix g_lightSpaceMat;
 };
 
 struct VertexInputType
@@ -24,8 +24,8 @@ PixelInputType main(VertexInputType input)
     
     float4 pos = float4(input.position, 1.0f);
     
-    output.position = mul(pos, worldMatrix);
-    output.position = mul(output.position, lightSpaceMat);
+    output.position = mul(pos, g_worldMatrix);
+    output.position = mul(output.position, g_lightSpaceMat);
     
     output.tex = input.tex;
     

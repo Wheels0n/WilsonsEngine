@@ -1,5 +1,4 @@
-#ifndef EDITOR_H
-#define EDITOR_H
+#pragma once 
 
 #include"Scene.h"
 #include"ContentBrowser.h"
@@ -22,4 +21,3 @@ namespace wilson {
 		Settings m_settings;
 	};
 }
-#endif // !EDITOR_H

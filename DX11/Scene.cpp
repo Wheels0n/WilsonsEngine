@@ -22,19 +22,18 @@ namespace wilson
 		m_entites.shrink_to_fit();
 	}
 
-	void Scene::AddEntity(ModelGroup* pModelGroup, UINT idx)
+	void Scene::AddModelEntity(ModelGroup* pModelGroup, UINT idx,  UINT modelIdx)
 	{
 		std::string name = pModelGroup->GetName();
-		name += std::to_string(++m_entityCnt[name]);
 
-		Entity* ENTT = new Entity(name, idx, pModelGroup);
+		Entity* ENTT = new Entity(name, idx, pModelGroup, modelIdx);
 		m_entites.push_back(ENTT);
 	}
-	void Scene::AddEntity(Light* pLight, std::string type, UINT idx)
+	void Scene::AddLightEntity(Light* pLight, std::string type, UINT idx, UINT lightIdx)
 	{	
 		std::string name = type;
-		name +=std::to_string(++m_entityCnt[type]);
-		Entity* ENTT = new Entity(type, idx, pLight);
+	
+		Entity* ENTT = new Entity(type, idx, pLight, lightIdx);
 		m_entites.push_back(ENTT);
 	}
 	void Scene::Draw()
@@ -118,8 +117,9 @@ namespace wilson
 							ImGui::Separator();
 							if (ImGui::Selectable(actions))
 							{	
-								ELIGHT_TYPE type = pLight->GetType();
-								RemoveLight(idx, pLight);
+								int lightIdx = m_entites[i]->GetLightIndex();
+								eLIGHT_TYPE type = pLight->GetType();
+								RemoveLight(lightIdx, idx, pLight);
 								for (int j = i; j < m_entites.size(); ++j)
 								{
 									if (!m_entites[j]->isModel()&&
@@ -235,10 +235,10 @@ namespace wilson
 					DrawLightControl(pLight);
 					switch (pLight->GetType())
 					{
-					case ELIGHT_TYPE::PNT:
+					case eLIGHT_TYPE::PNT:
 						DrawPointLightControl(pLight);
 						break;
-					case ELIGHT_TYPE::SPT:
+					case eLIGHT_TYPE::SPT:
 						DrawSpotLightControl(pLight);
 						break;
 					}
@@ -425,13 +425,13 @@ namespace wilson
 		{
 			switch (pLight->GetType())
 			{
-			case ELIGHT_TYPE::DIR:
+			case eLIGHT_TYPE::DIR:
 				((DirectionalLight*)pLight)->UpdateViewMat();
 				break;
-			case ELIGHT_TYPE::PNT:
+			case eLIGHT_TYPE::PNT:
 				((PointLight*)pLight)->CreateShadowMatrices();
 				break;
-			case ELIGHT_TYPE::SPT:
+			case eLIGHT_TYPE::SPT:
 				((SpotLight*)pLight)->UpdateViewMat();
 			}
 			
@@ -556,9 +556,9 @@ namespace wilson
 		m_entites.erase(m_entites.begin() + i);
 		m_pSelectedEntity = nullptr;
 	}
-	void Scene::RemoveLight(int i, Light* pLight)
+	void Scene::RemoveLight(int lightIdx, int idx, Light* pLight)
 	{	
-		m_pD3D11->RemoveLight(i, pLight);
-		RemoveEntity(i);
+		m_pD3D11->RemoveLight(lightIdx, pLight);
+		RemoveEntity(idx);
 	}
 }

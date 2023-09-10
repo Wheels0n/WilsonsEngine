@@ -1,26 +1,30 @@
 #pragma once
+
 #include<unordered_map>
+
 #include"Model.h"
+
 namespace wilson
 {	
 	class ModelGroup
 	{
+
 	public:
 		void Init(ID3D11Device* pDevice);
 		void Clear();
 		void ToggleInstancing();
 		void SetNumInstance(int n);
 
-		inline int GetNumInstance()
+		inline int GetNumInstance() const 
 		{
 			return m_numOfInstances;
 		}
 
-		inline std::string GetName()
+		inline std::string GetName() const
 		{
 			return m_Name;
 		}
-		inline EFileType GetType()
+		inline eFileType GetType() const
 		{
 			return m_type;
 		}
@@ -30,19 +34,20 @@ namespace wilson
 		}
 
 		ModelGroup(std::vector<Model*> pModels, std::vector<MaterialInfo> materials, std::vector<ID3D11ShaderResourceView*> pTextures,
-			wchar_t* name, EFileType type, 
+			wchar_t* name, eFileType type, 
 			std::unordered_map<std::string, int> matHash,
 			std::unordered_map<std::string, int> texHash );
 		~ModelGroup();
 	 private:
 		std::string           m_Name;
-		EFileType             m_type;
+		eFileType             m_type;
 
 		std::vector<Model*>   m_pModels;
 		std::vector<MaterialInfo> m_materials;
 		std::vector<ID3D11ShaderResourceView*> m_texMaps;
-		std::unordered_map<std::string, int> m_matHash, m_texHash;
+		std::unordered_map<std::string, int> m_matHash;
+		std::unordered_map<std::string, int> m_texHash;
 
-		int m_numOfInstances;
+		UINT m_numOfInstances;
 	};
 }

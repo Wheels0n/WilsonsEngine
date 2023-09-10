@@ -20,44 +20,44 @@ struct PixelInputType
 
 cbuffer MatrixBuffer
 {
-    matrix worldMatrix;
-    matrix viewMatrix;
-    matrix projectionMatrix;
-    matrix lightSpaceMat;
+    matrix g_worldMatrix;
+    matrix g_viewMatrix;
+    matrix g_projectionMatrix;
+    matrix g_lightSpaceMat;
 };
 
 cbuffer PerModel
 {
-    bool isInstanced;
-    bool hasNormal;
-    bool hasSpecular;
-    bool hasAlpha;
+    bool g_isInstanced;
+    bool g_hasNormal;
+    bool g_hasSpecular;
+    bool g_hasAlpha;
 };
 
 PixelInputType main(VertexInputType input)
 {
     PixelInputType output;
     output.position = float4(input.position, 1.0f);
-    output.position = mul(output.position, worldMatrix);
+    output.position = mul(output.position, g_worldMatrix);
     output.wPosition = output.position;
    
-    output.position = mul(output.position, viewMatrix);
+    output.position = mul(output.position, g_viewMatrix);
     output.vPosition = output.position;
-    output.position = mul(output.position, projectionMatrix);
+    output.position = mul(output.position, g_projectionMatrix);
     
     output.tex = input.tex;
     
-    output.normal = mul(input.normal, (float3x3)worldMatrix);
-    output.vNormal = mul(output.normal, (float3x3) viewMatrix);
+    output.normal = mul(input.normal, (float3x3) g_worldMatrix);
+    output.vNormal = mul(output.normal, (float3x3) g_viewMatrix);
     output.vNormal = normalize(output.vNormal);
     output.normal = normalize(output.normal);
     
     output.tangent = float3(0.0f, 0.0f, 0.0f);
     output.binormal = output.tangent;
     [branch]
-    if (hasNormal)
+    if (g_hasNormal)
     {
-        output.tangent = mul(input.tangent, (float3x3) worldMatrix);
+        output.tangent = mul(input.tangent, (float3x3) g_worldMatrix);
         output.tangent = normalize(output.tangent);
         output.binormal = cross(output.normal, output.tangent);
         output.binormal = normalize(output.binormal);

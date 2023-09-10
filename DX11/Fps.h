@@ -1,5 +1,4 @@
-#ifndef FPS_H
-#define FPS_H
+#pragma once 
 
 #pragma comment(lib, "winmm.lib")
 
@@ -25,9 +24,9 @@ namespace wilson
 		~FPS() = default;
 
 	private:
-		int m_fps;
-		int m_count;
-		unsigned long m_startTime;
+		UINT m_fps;
+		UINT m_count;
+		ULONG m_startTime;
 	};
 }
-#endif // !FPS_H
+

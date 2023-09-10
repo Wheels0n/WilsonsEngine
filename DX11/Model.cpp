@@ -113,9 +113,9 @@ namespace wilson {
 		std::mt19937 rng(rd());
 		std::uniform_real_distribution floatGen (5.0f, 50.0f);
 		float x, y, z;
-		m_instancedData = new DirectX::XMMATRIX[MAX_INSTANCES];
+		m_instancedData = new DirectX::XMMATRIX[_MAX_INSTANCES];
 		
-		for (int i = 0; i < MAX_INSTANCES; ++i)
+		for (int i = 0; i < _MAX_INSTANCES; ++i)
 		{
 			x = floatGen(rng);
 			y = floatGen(rng);
@@ -125,7 +125,7 @@ namespace wilson {
 		
 		D3D11_BUFFER_DESC instancePosBD;
 		instancePosBD.Usage = D3D11_USAGE_DYNAMIC;
-		instancePosBD.ByteWidth = sizeof(DirectX::XMMATRIX) * MAX_INSTANCES;
+		instancePosBD.ByteWidth = sizeof(DirectX::XMMATRIX) * _MAX_INSTANCES;
 		instancePosBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		instancePosBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		instancePosBD.MiscFlags = 0;
@@ -137,7 +137,7 @@ namespace wilson {
 		m_pDevice->CreateBuffer(&instancePosBD, &instanceSubResource, &m_pInstancePosBuffer);
 
 	}
-	bool Model::Init(ID3D11Device* pDevice)
+	bool Model::CreateBuffer(ID3D11Device* pDevice)
 	{	
 		m_pDevice = pDevice;
 
@@ -164,6 +164,8 @@ namespace wilson {
 		{
 			return false;
 		}
+		m_pVertexBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Model::m_pVertexBuffer") - 1, "Model::m_pVertexBuffer");
 
 		indexData.pSysMem = m_pIndices;
 		indexData.SysMemPitch = 0;
@@ -181,6 +183,9 @@ namespace wilson {
 		{
 			return false;
 		}
+		m_pIndexBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Model::m_pIndexBuffer") - 1, "Model::m_pIndexBuffer");
+
 
 		materialBD.Usage = D3D11_USAGE_DYNAMIC;
 		materialBD.ByteWidth = sizeof(Material);
@@ -194,6 +199,8 @@ namespace wilson {
 		{
 			return false;
 		}
+		m_pMaterialBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Model::m_pMaterialBuffer") - 1, "Model::m_pMaterialBuffer");
 
 
 		D3D11_BUFFER_DESC perModelBD;
@@ -209,6 +216,8 @@ namespace wilson {
 		{
 			return false;
 		}
+		m_pPerModelBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Model::m_pPerModelBuffer") - 1, "Model::m_pPerModelBuffer");
 
 		return true;
 	}
@@ -235,23 +244,7 @@ namespace wilson {
 				m_textures.push_back(textures[idx]);
 				perModel.hasSpecular = true;
 			}
-			else
-			{	
-				perModel.hasSpecular = false;
-				
-				idx = texhash[matInfo.AOMap];
-				m_texHash[matInfo.AOMap] = m_textures.size();
-				m_textures.push_back(textures[idx]);
-
-				idx = texhash[matInfo.roughnessMap];
-				m_texHash[matInfo.roughnessMap] = m_textures.size();
-				m_textures.push_back(textures[idx]);
-				
-				idx = texhash[matInfo.metalnessMap];
-				m_texHash[matInfo.metalnessMap] = m_textures.size();
-				m_textures.push_back(textures[idx]);
-			}
-
+		
 			if (!matInfo.normalMap.empty())
 			{
 				idx = texhash[matInfo.normalMap];
@@ -268,11 +261,11 @@ namespace wilson {
 			}
 			m_perModels.push_back(perModel);
 		}
-		return Init(pDevice);
+		return CreateBuffer(pDevice);
 		
 	}
 
-	void Model::UploadBuffers(ID3D11DeviceContext* context, int i, bool bGeoPass)
+	void Model::UploadBuffers(ID3D11DeviceContext* pContext, int i, bool bGeoPass)
 	{	
 		HRESULT hr;
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -295,40 +288,40 @@ namespace wilson {
 			}
 
 			ID3D11Buffer* vbs[2] = { m_pVertexBuffer, m_pInstancePosBuffer };
-			context->IASetVertexBuffers(0, 2, vbs, stride, &vOffset);
+			pContext->IASetVertexBuffers(0, 2, vbs, stride, &vOffset);
 		}
 		else
 		{
-			context->IASetVertexBuffers(0, 1, &m_pVertexBuffer, stride, &vOffset);
+			pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, stride, &vOffset);
 		}
 		
-		context->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, iOffset);
+		pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, iOffset);
 		
-		int texCnt = 0;
-		int idx = m_texHash[matInfo.diffuseMap];
-		context->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
+		UINT texCnt = 0;
+		UINT idx = m_texHash[matInfo.diffuseMap];
+		pContext->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
 		if (bGeoPass)
 		{	
 			if (m_perModels[i].hasNormal)
 			{
 				idx = m_texHash[matInfo.normalMap];
-				context->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
+				pContext->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
 			}
 			if (m_perModels[i].hasSpecular)
 			{
 				idx = m_texHash[matInfo.specularMap];
-				context->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
+				pContext->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
 			}
 		
 			if (m_perModels[i].hasAlpha)
 			{
 				idx = m_texHash[matInfo.alphaMap];
-				context->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
+				pContext->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
 			}
 
 
 
-			hr = context->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			hr = pContext->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 			if (FAILED(hr))
 			{
 				return;
@@ -339,11 +332,11 @@ namespace wilson {
 			pMaterial->diffuse = matInfo.material.diffuse;
 			pMaterial->specular = matInfo.material.specular;
 			pMaterial->reflect = matInfo.material.reflect;
-			context->Unmap(m_pMaterialBuffer, 0);
-			context->PSSetConstantBuffers(0, 1, &m_pMaterialBuffer);
+			pContext->Unmap(m_pMaterialBuffer, 0);
+			pContext->PSSetConstantBuffers(0, 1, &m_pMaterialBuffer);
 
 
-			hr = context->Map(m_pPerModelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			hr = pContext->Map(m_pPerModelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 			if (FAILED(hr))
 			{
 				return;
@@ -355,9 +348,9 @@ namespace wilson {
 			pPerModel->hasNormal = m_perModels[i].hasNormal;
 			pPerModel->hasAlpha = m_perModels[i].hasAlpha;
 
-			context->Unmap(m_pPerModelBuffer, 0);
-			context->VSSetConstantBuffers(1, 1, &m_pPerModelBuffer);
-			context->PSSetConstantBuffers(1, 1, &m_pPerModelBuffer);
+			pContext->Unmap(m_pPerModelBuffer, 0);
+			pContext->VSSetConstantBuffers(1, 1, &m_pPerModelBuffer);
+			pContext->PSSetConstantBuffers(1, 1, &m_pPerModelBuffer);
 		}
 		return;
 	}

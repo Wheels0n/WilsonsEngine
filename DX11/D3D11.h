@@ -1,5 +1,4 @@
-#ifndef _D3D11_H_
-#define _D3D11_H_
+#pragma once
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -13,6 +12,7 @@
 #include <D3DX11tex.h>
 #include <Windows.h>
 #include <vector>
+
 #include "Camera.h"
 #include "Frustum.h"
 #include "MatrixBuffer.h"
@@ -21,6 +21,7 @@
 #include "Terrain.h"
 #include "Import.h"
 #include "ShadowMap.h"
+
 
 namespace wilson
 {   
@@ -33,21 +34,12 @@ namespace wilson
 	{
 		XMVECTOR coord[64];
 	};
-	constexpr UINT SHADOWMAP_SIZE = 1024;
+	constexpr UINT _SHADOWMAP_SIZE = 1024;
 	constexpr float CUBE_SIZE = 0.25;
 	constexpr UINT _GBUF_CNT = 4;
 	class D3D11
 	{
-	private:
-		bool CreateDepthBuffer(int, int,
-			ID3D11Texture2D**,
-			ID3D11DepthStencilView**);
-		bool CreateDSS();
 
-		void DrawENTT(bool bGeoPass);
-		void DestroyDSS();
-		void DestroyRTT();
-		void DestroyDSBforRTT();
 	public:
 		bool Init(int, int, bool, HWND, bool, float, float);
 		void Shutdown();
@@ -87,7 +79,7 @@ namespace wilson
 		{
 			return m_clientHeight;
 		};
-		inline UINT GetModelGroupSize()
+		inline UINT GetModelGroupSize() const
 		{
 			return m_pModelGroups.size();
 		}
@@ -109,39 +101,96 @@ namespace wilson
 		D3D11(const D3D11&) = delete;
 		~D3D11()=default;
 	private:
+		bool CreateDepthBuffer(int, int,
+			ID3D11Texture2D**,
+			ID3D11DepthStencilView**);
+		bool CreateDSS();
+
+		void DrawENTT(bool bGeoPass);
+		void DestroyDSS();
+		void DestroyRTT();
+		void DestroyDSBforRTT();
+	private:
 
 		bool m_bVsyncOn;
 		IDXGISwapChain* m_pSwapChain;
 		ID3D11Device* m_pDevice;
 		ID3D11DeviceContext* m_pContext;
 
-		ID3D11Buffer* m_pCubeVertices, *m_pQuadVB;
-		ID3D11Buffer* m_pCubeIndices, *m_pQuadIB;
-		ID3D11Buffer* m_pBoolBuffer, *m_pColorBuffer, *m_pSSAOKernelBuffer, *m_pExposureBuffer, *m_pEquirect2CubeBuffer;
+		ID3D11Buffer* m_pCubeVertices;
+		ID3D11Buffer* m_pQuadVB;
+		ID3D11Buffer* m_pCubeIndices;
+		ID3D11Buffer* m_pQuadIB;
+		ID3D11Buffer* m_pBoolBuffer; 
+		ID3D11Buffer* m_pColorBuffer; 
+		ID3D11Buffer* m_pSSAOKernelBuffer; 
+		ID3D11Buffer* m_pExposureBuffer; 
+		ID3D11Buffer* m_pEquirect2CubeBuffer;
 
-		ID3D11RenderTargetView* m_pScreenRTTV, * m_pSceneRTTV, *m_pSSAORTTV, * m_pSSAOBlurRTTV, * m_pBrightRTTV, *m_pViewportRTTV;
-		ID3D11RenderTargetView* m_pPingPongRTTV[2];
-		ID3D11RenderTargetView* m_pGbufferRTTV[_GBUF_CNT];//0:pos, 1:normal, 2:albedo, 3:specular
-		ID3D11RenderTargetView* m_pSkyBoxRTTV,* m_pDiffIrradianceRTTV;
-		ID3D11Texture2D* m_pDSBuffer, * m_pDSBufferForRTT, * m_pSceneRTT, *m_pSSAORTT, * m_pSSAOBlurRTT, *m_pBrightRTT, *m_pViewportRTT;
+		ID3D11Texture2D* m_pDSBuffer;
+		ID3D11Texture2D* m_pDSBufferForRTT;
+		ID3D11Texture2D* m_pSceneRTT;
+		ID3D11Texture2D* m_pSSAORTT;
+		ID3D11Texture2D* m_pSSAOBlurRTT;
+		ID3D11Texture2D* m_pBrightRTT;
+		ID3D11Texture2D* m_pViewportRTT;
 		ID3D11Texture2D* m_pPingPongRTT[2];
 		ID3D11Texture2D* m_pGbufferRTT[_GBUF_CNT];
 		ID3D11Texture2D* m_pNoiseRTT;
-		ID3D11Texture2D* m_pHDRRTT, *m_pSkyBoxRTT,*m_pDiffIrradianceRTT;
+		ID3D11Texture2D* m_pHDRRTT;
+		ID3D11Texture2D* m_pSkyBoxRTT;
+		ID3D11Texture2D* m_pDiffIrradianceRTT;
+		ID3D11Texture2D* m_pPrefilterRTT;
+		ID3D11Texture2D* m_pBRDFRTT;
+
+		ID3D11RenderTargetView* m_pScreenRTTV;
+		ID3D11RenderTargetView* m_pSceneRTTV; 
+		ID3D11RenderTargetView* m_pSSAORTTV;
+		ID3D11RenderTargetView* m_pSSAOBlurRTTV; 
+		ID3D11RenderTargetView* m_pBrightRTTV; 
+		ID3D11RenderTargetView* m_pViewportRTTV;
+		ID3D11RenderTargetView* m_pPingPongRTTV[2];
+		ID3D11RenderTargetView* m_pGbufferRTTV[_GBUF_CNT];//0:pos, 1:normal, 2:albedo, 3:specular
+		ID3D11RenderTargetView* m_pSkyBoxRTTV;
+		ID3D11RenderTargetView* m_pDiffIrradianceRTTV;
+		ID3D11RenderTargetView* m_pPrefilterRTTV;
+		ID3D11RenderTargetView* m_pBRDFRTTV;
+
 		ID3D11ShaderResourceView* m_pNoiseSRV;
-		ID3D11ShaderResourceView* m_pSceneSRV, *m_pSSAOSRV, *m_pSSAOBlurSRV, * m_pBrightSRV,  *m_pViewportSRV;
+		ID3D11ShaderResourceView* m_pSceneSRV;
+		ID3D11ShaderResourceView* m_pSSAOSRV;
+		ID3D11ShaderResourceView* m_pSSAOBlurSRV;
+		ID3D11ShaderResourceView* m_pBrightSRV;
+		ID3D11ShaderResourceView* m_pViewportSRV;
 		ID3D11ShaderResourceView* m_pPingPongSRV[2];
 		ID3D11ShaderResourceView* m_pGbufferSRV[_GBUF_CNT];
-		ID3D11ShaderResourceView* m_pHDRSRV, * m_pSkyBoxSRV, *m_pDiffIrradianceSRV;
+		ID3D11ShaderResourceView* m_pHDRSRV; 
+		ID3D11ShaderResourceView* m_pSkyBoxSRV; 
+		ID3D11ShaderResourceView* m_pDiffIrradianceSRV;
+		ID3D11ShaderResourceView* m_pPrefilterSRV;
+		ID3D11ShaderResourceView* m_pBRDFSRV;
 
-		ID3D11DepthStencilState* m_pOutlinerSetupDSS, * m_pOutlinerTestDSS, * m_pDrawReflectionDSS, *m_pSkyBoxDSS;
-		ID3D11DepthStencilView* m_pScreenDSV, * m_pSceneDSV;
+		ID3D11DepthStencilState* m_pOutlinerSetupDSS;
+		ID3D11DepthStencilState* m_pOutlinerTestDSS;
+		ID3D11DepthStencilState* m_pSkyBoxDSS;
 
-		ID3D11RasterizerState* m_pGeoRS, * m_pRasterStateCC, *m_pSkyBoxRS, *m_pQuadRS;
-		ID3D11SamplerState* m_pWrapSS, *m_pClampSS;
-		ID3D11BlendState* m_pGBufferWriteBS, * m_pLightingPassBS;
+		ID3D11DepthStencilView* m_pScreenDSV;
+		ID3D11DepthStencilView* m_pSceneDSV;
 
-		D3D11_VIEWPORT m_viewport, m_diffIrradViewport;
+		ID3D11RasterizerState* m_pGeoRS;
+		ID3D11RasterizerState* m_pRasterStateCC;
+		ID3D11RasterizerState* m_pSkyBoxRS;
+		ID3D11RasterizerState* m_pQuadRS;
+
+		ID3D11SamplerState* m_pWrapSS;
+		ID3D11SamplerState* m_pClampSS;
+
+		ID3D11BlendState* m_pGBufferWriteBS;
+		ID3D11BlendState* m_pLightingPassBS;
+
+		D3D11_VIEWPORT m_viewport;
+		D3D11_VIEWPORT m_diffIrradViewport;
+		D3D11_VIEWPORT m_prefilterViewport;
 
 		Importer* m_pImporter;
 		std::vector<ModelGroup*> m_pModelGroups;
@@ -155,12 +204,12 @@ namespace wilson
 
 		XMMATRIX m_idMat = XMMatrixIdentity();
 		float m_exposure;
-		int m_clientWidth;
-		int m_clientHeight;
+		UINT m_clientWidth;
+		UINT m_clientHeight;
 		int m_selectedModelGroup;
 		int m_selectedModel;
 		std::vector<XMFLOAT3> m_rotationVecs;
 		
 	};
 }
-#endif // !_D3D11_H_
+

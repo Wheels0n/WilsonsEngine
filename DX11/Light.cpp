@@ -4,6 +4,10 @@ namespace wilson
 {
 	Light::Light()
 	{
+		m_ambient = {};
+		m_diffuse = {};
+		m_specular = {};
+		m_position = {};
 		m_pLightBuffer = nullptr;
 	}
 	Light::~Light()

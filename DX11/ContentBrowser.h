@@ -1,9 +1,9 @@
-#ifndef CONTENTBROWSER_H
-#define CONTENTBROWSER_H
+#pragma once
 
-#include"../ImGui/imgui.h"
 #include<D3DX11tex.h>
 #include<filesystem>
+
+#include"../ImGui/imgui.h"
 
 namespace wilson 
 {
@@ -25,4 +25,3 @@ namespace wilson
 		ID3D11ShaderResourceView* m_pFileIcon;
 	};
 }
-#endif // !CONTENTBROWSER_H

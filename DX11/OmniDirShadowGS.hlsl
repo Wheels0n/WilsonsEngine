@@ -7,13 +7,13 @@ struct PS_INPUT
 };
 struct GS_INPUT
 {
-    float4 pos : SV_Position;
+    float4 pos : SV_POSITION;
     float2 tex : TEXTURE;
 };
 
 cbuffer cubeMap
 {
-    matrix lightViewMatrices[6];
+    matrix g_lightViewMatrices[6];
 };
 
 [maxvertexcount(18)]
@@ -30,7 +30,7 @@ void main(
         for (int v = 0; v < 3; v++)
         {   
             output.wPos = input[v].pos;
-            output.pos = mul(input[v].pos, lightViewMatrices[face]);
+            output.pos = mul(input[v].pos, g_lightViewMatrices[face]);
             output.tex = input[v].tex;
             cubeMapStream.Append(output);
         }

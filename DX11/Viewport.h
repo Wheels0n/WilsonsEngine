@@ -1,8 +1,8 @@
-#ifndef VIEWPORT_H
-#define VIEWPORT_H
+#pragma once
+
+#include <d3d11.h>
 
 #include "../ImGui/imgui.h"
-#include <d3d11.h>
 #include "Scene.h"
 #include "D3D11.h"
 #include "Import.h"
@@ -49,8 +49,8 @@ namespace wilson
 	private:
 		bool m_IsFocused;
 
-		int m_width;
-		int m_height;
+		UINT m_width;
+		UINT m_height;
 		int m_left;
 		int m_top;
 
@@ -63,5 +63,4 @@ namespace wilson
 		ID3D11Device* m_pDevice;
 	};
 }
-#endif // !VIEWPORT_H
 

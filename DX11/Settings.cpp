@@ -2,8 +2,8 @@
 #include<D3DX11tex.h>
 namespace wilson
 {	
-	const static float ICON_SZ = 16.0f;
-	const static float SPACING = 32.0f;
+	const static float _ICON_SZ = 16.0f;
+	const static float _PAD = 32.0f;
 	void Settings::Init(D3D11* pD3D11)
 	{
 		m_FPS.Init();
@@ -12,8 +12,14 @@ namespace wilson
 
 		ID3D11Device* pDevice= pD3D11->GetDevice();
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/sun-color-icon.png", nullptr, nullptr, &m_icons[0], nullptr);
+		m_icons[0]->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Importer::m_icons[0]") - 1, "Importer::m_icons[0]");
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/light-bulb-color-icon.png", nullptr, nullptr, &m_icons[1], nullptr);
+		m_icons[1]->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Importer::m_icons[1]") - 1, "Importer::m_icons[1]");
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/flashlight-icon.png", nullptr, nullptr, &m_icons[2], nullptr);
+		m_icons[2]->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Importer::m_icons[2]") - 1, "Importer::m_icons[2]");
 	}
 
 	void Settings::Draw()
@@ -78,8 +84,8 @@ namespace wilson
 
 		if (ImGui::Begin("Light"))
 		{ 
-			ImGui::Image(m_icons[0], ImVec2(ICON_SZ, ICON_SZ));
-			ImGui::SameLine(SPACING);
+			ImGui::Image(m_icons[0], ImVec2(_ICON_SZ, _ICON_SZ));
+			ImGui::SameLine(_PAD);
 			ImGui::Text("DirectionalLight");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{	
@@ -87,8 +93,8 @@ namespace wilson
 				ImGui::EndDragDropSource();
 			}
 
-			ImGui::Image(m_icons[1], ImVec2(ICON_SZ, ICON_SZ));
-			ImGui::SameLine(SPACING);
+			ImGui::Image(m_icons[1], ImVec2(_ICON_SZ, _ICON_SZ));
+			ImGui::SameLine(_PAD);
 			ImGui::Text("PointLight");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{
@@ -96,8 +102,8 @@ namespace wilson
 				ImGui::EndDragDropSource();
 			}
 
-			ImGui::Image(m_icons[2], ImVec2(ICON_SZ, ICON_SZ));
-			ImGui::SameLine(SPACING);
+			ImGui::Image(m_icons[2], ImVec2(_ICON_SZ, _ICON_SZ));
+			ImGui::SameLine(_PAD);
 			ImGui::Text("SpotLight");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{

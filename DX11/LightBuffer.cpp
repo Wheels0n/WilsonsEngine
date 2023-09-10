@@ -2,24 +2,6 @@
 
 namespace wilson
 {
-	void LightBuffer::UpdateDirLightByIndex(ID3D11DeviceContext* pContext, UINT i)
-	{
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		DirLightMatrices* pMatrices;
-		HRESULT hr = pContext->Map(m_pDirLitMatricesBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(hr))
-		{
-			return;
-		}
-		pMatrices = reinterpret_cast<DirLightMatrices*>(mappedResource.pData);
-		pMatrices->dirCnt = m_pDirLights.size();
-		for (int i = 0; i < m_pDirLights.size(); ++i)
-		{
-			pMatrices->matrices[i] = *(m_pDirLights[i]->GetLightSpaceMat());
-		}
-		pContext->Unmap(m_pDirLitMatricesBuffer, 0);
-		pContext->VSSetConstantBuffers(3, 1, &m_pDirLitMatricesBuffer);
-	}
 	void LightBuffer::UpdateDirLightMatrices(ID3D11DeviceContext* pContext)
 	{
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -93,26 +75,33 @@ namespace wilson
 		m_pDirLitMatricesBuffer = nullptr;
 		m_pSpotLitMatricesBuffer = nullptr;
 
-		D3D11_BUFFER_DESC bdc;
-		bdc.Usage = D3D11_USAGE_DYNAMIC;
-		bdc.ByteWidth = sizeof(LightBufferProperty);
-		bdc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		bdc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bdc.MiscFlags = 0;
-		bdc.StructureByteStride = 0;
-		pDevice->CreateBuffer(&bdc, 0, &m_pLightPropertyBuffer);
+		D3D11_BUFFER_DESC lighCBD;
+		lighCBD.Usage = D3D11_USAGE_DYNAMIC;
+		lighCBD.ByteWidth = sizeof(LightBufferProperty);
+		lighCBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		lighCBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		lighCBD.MiscFlags = 0;
+		lighCBD.StructureByteStride = 0;
+		pDevice->CreateBuffer(&lighCBD, 0, &m_pLightPropertyBuffer);
+		m_pLightPropertyBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("LightBuffer::m_pLightPropertyBuffer") - 1, "LightBuffer::m_pLightPropertyBuffer");
 
-		bdc.ByteWidth = sizeof(DirLightMatrices);
-		pDevice->CreateBuffer(&bdc, 0, &m_pDirLitMatricesBuffer);
 
-		bdc.ByteWidth = sizeof(SpotLightMatrices);
-		pDevice->CreateBuffer(&bdc, 0, &m_pSpotLitMatricesBuffer);
+		lighCBD.ByteWidth = sizeof(DirLightMatrices);
+		pDevice->CreateBuffer(&lighCBD, 0, &m_pDirLitMatricesBuffer);
+		m_pDirLitMatricesBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("LightBuffer::m_pDirLitMatricesBuffer") - 1, "LightBuffer::m_pDirLitMatricesBuffer");
 
-		m_pDirLights.reserve(MAX_DIR_LIGHTS);
-		m_pPointLights.reserve(MAX_PNT_LIGHTS);
-		m_pSpotLights.reserve(MAX_SPT_LIGHTS);
+		lighCBD.ByteWidth = sizeof(SpotLightMatrices);
+		pDevice->CreateBuffer(&lighCBD, 0, &m_pSpotLitMatricesBuffer);
+		m_pSpotLitMatricesBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("LightBuffer::m_pSpotLitMatricesBuffer") - 1, "LightBuffer::m_pSpotLitMatricesBuffer");
 
-		m_pNullSRVs.resize(MAX_DIR_LIGHTS + MAX_PNT_LIGHTS + MAX_SPT_LIGHTS+4, nullptr);
+		m_pDirLights.reserve(_MAX_DIR_LIGHTS);
+		m_pPointLights.reserve(_MAX_PNT_LIGHTS);
+		m_pSpotLights.reserve(_MAX_SPT_LIGHTS);
+
+		m_pNullSRVs.resize(_MAX_DIR_LIGHTS + _MAX_PNT_LIGHTS + _MAX_SPT_LIGHTS+4, nullptr);
 	
 
 	}

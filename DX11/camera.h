@@ -1,40 +1,40 @@
-#ifndef CAM_CAMERA_H
-#define CAM_CAMERA_H
-#define RAD 6.28319
+#pragma once
 
 #include<DirectXMath.h>
 #include<d3d11.h>
 
 namespace wilson {
 
+	constexpr float _RAD = 6.28319;
+
 	struct CamBuffer
 	{
-		DirectX::XMVECTOR m_camPos;
+		DirectX::XMVECTOR camPos;
 	};
 
 	class Camera
 	{
 	public:
 
-		void Init(ID3D11Device* device);
+		bool Init(ID3D11Device* pDevice);
 		void Update();
-		void SetCamPos(ID3D11DeviceContext* context);
+		bool SetCamPos(ID3D11DeviceContext* pContext);
 		void ResetTranslation();
 		inline void ResetRotation()
 		{
 			m_rotation = DirectX::XMVectorZero();
 		}
 
-		inline void SetENTTsInFrustum(int cnt)
+		inline void SetENTTsInFrustum(UINT cnt)
 		{
 			m_ENTTsInFrustum = cnt;
 		}
-		inline int GetENTTsInFrustum()
+		inline int GetENTTsInFrustum() const
 		{
 			return m_ENTTsInFrustum;
 		}
 
-		inline DirectX::XMVECTOR* GetPosition()
+		inline DirectX::XMVECTOR* GetPosition() 
 		{
 			return &m_pos;
 		}
@@ -71,7 +71,7 @@ namespace wilson {
 		void Rotate(int, int);
 		void Translate(DirectX::XMVECTOR);
 
-		Camera(int screenWidth, int screenHeight, float ScreenFar, float ScreenNear);
+		Camera(const UINT screenWidth, const UINT screenHeight, float ScreenFar, float ScreenNear);
 		~Camera();
 	private:
 
@@ -85,17 +85,17 @@ namespace wilson {
 
 		ID3D11Buffer* m_pCamPosBuffer;
 
-		int m_ENTTsInFrustum;
+		UINT m_ENTTsInFrustum;
 
 		float m_fFOV;
 		float m_fScreenRatio;
 		float m_fScreenNear;
 		float m_fScreenFar;
 
-		float m_trSpeed = 0.1f;
-		float m_rtSpeed = 0.0175f;
+		float m_trSpeed;
+		float m_rtSpeed;
 
 	};
 
 }
-#endif 
+

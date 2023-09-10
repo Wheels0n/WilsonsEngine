@@ -1,7 +1,7 @@
-Texture2D diffuseMap;
-Texture2D normalMap;
-Texture2D specularMap;
-SamplerState g_defaultSampler : register(s0);
+Texture2D g_diffuseMap;
+Texture2D g_normalMap;
+Texture2D g_specularMap;
+SamplerState g_sampler : register(s0);
 struct PixelInputType
 {
     float4 position : SV_POSITION;
@@ -27,44 +27,40 @@ struct Material
 };
 cbuffer cbMaterial
 {
-    Material gMaterial;
+    Material g_Material;
 };
 cbuffer PerModel
 {
-    bool isInstanced;
-    bool hasNormal;
-    bool hasSpecular;
-    bool hasAlpha;
+    bool g_isInstanced;
+    bool g_hasNormal;
+    bool g_hasSpecular;
+    bool g_hasAlpha;
 };
 PixelOutputType main(PixelInputType input)
 {   
     PixelOutputType output;
    
-    output.albeldo = diffuseMap.Sample(g_defaultSampler, input.tex);
+    output.albeldo = g_diffuseMap.Sample(g_sampler, input.tex);
     clip(output.albeldo.a - 0.1f);
     output.position = input.wPosition;
     
     float3 normal = normalize(input.normal);
     [branch]
-    if(hasNormal)
+    if(g_hasNormal)
     {
     
         float3 tangent = normalize(input.tangent);
         float3 binormal = normalize(input.binormal);
         float3x3 TBN = float3x3(tangent, binormal, normal);
-        normal = normalMap.Sample(g_defaultSampler, input.tex);
+        normal = g_normalMap.Sample(g_sampler, input.tex);
         normal = normal * 2.0 - 1.0;
         normal = mul(normal, TBN);
         normal = normalize(normal);
     }
     output.normal = float4(normal, 1.0f);
    
-    output.specular.rgb = specularMap.SampleLevel(g_defaultSampler, input.tex,1);
+    output.specular.rgb = g_specularMap.SampleLevel(g_sampler, input.tex,1);
     output.specular.a = 1.0f;
-
-    
-    
-    
     
     return output;
 }

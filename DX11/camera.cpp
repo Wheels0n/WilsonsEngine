@@ -1,12 +1,14 @@
 #include "Camera.h"
 
 namespace wilson {
-	Camera::Camera(int screenWidth, int screenHeight, float screenFar, float screenNear)
+	Camera::Camera(const UINT screenWidth, const UINT screenHeight, float screenFar, float screenNear)
 	{
 		m_fScreenNear = screenNear;
 		m_fScreenFar = screenFar;
 		m_fFOV = static_cast<float>(3.1459) / 4.0f;
 		m_fScreenRatio = screenWidth / static_cast<float>(screenHeight);
+		m_trSpeed = 0.1f;
+		m_rtSpeed = 0.0175f;
 
 		ResetTranslation();
 		ResetRotation();
@@ -44,14 +46,14 @@ namespace wilson {
 
 		if (pitch < 0.0f)
 		{
-			pitch += RAD;
+			pitch += _RAD;
 		}
 		if (yaw < 0.0f)
 		{
-			yaw += RAD;
+			yaw += _RAD;
 		}
-		pitch = pitch > RAD ? 0 : pitch;
-		yaw = yaw > RAD ? 0 : yaw;
+		pitch = pitch > _RAD ? 0 : pitch;
+		yaw = yaw > _RAD ? 0 : yaw;
 
 		m_rotation = DirectX::XMVectorSet(pitch, yaw, 0.0f, 0.0f);
 	}
@@ -65,16 +67,23 @@ namespace wilson {
 		m_pos = DirectX::XMVectorAdd(m_pos, dv);
 	}
 
-	void Camera::Init(ID3D11Device* pDevice)
+	bool Camera::Init(ID3D11Device* pDevice)
 	{
-		D3D11_BUFFER_DESC camCBD;
+		D3D11_BUFFER_DESC camCBD = {};
 		camCBD.Usage = D3D11_USAGE_DYNAMIC;
 		camCBD.ByteWidth = sizeof(CamBuffer);
 		camCBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		camCBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		camCBD.MiscFlags = 0;
 		camCBD.StructureByteStride = 0;
-		pDevice->CreateBuffer(&camCBD, nullptr, &m_pCamPosBuffer);
+		HRESULT hr = pDevice->CreateBuffer(&camCBD, nullptr, &m_pCamPosBuffer);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pCamPosBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Camera::m_pCamPosBuffer") - 1, "Camera::m_pCamPosBuffer");
+		return true;
 	}
 
 	void Camera::Update()
@@ -83,23 +92,28 @@ namespace wilson {
 		m_target = DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rtMat);
 		m_target = DirectX::XMVectorAdd(m_target, m_pos);
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
-		//m_vUp = XMVector3Transform(m_vUp, rt); no roll
 
 		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
 	}
 
-	void Camera::SetCamPos(ID3D11DeviceContext* pContext)
+	bool Camera::SetCamPos(ID3D11DeviceContext* pContext)
 	{
+		HRESULT hr;
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		CamBuffer* pCamBuffer;
 
-		pContext->Map(m_pCamPosBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		hr = pContext->Map(m_pCamPosBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
 		pCamBuffer = reinterpret_cast<CamBuffer*>(mappedResource.pData);
-		pCamBuffer->m_camPos = m_pos;
+		pCamBuffer->camPos = m_pos;
 		pContext->Unmap(m_pCamPosBuffer, 0);
 		pContext->PSSetConstantBuffers(0, 1, &m_pCamPosBuffer);
 
-		return;
+		return true;
 	}
 
 }

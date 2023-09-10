@@ -1,5 +1,7 @@
 #pragma once
+
 #include"Light.h"
+
 namespace wilson
 {	
 	struct DirLightProperty
@@ -33,9 +35,10 @@ namespace wilson
 		{
 			return &m_dirLightProperty;
 		}
+		
 		bool Init(ID3D11Device*);
 		void UpdateProperty();
-		ELIGHT_TYPE GetType() { return ELIGHT_TYPE::DIR; };
+		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::DIR; };
 
 		DirectionalLight()=default;
 		DirectionalLight(const DirectionalLight&) = default;

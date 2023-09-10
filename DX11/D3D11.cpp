@@ -30,7 +30,6 @@ namespace wilson
 		m_pDSBufferForRTT = nullptr;
 		m_pOutlinerSetupDSS = nullptr;
 		m_pOutlinerTestDSS = nullptr;
-		m_pDrawReflectionDSS = nullptr;
 
 		m_pSSAORTT = nullptr;
 		m_pSSAORTTV = nullptr;
@@ -56,6 +55,14 @@ namespace wilson
 		m_pDiffIrradianceRTTV = nullptr;
 		m_pDiffIrradianceSRV = nullptr;
 
+		m_pPrefilterRTT = nullptr;
+		m_pPrefilterRTTV = nullptr;
+		m_pPrefilterSRV = nullptr;
+
+		m_pBRDFRTT = nullptr;
+		m_pBRDFRTTV = nullptr;
+		m_pBRDFSRV = nullptr;
+
 		m_pScreenDSV = nullptr;
 		m_pSceneDSV = nullptr;
 		for (int i = 0; i < 2; ++i)
@@ -76,6 +83,9 @@ namespace wilson
 		m_pHDRRTT = nullptr;
 		m_pHDRSRV = nullptr;
 
+		m_viewport = {};
+		m_prefilterViewport = {};
+		m_diffIrradViewport = {};
 
 		m_pQuadRS = nullptr;
 		m_pGeoRS = nullptr;
@@ -96,8 +106,16 @@ namespace wilson
 		m_pShader = nullptr;
 		m_pShadowMap = nullptr;
 
+		m_clientWidth = 0;
+		m_clientHeight = 0;
+		
 		m_selectedModelGroup = -1;
 		m_selectedModel = -1;
+
+		m_bVsyncOn = false;
+
+		m_exposure = 1.0f;
+
 	}
 
 	bool D3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
@@ -108,17 +126,17 @@ namespace wilson
 		IDXGIFactory* pFactory;
 		IDXGIAdapter* pAdapter;
 		IDXGIOutput* pAdapterOutput;
-		unsigned int numModes, i, numerator, denominator;
-		size_t strLen;
-		DXGI_MODE_DESC* pDisplayModeList;
-		DXGI_ADAPTER_DESC adapterDesc;
-		int iError;
-		DXGI_SWAP_CHAIN_DESC swapChainDesc;
-		D3D_FEATURE_LEVEL featureLevel;
-		ID3D11Texture2D* pBackbuffer;
-		D3D11_RASTERIZER_DESC rasterDesc;
-		D3D11_RENDER_TARGET_BLEND_DESC rtBlendDSC;
-		float fFOV, fScreenAspect;
+		UINT numModes=0, i=0, numerator=0, denominator=0;
+		size_t strLen=0;
+		DXGI_MODE_DESC* pDisplayModeList = {};
+		DXGI_ADAPTER_DESC adapterDesc = {};
+		int iError=0;
+		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+		D3D_FEATURE_LEVEL featureLevel = {};
+		ID3D11Texture2D* pBackbuffer = {};
+		D3D11_RASTERIZER_DESC rasterDesc = {};
+		D3D11_RENDER_TARGET_BLEND_DESC rtBlendDSC = {};
+		float fFOV=0.0f, fScreenAspect=0.0f;
 		m_bVsyncOn = bVsync;
 
 		hr = CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&pFactory));
@@ -126,6 +144,8 @@ namespace wilson
 		{
 			return false;
 		}
+		pFactory->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::pFactory") - 1, "D3D11::pFactory");
 
 		//Enumerates video cards
 		hr = pFactory->EnumAdapters(0, &pAdapter);
@@ -133,6 +153,8 @@ namespace wilson
 		{
 			return false;
 		}
+		pAdapter->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::pAdapter") - 1, "D3D11::pAdapter");
 
 		//Enumerates outputs(ex:monitor)
 		hr = pAdapter->EnumOutputs(0, &pAdapterOutput);
@@ -231,18 +253,32 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pDevice->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pDevice") - 1, "D3D11::m_pDevice");
+		m_pContext->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pContext") - 1, "D3D11::m_pContext");
+		m_pSwapChain->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSwapChain") - 1, "D3D11::m_pSwapChain");
+
+
+
 
 		hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackbuffer));
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		pBackbuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::pBackbuffer") - 1, "D3D11::pBackbuffer");
 
 		hr = m_pDevice->CreateRenderTargetView(pBackbuffer, nullptr, &m_pScreenRTTV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pScreenRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pScreenRTTV") - 1, "D3D11::m_pScreenRTTV");
+
 
 		pBackbuffer->Release();
 		pBackbuffer = nullptr;
@@ -283,6 +319,9 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pQuadVB->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pQuadVB") - 1, "D3D11::m_pQuadVB");
+
 
 			unsigned long indices[6] = { 0,1,2, 2,3,0 };
 			D3D11_SUBRESOURCE_DATA indexData;
@@ -300,6 +339,9 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pQuadIB->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pQuadIB") - 1, "D3D11::m_pQuadIB");
+
 		}
 		//Gen Cube Buffer
 		{	
@@ -333,6 +375,9 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pCubeVertices->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pCubeVertices") - 1, "D3D11::m_pCubeVertices");
+
 			//시계방향 감은 면이  frontface
 			unsigned long indices[] = {
 	   //front
@@ -374,6 +419,9 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pCubeIndices->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pCubeIndices") - 1, "D3D11::m_pCubeIndices");
+
 
 			D3D11_DEPTH_STENCIL_DESC skyboxDSD;
 			ZeroMemory(&skyboxDSD, sizeof(D3D11_DEPTH_STENCIL_DESC));
@@ -383,6 +431,9 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pSkyBoxDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pSkyBoxDSS") - 1, "D3D11::m_pSkyBoxDSS");
+
 
 			D3D11_RASTERIZER_DESC skyboxRD;
 			ZeroMemory(&skyboxRD, sizeof(D3D11_RASTERIZER_DESC));
@@ -393,6 +444,8 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pSkyBoxRS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pSkyBoxRS") - 1, "D3D11::m_pSkyBoxRS");
 
 		}
 
@@ -432,6 +485,8 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pGeoRS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pGeoRS") - 1, "D3D11::m_pGeoRS");
 
 		rasterDesc.FrontCounterClockwise = false;
 		hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pQuadRS);
@@ -439,6 +494,8 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pQuadRS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pQuadRS") - 1, "D3D11::m_pQuadRS");
 		
 		m_viewport.Width = static_cast<float>(screenWidth);
 		m_viewport.Height = static_cast<float>(screenHeight);
@@ -451,6 +508,10 @@ namespace wilson
 		m_diffIrradViewport.Width = 32;
 		m_diffIrradViewport.Height = 32;
 
+		m_prefilterViewport = m_viewport;
+		m_prefilterViewport.Width = 128;
+		m_prefilterViewport.Height = 128;
+
 		D3D11_SAMPLER_DESC samplerDesc = {};
 		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -462,6 +523,8 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pWrapSS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pWrapSS") - 1, "D3D11::m_pWrapSS");
 
 		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -471,7 +534,8 @@ namespace wilson
 		{
 			return false;
 		}
-
+		m_pClampSS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pClampSS") - 1, "D3D11::m_pClampSS");
 
 		rtBlendDSC.BlendEnable = TRUE;
 		rtBlendDSC.SrcBlend = D3D11_BLEND_ONE;
@@ -488,6 +552,9 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pGBufferWriteBS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pGBufferWriteBS") - 1, "D3D11::m_pGBufferWriteBS");
+
 
 		rtBlendDSC.SrcBlend = D3D11_BLEND_SRC_ALPHA;
 		blendDSC.RenderTarget[0] = rtBlendDSC;
@@ -496,27 +563,28 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pLightingPassBS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pLightingPassBS") - 1, "D3D11::m_pLightingPassBS");
+
 		
 		//Set projectionMatrix, viewMatrix;
-		m_pTerrain = new Terrain;
-		m_pTerrain->Init(m_pDevice, 100, 100);
 		m_pCam = new Camera(screenWidth, screenHeight, fScreenFar, fScreenNear);
 		m_pCam->Init(m_pDevice);
 		m_pCam->SetCamPos(m_pContext);
 		XMMATRIX* m_projMat = m_pCam->GetProjectionMatrix();
 		XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
 		m_pFrustum = new Frustum();
-		m_pFrustum->Construct(100.0f, m_pCam);
+		m_pFrustum->Init(100.0f, m_pCam);
 		m_pMatBuffer = new MatBuffer(m_pDevice, m_pContext, m_viewMat, m_projMat);
-		m_pMatBuffer->Init();
+		m_pMatBuffer->Init(m_pDevice);
 
 		m_pLightBuffer = new LightBuffer(m_pDevice);
 
-		m_pShader = new Shader(m_pDevice, m_pContext);
-		m_pShader->Init();
+		m_pShader = new Shader();
+		m_pShader->Init(m_pDevice, m_pContext);
 
 		m_pShadowMap = new ShadowMap();
-		m_pShadowMap->Init(m_pDevice, SHADOWMAP_SIZE, SHADOWMAP_SIZE,
+		m_pShadowMap->Init(m_pDevice, _SHADOWMAP_SIZE, _SHADOWMAP_SIZE,
 			m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
 		{
 			D3D11_BUFFER_DESC bds = { 0, };
@@ -529,6 +597,9 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pBoolBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pBoolBuffer") - 1, "D3D11::m_pBoolBuffer");
+
 
 			bds.ByteWidth = sizeof(XMVECTOR);
 			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pColorBuffer);
@@ -536,6 +607,8 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pColorBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pColorBuffer") - 1, "D3D11::m_pColorBuffer");
 			
 			bds.ByteWidth = sizeof(SamplePoints);
 			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pSSAOKernelBuffer);
@@ -543,6 +616,8 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pSSAOKernelBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pSSAOKernelBuffer") - 1, "D3D11::m_pSSAOKernelBuffer");
 
 			bds.ByteWidth = sizeof(XMFLOAT4);
 			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pExposureBuffer);
@@ -550,6 +625,8 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pExposureBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pExposureBuffer") - 1, "D3D11::m_pExposureBuffer");
 
 			bds.ByteWidth = sizeof(XMMATRIX)*6;
 			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pEquirect2CubeBuffer);
@@ -557,6 +634,8 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pEquirect2CubeBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pEquirect2CubeBuffer") - 1, "D3D11::m_pEquirect2CubeBuffer");
 		}
 	
 		//Gen Equirectangular map
@@ -589,6 +668,8 @@ namespace wilson
 				{
 					return false;
 				}
+				m_pHDRRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pHDRRTT") - 1, "D3D11::m_pHDRRTT");
 
 
 				D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -601,6 +682,8 @@ namespace wilson
 				{
 					return false;
 				}
+				m_pHDRSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pHDRSRV") - 1, "D3D11::m_pHDRSRV");
 
 
 				//Covenrt EquirectangularMap to CubeMap
@@ -635,8 +718,8 @@ namespace wilson
 
 				
 				stride = sizeof(XMFLOAT3);
-				m_pShader->SetPosOnlyInputLayout();
-				m_pShader->SetEquirect2CubeShader();
+				m_pShader->SetPosOnlyInputLayout(m_pContext);
+				m_pShader->SetEquirect2CubeShader(m_pContext);
 				m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				m_pContext->IASetVertexBuffers(0, 1, &m_pCubeVertices, &stride, &offset);
 				m_pContext->IASetIndexBuffer(m_pCubeIndices, DXGI_FORMAT_R32_UINT, 0);
@@ -648,12 +731,29 @@ namespace wilson
 				m_pContext->OMSetRenderTargets(1, &m_pSkyBoxRTTV, nullptr);
 				m_pContext->DrawIndexed(36, 0, 0);
 				//Gen Diffuse IrradianceMap
-				m_pShader->SetDiffuseIrradianceShader();
+				m_pShader->SetDiffuseIrradianceShader(m_pContext);
 				m_pContext->OMSetRenderTargets(1, &m_pDiffIrradianceRTTV, nullptr);
 				m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
 				m_pContext->PSSetSamplers(0, 1, &m_pClampSS);
 				m_pContext->RSSetViewports(1, &m_diffIrradViewport);
 				m_pContext->DrawIndexed(36, 0, 0);
+				//Gen PrefileterMap;
+				m_pShader->SetPrefilterShader(m_pContext);
+				m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
+				m_pContext->RSSetViewports(1, &m_prefilterViewport);
+				m_pContext->OMSetRenderTargets(1, &m_pPrefilterRTTV, nullptr);
+				m_pContext->DrawIndexed(36, 0, 0);
+				m_pContext->GenerateMips(m_pPrefilterSRV);
+				//Gen BRDFMap
+				m_pShader->SetTexInputlayout(m_pContext);
+				m_pShader->SetBRDFShader(m_pContext);
+				stride = sizeof(QUAD);
+				m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
+				m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
+				m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
+				m_pContext->PSSetSamplers(0, 1, &m_pClampSS);
+				m_pContext->OMSetRenderTargets(1, &m_pBRDFRTTV, nullptr);
+				m_pContext->DrawIndexed(6, 0, 0);
 			}
 		
 		}
@@ -909,6 +1009,7 @@ namespace wilson
 		//clear views
 		HRESULT hr;
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
+		UINT texCnt = _GBUF_CNT;
 		UINT stride;
 		UINT offset = 0;
 		int drawed = 0;
@@ -940,8 +1041,8 @@ namespace wilson
 			m_pContext->RSSetState(m_pQuadRS);
 			m_pContext->OMSetDepthStencilState(0, 0);
 			
-			m_pShader->SetTexInputlayout();
-			m_pShader->SetShadowShader();
+			m_pShader->SetTexInputlayout(m_pContext);
+			m_pShader->SetShadowShader(m_pContext);
 			
 			for (int i = 0; i < dirLights.size(); ++i)
 			{	
@@ -958,7 +1059,7 @@ namespace wilson
 
 
 			m_pContext->RSSetState(m_pSkyBoxRS);
-			m_pShader->SetOmniDirShadowShader();
+			m_pShader->SetOmniDirShadowShader(m_pContext);
 			for (int i = 0; i < pointLights.size(); ++i)
 			{
 				m_pShadowMap->BindCubeDSV(m_pContext, i);
@@ -973,8 +1074,8 @@ namespace wilson
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);	
 		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-		m_pMatBuffer->Update();
-		m_pShader->SetSkyBoxShader();
+		m_pMatBuffer->Update(m_pContext);
+		m_pShader->SetSkyBoxShader(m_pContext);
 		m_pContext->IASetVertexBuffers(0, 1, &m_pCubeVertices, &stride, &offset);
 		m_pContext->IASetIndexBuffer(m_pCubeIndices, DXGI_FORMAT_R32_UINT, 0);
 		m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
@@ -987,8 +1088,8 @@ namespace wilson
 		//Deferred Shading First Pass
 		if (!m_pModelGroups.empty())
 		{
-			m_pShader->SetDeferredGeoLayout();
-			m_pShader->SetPBRDeferredGeoShader();
+			m_pShader->SetDeferredGeoLayout(m_pContext);
+			m_pShader->SetPBRDeferredGeoShader(m_pContext);
 			m_pContext->OMSetDepthStencilState(0, 0);
 			m_pContext->RSSetState(m_pQuadRS);
 			m_pContext->OMSetBlendState(m_pGBufferWriteBS, color, 0xffffffff);
@@ -996,8 +1097,8 @@ namespace wilson
 			DrawENTT(!bGeoPass);
 
 			// PBR FBX들은 대부분 AO 맵이 달려온다.
-			m_pShader->SetTexInputlayout();
-			m_pShader->SetPBRDeferredLightingShader();
+			m_pShader->SetTexInputlayout(m_pContext);
+			m_pShader->SetPBRDeferredLightingShader(m_pContext);
 			m_pLightBuffer->UpdateDirLightMatrices(m_pContext);
 			m_pLightBuffer->UpdateSpotLightMatrices(m_pContext);
 			m_pLightBuffer->UpdateLightBuffer(m_pContext);
@@ -1009,8 +1110,10 @@ namespace wilson
 			m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, nullptr);
 			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
 			m_pContext->PSSetShaderResources(0, _GBUF_CNT, m_pGbufferSRV);
-			m_pContext->PSSetShaderResources(_GBUF_CNT, 1, &m_pDiffIrradianceSRV);
-			m_pContext->PSSetShaderResources(_GBUF_CNT+1,  1, m_pShadowMap->GetDirSRV());
+			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pDiffIrradianceSRV);
+			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pPrefilterSRV);
+			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pBRDFSRV);
+			m_pContext->PSSetShaderResources(texCnt++,  1, m_pShadowMap->GetDirSRV());
 			//m_pContext->PSSetShaderResources(_GBUF_CNT +1 +dirLights.capacity(), spotLights.capacity(), m_pShadowMap->GetSpotSRV());
 			//m_pContext->PSSetShaderResources(_GBUF_CNT +1+dirLights.capacity() + spotLights.capacity(), pointLights.capacity(), m_pShadowMap->GetCubeSRV());
 			m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetCubeShadowSampler());
@@ -1020,15 +1123,15 @@ namespace wilson
 		}
 		
 		//Draw picked Model's Outline
-		m_pShader->SetTexInputlayout();
-		m_pShader->SetOutlinerShader();
+		m_pShader->SetTexInputlayout(m_pContext);
+		m_pShader->SetOutlinerShader(m_pContext);
 		m_pContext->OMSetDepthStencilState(m_pOutlinerTestDSS, 1);
 		if (m_selectedModelGroup != -1)
 		{
 			std::vector<Model*> pModels = m_pModelGroups[m_selectedModelGroup]->GetModels();
 			XMMATRIX worldMat = pModels[m_selectedModel]->GetTransformMatrix(true);
 			m_pMatBuffer->SetWorldMatrix(&worldMat);
-			m_pMatBuffer->Update();
+			m_pMatBuffer->Update(m_pContext);
 
 			for (int k = 0; k < pModels[m_selectedModel]->GetMatCount(); ++k)
 			{
@@ -1040,8 +1143,8 @@ namespace wilson
 		stride = sizeof(QUAD);
 		m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
 		m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
-		m_pShader->SetTexInputlayout();
-		m_pShader->SetFinalShader();
+		m_pShader->SetTexInputlayout(m_pContext);
+		m_pShader->SetFinalShader(m_pContext);
 		m_pContext->RSSetState(m_pQuadRS);
 		m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
 		{	
@@ -1090,13 +1193,13 @@ namespace wilson
 		pLight->Init(m_pDevice);
 		switch (pLight->GetType())
 		{
-		case ELIGHT_TYPE::DIR:
+		case eLIGHT_TYPE::DIR:
 			m_pLightBuffer->PushDirLight((DirectionalLight*)pLight);
 			break;
-		case ELIGHT_TYPE::PNT:
+		case eLIGHT_TYPE::PNT:
 			m_pLightBuffer->PushPointLight((PointLight*)pLight);
 			break;
-		case ELIGHT_TYPE::SPT:
+		case eLIGHT_TYPE::SPT:
 			m_pLightBuffer->PushSpotLight((SpotLight*)pLight);
 		}
 	}
@@ -1117,15 +1220,15 @@ namespace wilson
 		std::vector<SpotLight*>& pSpotLights = m_pLightBuffer->GetSpotLights();
 		switch (pLight->GetType())
 		{
-		case ELIGHT_TYPE::DIR:
+		case eLIGHT_TYPE::DIR:
 			delete pDirLights[i];
 			pDirLights.erase(pDirLights.begin() + i);
 			break;
-		case ELIGHT_TYPE::PNT:
+		case eLIGHT_TYPE::PNT:
 			delete pPointLights[i];
 			pPointLights.erase(pPointLights.begin() + i);
 			break;
-		case ELIGHT_TYPE::SPT:
+		case eLIGHT_TYPE::SPT:
 			delete pSpotLights[i];
 			pSpotLights.erase(pSpotLights.begin() + i);
 			break;
@@ -1142,13 +1245,13 @@ namespace wilson
 		UINT size=0;
 		switch (pLight->GetType())
 		{
-		case ELIGHT_TYPE::DIR:
+		case eLIGHT_TYPE::DIR:
 			size = m_pLightBuffer->GetDirLightSize();
 			break;
-		case ELIGHT_TYPE::PNT:
+		case eLIGHT_TYPE::PNT:
 			size = m_pLightBuffer->GetPointLightSize();
 			break;
-		case ELIGHT_TYPE::SPT:
+		case eLIGHT_TYPE::SPT:
 			size = m_pLightBuffer->GetSpotLightSize();
 		}
 		return size;
@@ -1181,21 +1284,25 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pViewportRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pViewportRTT") - 1, "D3D11::m_pViewportRTT");
+
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSceneRTT);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pSceneRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSceneRTT") - 1, "D3D11::m_pSceneRTT");
+
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pBrightRTT);
 		if (FAILED(hr))
 		{
 			return false;
 		}
-		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pHDRRTT);
-		if (FAILED(hr))
-		{
-			return false;
-		}
+		m_pBrightRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pBrightRTT") - 1, "D3D11::m_pBrightRTT");
+
 
 		for (int i = 0; i < 2; ++i)
 		{
@@ -1204,6 +1311,8 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pPingPongRTT[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pPingPongRTT[i]") - 1, "D3D11::m_pPingPongRTT[i]");
 		}
 		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
@@ -1212,6 +1321,8 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pGbufferRTT[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pGbufferRTT[i]") - 1, "D3D11::m_pGbufferRTT[i]");
 		}
 
 
@@ -1224,16 +1335,27 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pViewportRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pViewportRTTV") - 1, "D3D11::m_pViewportRTTV");
+
+
 		hr = m_pDevice->CreateRenderTargetView(m_pSceneRTT, &RTTVDesc, &m_pSceneRTTV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pSceneRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSceneRTTV") - 1, "D3D11::m_pSceneRTTV");
+
+
 		hr = m_pDevice->CreateRenderTargetView(m_pBrightRTT, &RTTVDesc, &m_pBrightRTTV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pBrightRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pBrightRTTV") - 1, "D3D11::m_pBrightRTTV");
+
 	
 		for (int i = 0; i < 2; ++i)
 		{
@@ -1242,6 +1364,8 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pPingPongRTTV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pPingPongRTTV[i]") - 1, "D3D11::m_pPingPongRTTV[i]");
 		}
 		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
@@ -1250,6 +1374,8 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pGbufferRTTV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pGbufferRTTV[i]") - 1, "D3D11::m_pGbufferRTTV[i]");
 		}
 
 
@@ -1263,16 +1389,27 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pViewportSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pViewportSRV") - 1, "D3D11::m_pViewportSRV");
+
+
 		hr = m_pDevice->CreateShaderResourceView(m_pSceneRTT, &SRVDesc, &m_pSceneSRV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pSceneSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSceneSRV") - 1, "D3D11::m_pSceneSRV");
+
+
 		hr = m_pDevice->CreateShaderResourceView(m_pBrightRTT, &SRVDesc, &m_pBrightSRV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pBrightSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pBrightSRV") - 1, "D3D11::m_pBrightSRV");
+
 
 		for (int i = 0; i < 2; ++i)
 		{
@@ -1281,6 +1418,8 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pPingPongSRV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pPingPongSRV[i]") - 1, "D3D11::m_pPingPongSRV[i]");
 		}
 		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
@@ -1289,6 +1428,8 @@ namespace wilson
 			{
 				return false;
 			}
+			m_pGbufferSRV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pGbufferSRV[i]") - 1, "D3D11::m_pGbufferSRV[i]");
 		}
 
 		RTTDesc.Format = DXGI_FORMAT_R32_FLOAT;
@@ -1297,37 +1438,68 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pSSAORTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSSAORTT") - 1, "D3D11::m_pSSAORTT");
+
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSSAOBlurRTT);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pSSAOBlurRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSSAOBlurRTT") - 1, "D3D11::m_pSSAOBlurRTT");
+
+
 		RTTVDesc.Format = RTTDesc.Format;
 		hr = m_pDevice->CreateRenderTargetView(m_pSSAORTT, &RTTVDesc, &m_pSSAORTTV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pSSAORTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSSAORTTV") - 1, "D3D11::m_pSSAORTTV");
+
+
 		hr = m_pDevice->CreateRenderTargetView(m_pSSAOBlurRTT, &RTTVDesc, &m_pSSAOBlurRTTV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pSSAOBlurRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSSAOBlurRTTV") - 1, "D3D11::m_pSSAOBlurRTTV");
+
+
 		SRVDesc.Format = RTTVDesc.Format;
 		hr = m_pDevice->CreateShaderResourceView(m_pSSAORTT, &SRVDesc, &m_pSSAOSRV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pSSAOSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSSAOSRV") - 1, "D3D11::m_pSSAOSRV");
+
 		hr = m_pDevice->CreateShaderResourceView(m_pSSAOBlurRTT, &SRVDesc, &m_pSSAOBlurSRV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pSSAOBlurSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSSAOBlurSRV") - 1, "D3D11::m_pSSAOBlurSRV");
+
 		
 
-		RTTDesc.Width = SHADOWMAP_SIZE;
-		RTTDesc.Height = SHADOWMAP_SIZE;
+		RTTDesc.Width = _SHADOWMAP_SIZE;
+		RTTDesc.Height = _SHADOWMAP_SIZE;
+		RTTDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pBRDFRTT);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pBRDFRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pBRDFRTT") - 1, "D3D11::m_pBRDFRTT");
+
+
 		RTTDesc.ArraySize = 6;
 		RTTDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 		RTTDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
@@ -1336,6 +1508,10 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pSkyBoxRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSkyBoxRTT") - 1, "D3D11::m_pSkyBoxRTT");
+
+
 		RTTDesc.Width = 32;
 		RTTDesc.Height = RTTDesc.Width;
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pDiffIrradianceRTT);
@@ -1343,8 +1519,34 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pDiffIrradianceRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pDiffIrradianceRTT") - 1, "D3D11::m_pDiffIrradianceRTT");
 
-		RTTVDesc.Format = RTTDesc.Format;
+
+		RTTDesc.Width = 128;
+		RTTDesc.MipLevels = 5;
+		RTTDesc.Height = RTTDesc.Width;
+		RTTDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pPrefilterRTT);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pPrefilterRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pPrefilterRTT") - 1, "D3D11::m_pPrefilterRTT");
+
+
+		RTTVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+		hr = m_pDevice->CreateRenderTargetView(m_pBRDFRTT, &RTTVDesc, &m_pBRDFRTTV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pBRDFRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pBRDFRTTV") - 1, "D3D11::m_pBRDFRTTV");
+
+
+		RTTVDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 		RTTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
 		RTTVDesc.Texture2DArray.ArraySize = 6;
 		RTTVDesc.Texture2DArray.MipSlice = 0;
@@ -1354,11 +1556,38 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pSkyBoxRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSkyBoxRTTV") - 1, "D3D11::m_pSkyBoxRTTV");
+
+
 		hr = m_pDevice->CreateRenderTargetView(m_pDiffIrradianceRTT, &RTTVDesc, &m_pDiffIrradianceRTTV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pDiffIrradianceRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pDiffIrradianceRTTV") - 1, "D3D11::m_pDiffIrradianceRTTV");
+
+
+		hr = m_pDevice->CreateRenderTargetView(m_pPrefilterRTT, &RTTVDesc, &m_pPrefilterRTTV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pPrefilterRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pPrefilterRTTV") - 1, "D3D11::m_pPrefilterRTTV");
+
+
+
+		SRVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+		hr = m_pDevice->CreateShaderResourceView(m_pBRDFRTT, &SRVDesc, &m_pBRDFSRV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pBRDFSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pBRDFSRV") - 1, "D3D11::m_pBRDFSRV");
+
 
 		SRVDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
@@ -1369,12 +1598,30 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pSkyBoxSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSkyBoxSRV") - 1, "D3D11::m_pSkyBoxSRV");
+
+
 		hr = m_pDevice->CreateShaderResourceView(m_pDiffIrradianceRTT, &SRVDesc, &m_pDiffIrradianceSRV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
+		m_pDiffIrradianceSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pDiffIrradianceSRV") - 1, "D3D11::m_pDiffIrradianceSRV");
 
+
+		SRVDesc.TextureCube.MipLevels = 5;
+		hr = m_pDevice->CreateShaderResourceView(m_pPrefilterRTT, &SRVDesc, &m_pPrefilterSRV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pPrefilterSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pPrefilterSRV") - 1, "D3D11::m_pPrefilterSRV");
+
+
+		m_pContext->GenerateMips(m_pPrefilterSRV);
 		return true;
 	}
 	bool D3D11::CreateDepthBuffer(int width, int height,
@@ -1404,6 +1651,9 @@ namespace wilson
 		{
 			return false;
 		}
+		(*dsb)->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::dsb") - 1, "D3D11::dsb");
+
 
 		ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
 
@@ -1417,6 +1667,9 @@ namespace wilson
 		{
 			return false;
 		}
+		(*dsbv)->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::dsbv") - 1, "D3D11::dsbv");
+
 
 		return true;
 	}
@@ -1449,6 +1702,9 @@ namespace wilson
 		{
 			return false;
 		}
+		m_pOutlinerSetupDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pOutlinerSetupDSS") - 1, "D3D11::m_pOutlinerSetupDSS");
+
 
 		depthStencilDesc.DepthEnable = false;
 		depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
@@ -1461,14 +1717,8 @@ namespace wilson
 		{
 			return false;
 		}
-
-		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
-		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDrawReflectionDSS);
-		if (FAILED(hr))
-		{
-			return false;
-		}
+		m_pOutlinerSetupDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pOutlinerSetupDSS") - 1, "D3D11::m_pOutlinerSetupDSS");
 
 		return true;
 	}
@@ -1493,7 +1743,7 @@ namespace wilson
 						}
 						worldMat = pModels[j]->GetTransformMatrix(false);
 						m_pMatBuffer->SetWorldMatrix(&worldMat);
-						m_pMatBuffer->Update();
+						m_pMatBuffer->Update(m_pContext);
 						
 						for (int k = 0; k < pModels[j]->GetMatCount(); ++k)
 						{
@@ -1530,11 +1780,6 @@ namespace wilson
 			m_pOutlinerTestDSS = nullptr;
 		}
 
-		if (m_pDrawReflectionDSS != nullptr)
-		{
-			m_pDrawReflectionDSS->Release();
-			m_pDrawReflectionDSS = nullptr;
-		}
 	}
 	void D3D11::DestroyRTT()
 	{
@@ -1706,6 +1951,40 @@ namespace wilson
 			m_pDiffIrradianceSRV = nullptr;
 		}
 
+
+
+		if (m_pPrefilterRTT != nullptr)
+		{
+			m_pPrefilterRTT->Release();
+			m_pPrefilterRTT = nullptr;
+		}
+		if (m_pPrefilterRTTV != nullptr)
+		{
+			m_pPrefilterRTTV->Release();
+			m_pPrefilterRTTV = nullptr;
+		}
+		if (m_pPrefilterSRV != nullptr)
+		{
+			m_pPrefilterSRV->Release();
+			m_pPrefilterSRV = nullptr;
+		}
+
+
+		if (m_pBRDFRTT != nullptr)
+		{	
+			m_pBRDFRTT->Release();
+			m_pBRDFRTT = nullptr;
+		}
+		if (m_pBRDFRTTV != nullptr)
+		{
+			m_pBRDFRTTV->Release();
+			m_pBRDFRTTV = nullptr;
+		}
+		if (m_pBRDFSRV != nullptr)
+		{
+			m_pBRDFSRV->Release();
+			m_pBRDFSRV= nullptr;
+		}
 
 	}
 	void D3D11::DestroyDSBforRTT()

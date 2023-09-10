@@ -1,13 +1,13 @@
-#ifndef SCENE_H
-#define SCENE_H
+#pragma once
+
+#include <Windows.h>
+#include <unordered_map>
+#include <vector>
 
 #include "../ImGui/imgui.h"
 #include "D3D11.h"
 #include "Entity.h"
 #include "Camera.h"
-#include <Windows.h>
-#include <unordered_map>
-#include <vector>
 
 namespace wilson
 {
@@ -19,8 +19,8 @@ namespace wilson
 		{
 			m_pD3D11 = pD3D11;
 		}
-		void AddEntity(ModelGroup*, UINT idx);
-		void AddEntity(Light*, std::string, UINT idx);
+		void AddModelEntity(ModelGroup* pModelGroup, UINT idx, UINT modelIdx);
+		void AddLightEntity(Light* pLight, std::string type, UINT idx, UINT lightIdx);
 		void Draw();
 		void DrawVec3Control(const std::string& label, float* vals);
 		void Pick(float, float, int, int);
@@ -32,6 +32,10 @@ namespace wilson
 		inline void SetSceneName(std::string name)
 		{
 			m_name = name;
+		}
+		inline UINT GetEntitySize() const
+		{
+			return m_entites.size();
 		}
 		inline Scene* GetScene() const
 		{
@@ -48,7 +52,7 @@ namespace wilson
 		bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float, float*);
 		void RemoveSelectedModel(int, int);
 		void RemoveModelGroup(int);
-		void RemoveLight(int, Light*);
+		void RemoveLight(int, int, Light*);
 		void RemoveEntity(int);
 	private:
 		std::unordered_map<std::string, int> m_entityCnt;
@@ -62,5 +66,4 @@ namespace wilson
 		Scene* sceneHandler;
 	};
 }
-#endif // !SCENE_H
 

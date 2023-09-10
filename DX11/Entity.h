@@ -1,9 +1,9 @@
-#ifndef ENTITY_H
-#define ENTITY_H
+#pragma once
 
 #include <Windows.h>
 #include <DirectXMath.h>
 #include <string>
+
 #include "ModelGroup.h"
 #include "DirectionalLight.h"
 #include "PointLight.h"
@@ -30,9 +30,13 @@ namespace wilson
 		{
 			return m_Name;
 		}
-		inline UINT GetIndex()
+		inline UINT GetIndex() const
 		{
 			return m_idx;
+		}
+		inline UINT GetLightIndex() const
+		{
+			return m_lightIdx;
 		}
 		inline void DecreaseIndex()
 		{
@@ -50,8 +54,9 @@ namespace wilson
 		{
 			m_pModelGroup->SetNumInstance(n);
 		}
-		Entity(std::string, UINT idx, ModelGroup*);
-		Entity(std::string, UINT idx, Light*);
+
+		Entity(std::string, UINT idx, ModelGroup*, UINT modelIdx);
+		Entity(std::string, UINT idx, Light*,  UINT lightIdx);
 		Entity(const Entity&) = default;
 		~Entity() = default;
 	private:
@@ -61,7 +66,9 @@ namespace wilson
 		Model* m_pSelectedModel;
 		std::string m_Name;
 		UINT m_idx;
+		UINT m_lightIdx;
+		UINT m_modelIdx;
 	};
 }
-#endif // !ENTITY_H
+
 

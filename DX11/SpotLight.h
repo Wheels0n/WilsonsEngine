@@ -1,10 +1,12 @@
 #pragma once
+
 #include"Light.h"
 
 namespace wilson
 {	
-	constexpr float s_near = 0.1f;
-	constexpr float s_far = 100.0f;
+	constexpr float _S_NEAR = 0.1f;
+	constexpr float _S_FAR = 100.0f;
+
 	struct SpotLightProperty
 	{
 		DirectX::XMVECTOR ambient;
@@ -58,15 +60,18 @@ namespace wilson
 		void UpdateProjMat();
 		void UpdateLitMat();
 		void UpdateProperty();
-		ELIGHT_TYPE GetType() { return ELIGHT_TYPE::SPT; };
+		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::SPT; };
 
 		SpotLight() = default;
 		SpotLight(const SpotLight&) = default;
 		~SpotLight() { Light::~Light(); };
 	private:
 		SpotLightProperty m_spotLightProperty;
+		
 		float m_range;
-		float m_cutoff, m_outerCutoff;
+		float m_cutoff;
+		float m_outerCutoff;
+		
 		DirectX::XMFLOAT3 m_direction;
 		DirectX::XMFLOAT3 m_attenuation;
 		DirectX::XMMATRIX m_perspectiveMat;

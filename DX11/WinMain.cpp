@@ -1,5 +1,8 @@
-#include "Engine.h"
+#pragma once
+
 #include<d3d11.h>
+#include "Engine.h"
+
 
 #ifdef _DEBUG
 

@@ -1,5 +1,4 @@
-#ifndef _OBJECT_H
-#define _OBJECT_H
+#pragma once
 
 #include <dxgi.h>
 #include <d3dcommon.h>
@@ -18,10 +17,10 @@ struct MatrixBuffer
 class MatBuffer
 {
 public:
-	bool Init();
+	bool Init(ID3D11Device* pDevice);
 	void ShutDown();
-	void Update();
-	void UploadProjMat();
+	void Update(ID3D11DeviceContext* pContext);
+	void UploadProjMat(ID3D11DeviceContext* pContext);
 
 	inline void SetProjMatrix(XMMATRIX* projMat)
 	{
@@ -39,7 +38,7 @@ public:
 	{
 		m_lightSpaceMat = *plightSpaceMat;
 	}
-	inline ID3D11Buffer* getMB()
+	inline ID3D11Buffer* GetMatrixBuffer() const
 	{
 		return m_pMatBuffer;
 	};
@@ -48,13 +47,12 @@ public:
 	~MatBuffer();
 
 private:
-	ID3D11Device* m_pDevice;
-	ID3D11DeviceContext* m_pContext;
+	
 	XMMATRIX m_worldMat;
 	XMMATRIX m_projMat;
 	XMMATRIX m_viewMat;
 	XMMATRIX m_lightSpaceMat;
-	ID3D11Buffer* m_pMatBuffer, *m_pProjMatBuffer;
-};
 
-#endif
+	ID3D11Buffer* m_pMatBuffer;
+	ID3D11Buffer* m_pProjMatBuffer;
+};

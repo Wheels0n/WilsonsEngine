@@ -4,7 +4,7 @@ namespace wilson
 {
     bool DirectionalLight::Init(ID3D11Device* pDevice)
     {
-        D3D11_BUFFER_DESC lightCBD;
+        D3D11_BUFFER_DESC lightCBD = {};
         lightCBD.Usage = D3D11_USAGE_DYNAMIC;
         lightCBD.ByteWidth = sizeof(DirLightProperty);
         lightCBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -17,6 +17,8 @@ namespace wilson
         {
             return false;
         }
+        m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("DirectionalLight::m_pLightBuffer") - 1, "DirectionalLight::m_pLightBuffer");
 
         m_projMat = DirectX::XMMatrixOrthographicLH(100.0f, 100.0f, 0.1f, 100.0f);
         UpdateViewMat();
@@ -40,12 +42,10 @@ namespace wilson
         DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&m_position);
         m_viewMat = DirectX::XMMatrixLookAtLH(pos,
             target, up);
-        m_lightSpaceMat = DirectX::XMMatrixMultiply(m_viewMat, m_projMat);//전치행렬 속성
-        m_lightSpaceMat = DirectX::XMMatrixTranspose(m_lightSpaceMat);
+        m_lightSpaceMat = DirectX::XMMatrixMultiplyTranspose(m_viewMat, m_projMat);//전치행렬 속성
     }
     void DirectionalLight::UpdateProjMat()
     {
-        //오브젝트마다 aabb?
         m_projMat = DirectX::XMMatrixOrthographicLH(100.0f, 100.0f, 0.1f, 100.0f);
     }
 

@@ -1,5 +1,4 @@
-#ifndef IMGUIMANAGER_H
-#define IMGUIMANAGER_H
+#pragma once
 
 #include"../ImGui/imgui.h"
 #include"../ImGui/imgui_impl_win32.h"
@@ -17,4 +16,3 @@ namespace wilson {
 		void SetDockspace();
 	};
 }
-#endif

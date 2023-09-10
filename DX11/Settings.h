@@ -1,5 +1,5 @@
-#ifndef SETTINGS_H
-#define SETTINGS_H
+#pragma once 
+
 #include"D3D11.h"
 #include"FPS.h"
 #include"Camera.h"
@@ -25,5 +25,4 @@ namespace wilson
 		float* m_pExposure;
 	};
 }
-#endif // !SETTINGS_H
 

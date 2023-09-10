@@ -12,16 +12,16 @@ struct PixelInputType
 
 cbuffer MatrixBuffer
 {
-    matrix worldMatrix;
-    matrix viewMatrix;
-    matrix projectionMatrix;
+    matrix g_worldMatrix;
+    matrix g_viewMatrix;
+    matrix g_projectionMatrix;
 };
 
 PixelInputType main( VertexInputType input ) 
 {   
     PixelInputType output;
-    output.pos = mul(float4(input.pos, 0.0f),viewMatrix);
-    output.pos = mul(output.pos, projectionMatrix);
+    output.pos = mul(float4(input.pos, 0.0f),g_viewMatrix);
+    output.pos = mul(output.pos, g_projectionMatrix);
     output.pos.z = output.pos.w;
     output.tex = input.pos;
     output.tex.x *= -1;

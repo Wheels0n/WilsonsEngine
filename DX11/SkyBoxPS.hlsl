@@ -1,5 +1,5 @@
-TextureCube SkyBox;
-SamplerState Sampler;
+TextureCube g_SkyBox;
+SamplerState g_sampler;
 
 struct PixelInputType
 {
@@ -9,5 +9,5 @@ struct PixelInputType
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-    return SkyBox.Sample(Sampler, input.tex);
+    return g_SkyBox.Sample(g_sampler, input.tex);
 }

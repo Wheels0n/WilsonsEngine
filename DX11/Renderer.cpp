@@ -26,7 +26,7 @@ namespace wilson
 			return false;
 		}
 
-		bResult = m_pD3D11->Init(m_screenWidth, m_screenHeight, g_bVSYNC_ENABLE, hWnd, g_bFull_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
+		bResult = m_pD3D11->Init(m_screenWidth, m_screenHeight, g_bVSYNC_ENABLE, hWnd, g_bFULL_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
 		if (bResult == false)
 		{
 			MessageBox(hWnd, L"Could not initialize D3D", L"Error", MB_OK);

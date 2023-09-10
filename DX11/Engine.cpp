@@ -102,7 +102,7 @@ namespace wilson {
 
 		if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
 		{
-			
+
 		}
 
 		if (uMsg == WM_LBUTTONDOWN && m_pEditor != nullptr)
@@ -121,8 +121,8 @@ namespace wilson {
 		}
 		switch (uMsg)
 		{
-	     case WM_MOUSEMOVE:
-		 {
+		case WM_MOUSEMOVE:
+		{
 			if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
 			{
 
@@ -140,7 +140,7 @@ namespace wilson {
 				int dyaw = m_lastMouseX - m_curMouseX;
 				int dpitch = m_lastMouseY - m_curMouseY;
 
-				if (abs(dyaw) > m_mouseDragThreshold)
+				if (abs(dyaw) > _DRAG_THRESHOLD)
 				{
 					dyaw = dyaw > 0 ? 1 : -1;
 				}
@@ -149,7 +149,7 @@ namespace wilson {
 					dyaw = 0;
 				}
 
-				if (abs(dpitch) > m_mouseDragThreshold)
+				if (abs(dpitch) > _DRAG_THRESHOLD)
 				{
 					dpitch = dpitch > 0 ? 1 : -1;
 				}
@@ -166,10 +166,10 @@ namespace wilson {
 				}
 			}
 			break;
-		 }
+		}
 
-		 case WM_CHAR:
-		 {
+		case WM_CHAR:
+		{
 			switch (wParam)
 			{
 			case 'w':
@@ -224,13 +224,13 @@ namespace wilson {
 			}
 			default:
 				break;
-		 	}
-		 }
+			}
+		}
 
-		 default:
-		 {	
+		default:
+		{
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
-		 }
+		}
 		}
 	}
 
@@ -248,7 +248,7 @@ namespace wilson {
 		return true;
 	}
 
-	void Engine::InitWindows(int& m_screenHeight, int& m_screenWidth)
+	void Engine::InitWindows(UINT& m_screenHeight, UINT& m_screenWidth)
 	{
 		WNDCLASSEX wc;
 		DEVMODE dmScreenSettings;
@@ -276,7 +276,7 @@ namespace wilson {
 		m_screenHeight = GetSystemMetrics(SM_CYSCREEN);
 		m_screenWidth = GetSystemMetrics(SM_CXSCREEN);
 
-		if (g_bFull_SCREEN)
+		if (g_bFULL_SCREEN)
 		{
 			ZeroMemory(&dmScreenSettings, 0, sizeof(dmScreenSettings));
 			dmScreenSettings.dmSize = sizeof(dmScreenSettings);
@@ -321,7 +321,7 @@ namespace wilson {
 
 	void Engine::ShutdownWindows()
 	{
-		if (g_bFull_SCREEN)
+		if (g_bFULL_SCREEN)
 		{
 			ChangeDisplaySettings(nullptr, 0);
 		}
@@ -344,21 +344,18 @@ namespace wilson {
 		switch (uMsg)
 		{
 		case WM_DESTROY:
-		{
 			PostQuitMessage(0);
 			return 0;
-		}
-
+		
 		case WM_CLOSE:
-		{
+		
 			PostQuitMessage(0);
 			return 0;
-		}
 
 		default:
-		{
+		
 			return g_pEngineHandle->MsgHandler(hWnd, uMsg, wParam, lParam);
-		}
+		
 		}
 	}
 }

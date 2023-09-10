@@ -1,10 +1,12 @@
-#include "Import.h"
+
 #include <cwchar>
 #include <filesystem>
 
-unsigned long g_vertexVecCount=0;
-unsigned long g_texVecCount=0;
-unsigned long g_normalVecCount=0;
+#include "Import.h"
+
+ULONG g_vertexVecCount=0;
+ULONG g_texVecCount=0;
+ULONG g_normalVecCount=0;
 
 namespace wilson
 {
@@ -25,20 +27,20 @@ namespace wilson
 		m_pIndices = nullptr;
 		m_pSRV = nullptr;
 
-		m_texTypeHash["Kd"] = ETEX::Kd;
-		m_texTypeHash["Ks"] = ETEX::Ks;
-		m_texTypeHash["Bump"] = ETEX::Bump;
-		m_texTypeHash["d"] = ETEX::d;
+		m_texTypeHash["Kd"] = eTEX::Kd;
+		m_texTypeHash["Ks"] = eTEX::Ks;
+		m_texTypeHash["Bump"] = eTEX::Bump;
+		m_texTypeHash["d"] = eTEX::d;
 
 		m_curDir = nullptr;
 		m_mtlPath = nullptr;
 		m_fileName = nullptr;
 		m_pModelGroup = nullptr;
+		m_pTangentVecs = nullptr;
 
 		m_fbxManager = FbxManager::Create();
 		m_fbxIOsettings = FbxIOSettings::Create(m_fbxManager, IOSROOT);
 		m_fbxManager->SetIOSettings(m_fbxIOsettings);
-		m_fbxImporter = FbxImporter::Create(m_fbxManager, "");
 	}
 
 	std::streampos Importer::GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName)
@@ -301,7 +303,7 @@ namespace wilson
 		fin.close();
 
 		m_pModelGroup = new ModelGroup(m_pModels, m_Materials, m_pTexMaps,
-			m_fileName, EFileType::OBJ, m_matHash, m_texHash);
+			m_fileName, eFileType::OBJ, m_matHash, m_texHash);
 		
 		ClearModel();
 		ClearModelGroup();
@@ -434,17 +436,17 @@ namespace wilson
 							bool isDiffuse = false;
 							switch (m_texTypeHash[texType])
 							{
-							case ETEX::Kd:
+							case eTEX::Kd:
 								isDiffuse = true;
 								mat.diffuseMap = texName;
 								break;
-							case ETEX::Ks:
+							case eTEX::Ks:
 								mat.specularMap = texName;
 								break;
-							case ETEX::Bump:
+							case eTEX::Bump:
 								mat.normalMap = texName;
 								break;
-							case ETEX::d:
+							case eTEX::d:
 								mat.alphaMap = texName;
 								break;
 							}
@@ -557,6 +559,8 @@ namespace wilson
 						{
 							//return false;
 						}
+						m_pSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+							sizeof("Importer::m_pSRV") - 1, "Importer::m_pSRV");
 
 						m_pTexMaps.push_back(m_pSRV);
 						m_texHash[name] = m_pTexMaps.size() - 1;
@@ -631,7 +635,8 @@ namespace wilson
 		{
 			return false;
 		}
-
+		m_pSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Importer::m_pSRV") - 1, "Importer::m_pSRV");
 		m_pTexMaps.push_back(m_pSRV);
 		return true;
 	}
@@ -666,6 +671,7 @@ namespace wilson
 		m_pIndices = new unsigned long[m_indexCount];
 		m_pVertexData = new VertexData[m_vertexCount];
 
+		int idx = -1;
 		int idxCnt = 0;
 		int vCnt = 0;
 		for (int j = 0; j < pMesh->GetPolygonCount(); ++j)
@@ -695,7 +701,7 @@ namespace wilson
 					switch (pNormal->GetReferenceMode())
 					{
 					case FbxGeometryElement::eDirect:
-					{
+
 						v.norm.x = static_cast<float>(
 							pNormal->GetDirectArray().GetAt(polygonV).mData[0]);
 						v.norm.y = static_cast<float>(
@@ -703,14 +709,15 @@ namespace wilson
 						v.norm.z = static_cast<float>(
 							pNormal->GetDirectArray().GetAt(polygonV).mData[2]);
 						break;
-					}
+
 					case FbxGeometryElement::eIndexToDirect:
-					{
-						int idx = pNormal->GetIndexArray().GetAt(polygonV);
+
+						idx = pNormal->GetIndexArray().GetAt(polygonV);
 						v.norm.x = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[0]);
 						v.norm.y = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[1]);
 						v.norm.z = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[2]);
-					}
+						break;
+
 					default:
 						break;
 					}
@@ -719,7 +726,7 @@ namespace wilson
 					switch (pNormal->GetReferenceMode())
 					{
 					case FbxGeometryElement::eDirect:
-					{
+					
 						v.norm.x = static_cast<float>(
 							pNormal->GetDirectArray().GetAt(vCnt).mData[0]);
 						v.norm.y = static_cast<float>(
@@ -727,15 +734,15 @@ namespace wilson
 						v.norm.z = static_cast<float>(
 							pNormal->GetDirectArray().GetAt(vCnt).mData[2]);
 						break;
-					}
+					
 					case FbxGeometryElement::eIndexToDirect:
-					{
-						int idx = pNormal->GetIndexArray().GetAt(vCnt);
+					
+						idx = pNormal->GetIndexArray().GetAt(vCnt);
 						v.norm.x = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[0]);
 						v.norm.y = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[1]);
 						v.norm.z = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[2]);
 						break;
-					}
+					
 					default:
 						break;
 					}
@@ -746,30 +753,31 @@ namespace wilson
 				if (pMesh->GetElementTangentCount())
 				{
 					FbxGeometryElementTangent* pTangent = pMesh->GetElementTangent();
+	
 					switch (pTangent->GetMappingMode())
 					{
 					case FbxGeometryElement::eByControlPoint:
 						switch (pTangent->GetReferenceMode())
 						{
 							case FbxGeometryElement::eDirect:
-							{
+							
 								v.tangent.x = static_cast<float>(pTangent->GetDirectArray().GetAt(polygonV).mData[0]);
 								v.tangent.y = static_cast<float>(pTangent->GetDirectArray().GetAt(polygonV).mData[1]);
 								v.tangent.z = static_cast<float>(pTangent->GetDirectArray().GetAt(polygonV).mData[2]);
 								break;
-							}
+							
 							case FbxGeometryElement::eIndexToDirect:
-							{
-								int idx = pTangent->GetIndexArray().GetAt(polygonV);
+							
+								idx = pTangent->GetIndexArray().GetAt(polygonV);
 								v.tangent.x = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[0]);
 								v.tangent.y = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[1]);
 								v.tangent.z = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[2]);
 								break;
-							}
+							
 							default:
-							{
+							
 								break;
-							}
+							
 							
 						}
 						break;
@@ -777,24 +785,24 @@ namespace wilson
 						switch (pTangent->GetReferenceMode())
 						{
 							case FbxGeometryElement::eDirect:
-							{
+							
 								v.tangent.x = static_cast<float>(pTangent->GetDirectArray().GetAt(vCnt).mData[0]);
 								v.tangent.y = static_cast<float>(pTangent->GetDirectArray().GetAt(vCnt).mData[1]);
 								v.tangent.z = static_cast<float>(pTangent->GetDirectArray().GetAt(vCnt).mData[2]);
 								break;
-							}
+							
 							case FbxGeometryElement::eIndexToDirect:
-							{
-								int idx = pTangent->GetIndexArray().GetAt(vCnt);
+							
+								idx = pTangent->GetIndexArray().GetAt(vCnt);
 								v.tangent.x = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[0]);
 								v.tangent.y = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[1]);
 								v.tangent.z = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[2]);
 								break;
-							}
+							
 							default:
-							{
+							
 								break;
-							}
+							
 						}
 					}
 				}
@@ -807,18 +815,18 @@ namespace wilson
 						switch (pUV->GetReferenceMode())
 						{
 							case FbxGeometryElement::eDirect:
-							{
+							
 								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(polygonV).mData[0]);
 								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(polygonV).mData[1]);
 								break;
-							}
+							
 							case FbxGeometryElement::eIndexToDirect:
-							{
-								int idx = pUV->GetIndexArray().GetAt(polygonV);
+							
+								idx = pUV->GetIndexArray().GetAt(polygonV);
 								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[0]);
 								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[1]);
 								break;
-							}
+							
 							default:
 								break;
 						}
@@ -828,17 +836,17 @@ namespace wilson
 						switch (pUV->GetReferenceMode())
 						{
 							case FbxGeometryElement::eDirect:
-							{
+							
 								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
 								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
 								break;
-							}
+							
 							case FbxGeometryElement::eIndexToDirect:
-							{
+							
 								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
 								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
 								break;
-							}
+							
 							default:
 								break;
 						}
@@ -868,11 +876,7 @@ namespace wilson
 		wchar_t* wchFileName = GetFileName(fileName);
 		std::wstring wfileName(wchFileName);
 		
-		if (m_fbxImporter == nullptr)
-		{
-			return false;
-		}
-
+		m_fbxImporter = FbxImporter::Create(m_fbxManager, "");
 		bool result = m_fbxImporter->Initialize(filePath.c_str(), -1, m_fbxManager->GetIOSettings());
 		if (!result)
 		{
@@ -975,7 +979,7 @@ namespace wilson
 				ClearModel();
 			}
 			m_pModelGroup = new ModelGroup(m_pModels, m_Materials, m_pTexMaps, (wchar_t*)wfileName.c_str(),
-				EFileType::FBX, m_matHash, m_texHash);
+				eFileType::FBX, m_matHash, m_texHash);
 			ClearModelGroup();
 		}
 
@@ -1005,7 +1009,6 @@ namespace wilson
 	}
 	void Importer::ClearModel()
 	{
-		//m_fbxImporter->Destroy();
 		if (m_pVertexVecs != nullptr)
 		{
 			delete m_pVertexVecs;

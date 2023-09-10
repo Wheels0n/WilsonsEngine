@@ -13,18 +13,18 @@ struct PS_OUTPUT
 };
 cbuffer lightPos
 {
-    float4 lightPos;//W is Far_Plane
+    float4 g_lightPos;//W is Far_Plane
 };
-Texture2D abeldoTex;
-SamplerState SampleType : register(s0);
+Texture2D g_abeldoTex;
+SamplerState g_sampler : register(s0);
 PS_OUTPUT main(PS_INPUT input )
 {       
     PS_OUTPUT output;
-    float4 albedo =abeldoTex.Sample(SampleType, input.tex);
+    float4 albedo = g_abeldoTex.Sample(g_sampler, input.tex);
     clip(albedo.a - 0.1f);
     
-    output.depth = length(input.wPos.xyz - lightPos.xyz);
-    output.depth = output.depth/lightPos.w;
+    output.depth = length(input.wPos.xyz - g_lightPos.xyz);
+    output.depth = output.depth/g_lightPos.w;
     output.color = float4(output.depth, output.depth, output.depth, 1.0f);
     return output;
 }

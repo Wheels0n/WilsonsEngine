@@ -1,17 +1,17 @@
-Texture2D vPositionTex;
-Texture2D vNormalTex;
-Texture2D noiseTex;
+Texture2D g_vPositionTex;
+Texture2D g_vNormalTex;
+Texture2D g_noiseTex;
 
-SamplerState defaultState;
-SamplerState clampState;
+SamplerState g_sampler;
+SamplerState g_clampSampler;
 
-cbuffer cbSamplePoints : register(b0)
+cbuffer SamplePoints : register(b0)
 {
-    float4 samplePoints[64];
+    float4 g_samplePoints[64];
 };
-cbuffer cbProjMat : register(b1)
+cbuffer ProjMat : register(b1)
 {
-    matrix projMat;
+    matrix g_projMat;
 };
 
 struct PixelInputType
@@ -20,16 +20,16 @@ struct PixelInputType
     float2 tex : TEXTURE;
 };
 
-static const float radius = 0.5;
-static const float bias = 0.025;
-static const float2 noiseScale = float2(1584 / 4.0f, 761 / 4.0f);
-static const int sampleCnt = 64;
+static const float _RADIUS = 0.5;
+static const float _BIAS = 0.025;
+static const float2 _NOISE_SCALE = float2(1584 / 4.0f, 761 / 4.0f);
+static const int _SAMPLE_CNT = 64;
 
 float4 main(PixelInputType input) : SV_TARGET
 { 
-    float3 vPos = vPositionTex.Sample(clampState, input.tex).xyz;
-    float3 vNormal = normalize(vNormalTex.Sample(clampState, input.tex).xyz);
-    float3 randomVec = normalize(noiseTex.Sample(defaultState, input.tex * noiseScale).xyz);
+    float3 vPos = g_vPositionTex.Sample(g_clampSampler, input.tex).xyz;
+    float3 vNormal = normalize(g_vNormalTex.Sample(g_clampSampler, input.tex).xyz);
+    float3 randomVec = normalize(g_noiseTex.Sample(g_sampler, input.tex * _NOISE_SCALE).xyz);
       
     float3 tangent = normalize(randomVec - vNormal * dot(randomVec, vNormal));
     float3 binormal = cross(vNormal, tangent);
@@ -37,23 +37,23 @@ float4 main(PixelInputType input) : SV_TARGET
     
     float occlusion = 0.0f;
     [unroll]
-    for (int i = 0; i < sampleCnt;++i)
+    for (int i = 0; i < _SAMPLE_CNT;++i)
     {
-        float3 samplePos = mul(samplePoints[i].xyz, TBN);
-        samplePos = vPos + samplePos * radius;
+        float3 samplePos = mul(g_samplePoints[i].xyz, TBN);
+        samplePos = vPos + samplePos * _RADIUS;
         
         float4 offset = float4(samplePos, 1.0f);
-        offset = mul(offset, projMat);
+        offset = mul(offset, g_projMat);
         offset.xyz /= offset.w;
         offset.x = offset.x * 0.5f + 0.5f;
         offset.y = offset.y * -0.5f + 0.5f;
         
-        float sampleDepth = vPositionTex.Sample(clampState, offset.xy).z;
-        float rangeCheck = smoothstep(0.0f, 1.0f, radius / abs(vPos.z - sampleDepth));
-        occlusion += (sampleDepth <= samplePos.z - bias ? 1.0f : 0.0f) * rangeCheck;
+        float sampleDepth = g_vPositionTex.Sample(g_clampSampler, offset.xy).z;
+        float rangeCheck = smoothstep(0.0f, 1.0f, _RADIUS / abs(vPos.z - sampleDepth));
+        occlusion += (sampleDepth <= samplePos.z - _BIAS ? 1.0f : 0.0f) * rangeCheck;
         //z축 방향 차이 
     }
  
-    occlusion = 1.0f - (occlusion / sampleCnt);
+    occlusion = 1.0f - (occlusion / _SAMPLE_CNT);
     return occlusion;
 }

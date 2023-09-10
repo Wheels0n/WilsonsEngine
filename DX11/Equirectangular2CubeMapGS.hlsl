@@ -8,7 +8,7 @@ struct PixelInputType
 
 cbuffer cubeMap
 {
-    matrix lightViewMatrices[6];
+    matrix g_viewProjMatrices[6];
 };
 
 [maxvertexcount(18)]
@@ -25,7 +25,7 @@ void main(
         for (int v = 0; v < 3; v++)
         {
             output.wPos = input[v];
-            output.pos = mul(input[v], lightViewMatrices[face]);
+            output.pos = mul(input[v], g_viewProjMatrices[face]);
             cubeMapStream.Append(output);
         }
         cubeMapStream.RestartStrip(); 

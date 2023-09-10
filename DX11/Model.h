@@ -1,12 +1,13 @@
-#ifndef MODEL_H
-#define MODEL_H
+#pragma once 
+
 #include <D3D11.h>
 #include <DirectXMath.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 namespace wilson {
-	enum EFileType
+	enum class eFileType
 	{
 		OBJ,
 		FBX
@@ -39,25 +40,21 @@ namespace wilson {
 		std::string specularMap;
 		std::string normalMap;
 		std::string alphaMap;
-		std::string AOMap;
-		std::string roughnessMap;
-		std::string metalnessMap;
 		Material material;
 	};
 
-	constexpr int MAX_INSTANCES = 50;
+	constexpr UINT _MAX_INSTANCES = 50;
 	class Model
 	{
-	private:
-		void CreateInstanceMatrices();
+
 	public:
 
-		bool Init(ID3D11Device* pDevice);
 		bool Init(ID3D11Device* pDevice, std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
-			std::unordered_map<std::string,int>& texhash, std::vector<ID3D11ShaderResourceView*>& textures);
+			std::unordered_map<std::string, int>& texhash, std::vector<ID3D11ShaderResourceView*>& textures);
+		bool CreateBuffer(ID3D11Device* pDevice);
 		void UploadBuffers(ID3D11DeviceContext* context, int i, bool bGeoPass);
 
-		inline UINT GetMatCount()
+		inline UINT GetMatCount() const
 		{
 			return m_matInfos.size();
 		}
@@ -83,13 +80,13 @@ namespace wilson {
 		{
 			return &m_angleVec;
 		}
-		inline unsigned int GetIndexCount(int i)
+		inline UINT GetIndexCount(UINT i)
 		{	
 			
 			return m_indicesPos[i+1]-m_indicesPos[i];
 		}
 		
-		inline std::string GetName()
+		inline std::string GetName() const
 		{
 			return m_Name;
 		}
@@ -141,6 +138,9 @@ namespace wilson {
 		~Model();
 
 	private:
+		void CreateInstanceMatrices();
+
+	private:
 		ID3D11Buffer* m_pVertexBuffer;
 		ID3D11Buffer* m_pIndexBuffer;
 		ID3D11Buffer* m_pMaterialBuffer;
@@ -176,4 +176,3 @@ namespace wilson {
 		bool m_isInstanced;
 	};
 }
-#endif

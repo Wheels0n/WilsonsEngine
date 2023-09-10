@@ -18,6 +18,9 @@ namespace wilson
         {
             return false;
         }
+        m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+            sizeof("SpotLight::m_pLightBuffer") - 1, "SpotLight::m_pLightBuffer");
+
 
         Light::Init(pDevice);
         m_direction =   DirectX::XMFLOAT3(0.0f, 0.0f, -1.0f);
@@ -43,7 +46,7 @@ namespace wilson
     void SpotLight::UpdateProjMat()
     {
         m_perspectiveMat = DirectX::XMMatrixPerspectiveFovLH(
-            DirectX::XMConvertToRadians(m_outerCutoff * 2.0f), 1.0f, s_near, s_far);
+            DirectX::XMConvertToRadians(m_outerCutoff * 2.0f), 1.0f, _S_NEAR, _S_FAR);
         UpdateLitMat();
     }
 

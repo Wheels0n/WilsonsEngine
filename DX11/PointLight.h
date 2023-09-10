@@ -1,6 +1,9 @@
 #pragma once
+
 #include <vector>
+
 #include "Light.h"
+
 namespace wilson
 {	
 	struct PointLightProperty
@@ -37,7 +40,7 @@ namespace wilson
 		void CreateShadowMatrices();
 		void SetShadowMatrices(ID3D11DeviceContext*);
 		void SetLightPos(ID3D11DeviceContext*);
-		ELIGHT_TYPE GetType() { return ELIGHT_TYPE::PNT; };
+		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::PNT; };
 
 		PointLight() = default;
 		PointLight(const PointLight&) = default;
@@ -45,7 +48,8 @@ namespace wilson
 		
 	private:
 		PointLightProperty m_pointLightProperty;
-		ID3D11Buffer* m_pMatricesBuffer, *m_pPosBuffer;
+		ID3D11Buffer* m_pMatricesBuffer;
+		ID3D11Buffer* m_pPosBuffer;
 
 		float m_range;
 		DirectX::XMFLOAT3 m_attenuation;

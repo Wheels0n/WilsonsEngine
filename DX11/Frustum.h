@@ -1,12 +1,12 @@
-#ifndef FRUSTUM_H
-#define FRUSTUM_H
+#pragma once
+
 #include"Camera.h"
 
 namespace wilson {
 	class Frustum
 	{
 	public:
-		void Construct(float, Camera*);
+		void Init(float, Camera*);
 		bool IsInFrustum(DirectX::XMVECTOR);
 		
 		Frustum() = default;
@@ -16,4 +16,3 @@ namespace wilson {
 		DirectX::XMVECTOR m_planes[6];
 	};
 }
-#endif // !FRUSTUM_H

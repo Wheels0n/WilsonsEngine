@@ -1,7 +1,7 @@
 #include "Frustum.h"
 
 namespace wilson {
-	void Frustum::Construct(float screenDepth, Camera* pCam)
+	void Frustum::Init(const float screenDepth, Camera* pCam)
 	{
 		DirectX::XMMATRIX projMat = *(pCam->GetProjectionMatrix());
 		DirectX::XMFLOAT4X4 projMat4;
@@ -66,7 +66,7 @@ namespace wilson {
 		return;
 	}
 
-	bool Frustum::IsInFrustum(DirectX::XMVECTOR pos)
+	bool Frustum::IsInFrustum(const DirectX::XMVECTOR pos)
 	{
 		for (int i = 0; i < 6; ++i)
 		{

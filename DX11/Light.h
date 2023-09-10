@@ -1,14 +1,14 @@
-#ifndef LIGHT_H
-#define LIGHT_H
+#pragma once
 
 #include <dxgi.h>
 #include <d3d11.h>
 #include <DirectXMath.h>
+
 #include "Camera.h"
 
 namespace wilson
 {   
-	enum class ELIGHT_TYPE
+	enum class eLIGHT_TYPE
 	{
 		DIR,
 		PNT,
@@ -19,7 +19,7 @@ namespace wilson
 	{
 	public:
 		bool virtual Init(ID3D11Device* pDevice);
-		ELIGHT_TYPE virtual GetType() { return ELIGHT_TYPE::PNT; };
+		eLIGHT_TYPE virtual GetType() { return eLIGHT_TYPE::PNT; };
 
 		inline DirectX::XMFLOAT3* GetPos()
 		{
@@ -37,6 +37,7 @@ namespace wilson
 		{
 			return &m_specular;
 		}
+
 		void virtual UpdateProperty() {};
 		Light();
 		~Light();
@@ -49,4 +50,3 @@ namespace wilson
 
 	};
 }
-#endif 

@@ -28,7 +28,7 @@ namespace wilson
     bool PointLight::Init(ID3D11Device* pDevice)
     {   
         m_cubeMats.resize(6);
-        D3D11_BUFFER_DESC lightCBD;
+        D3D11_BUFFER_DESC lightCBD = {};
         lightCBD.Usage = D3D11_USAGE_DYNAMIC;
         lightCBD.ByteWidth = sizeof(PointLightProperty);
         lightCBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -41,6 +41,8 @@ namespace wilson
         {
             return false;
         }
+        m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+            sizeof("PointLight::m_pLightBuffer") - 1, "PointLight::m_pLightBuffer");
 
         m_pPosBuffer = nullptr;
         lightCBD.ByteWidth = sizeof(DirectX::XMVECTOR);
@@ -49,6 +51,8 @@ namespace wilson
         {
             return false;
         }
+        m_pPosBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+            sizeof("PointLight::m_pPosBuffer") - 1, "PointLight::m_pPosBuffer");
 
         Light::Init(pDevice);
         m_attenuation = DirectX::XMFLOAT3(0.0f, 0.1f, 0.0f);
@@ -61,6 +65,8 @@ namespace wilson
         {
             return false;
         }
+        m_pMatricesBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+            sizeof("PointLight::m_pMatricesBuffer") - 1, "PointLight::m_pMatricesBuffer");
         CreateShadowMatrices();
 
         return true;
@@ -83,8 +89,7 @@ namespace wilson
         {
             DirectX::XMMATRIX viewMat =
                 DirectX::XMMatrixLookAtLH(pos, DirectX::XMVectorAdd(pos, g_dirVectors[i]), g_upVectors[i]);
-            m_cubeMats[i] = DirectX::XMMatrixMultiply(viewMat, g_perspectiveMat);
-            m_cubeMats[i] = DirectX::XMMatrixTranspose(m_cubeMats[i]);
+            m_cubeMats[i] = DirectX::XMMatrixMultiplyTranspose(viewMat, g_perspectiveMat);
         }
     }
     void PointLight::SetShadowMatrices(ID3D11DeviceContext* pContext)

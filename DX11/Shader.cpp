@@ -1,12 +1,10 @@
 #include "Shader.h"
 #include <D3Dcompiler.h>
+
 namespace wilson
 {
-	Shader::Shader(ID3D11Device* pDevice, ID3D11DeviceContext* context)
+	Shader::Shader()
 	{
-		m_pDevice = pDevice;
-		m_pContext = context;
-
 		m_pVS = nullptr;
 		m_pPS = nullptr;
 
@@ -14,6 +12,8 @@ namespace wilson
 		m_pEquirect2CubeGS = nullptr;
 		m_pEquirect2CubePS = nullptr;
 		m_pDiffuseIrradiancePS = nullptr;
+		m_pPrefilterPS = nullptr; 
+		m_pBRDFPS = nullptr;
 
 		m_pSkyBoxVS = nullptr;
 		m_pSkyBoxPS = nullptr;
@@ -111,7 +111,16 @@ namespace wilson
 			m_pDiffuseIrradiancePS->Release();
 			m_pDiffuseIrradiancePS = nullptr;
 		}
-
+		if (m_pPrefilterPS != nullptr)
+		{
+			m_pPrefilterPS->Release();
+			m_pPrefilterPS = nullptr;
+		}
+		if (m_pBRDFPS != nullptr)
+		{
+			m_pBRDFPS->Release();
+			m_pBRDFPS = nullptr;
+		}
 
 
 
@@ -214,6 +223,9 @@ namespace wilson
 			m_pFinPS = nullptr;
 		}
 
+
+
+
 		if (m_pInputLayout != nullptr)
 		{
 			m_pInputLayout->Release();
@@ -240,7 +252,7 @@ namespace wilson
 
 	}
 
-	bool Shader::Init()
+	bool Shader::Init(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	{
 		HRESULT hr;
 		D3D11_INPUT_ELEMENT_DESC vertexIED[8];
@@ -256,8 +268,13 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pVS);
-
+		hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pVS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pVS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pVS") - 1, "Shader::m_pVS");
 
 		hr = D3DX11CompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_DEBUG |D3DCOMPILE_DEBUG|D3DCOMPILE_SKIP_OPTIMIZATION| D3D10_SHADER_SKIP_OPTIMIZATION, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -265,7 +282,14 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		hr=m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pPS);
+		hr= pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pPS") - 1, "Shader::m_pPS");
+
 	
 		vertexIED[0].SemanticName = "POSITION";
 		vertexIED[0].SemanticIndex = 0;
@@ -308,23 +332,43 @@ namespace wilson
 		vertexIED[7] = { "WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48,
 								D3D11_INPUT_PER_INSTANCE_DATA, 1 };
 
-		m_pDevice->CreateInputLayout(vertexIED, sizeof(vertexIED) / sizeof(vertexIED[0]), pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pInputLayout);
-		
+		hr=pDevice->CreateInputLayout(vertexIED, sizeof(vertexIED) / sizeof(vertexIED[0]), pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pInputLayout);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pInputLayout->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pInputLayout") - 1, "Shader::m_pInputLayout");
+
 		hr = D3DX11CompileFromFile(L"PosOnlyVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pVSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
 		{
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pPosOnlyVS);
-		
+		hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pPosOnlyVS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pPosOnlyVS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pPosOnlyVS") - 1, "Shader::m_pPosOnlyVS");
+
+
 		hr = D3DX11CompileFromFile(L"Equirectangular2CubeMapGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pGSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
 		{
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &m_pEquirect2CubeGS);
+		hr=pDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &m_pEquirect2CubeGS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pEquirect2CubeGS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pEquirect2CubeGS") - 1, "Shader::m_pEquirect2CubeGS");
+
 
 		hr = D3DX11CompileFromFile(L"Equirectangular2CubeMapPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -332,14 +376,58 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pEquirect2CubePS);
+		hr= pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pEquirect2CubePS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pEquirect2CubePS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pEquirect2CubePS") - 1, "Shader::m_pEquirect2CubePS");
+
 		hr = D3DX11CompileFromFile(L"DiffuseIrradiancePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
 		{
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pDiffuseIrradiancePS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pDiffuseIrradiancePS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pDiffuseIrradiancePS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pDiffuseIrradiancePS") - 1, "Shader::m_pDiffuseIrradiancePS");
+
+		hr = D3DX11CompileFromFile(L"PrefilterPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		hr =pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pPrefilterPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pPrefilterPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pPrefilterPS") - 1, "Shader::m_pPrefilterPS");
+
+
+		hr = D3DX11CompileFromFile(L"BRDFPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pBRDFPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pBRDFPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pBRDFPS") - 1, "Shader::m_pBRDFPS");
+
+
 
 
 
@@ -349,7 +437,13 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pSkyBoxVS);
+		hr=pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pSkyBoxVS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pSkyBoxVS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pSkyBoxVS") - 1, "Shader::m_pSkyBoxVS");
 
 		hr = D3DX11CompileFromFile(L"SkyBoxPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -357,10 +451,23 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSkyBoxPS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSkyBoxPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pSkyBoxPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pSkyBoxPS") - 1, "Shader::m_pSkyBoxPS");
+
 
 		posOnlyIED = vertexIED[0];
-		m_pDevice->CreateInputLayout(&posOnlyIED, 1, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pPosOnlyInputLayout);
+		hr=pDevice->CreateInputLayout(&posOnlyIED, 1, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pPosOnlyInputLayout);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pPosOnlyInputLayout->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pPosOnlyInputLayout") - 1, "Shader::m_pPosOnlyInputLayout");
 
 
 
@@ -370,15 +477,27 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pShadowVS);
+		hr=pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pShadowVS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pShadowVS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pShadowVS") - 1, "Shader::m_pShadowVS");
+
 		hr = D3DX11CompileFromFile(L"ShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
 		{
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pShadowPS);
-
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pShadowPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pShadowPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pShadowPS") - 1, "Shader::m_pShadowPS");
 
 
 
@@ -388,7 +507,15 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowVS);
+		hr=pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowVS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pOmniDirShadowVS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pOmniDirShadowVS") - 1, "Shader::m_pOmniDirShadowVS");
+
+
 
 		hr = D3DX11CompileFromFile(L"OmniDirShadowGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pGSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -396,7 +523,14 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowGS);
+		hr=pDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowGS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pOmniDirShadowGS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pOmniDirShadowGS") - 1, "Shader::m_pOmniDirShadowGS");
+
 
 
 		hr = D3DX11CompileFromFile(L"OmniDirShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
@@ -405,7 +539,15 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowPS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pOmniDirShadowPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pOmniDirShadowPS") - 1, "Shader::m_pOmniDirShadowPS");
+
+
 
 		hr = D3DX11CompileFromFile(L"TexVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pVSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -413,8 +555,21 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pTexVS);
-		m_pDevice->CreateInputLayout(vertexIED, 2, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pTexInputLayout);
+		hr=pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pTexVS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pTexVS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pTexVS") - 1, "Shader::m_pTexVS");
+
+		hr=pDevice->CreateInputLayout(vertexIED, 2, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pTexInputLayout);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pTexInputLayout->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pTexInputLayout") - 1, "Shader::m_pTexInputLayout");
 
 
 		hr = D3DX11CompileFromFile(L"GeometryVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pVSBlob, &pErrorBlob, nullptr);
@@ -423,8 +578,22 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pGeometryVS);
-		m_pDevice->CreateInputLayout(vertexIED, 4, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(),&m_pDeferredGeoLayout);
+		hr=pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pGeometryVS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pGeometryVS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pGeometryVS") - 1, "Shader::m_pGeometryVS");
+
+		hr=pDevice->CreateInputLayout(vertexIED, 4, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(),&m_pDeferredGeoLayout);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pDeferredGeoLayout->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pDeferredGeoLayout") - 1, "Shader::m_pDeferredGeoLayout");
+
 
 		hr = D3DX11CompileFromFile(L"GeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -432,7 +601,14 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pGeometryPS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pGeometryPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pGeometryPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pGeometryPS") - 1, "Shader::m_pGeometryPS");
+
 		
 		hr=D3DX11CompileFromFile(L"SSAOPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -440,7 +616,14 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSSAOPS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSSAOPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pSSAOPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pSSAOPS") - 1, "Shader::m_pSSAOPS");
+
 
 		hr = D3DX11CompileFromFile(L"SSAOBlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -448,7 +631,14 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSSAOBlurPS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSSAOBlurPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pSSAOBlurPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pSSAOBlurPS") - 1, "Shader::m_pSSAOBlurPS");
+
 
 		hr = D3DX11CompileFromFile(L"DeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0",  D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -456,8 +646,13 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pDeferredPS);
-
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pDeferredPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pDeferredPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pDeferredPS") - 1, "Shader::m_pDeferredPS");
 
 
 
@@ -467,7 +662,15 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pPBRGeometryVS);
+		hr=pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pPBRGeometryVS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pPBRGeometryVS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pPBRGeometryVS") - 1, "Shader::m_pPBRGeometryVS");
+
+
 
 		hr = D3DX11CompileFromFile(L"PBRGeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -475,7 +678,14 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pPBRGeometryPS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pPBRGeometryPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pPBRGeometryPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pPBRGeometryPS") - 1, "Shader::m_pPBRGeometryPS");
+
 
 		hr = D3DX11CompileFromFile(L"PBRDeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -483,7 +693,13 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pPBRDeferredPS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pPBRDeferredPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pPBRDeferredPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pPBRDeferredPS") - 1, "Shader::m_pPBRDeferredPS");
 
 
 
@@ -493,7 +709,16 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pLightCubeVS);
+		hr=pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pLightCubeVS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pLightCubeVS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pLightCubeVS") - 1, "Shader::m_pLightCubeVS");
+
+
+
 
 		hr = D3DX11CompileFromFile(L"LightCubePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -501,7 +726,15 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pLightCubePS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pLightCubePS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pLightCubePS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pLightCubePS") - 1, "Shader::m_pLightCubePS");
+
+
 
 		hr = D3DX11CompileFromFile(L"OutlinerPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -509,7 +742,15 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pOutlinerPS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pOutlinerPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pOutlinerPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pOutlinerPS") - 1, "Shader::m_pOutlinerPS");
+
+
 
 		hr = D3DX11CompileFromFile(L"BlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -517,7 +758,15 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pBlurPS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pBlurPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pBlurPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pBlurPS") - 1, "Shader::m_pBlurPS");
+
+
 
 		hr = D3DX11CompileFromFile(L"FinPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS  | D3DCOMPILE_DEBUG, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
 		if (FAILED(hr))
@@ -525,7 +774,14 @@ namespace wilson
 			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
 			return false;
 		}
-		m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pFinPS);
+		hr=pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pFinPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pFinPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pFinPS") - 1, "Shader::m_pFinPS");
+
 
 
 		pPSBlob->Release();

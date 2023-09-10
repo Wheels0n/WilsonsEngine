@@ -43,14 +43,14 @@ namespace wilson
 		}
 	}
 	ModelGroup::ModelGroup(std::vector<Model*> pModels, std::vector<MaterialInfo> materials, std::vector<ID3D11ShaderResourceView*> pDiffMaps,
-		wchar_t* pName, EFileType type,
+		wchar_t* pName, eFileType eType,
 		std::unordered_map<std::string, int> matHash,
 		std::unordered_map<std::string, int> diffuseHash)
 	{	
 		std::wstring wstr(pName);
 		m_Name = std::string(wstr.begin(), wstr.end());
 
-		m_type = type;
+		m_type = eType;
 		m_pModels = pModels;
 		m_materials = materials;
 		m_texMaps = pDiffMaps;
