@@ -125,7 +125,7 @@ namespace wilson
 		}
 		inline void SetOutlinerShader(ID3D11DeviceContext* pContext)
 		{
-			pContext->VSSetShader(m_pTexVS, nullptr, 0);
+			pContext->VSSetShader(m_pLightCubeVS, nullptr, 0);
 			pContext->GSSetShader(nullptr, nullptr, 0);
 			pContext->PSSetShader(m_pOutlinerPS, nullptr, 0);
 		}

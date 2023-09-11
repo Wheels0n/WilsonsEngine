@@ -41,34 +41,41 @@ namespace wilson
 				float* curSpeed = m_pCam->GetTRSpeed();
 				float* curNearZ = m_pCam->GetNearZ();
 				float* curFarZ = m_pCam->GetFarZ();
-				ImGui::SliderFloat("Speed", curSpeed, 0.1f, 10.0f);
-				ImGui::SliderFloat("NearZ", curNearZ, 0.001f, 100.f);
-				ImGui::SliderFloat("FarZ", curFarZ,   100.f, 10000.f);
+				ImGui::DragFloat("Speed", curSpeed, 0.1f, 10.0f);
+				ImGui::DragFloat("NearZ", curNearZ, 0.001f, 100.f);
+				ImGui::DragFloat("FarZ", curFarZ,   100.f, 10000.f);
 
 				XMVECTOR* curPosVec = m_pCam->GetPosition();
 				XMFLOAT3 posFloat;
 				XMStoreFloat3(&posFloat, *curPosVec);
 
 				ImGui::Text("Position");
-				ImGui::SliderFloat("X", &posFloat.x, -100, 100);
-				ImGui::SliderFloat("Y", &posFloat.y, -100, 100);
-				ImGui::SliderFloat("Z", &posFloat.z, -100, 100);
+				ImGui::DragFloat("X", &posFloat.x, -100, 100);
+				ImGui::DragFloat("Y", &posFloat.y, -100, 100);
+				ImGui::DragFloat("Z", &posFloat.z, -100, 100);
+				*curPosVec = XMLoadFloat3(&posFloat);
 				ImGui::PushID(0);
 				if (ImGui::Button("Reset"))
 				{
 					m_pCam->ResetTranslation();
 				}
+		
 				ImGui::PopID();
 
 				XMVECTOR* angleVec = m_pCam->GetRotation();
 				XMFLOAT3 angleFloat;
 				XMStoreFloat3(&angleFloat, *angleVec);
+				//Rad to Degree
 				angleFloat.x *= 57.2958f;
 				angleFloat.y *= 57.2958f;
 
 				ImGui::Text("Rotation");
-				ImGui::SliderFloat("Pitch", &angleFloat.x, -180, 180);
-				ImGui::SliderFloat("Yaw", &angleFloat.y, -360, 360);
+				ImGui::DragFloat("Pitch", &angleFloat.x, 0.01f, -180, 180);
+				ImGui::DragFloat("Yaw", &angleFloat.y, 0.01f,-360, 360);
+				//Degree to Rad
+				angleFloat.x /= 57.2958f;
+				angleFloat.y /= 57.2958f;
+				*angleVec = XMLoadFloat3(&angleFloat);
 				ImGui::PushID(1);
 				if (ImGui::Button("Reset"))
 				{
@@ -76,6 +83,7 @@ namespace wilson
 				}
 				ImGui::Separator();
 				ImGui::PopID();
+
 				ImGui::TreePop();
 			}
 			

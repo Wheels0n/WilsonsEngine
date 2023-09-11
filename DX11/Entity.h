@@ -38,6 +38,10 @@ namespace wilson
 		{
 			return m_lightIdx;
 		}
+		inline UINT GetModelIndex() const
+		{
+			return m_modelIdx;
+		}
 		inline void DecreaseIndex()
 		{
 			--m_idx;

@@ -104,6 +104,6 @@ float2 IntergrateBRDF(float NdotV, float r)
 
 
 float2 main(PixelInputType input) : SV_TARGET
-{   
-    return IntergrateBRDF(input.tex.x ,input.tex.y);
+{    
+    return IntergrateBRDF(input.tex.x , 1.0f-input.tex.y); 
 }

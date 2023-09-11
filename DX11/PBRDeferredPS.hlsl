@@ -209,7 +209,7 @@ out float3 L0)
     //Cook-Torrance BRDF
     float NDF = DistributionGGX(normal, h, roughness);
     float G = GeometrySmith(normal, viewDir, lightDir, roughness);
-    float3 F = FresnelSchlickRoughness(max(dot(h, viewDir), 0.0f), F0, roughness);
+    float3 F = FresnelSchlick(max(dot(h, viewDir), 0.0f), F0);
     
     float3 numerator = NDF * G * F;
     float denominator = 4.0 * max(dot(normal, viewDir), 0.0f) * max(dot(normal, lightDir), 0.0f) + 0.0001;
@@ -368,7 +368,7 @@ PixelOutput main(PixelInput input)
    
     const float MAX_REFLECTION_LOD = 4.0f;
     float3 prefilteredColor = g_prefilterMap.SampleLevel(g_cubeShadowSampler, reflection, roughness * MAX_REFLECTION_LOD).rgb;
-    float2 brdfUV = float2(max(dot(normal.xyz, viewDir),0.0f), roughness);
+    float2 brdfUV = float2(max(dot(normal.xyz, viewDir), 0.0f), roughness);
     float2 brdf = g_brdfLUT.Sample(g_sampler, brdfUV).rg;
     float3 specular = prefilteredColor * (F0 * brdf.x + brdf.y);
     

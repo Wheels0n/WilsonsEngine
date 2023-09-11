@@ -10,5 +10,5 @@ float4 main(PixelInputType input) : SV_TARGET
 {   
     float4 color = g_abeldoTex.Sample(g_sampler, input.tex);
     clip(color.a - 0.1f);
-    return float4(1.0f, 0.67451f, 0.10980, 1.0f);
+    return float4(1.0f, 0.34f, 0.0F, 1.0f);
 }

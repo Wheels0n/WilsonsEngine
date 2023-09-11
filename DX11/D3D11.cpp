@@ -1107,7 +1107,7 @@ namespace wilson
 			m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
 			m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
 			m_pContext->RSSetState(m_pQuadRS);
-			m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, nullptr);
+			m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, m_pSceneDSV);
 			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
 			m_pContext->PSSetShaderResources(0, _GBUF_CNT, m_pGbufferSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pDiffIrradianceSRV);
@@ -1717,8 +1717,8 @@ namespace wilson
 		{
 			return false;
 		}
-		m_pOutlinerSetupDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pOutlinerSetupDSS") - 1, "D3D11::m_pOutlinerSetupDSS");
+		m_pOutlinerTestDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pOutlinerTestDSS") - 1, "D3D11::m_pOutlinerTestDSS");
 
 		return true;
 	}

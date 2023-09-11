@@ -56,6 +56,7 @@ namespace wilson
 						{
 							if (ImGui::Button(groupName.c_str()))
 							{	
+								UnselectModel();
 								ImGui::OpenPopup("Edit");
 							}
 							if (ImGui::BeginPopup("Edit"))
@@ -79,10 +80,13 @@ namespace wilson
 							{
 								ImGui::PushID(i);
 								std::string modelName = pModels[j]->GetName();
+								UINT modelIdx= m_entites[i]->GetModelIndex();
 								if (ImGui::Button(modelName.c_str()))
 								{	
 									m_isModel = true;
 									m_pSelectedEntity = pModels[j];
+
+									m_pD3D11->PickModel(modelIdx, j);
 									ImGui::OpenPopup("Edit");
 								}
 								if (ImGui::BeginPopup("Edit"))
@@ -107,6 +111,8 @@ namespace wilson
 						std::string type = m_entites[i]->GetName();
 						if (ImGui::Button(type.c_str()))
 						{	
+							UnselectModel();
+
 							m_isModel = false;
 							m_pSelectedEntity = pLight;
 							ImGui::OpenPopup("Edit");
@@ -178,7 +184,7 @@ namespace wilson
 						DirectX::XMMATRIX sc = DirectX::XMMatrixScalingFromVector(xv);
 						*scMat = sc;
 
-						xv = DirectX::XMVectorScale(xv, 1.01f);
+						xv = DirectX::XMVectorSet(scale[0]*1.01f, scale[1]*1.01f, scale[2]*1.01f, 1.0f);
 						DirectX::XMMATRIX outliner = DirectX::XMMatrixScalingFromVector(xv);
 						outlinerMat = pModel->GetOutlinerScaleMatrix();
 						if (outlinerMat != nullptr)
@@ -441,21 +447,21 @@ namespace wilson
 		DirectX::XMFLOAT4 ambient4;
 		DirectX::XMStoreFloat4(&ambient4, *(pLight->GetAmbient()));
 		float ambient[4] = { ambient4.x, ambient4.y, ambient4.z, ambient4.w };
-		ImGui::SliderFloat4("Ambient", ambient, 0.0f, 100.0f);
+		ImGui::DragFloat4("Ambient", ambient, 0.0f, 100.0f);
 		ambient4 = DirectX::XMFLOAT4(ambient[0], ambient[1], ambient[2], ambient[3]);
 		*(pLight->GetAmbient()) = DirectX::XMLoadFloat4(&ambient4);
 
 		DirectX::XMFLOAT4 diffuse4;
 		DirectX::XMStoreFloat4(&diffuse4, *(pLight->GetDiffuse()));
 		float diffuse[4] = { diffuse4.x, diffuse4.y, diffuse4.z, diffuse4.w };
-		ImGui::SliderFloat4("Diffuse", diffuse, 0.0f, 100.0f);
+		ImGui::DragFloat4("Diffuse", diffuse, 0.0f, 100.0f);
 		diffuse4 = DirectX::XMFLOAT4(diffuse[0], diffuse[1], diffuse[2], diffuse[3]);
 		*(pLight->GetDiffuse()) = DirectX::XMLoadFloat4(&diffuse4);
 
 		DirectX::XMFLOAT4 specular4;
 		DirectX::XMStoreFloat4(&specular4, *(pLight->GetSpecular()));
 		float specular[4] = { specular4.x, specular4.y, specular4.z, specular4.w };
-		ImGui::SliderFloat4("Specular", specular, 0.0f, 100.0f);
+		ImGui::DragFloat4("Specular", specular, 0.0f, 100.0f);
 		specular4 = DirectX::XMFLOAT4(specular[0], specular[1], specular[2], specular[3]);
 		*(pLight->GetSpecular()) = DirectX::XMLoadFloat4(&specular4);
 
@@ -465,7 +471,7 @@ namespace wilson
 		PointLight* pPointLight = (PointLight*)pLight;
 		DirectX::XMFLOAT3 attenuation3 = *(pPointLight->GetAttenuation());
 		float attenuation[3] = { attenuation3.x, attenuation3.y, attenuation3.z };
-		ImGui::SliderFloat3("Attenuation", attenuation, 0.0f, 1.0f);
+		ImGui::DragFloat3("Attenuation", attenuation, 0.0f, 1.0f);
 		*(pPointLight->GetAttenuation()) = DirectX::XMFLOAT3(attenuation[0], attenuation[1], attenuation[2]);
 
 		float range = *(pPointLight->GetRange());
@@ -484,7 +490,7 @@ namespace wilson
 		SpotLight* pSpotLight = (SpotLight*)pLight;
 		DirectX::XMFLOAT3 attenuation3 = *(pSpotLight->GetAttenuation());
 		float attenuation[3] = { attenuation3.x, attenuation3.y, attenuation3.z };
-		ImGui::SliderFloat3("Attenuation", attenuation, 0.0f, 1.0f);
+		ImGui::DragFloat3("Attenuation", attenuation, 0.0f, 1.0f);
 		*(pSpotLight->GetAttenuation()) = DirectX::XMFLOAT3(attenuation[0], attenuation[1], attenuation[2]);
 
 
@@ -549,16 +555,20 @@ namespace wilson
 	}
 	void Scene::RemoveEntity(int i)
 	{	
-		m_pD3D11->PickModel(-1, -1);
 		std::string name = m_entites[i]->GetName();
 		--m_entityCnt[name];
 		delete m_entites[i];
 		m_entites.erase(m_entites.begin() + i);
-		m_pSelectedEntity = nullptr;
+		UnselectModel();
 	}
 	void Scene::RemoveLight(int lightIdx, int idx, Light* pLight)
 	{	
 		m_pD3D11->RemoveLight(lightIdx, pLight);
 		RemoveEntity(idx);
+	}
+	void Scene::UnselectModel()
+	{
+		m_pSelectedEntity = nullptr;
+		m_pD3D11->PickModel(-1, -1);
 	}
 }

@@ -7,7 +7,10 @@ namespace wilson {
 		std::vector<unsigned int> vertexDataPos,
 		std::vector<unsigned int> indicesPos,
 		wchar_t* pName,
-		std::vector<std::string> matNames)
+		std::vector<std::string> matNames,
+		DirectX::XMVECTOR& trV,
+		DirectX::XMVECTOR& rtV,
+		DirectX::XMVECTOR& scV)
 	{
 
 		m_pVertexData = pVertices;
@@ -35,10 +38,11 @@ namespace wilson {
 
 		m_matNames = matNames;
 
-		m_scMat = DirectX::XMMatrixIdentity();
-		m_rtMat = DirectX::XMMatrixIdentity();
-		m_trMat = DirectX::XMMatrixIdentity();
-		m_angleVec = DirectX::XMVectorZero();
+		m_trMat = DirectX::XMMatrixTranslationFromVector(trV);
+		m_rtMat = DirectX::XMMatrixRotationRollPitchYawFromVector(rtV);
+		m_scMat = DirectX::XMMatrixScalingFromVector(scV);
+		m_outlinerScaleMat = m_scMat;
+		m_angleVec = rtV;
 
 		m_instancedData = nullptr;
 		m_isInstanced = false;

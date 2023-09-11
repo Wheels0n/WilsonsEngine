@@ -133,7 +133,10 @@ namespace wilson {
 			std::vector<unsigned int> vertexDataPos,
 			std::vector<unsigned int> indicesPos,
 			wchar_t* pName,
-			std::vector<std::string> matNames);
+			std::vector<std::string> matNames,
+			DirectX::XMVECTOR& trV,
+			DirectX::XMVECTOR& rtV,
+			DirectX::XMVECTOR& scV);
 		Model(const Model&) = delete;
 		~Model();
 
@@ -169,6 +172,7 @@ namespace wilson {
 		DirectX::XMMATRIX m_scMat;
 		DirectX::XMMATRIX m_rtMat;
 		DirectX::XMMATRIX m_trMat;
+		DirectX::XMMATRIX m_wMat;
 		DirectX::XMVECTOR m_angleVec;
 		
 		DirectX::XMMATRIX* m_instancedData;

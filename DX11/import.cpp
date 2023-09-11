@@ -255,7 +255,8 @@ namespace wilson
 		vertexDataPos.push_back(m_vertexCount);
 		indicesPos.push_back(m_indexCount);
 		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
-		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
+		DirectX::XMVECTOR zeroV = DirectX::XMVectorZero();
+		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames, zeroV, zeroV, zeroV );
 		m_pModels.push_back(m_pModel);
 		++m_objectCount;
 
@@ -470,6 +471,102 @@ namespace wilson
 
 		fin.close();
 	}
+
+	FbxAMatrix Importer::GetNodeTransfrom(FbxNode* pNode)
+	{	
+		FbxAMatrix trM, scM, scPM, scOM,
+			rtPM, rtOM, preRM, rtM, postRtM, wM;
+
+		FbxAMatrix parentM, globalTM, globalRSM;
+		if (!pNode)
+		{
+			wM.SetIdentity();
+			return wM;
+		}
+
+		FbxVector4 translation = pNode->LclTranslation.Get();
+		trM.SetT(translation);
+
+		FbxVector4 rotation = pNode->LclRotation.Get();
+		FbxVector4 preRot = pNode->PreRotation.Get();
+		FbxVector4 postRot = pNode->PostRotation.Get();
+		rtM.SetR(rotation);
+		preRM.SetR(preRot);
+		postRtM.SetR(postRot);
+
+		FbxVector4 scaling = pNode->LclScaling.Get();
+		scM.SetS(scaling);
+
+		FbxVector4 scaleOffset = pNode->ScalingOffset.Get();
+		FbxVector4 scalePivot = pNode->ScalingPivot.Get();
+		FbxVector4 rotationOffset = pNode->RotationOffset.Get();
+		FbxVector4 rotationPivot = pNode->RotationPivot.Get();
+		scOM.SetT(scaleOffset);
+		scPM.SetT(scalePivot);
+		rtOM.SetT(rotationOffset);
+		rtPM.SetT(rotationPivot);
+
+		FbxNode* pParentNode = pNode->GetParent();
+		if (pParentNode)
+		{				
+			parentM = GetNodeTransfrom(pParentNode);
+		}
+		else
+		{
+			parentM.SetIdentity();
+		}
+
+		FbxAMatrix localRM, parentGRM;
+		FbxVector4 parentGlobalRotation = parentM.GetR();
+		parentGRM.SetR(parentGlobalRotation);
+		localRM = preRM * rtM * postRtM;
+
+		FbxAMatrix localSM, parentGSM, parentGRSM, parentTM;
+		FbxVector4 parentGT = parentM.GetT();
+		parentTM.SetT(parentGT);
+		parentGRSM = parentTM.Inverse() * parentM;
+		parentGSM = parentGRM.Inverse() * parentGRSM;
+		localSM = scM;
+
+		FbxTransform::EInheritType inheritType = pNode->InheritType.Get();
+		if (inheritType == FbxTransform::eInheritRrSs)
+		{
+			globalRSM = parentGRM * localRM * parentGSM * localSM;
+		}
+		else if (inheritType == FbxTransform::eInheritRSrs)
+		{
+			globalRSM = parentGRM * parentGSM * localRM * localSM;
+		}
+		else if (inheritType == FbxTransform::eInheritRrs)
+		{
+			FbxAMatrix parentLSM;
+			FbxVector4 parentLS = pParentNode->LclScaling.Get();
+			parentLSM.SetS(parentLS);
+
+			FbxAMatrix parentGSM_noLocal = parentGSM * parentLSM.Inverse();
+			globalRSM = parentGRM * localRM * parentGSM_noLocal * localSM;
+		}
+		else
+		{
+			FBXSDK_printf("error, unknown inherit type! \n");
+		}
+
+		// Construct translation matrix
+		// Calculate the local transform matrix
+		wM = trM * rtOM * rtPM * preRM * rtM * postRtM * rtPM.Inverse()
+			* scOM * scPM * scM * scPM.Inverse();
+		FbxVector4 localTWithAllPivotAndOffsetInfo = wM.GetT();
+		// Calculate global translation vector according to: 
+		// GlobalTranslation = ParentGlobalTransform * LocalTranslationWithPivotAndOffsetInfo
+		FbxVector4 globalTranslation = parentM.MultT(localTWithAllPivotAndOffsetInfo);
+		globalTM.SetT(globalTranslation);
+
+		//Construct the whole global transform
+		wM = globalTM * globalRSM;
+
+
+		return wM;
+	}
 	
 	void Importer::GetCurDir(LPCWSTR fileName)
 	{
@@ -641,7 +738,8 @@ namespace wilson
 		return true;
 	}
 	void Importer::LoadSubFbx(FbxMesh* pMesh, FbxVector4* pVertices, 
-		std::vector<UINT>& vertexDataPos, std::vector<UINT>& indicesPos, std::vector<UINT>& submeshStride, std::vector<std::string>& matNames)
+		std::vector<UINT>& vertexDataPos, std::vector<UINT>& indicesPos, std::vector<UINT>& submeshStride, std::vector<std::string>& matNames, std::string& name,
+		DirectX::XMVECTOR& trV, DirectX::XMVECTOR& rtV, DirectX::XMVECTOR& scV)
 	{	
 		//pos를 나눈 이유는 화분처럼 여러 재질로 이루어져있을 경우 나눠서 DrawCall을 하기 위함
 		int submeshCount = 0;
@@ -859,17 +957,16 @@ namespace wilson
 				++vCnt;
 			}
 		}
-		FbxString subMeshName = pMesh->GetNameOnly();
-		std::string name(subMeshName.Buffer());
-		std::string wName(name.begin(), name.end());
+
+		
+		std::wstring wName(name.begin(), name.end());
 		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
-			(wchar_t*)wName.c_str(), matNames);
+			(wchar_t*)wName.c_str(), matNames, trV, rtV, scV);
 		m_pModels.push_back(m_pModel);
 	}
 	bool Importer::LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice)
 	{	
 		std::unordered_set<FbxSurfaceMaterial*> materialSet;
-
 
 		std::wstring wfilePath(fileName);
 		std::string filePath = std::string(wfilePath.begin(), wfilePath.end());
@@ -888,101 +985,131 @@ namespace wilson
 		m_fbxImporter->Destroy();
 
 		FbxNode* pFbxRootNode = scene->GetRootNode();
+		FbxAxisSystem axis = scene->GetGlobalSettings().GetAxisSystem();
 		if (pFbxRootNode)
 		{	
-			for (int i = 0; i < pFbxRootNode->GetChildCount(); ++i)
+
+			FbxNode* pFbxChildNode = pFbxRootNode->GetChild(0);
+			FbxNodeAttribute::EType AttributType =
+				pFbxChildNode->GetNodeAttribute()->GetAttributeType();
+
+			if (AttributType == FbxNodeAttribute::eNull)
 			{	
-				FbxNode* pFbxChildNode = pFbxRootNode->GetChild(i);
-
-				if (pFbxChildNode->GetNodeAttribute() == nullptr)
-				{
-					continue;
-				}
-
-				FbxNodeAttribute::EType AttributType =
-					pFbxChildNode->GetNodeAttribute()->GetAttributeType();
-
-				if (AttributType != FbxNodeAttribute::eMesh)
-				{
-					continue;
-				}
-
-				std::vector<std::string> matNames;
-				std::vector<unsigned int> submeshStride;
-				std::vector<unsigned int> vertexDataPos;
-				std::vector<unsigned int> indicesPos;
-
-				FbxMesh* pMesh = (FbxMesh*)pFbxChildNode->GetNodeAttribute();
-				FbxLayerElementMaterial* pMaterial = pMesh->GetLayer(0)->GetMaterials();
-				if (pMaterial != nullptr)
-				{
-					switch (pMaterial->GetMappingMode())
-					{
-					case FbxLayerElement::eAllSame:
-					{
-						int matId = pMaterial->GetIndexArray().GetAt(0);
-						FbxSurfaceMaterial* pSurfaceMaterial = pMesh->GetNode()->GetMaterial(matId);
-					
-						if (matId >= 0)
-						{	
-							materialSet.insert(pSurfaceMaterial);
-							MaterialInfo matInfo;
-							matInfo.material = LoadFbxMaterial(pSurfaceMaterial);
-							LoadFbxTex(filePath, pSurfaceMaterial, &matInfo, matNames, pDevice);
-						}
-						break;
-					}
-					case FbxLayerElement::eByPolygon:
-					{
-						for (int i = 0; i < pMesh->GetPolygonCount(); ++i)
-						{
-							for (int j = 0; j < pMesh->GetLayerCount(); ++j)
-							{	
-								FbxLayerElementMaterial* layerMaterial = pMesh->GetLayer(j)->GetMaterials();
-								if (layerMaterial != nullptr)
-								{	
-									FbxSurfaceMaterial* pSurfaceMaterial = nullptr;
-									int matId = -1;
-
-									pSurfaceMaterial = pMesh->GetNode()->GetMaterial(layerMaterial->GetIndexArray().GetAt(i));
-									matId = layerMaterial->GetIndexArray().GetAt(i);
-
-									if (matId >= 0)
-									{	
-										if (materialSet.find(pSurfaceMaterial) == materialSet.end())
-										{	
-											materialSet.insert(pSurfaceMaterial);
-											MaterialInfo matInfo;
-											matInfo.material = LoadFbxMaterial(pSurfaceMaterial);
-											LoadFbxTex(filePath, pSurfaceMaterial, &matInfo, matNames,pDevice);
-											//파츠마다 다른 머티리얼 쓰는 게 상식
-											submeshStride.push_back(i);
-										}		
-									}
-								}
-							}
-						}
-						break;
-					}
-					default:
-						break;
-					}
-				}
-
-				//controlPoint는 면당 정점들이다. 
-				FbxVector4* pVertices = pMesh->GetControlPoints();
-				submeshStride.push_back(pMesh->GetPolygonCount());
-				vertexDataPos.push_back(0);
-				indicesPos.push_back(0);
-				//FBX가 Map을 담고 있을 경우를 대비하여 LoadFBX는 Loop문으로 LoadSubFbx(subMesh)를 호출하고, ModelGroup을 만들도록한다.
-				LoadSubFbx(pMesh, pVertices, vertexDataPos, indicesPos, submeshStride, matNames);
-				ClearModel();
+				
+				TraverseNode(pFbxChildNode, pDevice, filePath, materialSet);
+			}
+			else
+			{
+				TraverseNode(pFbxRootNode, pDevice, filePath, materialSet);
 			}
 			m_pModelGroup = new ModelGroup(m_pModels, m_Materials, m_pTexMaps, (wchar_t*)wfileName.c_str(),
 				eFileType::FBX, m_matHash, m_texHash);
 			ClearModelGroup();
 		}
 
+		return true;
+	}
+
+	bool Importer::TraverseNode(FbxNode* pFbxNode, ID3D11Device* pDevice, std::string& filePath, std::unordered_set<FbxSurfaceMaterial*>& materialSet)
+	{	
+		for (int i = 0; i < pFbxNode->GetChildCount(); ++i)
+		{
+			FbxNode* pFbxChildNode = pFbxNode->GetChild(i);
+
+			if (pFbxChildNode->GetNodeAttribute() == nullptr)
+			{
+				continue;
+			}
+
+			FbxNodeAttribute::EType AttributType =
+				pFbxChildNode->GetNodeAttribute()->GetAttributeType();
+
+			if (AttributType != FbxNodeAttribute::eMesh)
+			{
+				continue;
+			}
+
+			std::string name(pFbxChildNode->GetName());
+			FbxAMatrix wMat = GetNodeTransfrom(pFbxChildNode);
+			FbxVector4 translation = wMat.GetT();
+			FbxVector4 rotation = wMat.GetR();
+			FbxVector4 scailing =  wMat.GetS();
+			DirectX::XMVECTOR trV = DirectX::XMVectorSet(translation[0], translation[1], translation[2],translation[3]);
+			DirectX::XMVECTOR rtV = DirectX::XMVectorSet(rotation[0], rotation[1], rotation[2], rotation[3]);
+			DirectX::XMVECTOR scV = DirectX::XMVectorSet(scailing[0], scailing[1], scailing[2], scailing[3]);
+
+
+			std::vector<std::string> matNames;
+			std::vector<unsigned int> submeshStride;
+			std::vector<unsigned int> vertexDataPos;
+			std::vector<unsigned int> indicesPos;
+
+			FbxMesh* pMesh = (FbxMesh*)pFbxChildNode->GetNodeAttribute();
+			FbxLayerElementMaterial* pMaterial = pMesh->GetLayer(0)->GetMaterials();
+			if (pMaterial != nullptr)
+			{
+				switch (pMaterial->GetMappingMode())
+				{
+				case FbxLayerElement::eAllSame:
+				{
+					int matId = pMaterial->GetIndexArray().GetAt(0);
+					FbxSurfaceMaterial* pSurfaceMaterial = pMesh->GetNode()->GetMaterial(matId);
+
+					if (matId >= 0)
+					{
+						materialSet.insert(pSurfaceMaterial);
+						MaterialInfo matInfo;
+						matInfo.material = LoadFbxMaterial(pSurfaceMaterial);
+						LoadFbxTex(filePath, pSurfaceMaterial, &matInfo, matNames, pDevice);
+					}
+					break;
+				}
+				case FbxLayerElement::eByPolygon:
+				{
+					for (int i = 0; i < pMesh->GetPolygonCount(); ++i)
+					{
+						for (int j = 0; j < pMesh->GetLayerCount(); ++j)
+						{
+							FbxLayerElementMaterial* layerMaterial = pMesh->GetLayer(j)->GetMaterials();
+							if (layerMaterial != nullptr)
+							{
+								FbxSurfaceMaterial* pSurfaceMaterial = nullptr;
+								int matId = -1;
+
+								pSurfaceMaterial = pMesh->GetNode()->GetMaterial(layerMaterial->GetIndexArray().GetAt(i));
+								matId = layerMaterial->GetIndexArray().GetAt(i);
+
+								if (matId >= 0)
+								{
+									if (materialSet.find(pSurfaceMaterial) == materialSet.end())
+									{
+										materialSet.insert(pSurfaceMaterial);
+										MaterialInfo matInfo;
+										matInfo.material = LoadFbxMaterial(pSurfaceMaterial);
+										LoadFbxTex(filePath, pSurfaceMaterial, &matInfo, matNames, pDevice);
+										//파츠마다 다른 머티리얼 쓰는 게 상식
+										submeshStride.push_back(i);
+									}
+								}
+							}
+						}
+					}
+					break;
+				}
+				default:
+					break;
+				}
+			}
+
+			//controlPoint는 면당 정점들이다. 
+			FbxVector4* pVertices = pMesh->GetControlPoints();
+			submeshStride.push_back(pMesh->GetPolygonCount());
+			vertexDataPos.push_back(0);
+			indicesPos.push_back(0);
+			//FBX가 Map을 담고 있을 경우를 대비하여 LoadFBX는 Loop문으로 LoadSubFbx(subMesh)를 호출하고, ModelGroup을 만들도록한다.
+			LoadSubFbx(pMesh, pVertices, vertexDataPos, indicesPos, submeshStride, matNames, name, trV, rtV, scV);
+			ClearModel();
+		}
 		return true;
 	}
 

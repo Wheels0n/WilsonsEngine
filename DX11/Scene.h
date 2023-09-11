@@ -54,6 +54,7 @@ namespace wilson
 		void RemoveModelGroup(int);
 		void RemoveLight(int, int, Light*);
 		void RemoveEntity(int);
+		void UnselectModel();
 	private:
 		std::unordered_map<std::string, int> m_entityCnt;
 		std::vector<Entity*> m_entites;

@@ -20,7 +20,7 @@ namespace wilson
         m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("DirectionalLight::m_pLightBuffer") - 1, "DirectionalLight::m_pLightBuffer");
 
-        m_projMat = DirectX::XMMatrixOrthographicLH(100.0f, 100.0f, 0.1f, 100.0f);
+        m_projMat = DirectX::XMMatrixOrthographicLH(10000.0f, 10000.0f, 0.01f, 10000.0f);
         UpdateViewMat();
 
         Light::Init(pDevice);
@@ -46,7 +46,7 @@ namespace wilson
     }
     void DirectionalLight::UpdateProjMat()
     {
-        m_projMat = DirectX::XMMatrixOrthographicLH(100.0f, 100.0f, 0.1f, 100.0f);
+        m_projMat = DirectX::XMMatrixOrthographicLH(10000.0f, 10000.0f, 0.01f, 10000.0f);
     }
 
 }

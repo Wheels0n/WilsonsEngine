@@ -33,12 +33,15 @@ namespace wilson {
 	private:
 		std::streampos GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName);
 
-		void LoadSubFbx(FbxMesh* pMesh, FbxVector4* pVertices, 
-			std::vector<UINT>& vertexDataPos, std::vector<UINT>& indicesPos, std::vector<UINT>& submeshStride, std::vector<std::string>& matNames);
+		void LoadSubFbx(FbxMesh* pMesh, FbxVector4* pVertices,
+			std::vector<UINT>& vertexDataPos, std::vector<UINT>& indicesPos, std::vector<UINT>& submeshStride, std::vector<std::string>& matNames, std::string& str,
+			DirectX::XMVECTOR& trV,	DirectX::XMVECTOR& rtV, DirectX::XMVECTOR& scV);
 		bool LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice);
+		bool TraverseNode(FbxNode* pNode, ID3D11Device* pDevice, std::string& filePath, std::unordered_set<FbxSurfaceMaterial*>& materialSet);
 		void LoadSubOBJ(LPCWSTR fileName, std::streampos pos, ID3D11Device* pDevice, std::string& objName);
 		bool LoadOBJ(LPCWSTR fileName, ID3D11Device* pDevice);
 		bool LoadMTL(wchar_t* fileName, ID3D11Device* pDevice);
+		FbxAMatrix GetNodeTransfrom(FbxNode* pNode);
 		void GetCurDir(LPCWSTR fileName);
 		wchar_t* GetFileName(LPCWSTR fileName);
 		wchar_t* GetMTLPath(LPCWSTR fileName, wchar_t* tok);
