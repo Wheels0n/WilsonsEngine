@@ -37,7 +37,7 @@ namespace wilson {
 			std::vector<UINT>& vertexDataPos, std::vector<UINT>& indicesPos, std::vector<UINT>& submeshStride, std::vector<std::string>& matNames, std::string& str,
 			DirectX::XMVECTOR& trV,	DirectX::XMVECTOR& rtV, DirectX::XMVECTOR& scV);
 		bool LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice);
-		bool TraverseNode(FbxNode* pNode, ID3D11Device* pDevice, std::string& filePath, std::unordered_set<FbxSurfaceMaterial*>& materialSet);
+		bool TraverseNode(FbxNode* pNode, ID3D11Device* pDevice, std::string& filePath, std::unordered_set<FbxSurfaceMaterial*>& groupMatSet);
 		void LoadSubOBJ(LPCWSTR fileName, std::streampos pos, ID3D11Device* pDevice, std::string& objName);
 		bool LoadOBJ(LPCWSTR fileName, ID3D11Device* pDevice);
 		bool LoadMTL(wchar_t* fileName, ID3D11Device* pDevice);
@@ -56,7 +56,7 @@ namespace wilson {
 		Model* m_pModel;
 
 		std::vector<Model*> m_pModels;
-		std::vector<MaterialInfo>m_Materials;
+		std::vector<MaterialInfo>m_MaterialInfoV;
 		std::vector<ID3D11ShaderResourceView*> m_pTexMaps;
 		std::unordered_map<std::string, int> m_matHash;
 		std::unordered_map<std::string, int> m_texHash;

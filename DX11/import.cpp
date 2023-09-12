@@ -238,7 +238,7 @@ namespace wilson
 				matNames.push_back(line);
 
 				int idx = m_matHash[line];
-				hasNormal = !m_Materials[idx].normalMap.empty();
+				hasNormal = !m_MaterialInfoV[idx].normalMap.empty();
 				vertexDataPos.push_back(m_indexCount);
 				indicesPos.push_back(m_indexCount);
 			}
@@ -303,7 +303,7 @@ namespace wilson
 		}
 		fin.close();
 
-		m_pModelGroup = new ModelGroup(m_pModels, m_Materials, m_pTexMaps,
+		m_pModelGroup = new ModelGroup(m_pModels, m_MaterialInfoV, m_pTexMaps,
 			m_fileName, eFileType::OBJ, m_matHash, m_texHash);
 		
 		ClearModel();
@@ -348,7 +348,7 @@ namespace wilson
 		std::getline(fin, line, ':');//두 번째 행에 머티리얼 개수가 표시됨
 		std::getline(fin, line);
 		int matCnt = atoi(line.c_str());
-		m_Materials.reserve(matCnt);
+		m_MaterialInfoV.reserve(matCnt);
 		std::getline(fin, line);
 
 
@@ -361,7 +361,7 @@ namespace wilson
 				MaterialInfo mat = { "","","","",{0,}};
 				std::getline(fin, line);
 				std::string matName = line;
-				m_matHash   [matName] = m_Materials.size();
+				m_matHash   [matName] = m_MaterialInfoV.size();
 				{	
 					float shininess = 1.0f;
 					while (!fin.eof())
@@ -457,7 +457,7 @@ namespace wilson
 						}
 
 					}
-					m_Materials.push_back(mat);
+					m_MaterialInfoV.push_back(mat);
 				}
 			}
 			else
@@ -678,11 +678,11 @@ namespace wilson
 				}
 			}
 		}
-		m_Materials.push_back(*pMatInfo);
+		m_MaterialInfoV.push_back(*pMatInfo);
 		FbxString nameFStr = pSurfaceMaterial->GetNameOnly();
 		std::string name(nameFStr.Buffer());
 		matNames.push_back(name);
-		m_matHash[name] = m_Materials.size() - 1;
+		m_matHash[name] = m_MaterialInfoV.size() - 1;
 		return true;
 	}
 	Material Importer::LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial)
@@ -966,7 +966,7 @@ namespace wilson
 	}
 	bool Importer::LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice)
 	{	
-		std::unordered_set<FbxSurfaceMaterial*> materialSet;
+		std::unordered_set<FbxSurfaceMaterial*> groupMatSet;
 
 		std::wstring wfilePath(fileName);
 		std::string filePath = std::string(wfilePath.begin(), wfilePath.end());
@@ -996,13 +996,13 @@ namespace wilson
 			if (AttributType == FbxNodeAttribute::eNull)
 			{	
 				
-				TraverseNode(pFbxChildNode, pDevice, filePath, materialSet);
+				TraverseNode(pFbxChildNode, pDevice, filePath, groupMatSet);
 			}
 			else
 			{
-				TraverseNode(pFbxRootNode, pDevice, filePath, materialSet);
+				TraverseNode(pFbxRootNode, pDevice, filePath, groupMatSet);
 			}
-			m_pModelGroup = new ModelGroup(m_pModels, m_Materials, m_pTexMaps, (wchar_t*)wfileName.c_str(),
+			m_pModelGroup = new ModelGroup(m_pModels, m_MaterialInfoV, m_pTexMaps, (wchar_t*)wfileName.c_str(),
 				eFileType::FBX, m_matHash, m_texHash);
 			ClearModelGroup();
 		}
@@ -1010,7 +1010,7 @@ namespace wilson
 		return true;
 	}
 
-	bool Importer::TraverseNode(FbxNode* pFbxNode, ID3D11Device* pDevice, std::string& filePath, std::unordered_set<FbxSurfaceMaterial*>& materialSet)
+	bool Importer::TraverseNode(FbxNode* pFbxNode, ID3D11Device* pDevice, std::string& filePath, std::unordered_set<FbxSurfaceMaterial*>& groupMatSet)
 	{	
 		for (int i = 0; i < pFbxNode->GetChildCount(); ++i)
 		{
@@ -1030,7 +1030,19 @@ namespace wilson
 			}
 
 			std::string name(pFbxChildNode->GetName());
-			FbxAMatrix wMat = GetNodeTransfrom(pFbxChildNode);
+			FbxAMatrix wMat = pFbxChildNode->EvaluateGlobalTransform();//GetNodeTransfrom(pFbxChildNode);
+
+			FbxVector4 geoTr = pFbxChildNode->GeometricTranslation.Get();
+			FbxAMatrix geoTM;
+			geoTM.SetT(geoTr);
+			FbxVector4 geoRt = pFbxChildNode->GeometricRotation.Get();
+			FbxAMatrix geoRM;
+			geoRM.SetT(geoRt);
+			FbxVector4 geoSc = pFbxChildNode->GeometricScaling.Get();
+			FbxAMatrix geoSM;
+			geoSM.SetT(geoSc);
+			wMat = wMat * geoTM * geoRM * geoSM;
+
 			FbxVector4 translation = wMat.GetT();
 			FbxVector4 rotation = wMat.GetR();
 			FbxVector4 scailing =  wMat.GetS();
@@ -1039,6 +1051,7 @@ namespace wilson
 			DirectX::XMVECTOR scV = DirectX::XMVectorSet(scailing[0], scailing[1], scailing[2], scailing[3]);
 
 
+			std::unordered_set<FbxSurfaceMaterial*> localMatSet;
 			std::vector<std::string> matNames;
 			std::vector<unsigned int> submeshStride;
 			std::vector<unsigned int> vertexDataPos;
@@ -1056,12 +1069,22 @@ namespace wilson
 					FbxSurfaceMaterial* pSurfaceMaterial = pMesh->GetNode()->GetMaterial(matId);
 
 					if (matId >= 0)
-					{
-						materialSet.insert(pSurfaceMaterial);
-						MaterialInfo matInfo;
-						matInfo.material = LoadFbxMaterial(pSurfaceMaterial);
-						LoadFbxTex(filePath, pSurfaceMaterial, &matInfo, matNames, pDevice);
+					{	
+						if (groupMatSet.find(pSurfaceMaterial) == groupMatSet.end())
+						{
+							groupMatSet.insert(pSurfaceMaterial);
+							MaterialInfo matInfo;
+							matInfo.material = LoadFbxMaterial(pSurfaceMaterial);
+							LoadFbxTex(filePath, pSurfaceMaterial, &matInfo, matNames, pDevice);
+						}
+						else
+						{
+							FbxString matNameFStr = pSurfaceMaterial->GetNameOnly();
+							std::string matName(matNameFStr.Buffer());
+							matNames.push_back(matName);
+						}
 					}
+					
 					break;
 				}
 				case FbxLayerElement::eByPolygon:
@@ -1080,16 +1103,28 @@ namespace wilson
 								matId = layerMaterial->GetIndexArray().GetAt(i);
 
 								if (matId >= 0)
-								{
-									if (materialSet.find(pSurfaceMaterial) == materialSet.end())
-									{
-										materialSet.insert(pSurfaceMaterial);
+								{	
+									//group에서 처음 보는 머티리얼 발견시
+									if (groupMatSet.find(pSurfaceMaterial) == groupMatSet.end())
+									{	
 										MaterialInfo matInfo;
+										groupMatSet.insert(pSurfaceMaterial);
+										localMatSet.insert(pSurfaceMaterial);
 										matInfo.material = LoadFbxMaterial(pSurfaceMaterial);
 										LoadFbxTex(filePath, pSurfaceMaterial, &matInfo, matNames, pDevice);
-										//파츠마다 다른 머티리얼 쓰는 게 상식
+										submeshStride.push_back(i);
+										
+									}
+									//현 mesh에서 처음 보는 머티리얼 발견시
+									else if(localMatSet.find(pSurfaceMaterial)==localMatSet.end())
+									{	
+										localMatSet.insert(pSurfaceMaterial);
+										FbxString matNameFStr = pSurfaceMaterial->GetNameOnly();
+										std::string matName(matNameFStr.Buffer());
+										matNames.push_back(matName);
 										submeshStride.push_back(i);
 									}
+									
 								}
 							}
 						}
@@ -1129,7 +1164,7 @@ namespace wilson
 	{
 		m_objectCount = 0;
 		m_pModels.clear();
-		m_Materials.clear();
+		m_MaterialInfoV.clear();
 		m_pTexMaps.clear();
 		m_matHash.clear();
 		m_texHash.clear();
