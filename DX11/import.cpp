@@ -256,7 +256,7 @@ namespace wilson
 		indicesPos.push_back(m_indexCount);
 		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
 		DirectX::XMVECTOR zeroV = DirectX::XMVectorZero();
-		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames, zeroV, zeroV, zeroV );
+		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
 		m_pModels.push_back(m_pModel);
 		++m_objectCount;
 
@@ -739,7 +739,7 @@ namespace wilson
 	}
 	void Importer::LoadSubFbx(FbxMesh* pMesh, FbxVector4* pVertices, 
 		std::vector<UINT>& vertexDataPos, std::vector<UINT>& indicesPos, std::vector<UINT>& submeshStride, std::vector<std::string>& matNames, std::string& name,
-		DirectX::XMVECTOR& trV, DirectX::XMVECTOR& rtV, DirectX::XMVECTOR& scV)
+		FbxAMatrix& wMat)
 	{	
 		//pos를 나눈 이유는 화분처럼 여러 재질로 이루어져있을 경우 나눠서 DrawCall을 하기 위함
 		int submeshCount = 0;
@@ -784,10 +784,13 @@ namespace wilson
 				++idxCnt;
 
 				VertexData v;
+				FbxVector4 pos = pVertices[polygonV].mData;
+				pos=wMat.MultT(pos);
+				
 				v.position = DirectX::XMFLOAT3(
-					static_cast<float>(pVertices[polygonV].mData[0]),
-					static_cast<float>(pVertices[polygonV].mData[1]),
-					static_cast<float>(pVertices[polygonV].mData[2])
+					static_cast<float>(pos[0]),
+					static_cast<float>(pos[1]),
+					static_cast<float>(pos[2])
 				);
 
 				FbxGeometryElementNormal* pNormal = pMesh->GetElementNormal();
@@ -961,7 +964,7 @@ namespace wilson
 		
 		std::wstring wName(name.begin(), name.end());
 		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
-			(wchar_t*)wName.c_str(), matNames, trV, rtV, scV);
+			(wchar_t*)wName.c_str(), matNames);
 		m_pModels.push_back(m_pModel);
 	}
 	bool Importer::LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice)
@@ -1032,24 +1035,15 @@ namespace wilson
 			std::string name(pFbxChildNode->GetName());
 			FbxAMatrix wMat = pFbxChildNode->EvaluateGlobalTransform();//GetNodeTransfrom(pFbxChildNode);
 
-			FbxVector4 geoTr = pFbxChildNode->GeometricTranslation.Get();
-			FbxAMatrix geoTM;
-			geoTM.SetT(geoTr);
-			FbxVector4 geoRt = pFbxChildNode->GeometricRotation.Get();
-			FbxAMatrix geoRM;
-			geoRM.SetT(geoRt);
-			FbxVector4 geoSc = pFbxChildNode->GeometricScaling.Get();
-			FbxAMatrix geoSM;
-			geoSM.SetT(geoSc);
-			wMat = wMat * geoTM * geoRM * geoSM;
+			FbxVector4 translation = pFbxChildNode->GeometricTranslation.Get();
+			FbxVector4 rotation = pFbxChildNode->GeometricRotation.Get();
+			FbxVector4 scailing = pFbxChildNode->GeometricScaling.Get();
+			FbxAMatrix geoMat;
+			geoMat.SetT(translation);
+			geoMat.SetR(rotation);
+			geoMat.SetS(scailing);
 
-			FbxVector4 translation = wMat.GetT();
-			FbxVector4 rotation = wMat.GetR();
-			FbxVector4 scailing =  wMat.GetS();
-			DirectX::XMVECTOR trV = DirectX::XMVectorSet(translation[0], translation[1], translation[2],translation[3]);
-			DirectX::XMVECTOR rtV = DirectX::XMVectorSet(rotation[0], rotation[1], rotation[2], rotation[3]);
-			DirectX::XMVECTOR scV = DirectX::XMVectorSet(scailing[0], scailing[1], scailing[2], scailing[3]);
-
+			wMat = wMat * geoMat;
 
 			std::unordered_set<FbxSurfaceMaterial*> localMatSet;
 			std::vector<std::string> matNames;
@@ -1142,7 +1136,7 @@ namespace wilson
 			vertexDataPos.push_back(0);
 			indicesPos.push_back(0);
 			//FBX가 Map을 담고 있을 경우를 대비하여 LoadFBX는 Loop문으로 LoadSubFbx(subMesh)를 호출하고, ModelGroup을 만들도록한다.
-			LoadSubFbx(pMesh, pVertices, vertexDataPos, indicesPos, submeshStride, matNames, name, trV, rtV, scV);
+			LoadSubFbx(pMesh, pVertices, vertexDataPos, indicesPos, submeshStride, matNames, name, wMat);
 			ClearModel();
 		}
 		return true;

@@ -35,7 +35,7 @@ namespace wilson {
 
 		void LoadSubFbx(FbxMesh* pMesh, FbxVector4* pVertices,
 			std::vector<UINT>& vertexDataPos, std::vector<UINT>& indicesPos, std::vector<UINT>& submeshStride, std::vector<std::string>& matNames, std::string& str,
-			DirectX::XMVECTOR& trV,	DirectX::XMVECTOR& rtV, DirectX::XMVECTOR& scV);
+			FbxAMatrix& wMat);
 		bool LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice);
 		bool TraverseNode(FbxNode* pNode, ID3D11Device* pDevice, std::string& filePath, std::unordered_set<FbxSurfaceMaterial*>& groupMatSet);
 		void LoadSubOBJ(LPCWSTR fileName, std::streampos pos, ID3D11Device* pDevice, std::string& objName);

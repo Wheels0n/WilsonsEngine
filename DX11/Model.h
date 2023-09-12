@@ -133,10 +133,7 @@ namespace wilson {
 			std::vector<unsigned int> vertexDataPos,
 			std::vector<unsigned int> indicesPos,
 			wchar_t* pName,
-			std::vector<std::string> matNames,
-			DirectX::XMVECTOR& trV,
-			DirectX::XMVECTOR& rtV,
-			DirectX::XMVECTOR& scV);
+			std::vector<std::string> matNames);
 		Model(const Model&) = delete;
 		~Model();
 
