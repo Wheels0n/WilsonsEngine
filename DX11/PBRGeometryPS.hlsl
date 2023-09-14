@@ -1,6 +1,8 @@
 Texture2D g_diffuseMap;
 Texture2D g_normalMap;
 Texture2D g_specularMap;
+Texture2D g_emissiveMap;
+Texture2D g_alphaMap;
 SamplerState g_sampler : register(s0);
 struct PixelInputType
 {
@@ -17,6 +19,7 @@ struct PixelOutputType
     float4 normal : SV_Target1;
     float4 albeldo : SV_Target2;
     float4 specular : SV_Target3;
+    float4 emissive : SV_Target4;
 };
 struct Material
 {
@@ -34,12 +37,15 @@ cbuffer PerModel
     bool g_isInstanced;
     bool g_hasNormal;
     bool g_hasSpecular;
+    bool g_hasEmissive;
     bool g_hasAlpha;
+    float3 pad;
+
 };
 PixelOutputType main(PixelInputType input)
 {   
     PixelOutputType output;
-   
+  
     output.albeldo = g_diffuseMap.Sample(g_sampler, input.tex);
     clip(output.albeldo.a - 0.1f);
     output.position = input.wPosition;
@@ -61,6 +67,14 @@ PixelOutputType main(PixelInputType input)
    
     output.specular.rgb = g_specularMap.SampleLevel(g_sampler, input.tex,1);
     output.specular.a = 1.0f;
+    
+    
+    output.emissive = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    [branch]
+    if(g_hasEmissive)
+    {
+        output.emissive.xyz = g_emissiveMap.Sample(g_sampler, input.tex);
+    }
     
     return output;
 }

@@ -29,7 +29,9 @@ cbuffer PerModel
     bool g_isInstanced;
     bool g_hasNormal;
     bool g_hasSpecular;
+    bool g_hasEmssive;
     bool g_hasAlpha;
+    float3 pad;
 };
 
 PixelInputType main(VertexInputType input)

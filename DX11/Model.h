@@ -17,7 +17,9 @@ namespace wilson {
 		BOOL isInstanced;
 		BOOL hasNormal;
 		BOOL hasSpecular;
+		BOOL hasEmissive;
 		BOOL hasAlpha;
+		DirectX::XMFLOAT3 pad;
 	};
 	struct VertexData
 	{
@@ -40,6 +42,7 @@ namespace wilson {
 		std::string specularMap;
 		std::string normalMap;
 		std::string alphaMap;
+		std::string emissiveMap;
 		Material material;
 	};
 

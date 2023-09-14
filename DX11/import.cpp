@@ -620,9 +620,9 @@ namespace wilson
 		std::filesystem::path fbxPath = fileName.c_str();
 		std::string texturesPath = fbxPath.parent_path().string() + "\\";
 		
-		const char* mapTypes[4] = { FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sNormalMap, FbxSurfaceMaterial::sSpecular, 
+		const char* mapTypes[5] = { FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sNormalMap, FbxSurfaceMaterial::sEmissive, FbxSurfaceMaterial::sSpecular, 
 			FbxSurfaceMaterial::sSpecularFactor};//reflectioFactor==metallic
-		for (int i = 0; i < 4; ++i)
+		for (int i = 0; i < 5; ++i)
 		{	
 			D3DX11_IMAGE_LOAD_INFO loadInfo = {};
 			if (i==0)
@@ -668,6 +668,9 @@ namespace wilson
 							break;
 						case 1:
 							pMatInfo->normalMap = name;
+							break;
+						case 2:
+							pMatInfo->emissiveMap = name;
 							break;
 						default:
 							pMatInfo->specularMap = name;
@@ -794,6 +797,7 @@ namespace wilson
 				);
 
 				FbxGeometryElementNormal* pNormal = pMesh->GetElementNormal();
+				FbxVector4 norm;
 				//vertex != controlPoint
 				switch (pNormal->GetMappingMode())
 				{
@@ -802,21 +806,15 @@ namespace wilson
 					switch (pNormal->GetReferenceMode())
 					{
 					case FbxGeometryElement::eDirect:
-
-						v.norm.x = static_cast<float>(
-							pNormal->GetDirectArray().GetAt(polygonV).mData[0]);
-						v.norm.y = static_cast<float>(
-							pNormal->GetDirectArray().GetAt(polygonV).mData[1]);
-						v.norm.z = static_cast<float>(
-							pNormal->GetDirectArray().GetAt(polygonV).mData[2]);
+						norm = pNormal->GetDirectArray().GetAt(polygonV);
+						
 						break;
 
 					case FbxGeometryElement::eIndexToDirect:
 
 						idx = pNormal->GetIndexArray().GetAt(polygonV);
-						v.norm.x = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[0]);
-						v.norm.y = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[1]);
-						v.norm.z = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[2]);
+						norm = pNormal->GetDirectArray().GetAt(idx);
+					
 						break;
 
 					default:
@@ -827,21 +825,13 @@ namespace wilson
 					switch (pNormal->GetReferenceMode())
 					{
 					case FbxGeometryElement::eDirect:
-					
-						v.norm.x = static_cast<float>(
-							pNormal->GetDirectArray().GetAt(vCnt).mData[0]);
-						v.norm.y = static_cast<float>(
-							pNormal->GetDirectArray().GetAt(vCnt).mData[1]);
-						v.norm.z = static_cast<float>(
-							pNormal->GetDirectArray().GetAt(vCnt).mData[2]);
+						norm = pNormal->GetDirectArray().GetAt(vCnt);
 						break;
 					
 					case FbxGeometryElement::eIndexToDirect:
 					
 						idx = pNormal->GetIndexArray().GetAt(vCnt);
-						v.norm.x = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[0]);
-						v.norm.y = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[1]);
-						v.norm.z = static_cast<float>(pNormal->GetDirectArray().GetAt(idx).mData[2]);
+						norm = pNormal->GetDirectArray().GetAt(idx);
 						break;
 					
 					default:
@@ -851,28 +841,30 @@ namespace wilson
 				default:
 					break;
 				}
+				norm = wMat.MultT(norm);
+				v.norm.x = norm.mData[0];
+				v.norm.y = norm.mData[1];
+				v.norm.z = norm.mData[2];
+
+
 				if (pMesh->GetElementTangentCount())
 				{
 					FbxGeometryElementTangent* pTangent = pMesh->GetElementTangent();
-	
+					FbxVector4 tan;
 					switch (pTangent->GetMappingMode())
 					{
 					case FbxGeometryElement::eByControlPoint:
 						switch (pTangent->GetReferenceMode())
 						{
 							case FbxGeometryElement::eDirect:
-							
-								v.tangent.x = static_cast<float>(pTangent->GetDirectArray().GetAt(polygonV).mData[0]);
-								v.tangent.y = static_cast<float>(pTangent->GetDirectArray().GetAt(polygonV).mData[1]);
-								v.tangent.z = static_cast<float>(pTangent->GetDirectArray().GetAt(polygonV).mData[2]);
+								tan = pTangent->GetDirectArray().GetAt(polygonV);
 								break;
 							
 							case FbxGeometryElement::eIndexToDirect:
 							
 								idx = pTangent->GetIndexArray().GetAt(polygonV);
-								v.tangent.x = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[0]);
-								v.tangent.y = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[1]);
-								v.tangent.z = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[2]);
+								tan = pTangent->GetDirectArray().GetAt(idx);
+								
 								break;
 							
 							default:
@@ -887,17 +879,15 @@ namespace wilson
 						{
 							case FbxGeometryElement::eDirect:
 							
-								v.tangent.x = static_cast<float>(pTangent->GetDirectArray().GetAt(vCnt).mData[0]);
-								v.tangent.y = static_cast<float>(pTangent->GetDirectArray().GetAt(vCnt).mData[1]);
-								v.tangent.z = static_cast<float>(pTangent->GetDirectArray().GetAt(vCnt).mData[2]);
+								tan = pTangent->GetDirectArray().GetAt(vCnt);
+								
 								break;
 							
 							case FbxGeometryElement::eIndexToDirect:
 							
 								idx = pTangent->GetIndexArray().GetAt(vCnt);
-								v.tangent.x = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[0]);
-								v.tangent.y = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[1]);
-								v.tangent.z = static_cast<float>(pTangent->GetDirectArray().GetAt(idx).mData[2]);
+								tan = pTangent->GetDirectArray().GetAt(idx);
+								
 								break;
 							
 							default:
@@ -906,6 +896,10 @@ namespace wilson
 							
 						}
 					}
+					tan = wMat.MultT(tan);
+					v.tangent.x = tan.mData[0];
+					v.tangent.y = tan.mData[1];
+					v.tangent.z = tan.mData[2];
 				}
 
 				FbxGeometryElementUV* pUV = pMesh->GetElementUV();

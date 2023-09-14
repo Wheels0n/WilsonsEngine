@@ -229,7 +229,7 @@ namespace wilson {
 		m_perModels.reserve(m_matNames.size());
 		for (int i = 0; i < m_matNames.size(); ++i)
 		{
-			PerModel perModel = { false, };
+			PerModel perModel = {false, };
 			int idx = mathash[m_matNames[i]];
 			MaterialInfo matInfo = matInfos[idx];
 			m_matInfos.push_back(matInfo);
@@ -253,12 +253,20 @@ namespace wilson {
 				m_textures.push_back(textures[idx]);
 				perModel.hasNormal = true;
 			}
+			
 			if (!matInfo.alphaMap.empty())
 			{
 				idx = texhash[matInfo.alphaMap];
 				m_texHash[matInfo.alphaMap] = m_textures.size();
 				m_textures.push_back(textures[idx]);
 				perModel.hasAlpha = true;
+			}
+			if (!matInfo.emissiveMap.empty())
+			{
+				idx = texhash[matInfo.emissiveMap];
+				m_texHash[matInfo.emissiveMap] = m_textures.size();
+				m_textures.push_back(textures[idx]);
+				perModel.hasEmissive = true;
 			}
 			m_perModels.push_back(perModel);
 		}
@@ -300,26 +308,50 @@ namespace wilson {
 		
 		UINT texCnt = 0;
 		UINT idx = m_texHash[matInfo.diffuseMap];
-		pContext->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
+		ID3D11ShaderResourceView* nullSRV[5]={nullptr,};
+		pContext->PSSetShaderResources(0, 1, &m_textures[idx]);
 		if (bGeoPass)
 		{	
 			if (m_perModels[i].hasNormal)
 			{
 				idx = m_texHash[matInfo.normalMap];
-				pContext->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
+				pContext->PSSetShaderResources(1, 1, &m_textures[idx]);
 			}
+			else
+			{
+				pContext->PSSetShaderResources(1, 1, &nullSRV[1]);
+			}
+
 			if (m_perModels[i].hasSpecular)
 			{
 				idx = m_texHash[matInfo.specularMap];
-				pContext->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
+				pContext->PSSetShaderResources(2, 1, &m_textures[idx]);
+			}
+			else
+			{
+				pContext->PSSetShaderResources(2, 1, &nullSRV[2]);
 			}
 		
+			if (m_perModels[i].hasEmissive)
+			{
+				idx = m_texHash[matInfo.emissiveMap];
+				pContext->PSSetShaderResources(3, 1, &m_textures[idx]);
+			}
+			else
+			{
+				pContext->PSSetShaderResources(3, 1, &nullSRV[3]);
+			}
+
+			
 			if (m_perModels[i].hasAlpha)
 			{
 				idx = m_texHash[matInfo.alphaMap];
-				pContext->PSSetShaderResources(texCnt++, 1, &m_textures[idx]);
+				pContext->PSSetShaderResources(4, 1, &m_textures[idx]);
 			}
-
+			else
+			{
+				pContext->PSSetShaderResources(4, 1, &nullSRV[4]);
+			}
 
 
 			hr = pContext->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
@@ -347,7 +379,8 @@ namespace wilson {
 			pPerModel->isInstanced = m_isInstanced;
 			pPerModel->hasSpecular = m_perModels[i].hasSpecular;
 			pPerModel->hasNormal = m_perModels[i].hasNormal;
-			pPerModel->hasAlpha = m_perModels[i].hasAlpha;
+			//pPerModel->hasAlpha = m_perModels[i].hasAlpha;
+			pPerModel->hasEmissive=m_perModels[i].hasEmissive;
 
 			pContext->Unmap(m_pPerModelBuffer, 0);
 			pContext->VSSetConstantBuffers(1, 1, &m_pPerModelBuffer);

@@ -48,6 +48,7 @@ Texture2D g_posTex;
 Texture2D g_normalTex;
 Texture2D g_abeldoTex;
 Texture2D g_specualrTex;//R:AO, G:Roughness, B:Metalness
+Texture2D g_emissiveTex;
 TextureCube g_irradianceMap;
 TextureCube g_prefilterMap;
 Texture2D g_brdfLUT;
@@ -293,6 +294,7 @@ PixelOutput main(PixelInput input)
     float4 normal = g_normalTex.Sample(g_sampler, input.tex);
     float4 albedo = g_abeldoTex.Sample(g_sampler, input.tex);
     float4 spec = g_specualrTex.Sample(g_sampler, input.tex);
+    float4 emissive = g_emissiveTex.Sample(g_sampler, input.tex);
     
     float ao = spec.r;
     float roughness = spec.g;
@@ -374,7 +376,7 @@ PixelOutput main(PixelInput input)
     
     float3 ambient = (kD * diffuse+specular) * ao;
    
-    output.mainColor.xyz = lightVal.xyz+ambient;
+    output.mainColor.xyz = lightVal.xyz + ambient +emissive.xyz;
     output.mainColor.a = 1.0f;
  
     return output;
