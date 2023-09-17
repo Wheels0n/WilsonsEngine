@@ -3,16 +3,45 @@
 #include"Camera.h"
 
 namespace wilson {
+	struct Plane
+	{
+		DirectX::XMVECTOR norm;
+		float d;
+	};
+
 	class Frustum
 	{
 	public:
-		void Init(float, Camera*);
-		bool IsInFrustum(DirectX::XMVECTOR);
+		void Init(Camera*);
+		inline void SetENTTsInFrustum(UINT cnt)
+		{
+			m_ENTTsInFrustum = cnt;
+		}
+		inline void SetENTTsInTotal(UINT cnt)
+		{
+			m_ENTTsInTotal = cnt;
+		}
+		inline int GetENTTsInFrustum() const
+		{
+			return m_ENTTsInFrustum;
+		}
+		inline int GetENTTsInTotal() const
+		{
+			return m_ENTTsInTotal;
+		}
+		inline Plane* GetPlanes()
+		{
+			return m_planes;
+		}
+
 		
 		Frustum() = default;
 		~Frustum() = default;
 
 	private:
-		DirectX::XMVECTOR m_planes[6];
+		UINT m_ENTTsInFrustum;
+		UINT m_ENTTsInTotal;
+		Plane m_planes[6];
+		Frustum* m_pFrustum;
 	};
 }

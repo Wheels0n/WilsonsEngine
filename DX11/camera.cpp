@@ -13,12 +13,11 @@ namespace wilson {
 		ResetTranslation();
 		ResetRotation();
 		m_up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+		m_worldUp = m_up;
 
 		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
 		m_pCamPosBuffer = nullptr;
-		m_ENTTsInFrustum = 0;
-
 	}
 
 	Camera::~Camera()
@@ -89,11 +88,20 @@ namespace wilson {
 	void Camera::Update()
 	{
 		DirectX::XMMATRIX rtMat = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
-		m_target = DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rtMat);
-		m_target = DirectX::XMVectorAdd(m_target, m_pos);
-		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
+		m_dir = DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rtMat);
+		m_dir = DirectX::XMVector3Normalize(m_dir);
+		m_target = DirectX::XMVectorAdd(m_dir, m_pos);
+		
+		
+		m_right = DirectX::XMVector3Cross(m_dir, m_worldUp);
+		m_right = DirectX::XMVector3Normalize(m_right);
 
+		m_up = DirectX::XMVector3Cross(m_right, m_dir);
+		m_up = DirectX::XMVector3Normalize(m_up);
+
+		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
 		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
+		
 	}
 
 	bool Camera::SetCamPos(ID3D11DeviceContext* pContext)

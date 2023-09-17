@@ -55,6 +55,10 @@ namespace wilson
 		{
 			return m_pCam;
 		};
+		inline Frustum* GetFrustum() const
+		{
+			return m_pFrustum;
+		};
 		inline IDXGISwapChain* GetSwapChain() const
 		{
 			return m_pSwapChain;
@@ -88,6 +92,10 @@ namespace wilson
 			m_selectedModelGroup = i;
 			m_selectedModel = j;
 		}
+		inline void ToggleAABBGrid()
+		{
+			m_bAABBGridOn = !m_bAABBGridOn;
+		}
 		UINT GetLightSize(Light* pLight);
 
 		bool CreateRTT(int, int);
@@ -113,6 +121,7 @@ namespace wilson
 	private:
 
 		bool m_bVsyncOn;
+		bool m_bAABBGridOn;
 		IDXGISwapChain* m_pSwapChain;
 		ID3D11Device* m_pDevice;
 		ID3D11DeviceContext* m_pContext;
@@ -126,6 +135,8 @@ namespace wilson
 		ID3D11Buffer* m_pSSAOKernelBuffer; 
 		ID3D11Buffer* m_pExposureBuffer; 
 		ID3D11Buffer* m_pEquirect2CubeBuffer;
+		ID3D11Buffer* m_pAABBVBuffer;
+		ID3D11Buffer* m_pAABBIBuffer;
 
 		ID3D11Texture2D* m_pDSBuffer;
 		ID3D11Texture2D* m_pDSBufferForRTT;
@@ -181,6 +192,7 @@ namespace wilson
 		ID3D11RasterizerState* m_pRasterStateCC;
 		ID3D11RasterizerState* m_pSkyBoxRS;
 		ID3D11RasterizerState* m_pQuadRS;
+		ID3D11RasterizerState* m_pAABBRS;
 
 		ID3D11SamplerState* m_pWrapSS;
 		ID3D11SamplerState* m_pClampSS;
@@ -209,6 +221,7 @@ namespace wilson
 		int m_selectedModelGroup;
 		int m_selectedModel;
 		std::vector<XMFLOAT3> m_rotationVecs;
+	
 		
 	};
 }

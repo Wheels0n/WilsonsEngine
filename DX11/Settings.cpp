@@ -7,7 +7,9 @@ namespace wilson
 	void Settings::Init(D3D11* pD3D11)
 	{
 		m_FPS.Init();
+		m_pD3D11 = pD3D11;
 		m_pCam = pD3D11->GetCam();
+		m_pFrustum = pD3D11->GetFrustum();
 		m_pExposure = pD3D11->GetExposure();
 
 		ID3D11Device* pDevice= pD3D11->GetDevice();
@@ -28,7 +30,13 @@ namespace wilson
 		{
 			m_FPS.Frame();
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_FPS.GetFps());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ENTTSInFrustum:%d", m_pCam->GetENTTsInFrustum());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "TotalENTTs:%d", m_pFrustum->GetENTTsInTotal());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ENTTSInFrustum:%d", m_pFrustum->GetENTTsInFrustum());
+			ImGui::Separator();
+			if (ImGui::Button("Toggle AABGrid"))
+			{
+				m_pD3D11->ToggleAABBGrid();
+			}
 
 			ImGuiIO io = ImGui::GetIO();
 			ImGui::Text("Mouse Pos: %g, %g", io.MousePos.x, io.MousePos.y);
@@ -41,6 +49,7 @@ namespace wilson
 				float* curSpeed = m_pCam->GetTRSpeed();
 				float* curNearZ = m_pCam->GetNearZ();
 				float* curFarZ = m_pCam->GetFarZ();
+				
 				ImGui::DragFloat("Speed", curSpeed, 0.1f, 10.0f);
 				ImGui::DragFloat("NearZ", curNearZ, 0.001f, 100.f);
 				ImGui::DragFloat("FarZ", curFarZ,   100.f, 10000.f);
@@ -81,6 +90,19 @@ namespace wilson
 				{
 					m_pCam->ResetRotation();
 				}
+
+				if (m_prevPos.x != posFloat.x || m_prevPos.y != posFloat.y || m_prevPos.z != posFloat.z ||
+					angleFloat.x != m_prevAngleFloat.x || angleFloat.y != m_prevAngleFloat.y ||
+					m_prevNearZ != *curNearZ || m_prevFarZ != *curFarZ)
+				{	
+					m_pCam->Update();
+					m_pFrustum->Init(m_pCam);
+				}
+				m_prevNearZ = *curNearZ;
+				m_prevFarZ = *curFarZ;
+				m_prevPos = posFloat;
+				m_prevAngleFloat = angleFloat;
+
 				ImGui::Separator();
 				ImGui::PopID();
 

@@ -26,6 +26,7 @@
     <ClCompile Include="..\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="..\ImGui\imgui_tables.cpp" />
     <ClCompile Include="..\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="AABB.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ContentBrowser.cpp" />
     <ClCompile Include="D3D11.cpp" />
@@ -63,6 +64,7 @@
     <ClInclude Include="..\ImGui\imstb_rectpack.h" />
     <ClInclude Include="..\ImGui\imstb_textedit.h" />
     <ClInclude Include="..\ImGui\imstb_truetype.h" />
+    <ClInclude Include="AABB.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ContentBrowser.h" />
     <ClInclude Include="D3D11.h" />
@@ -99,6 +101,18 @@
     <Image Include="Wilson_The_Volleyball.ico" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="AABBPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="AABBVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="BlurPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>

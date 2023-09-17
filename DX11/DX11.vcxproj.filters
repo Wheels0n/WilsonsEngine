@@ -152,6 +152,9 @@
     <ClCompile Include="LightBuffer.cpp">
       <Filter>Source Files\Component\Light</Filter>
     </ClCompile>
+    <ClCompile Include="AABB.cpp">
+      <Filter>Source Files\Component\Cam</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ImGui\imstb_rectpack.h">
@@ -259,6 +262,9 @@
     <ClInclude Include="LightBuffer.h">
       <Filter>Source Files\Component\Light</Filter>
     </ClInclude>
+    <ClInclude Include="AABB.h">
+      <Filter>Source Files\Component\Cam</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DX11.rc">
@@ -359,6 +365,12 @@
       <Filter>Resource Files</Filter>
     </FxCompile>
     <FxCompile Include="BRDFPS.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="AABBVS.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="AABBPS.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
   </ItemGroup>

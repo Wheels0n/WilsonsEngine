@@ -3,7 +3,10 @@
 #include<DirectXMath.h>
 #include<d3d11.h>
 
+
 namespace wilson {
+
+	class Frustum;
 
 	constexpr float _RAD = 6.28319;
 
@@ -25,15 +28,6 @@ namespace wilson {
 			m_rotation = DirectX::XMVectorZero();
 		}
 
-		inline void SetENTTsInFrustum(UINT cnt)
-		{
-			m_ENTTsInFrustum = cnt;
-		}
-		inline int GetENTTsInFrustum() const
-		{
-			return m_ENTTsInFrustum;
-		}
-
 		inline DirectX::XMVECTOR* GetPosition() 
 		{
 			return &m_pos;
@@ -41,6 +35,18 @@ namespace wilson {
 		inline DirectX::XMVECTOR* GetTarget()
 		{
 			return &m_target;
+		}
+		inline DirectX::XMVECTOR GetRight()
+		{
+			return m_right;
+		}
+		inline DirectX::XMVECTOR GetUp() const
+		{
+			return m_up;
+		}
+		inline DirectX::XMVECTOR GetDir() const
+		{
+			return m_dir;
 		}
 		inline DirectX::XMVECTOR* GetRotation()
 		{
@@ -67,7 +73,14 @@ namespace wilson {
 		{
 			return &m_fScreenFar;
 		}
-
+		inline float* GetFovY()
+		{
+			return &m_fFOV;
+		}
+		inline float GetAspect() const
+		{
+			return m_fScreenRatio;
+		}
 		void Rotate(int, int);
 		void Translate(DirectX::XMVECTOR);
 
@@ -76,7 +89,10 @@ namespace wilson {
 	private:
 
 		DirectX::XMVECTOR m_pos;
+		DirectX::XMVECTOR m_dir;
 		DirectX::XMVECTOR m_target;
+		DirectX::XMVECTOR m_right;
+		DirectX::XMVECTOR m_worldUp;
 		DirectX::XMVECTOR m_up;      //which axis is upward
 		DirectX::XMVECTOR m_rotation;
 
@@ -84,8 +100,6 @@ namespace wilson {
 		DirectX::XMMATRIX m_projMat;// think of the frustum as the lens of our camera, for it controls our view
 
 		ID3D11Buffer* m_pCamPosBuffer;
-
-		UINT m_ENTTsInFrustum;
 
 		float m_fFOV;
 		float m_fScreenRatio;

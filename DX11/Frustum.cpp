@@ -1,81 +1,71 @@
 #include "Frustum.h"
 
 namespace wilson {
-	void Frustum::Init(const float screenDepth, Camera* pCam)
-	{
-		DirectX::XMMATRIX projMat = *(pCam->GetProjectionMatrix());
-		DirectX::XMFLOAT4X4 projMat4;
-		XMStoreFloat4x4(&projMat4, projMat);
+	void Frustum::Init(Camera* pCam)
+	{	
+		m_ENTTsInFrustum = 0;
+		m_ENTTsInTotal = 0;
+		float zFar = *(pCam->GetFarZ());
+		float zNear = *(pCam->GetNearZ());
+		float ratio = pCam->GetAspect();
+		float fovY = *(pCam->GetFovY());
 
-		float zNear = -projMat4._43 / projMat4._33; //(-n*f/(far-near)) / (far/(far-near)) ;
-		float r = screenDepth / (screenDepth - zNear);
+		const float halfVSide = zFar * tanf(fovY * 0.5f);
+		const float halfHSide = halfVSide * ratio;
+		
+		DirectX::XMVECTOR frontV = pCam->GetDir();
+		frontV = DirectX::XMVector3Normalize(frontV);
 
-		//새 z 정규화 
-		projMat4._33 = r;
-		projMat4._43 = -r * zNear;
-		projMat = XMLoadFloat4x4(&projMat4);
+		DirectX::XMVECTOR frontMulNear = DirectX::XMVectorScale(frontV, zNear);
+		DirectX::XMVECTOR frontMulFar = DirectX::XMVectorScale(frontV, zFar);
 
-		DirectX::XMMATRIX toNDC = XMMatrixMultiply(*(pCam->GetViewMatrix()), projMat);
+      	DirectX::XMVECTOR posV = *(pCam->GetPosition());
+		DirectX::XMVECTOR right = pCam->GetRight();
+		DirectX::XMVECTOR up = pCam->GetUp();
 
-		DirectX::XMFLOAT4X4 toNDC4;
-		XMStoreFloat4x4(&toNDC4, toNDC);
+		DirectX::XMVECTOR dot;
 
-		//col4= z, col3 = Az+B, col2 = y, col1 = x 평면방정식 참고
-		float x = (float)(toNDC4._14 + toNDC4._13);
-		float y = (float)(toNDC4._24 + toNDC4._23);
-		float z = (float)(toNDC4._34 + toNDC4._33);
-		float w = (float)(toNDC4._44 + toNDC4._43);
-		m_planes[0] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[0] = DirectX::XMPlaneNormalize(m_planes[0]);
 
-		x = (float)(toNDC4._14 - toNDC4._13);
-		y = (float)(toNDC4._24 - toNDC4._23);
-		z = (float)(toNDC4._34 - toNDC4._33);
-		w = (float)(toNDC4._44 - toNDC4._43);
-		m_planes[1] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[1] = DirectX::XMPlaneNormalize(m_planes[1]);
+		//near, far, right, left, top, bottom
+		m_planes[0].norm = frontV;
+		dot = DirectX::XMVector3Dot(DirectX::XMVectorAdd(posV, frontMulNear), m_planes[0].norm);
+		DirectX::XMStoreFloat(&m_planes[0].d, dot);
 
-		x = (float)(toNDC4._14 + toNDC4._11);
-		y = (float)(toNDC4._24 + toNDC4._21);
-		z = (float)(toNDC4._34 + toNDC4._31);
-		w = (float)(toNDC4._44 + toNDC4._41);
-		m_planes[2] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[2] = DirectX::XMPlaneNormalize(m_planes[2]);
+		frontV = DirectX::XMVectorScale(frontV, -1);
+		m_planes[1].norm = frontV;
+		dot = DirectX::XMVector3Dot(DirectX::XMVectorAdd(posV, frontMulFar), m_planes[1].norm);
+		DirectX::XMStoreFloat(&m_planes[1].d, dot);
 
-		x = (float)(toNDC4._14 - toNDC4._11);
-		y = (float)(toNDC4._24 - toNDC4._21);
-		z = (float)(toNDC4._34 - toNDC4._31);
-		w = (float)(toNDC4._44 - toNDC4._41);
-		m_planes[3] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[3] = DirectX::XMPlaneNormalize(m_planes[3]);
+		DirectX::XMVECTOR cross = DirectX::XMVectorScale(right, halfHSide);
+		cross = DirectX::XMVectorSubtract(frontMulFar, cross);
+		cross = DirectX::XMVector3Cross(cross, up);
+		m_planes[2].norm = DirectX::XMVector3Normalize(cross);
+		dot = DirectX::XMVector3Dot(posV, m_planes[2].norm);
+		DirectX::XMStoreFloat(&m_planes[2].d, dot);
 
-		x = (float)(toNDC4._14 + toNDC4._12);
-		y = (float)(toNDC4._24 + toNDC4._22);
-		z = (float)(toNDC4._34 + toNDC4._32);
-		w = (float)(toNDC4._44 + toNDC4._42);
-		m_planes[4] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[4] = DirectX::XMPlaneNormalize(m_planes[4]);
 
-		x = (float)(toNDC4._14 - toNDC4._12);
-		y = (float)(toNDC4._24 - toNDC4._22);
-		z = (float)(toNDC4._34 - toNDC4._32);
-		w = (float)(toNDC4._44 - toNDC4._42);
-		m_planes[5] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[5] = DirectX::XMPlaneNormalize(m_planes[5]);
+		cross = DirectX::XMVectorScale(right, halfHSide);
+		cross = DirectX::XMVectorAdd(frontMulFar, cross);
+		cross = DirectX::XMVector3Cross(up,cross);
+		m_planes[3].norm = DirectX::XMVector3Normalize(cross);
+		dot = DirectX::XMVector3Dot(posV, m_planes[3].norm);
+		DirectX::XMStoreFloat(&m_planes[3].d, dot);
 
+		cross = DirectX::XMVectorScale(up, halfVSide);
+		cross = DirectX::XMVectorSubtract(frontMulFar, cross);
+		cross = DirectX::XMVector3Cross(right, cross);
+		m_planes[4].norm = DirectX::XMVector3Normalize(cross);
+		dot = DirectX::XMVector3Dot(posV, m_planes[4].norm);
+		DirectX::XMStoreFloat(&m_planes[4].d, dot);
+
+		cross = DirectX::XMVectorScale(up, halfVSide);
+		cross = DirectX::XMVectorAdd(frontMulFar, cross);
+		cross = DirectX::XMVector3Cross(cross,right);
+		m_planes[5].norm = DirectX::XMVector3Normalize(cross);
+		dot = DirectX::XMVector3Dot(posV,m_planes[5].norm);
+		DirectX::XMStoreFloat(&m_planes[5].d, dot);
 		return;
 	}
 
-	bool Frustum::IsInFrustum(const DirectX::XMVECTOR pos)
-	{
-		for (int i = 0; i < 6; ++i)
-		{
-			if (DirectX::XMVectorGetX(
-				DirectX::XMPlaneDotCoord(m_planes[i], pos)) < -1.0f)
-			{
-				return false;
-			}
-		}
-		return true;
-	}
+
 }

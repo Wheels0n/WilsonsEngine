@@ -17,10 +17,7 @@ namespace wilson {
 		m_vertexCount = vertexDataPos[vertexDataPos.size() - 1];
 		m_indexCount = indicesPos[indicesPos.size() - 1];
 
-		/*if (matNames.size() > 1)
-		{
-			++m_indicesPos[indicesPos.size() - 1];
-		}*/
+		m_AABB =AABB::GenAABB(pVertices, m_vertexCount);
 
 		m_pVertexBuffer = nullptr;
 		m_pIndexBuffer = nullptr;
@@ -387,6 +384,59 @@ namespace wilson {
 			pContext->PSSetConstantBuffers(1, 1, &m_pPerModelBuffer);
 		}
 		return;
+	}
+
+	AABB Model::GetGlobalAABB()
+	{	
+		DirectX::XMMATRIX transform =  GetTransformMatrix(false);
+		
+
+		DirectX::XMVECTOR centerV = m_AABB.GetCenter();
+		DirectX::XMVECTOR globalCenterV = DirectX::XMVector3Transform(centerV, transform);
+		DirectX::XMFLOAT4 globalCenter;
+		DirectX::XMStoreFloat4(&globalCenter, globalCenterV);
+
+		DirectX::XMVECTOR extentsV = m_AABB.GetExtents();
+		DirectX::XMFLOAT3 extents;
+		DirectX::XMStoreFloat3(&extents, extentsV);
+
+		 transform = DirectX::XMMatrixTranspose(transform);
+		DirectX::XMVECTOR right = DirectX::XMVectorScale(transform.r[0], extents.x);
+		DirectX::XMVECTOR up = DirectX::XMVectorScale(transform.r[1], extents.y);
+		DirectX::XMVECTOR forward = DirectX::XMVectorScale(transform.r[2], extents.z);
+
+
+		DirectX::XMVECTOR x = DirectX::XMVectorSet(1.0, 0.0f, 0.0f, 0.f);
+		DirectX::XMVECTOR y = DirectX::XMVectorSet(0.0, 1.0f, 0.0f, 0.f);
+		DirectX::XMVECTOR z = DirectX::XMVectorSet(0.0, 0.0f, 1.0f, 0.f);
+
+		float dotRight;
+		float dotUp;
+		float dotForward;
+
+		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(x, right));
+		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(x, up));
+		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(x, up));
+
+		const float newli = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
+
+		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(y, right));
+		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(y, up));
+		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(y, up));
+
+		const float newlj = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
+
+		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(z, right));
+		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(z, up));
+		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(z, up));
+
+		const float newlk = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
+
+
+		const AABB globalAABB(globalCenter, newli, newlj, newlk);
+
+
+		return globalAABB;
 	}
 
 	DirectX::XMMATRIX Model::GetTransformMatrix(bool bOutliner)

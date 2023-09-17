@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
+
+#include "AABB.h"
 namespace wilson {
 	enum class eFileType
 	{
@@ -56,7 +58,12 @@ namespace wilson {
 			std::unordered_map<std::string, int>& texhash, std::vector<ID3D11ShaderResourceView*>& textures);
 		bool CreateBuffer(ID3D11Device* pDevice);
 		void UploadBuffers(ID3D11DeviceContext* context, int i, bool bGeoPass);
+		AABB GetGlobalAABB();
 
+		inline AABB& GetAABB()
+		{
+			return m_AABB;
+		}
 		inline UINT GetMatCount() const
 		{
 			return m_matInfos.size();
@@ -178,5 +185,7 @@ namespace wilson {
 		DirectX::XMMATRIX* m_instancedData;
 		UINT m_numInstance;
 		bool m_isInstanced;
+
+		AABB m_AABB;
 	};
 }

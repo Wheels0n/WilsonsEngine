@@ -24,6 +24,8 @@ namespace wilson
 		m_pSSAOKernelBuffer = nullptr;
 		m_pExposureBuffer = nullptr;
 		m_pEquirect2CubeBuffer = nullptr;
+		m_pAABBVBuffer = nullptr;
+		m_pAABBIBuffer = nullptr;
 
 		m_pScreenRTTV = nullptr;
 		m_pDSBuffer = nullptr;
@@ -89,6 +91,8 @@ namespace wilson
 
 		m_pQuadRS = nullptr;
 		m_pGeoRS = nullptr;
+		m_pAABBRS = nullptr;
+
 		m_pRasterStateCC = nullptr;
 
 		m_pWrapSS = nullptr;
@@ -113,6 +117,7 @@ namespace wilson
 		m_selectedModel = -1;
 
 		m_bVsyncOn = false;
+		m_bAABBGridOn=false;
 
 		m_exposure = 1.0f;
 
@@ -497,6 +502,16 @@ namespace wilson
 		m_pQuadRS->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pQuadRS") - 1, "D3D11::m_pQuadRS");
 		
+		rasterDesc.FrontCounterClockwise = false;
+		rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+		hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pAABBRS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pAABBRS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pAABBRS") - 1, "D3D11::m_pAABBRS");
+
 		m_viewport.Width = static_cast<float>(screenWidth);
 		m_viewport.Height = static_cast<float>(screenHeight);
 		m_viewport.MinDepth = 0.0f;
@@ -574,7 +589,7 @@ namespace wilson
 		XMMATRIX* m_projMat = m_pCam->GetProjectionMatrix();
 		XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
 		m_pFrustum = new Frustum();
-		m_pFrustum->Init(100.0f, m_pCam);
+		m_pFrustum->Init(m_pCam);
 		m_pMatBuffer = new MatBuffer(m_pDevice, m_pContext, m_viewMat, m_projMat);
 		m_pMatBuffer->Init(m_pDevice);
 
@@ -598,8 +613,7 @@ namespace wilson
 				return false;
 			}
 			m_pBoolBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pBoolBuffer") - 1, "D3D11::m_pBoolBuffer");
-
+				sizeof("D3D11::m_pBoolBuffer") - 1, "D3D11::m_pBoolBuffer");			
 
 			bds.ByteWidth = sizeof(XMVECTOR);
 			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pColorBuffer);
@@ -636,6 +650,37 @@ namespace wilson
 			}
 			m_pEquirect2CubeBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pEquirect2CubeBuffer") - 1, "D3D11::m_pEquirect2CubeBuffer");
+
+			bds.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+			bds.ByteWidth = sizeof(DirectX::XMFLOAT3) * 8;
+			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pAABBVBuffer);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+			m_pAABBVBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pAABBVBuffer") - 1, "D3D11::m_pAABBVBuffer");
+
+
+			unsigned long cubeIndices[24]={ 0, 1,   1, 2,   2, 3,  3,0 ,
+					   0, 4,   1, 5,   2, 6,  3,7,
+					   4, 5,   5, 6,   6, 7,  7,0 };
+			D3D11_SUBRESOURCE_DATA cubeIndexData = {};
+			cubeIndexData.pSysMem = cubeIndices;
+			cubeIndexData.SysMemPitch = 0;
+			cubeIndexData.SysMemSlicePitch = 0;
+
+			bds.Usage = D3D11_USAGE_DEFAULT;
+			bds.BindFlags = D3D11_BIND_INDEX_BUFFER;
+			bds.ByteWidth = sizeof(unsigned long) * 24;
+			bds.CPUAccessFlags = 0;
+			hr = m_pDevice->CreateBuffer(&bds, &cubeIndexData, &m_pAABBIBuffer);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+			m_pAABBIBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pAABBIBuffer") - 1, "D3D11::m_pAABBIBuffer");
 		}
 	
 		//Gen Equirectangular map
@@ -809,6 +854,12 @@ namespace wilson
 			m_pGeoRS->Release();
 			m_pGeoRS = nullptr;
 		}
+		if (m_pAABBRS != nullptr)
+		{	
+			m_pAABBRS->Release();
+			m_pAABBRS = nullptr;
+		}
+
 
 		if (m_pRasterStateCC != nullptr)
 		{
@@ -934,7 +985,16 @@ namespace wilson
 			m_pEquirect2CubeBuffer = nullptr;
 		}
 
-
+		if (m_pAABBVBuffer != nullptr)
+		{
+			m_pAABBVBuffer->Release();
+			m_pAABBVBuffer = nullptr;
+		}
+		if (m_pAABBIBuffer != nullptr)
+		{
+			m_pAABBIBuffer->Release();
+			m_pAABBIBuffer = nullptr;
+		}
 
 
 		if (m_pLightBuffer != nullptr)
@@ -1028,7 +1088,7 @@ namespace wilson
 		m_pContext->ClearDepthStencilView(m_pScreenDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		m_pContext->ClearDepthStencilView(m_pSceneDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
-		//Update Cam 
+		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pCam->Update();
 		//Update Light
 		std::vector<DirectionalLight*>& dirLights = m_pLightBuffer->GetDirLights();
@@ -1087,12 +1147,13 @@ namespace wilson
 	
 		//Deferred Shading First Pass
 		if (!m_pModelGroups.empty())
-		{
+		{	
 			m_pShader->SetDeferredGeoLayout(m_pContext);
 			m_pShader->SetPBRDeferredGeoShader(m_pContext);
 			m_pContext->OMSetDepthStencilState(0, 0);
 			m_pContext->RSSetState(m_pQuadRS);
 			m_pContext->OMSetBlendState(m_pGBufferWriteBS, color, 0xffffffff);
+			
 			m_pContext->OMSetRenderTargets(_GBUF_CNT, m_pGbufferRTTV, m_pSceneDSV);
 			DrawENTT(!bGeoPass);
 
@@ -1113,7 +1174,7 @@ namespace wilson
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pDiffIrradianceSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pPrefilterSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pBRDFSRV);
-			m_pContext->PSSetShaderResources(texCnt++,  1, m_pShadowMap->GetDirSRV());
+			m_pContext->PSSetShaderResources(texCnt++, 1, m_pShadowMap->GetDirSRV());
 			//m_pContext->PSSetShaderResources(_GBUF_CNT +1 +dirLights.capacity(), spotLights.capacity(), m_pShadowMap->GetSpotSRV());
 			//m_pContext->PSSetShaderResources(_GBUF_CNT +1+dirLights.capacity() + spotLights.capacity(), pointLights.capacity(), m_pShadowMap->GetCubeSRV());
 			m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetCubeShadowSampler());
@@ -1157,7 +1218,7 @@ namespace wilson
 			m_pContext->PSSetConstantBuffers(0, 1, &m_pExposureBuffer);
 		}
 		
-		m_pContext->PSSetShaderResources(0, 1, m_pModelGroups.empty() ? &m_pGbufferSRV[2] : &m_pSceneSRV);
+		m_pContext->PSSetShaderResources(0, 1, m_pModelGroups.empty()||!m_pFrustum->GetENTTsInFrustum() ? &m_pGbufferSRV[2] : &m_pSceneSRV);
 		m_pContext->OMSetRenderTargets(1, &m_pViewportRTTV, nullptr);
 		m_pContext->OMSetDepthStencilState(0, 0);
 		m_pContext->DrawIndexed(6, 0, 0);
@@ -1724,38 +1785,77 @@ namespace wilson
 	}
 
 	void D3D11::DrawENTT(bool bGeoPass)
-	{
+	{	
+		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
+		HRESULT hr;
 		XMMATRIX worldMat;
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		UINT stride = sizeof(XMFLOAT3);
+		UINT offset = 0;
+		UINT ENTTCnt = 0;
+		UINT ENTTDrawn = 0;
+		Plane* pPlanes = m_pFrustum->GetPlanes();
+		
 		for (int i = 0; i < m_pModelGroups.size(); ++i)
 		{	
 
 			std::vector<Model*> pModels = m_pModelGroups[i]->GetModels();
-			//if (m_pFrustum->IsInFrustum(XMVectorSet(pos4._41, pos4._42, pos4._43, pos4._44)))
 			{
-				
 				{
 					for (int j = 0; j < pModels.size(); ++j)
 					{	
-						bool isSelected = (i == m_selectedModelGroup && j == m_selectedModel);
-						if (isSelected)
-						{
-							m_pContext->OMSetDepthStencilState(m_pOutlinerSetupDSS, 1);
-						}
+						ENTTCnt++;
 						worldMat = pModels[j]->GetTransformMatrix(false);
-						m_pMatBuffer->SetWorldMatrix(&worldMat);
-						m_pMatBuffer->Update(m_pContext);
-						
-						for (int k = 0; k < pModels[j]->GetMatCount(); ++k)
-						{
-							pModels[j]->UploadBuffers(m_pContext,k, bGeoPass);
-							m_pContext->DrawIndexed(pModels[j]->GetIndexCount(k), 0, 0);
-						}
+						AABB aabb = pModels[j]->GetAABB();
+						if (aabb.IsOnFrustum(pPlanes, worldMat))
+						{	
+							ENTTDrawn++;
+							m_pMatBuffer->SetWorldMatrix(&worldMat);
+							m_pMatBuffer->Update(m_pContext);
+							/*
+							if(m_bAABBGridOn)
+							{
+								XMFLOAT3* pFloat3;
+								hr = m_pContext->Map(m_pAABBVBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+								if (FAILED(hr))
+								{
+									return;
+								}
+								pFloat3 = (XMFLOAT3*)mappedResource.pData;
+								memcpy(pFloat3, aabb.GetVertices(), sizeof(XMFLOAT3) * 8);
+								m_pContext->Unmap(m_pAABBVBuffer, 0);
 
-						if (isSelected)
-						{
-							m_pContext->OMSetDepthStencilState(0, 0);
-						}
+								m_pShader->SetPosOnlyInputLayout(m_pContext);
+								m_pShader->SetAABBShader(m_pContext);
+
+								m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+								m_pContext->IASetVertexBuffers(0, 1, &m_pAABBVBuffer, &stride, &offset);
+								m_pContext->IASetIndexBuffer(m_pAABBIBuffer, DXGI_FORMAT_R32_UINT, 0);
+								m_pContext->RSSetState(m_pAABBRS);
+								m_pContext->OMSetRenderTargets(1, &m_pGbufferRTTV[2], nullptr);
+								m_pContext->DrawIndexed(24, 0, 0);
+							}
+							*/
 						
+					
+							bool isSelected = (i == m_selectedModelGroup && j == m_selectedModel);
+							if (isSelected)
+							{
+								m_pContext->OMSetDepthStencilState(m_pOutlinerSetupDSS, 1);
+							}
+							
+
+							for (int k = 0; k < pModels[j]->GetMatCount(); ++k)
+							{
+								pModels[j]->UploadBuffers(m_pContext, k, bGeoPass);
+								m_pContext->DrawIndexed(pModels[j]->GetIndexCount(k), 0, 0);
+							}
+
+							if (isSelected)
+							{
+								m_pContext->OMSetDepthStencilState(0, 0);
+							}
+						}
 					}
 
 				}
@@ -1764,6 +1864,8 @@ namespace wilson
 			}
 
 		}
+		m_pFrustum->SetENTTsInFrustum(ENTTDrawn);
+		m_pFrustum->SetENTTsInTotal(ENTTCnt);
 	}
 
 	void D3D11::DestroyDSS()
