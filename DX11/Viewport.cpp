@@ -69,7 +69,7 @@ namespace wilson
 							switch (i)
 							{
 							case 2:
-								pLight = new DirectionalLight();
+								pLight = new DirectionalLight(m_pCam);
 								type = "DirectionalLight";
 								break;
 							case 3:

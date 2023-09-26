@@ -63,7 +63,13 @@ namespace wilson
 			pContext->GSSetShader(nullptr, nullptr, 0);
 			pContext->PSSetShader(m_pSkyBoxPS, nullptr, 0);
 		}
-		inline void SetShadowShader(ID3D11DeviceContext* pContext)
+		inline void SetCascadeDirShadowShader(ID3D11DeviceContext* pContext)
+		{
+			pContext->VSSetShader(m_pCascadeDirVS, nullptr, 0);
+			pContext->GSSetShader(m_pCascadeDirGS, nullptr, 0);
+			pContext->PSSetShader(nullptr, nullptr, 0);
+		}
+		inline void SetSpotShadowShader(ID3D11DeviceContext* pContext)
 		{
 			pContext->VSSetShader(m_pShadowVS, nullptr, 0);
 			pContext->GSSetShader(nullptr, nullptr, 0);
@@ -158,7 +164,9 @@ namespace wilson
 		ID3D11VertexShader* m_pLightCubeVS;
 		ID3D11VertexShader* m_pPosOnlyVS;
 		ID3D11VertexShader* m_pAABBVS;
+		ID3D11VertexShader* m_pCascadeDirVS;
 
+		ID3D11GeometryShader* m_pCascadeDirGS;
 		ID3D11GeometryShader* m_pOmniDirShadowGS;
 		ID3D11GeometryShader* m_pEquirect2CubeGS;
 		

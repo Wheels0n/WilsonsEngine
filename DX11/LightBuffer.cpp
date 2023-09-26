@@ -14,11 +14,16 @@ namespace wilson
 		pMatrices = reinterpret_cast<DirLightMatrices*>(mappedResource.pData);
 		pMatrices->dirCnt = m_pDirLights.size();
 		for (int i = 0; i < m_pDirLights.size(); ++i)
-		{
-			pMatrices->matrices[i] = *(m_pDirLights[i]->GetLightSpaceMat());
+		{	
+			std::vector<DirectX::XMMATRIX> cascadeMat = m_pDirLights[i]->GetLightSpaceMat();
+			for (int j = 0; j < cascadeMat.size(); ++j)
+			{
+				pMatrices->matrices[i][j] = cascadeMat[j];
+			}
+			
 		}
 		pContext->Unmap(m_pDirLitMatricesBuffer, 0);
-		pContext->PSSetConstantBuffers(2, 1, &m_pDirLitMatricesBuffer);
+		pContext->PSSetConstantBuffers(3, 1, &m_pDirLitMatricesBuffer);
 	}
 	void LightBuffer::UpdateSpotLightMatrices(ID3D11DeviceContext* pContext)
 	{
@@ -36,7 +41,7 @@ namespace wilson
 			pMatrices->matrices[i] = *(m_pSpotLights[i]->GetLightSpaceMat());
 		}
 		pContext->Unmap(m_pSpotLitMatricesBuffer, 0);
-		pContext->PSSetConstantBuffers(m_pDirLights.empty()?2:3, 1, &m_pSpotLitMatricesBuffer);
+		pContext->PSSetConstantBuffers(m_pDirLights.empty()?3:4, 1, &m_pSpotLitMatricesBuffer);
 	}
 	void LightBuffer::UpdateLightBuffer(ID3D11DeviceContext* pContext)
 	{
@@ -65,7 +70,7 @@ namespace wilson
 			plbProperty->sptLights[i] = *m_pSpotLights[i]->GetProperty(); 
 		}
 		pContext->Unmap(m_pLightPropertyBuffer,0);
-		pContext->PSSetConstantBuffers(1, 1, &m_pLightPropertyBuffer);
+		pContext->PSSetConstantBuffers(2, 1, &m_pLightPropertyBuffer);
 		
 		
 	}

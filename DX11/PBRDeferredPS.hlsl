@@ -13,7 +13,7 @@ struct DirectionalLight
     float4 ambient;
     float4 diffuse;
     float4 specular;
-    float3 position;
+    float3 direction;
     float pad;
 };
 struct PointLight
@@ -49,10 +49,11 @@ Texture2D g_normalTex;
 Texture2D g_abeldoTex;
 Texture2D g_specualrTex;//R:AO, G:Roughness, B:Metalness
 Texture2D g_emissiveTex;
+Texture2D g_vPosTex;
 TextureCube g_irradianceMap;
 TextureCube g_prefilterMap;
 Texture2D g_brdfLUT;
-Texture2D g_dirShadowMaps[1];
+Texture2DArray g_dirShadowMaps[1];
 //Texture2D spotShadowMaps[20];
 //TextureCube omniDirShadowMaps[48];
 SamplerState g_sampler : register(s0);
@@ -62,6 +63,10 @@ SamplerComparisonState g_shadowSampler : register(s2);
 cbuffer CamBuffer
 {
     float4 g_camPos;
+};
+cbuffer CascadeLevels
+{
+    float4 g_farZ[5];
 };
 cbuffer Light
 {
@@ -75,7 +80,7 @@ cbuffer Light
 };
 cbuffer DirLightMatrices
 {
-    matrix g_dirLightMatrices[10];
+    matrix g_dirLightMatrices[10][5];
     uint g_dirLightCnt;
 };
 cbuffer SpotLightMatrices
@@ -84,9 +89,9 @@ cbuffer SpotLightMatrices
     uint g_spotLightCnt;
 };
 
+
 static const float _SMAP_SIZE = 1024.0f;
 static const float _SMAP_DX = 1.0f / _SMAP_SIZE;
-static const float _FAR_PLANE = 25.0f;
 static const float _PI = 3.14159265359;
 
 float DistributionGGX(float3 normal, float3 h, float roughness)
@@ -135,7 +140,57 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
     pow(clamp(1.0f - cosTheta, 0.0f, 1.0f), 5.0f);
 }
 
-float CalShadowFactor(SamplerComparisonState shadowSampler,
+uint CalCascadeLevel(float vDepth)
+{
+    int level = -1;
+    [unroll]
+    for (int i = 0; i < 5;++i)
+    {
+        if(vDepth<g_farZ[i].z)
+        {
+            level = i;
+            break;
+        }
+    }
+    return level;
+
+}
+
+float CalDirShadowFactor(SamplerComparisonState shadowSampler,
+                        uint level,
+                        Texture2DArray shadowMap,
+                        float4 shadowPosArray[5],
+                        float3 normal, float3 lightDir)
+{   
+    float4 shadowPos = shadowPosArray[level];
+    shadowPos.xyz /= shadowPos.w;
+    shadowPos.x = shadowPos.x * 0.5f + 0.5f;
+    shadowPos.y = shadowPos.y * -0.5f + 0.5f;
+    float bias =  max((0.05f * (1.0f - dot(normal, lightDir))), 0.005f);
+    //bias *= 1 / (g_farZ[level] * 0.5f);
+    float depth = shadowPos.z - bias;
+    
+    shadowPos.z = level;
+    const float dx = _SMAP_DX;
+    float percentLit = 0.0f;
+
+    const float2 offesets[9] =
+    {
+        float2(-dx, -dx), float2(0.0f, -dx), float2(dx, -dx),
+       float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
+       float2(-dx, +dx), float2(0.0f, +dx), float2(dx, +dx)
+    };
+    [unroll]
+    for (int i = 0; i < 9; ++i)
+    {
+        percentLit += shadowMap.SampleCmpLevelZero(shadowSampler,
+                       shadowPos.xyz, depth, offesets[i]).r;
+    }
+   
+    percentLit /= 9.0f;
+    return percentLit;
+}
+float CalSpotShadowFactor(SamplerComparisonState shadowSampler,
                         Texture2D shadowMap,
                         float4 shadowPos,
                         float3 normal, float3 lightDir)
@@ -143,7 +198,7 @@ float CalShadowFactor(SamplerComparisonState shadowSampler,
     shadowPos.xyz /= shadowPos.w;
     shadowPos.x = shadowPos.x * 0.5f + 0.5f;
     shadowPos.y = shadowPos.y * -0.5f + 0.5f;
-    float bias =  max((0.05f * (1.0f - dot(normal, lightDir))), 0.005f);
+    float bias = max((0.05f * (1.0f - dot(normal, lightDir))), 0.005f);
     float depth = shadowPos.z - bias;
     
     const float dx = _SMAP_DX;
@@ -186,7 +241,7 @@ float CalOmniDirShadowFactor(SamplerState cubeShadowSampler,
     for (int i = 0; i < 20; ++i)
     {
         float sampledDepth = cubeShadowMap.SampleLevel(cubeShadowSampler, fragToLight + offesets[i], 0).r;
-        sampledDepth *= _FAR_PLANE;
+        sampledDepth *= g_farZ[4].z;
         if (sampledDepth > curDepth)
         {
             percentLit += 1.0f;
@@ -197,8 +252,8 @@ float CalOmniDirShadowFactor(SamplerState cubeShadowSampler,
     return percentLit;
 
 }
-void CalDirectionalLight(DirectionalLight L, float3 lightDir, float3 normal, float3 viewDir,
-float3 albedo, float metalness, float roughness, float3 F0, 
+void CalDirectionalLight(DirectionalLight L, float3 normal, float3 viewDir,
+float3 albedo, float metalness, float roughness, float3 F0, float3 lightDir,
 out float3 L0)
 { 
     
@@ -295,6 +350,7 @@ PixelOutput main(PixelInput input)
     float4 albedo = g_abeldoTex.Sample(g_sampler, input.tex);
     float4 spec = g_specualrTex.Sample(g_sampler, input.tex);
     float4 emissive = g_emissiveTex.Sample(g_sampler, input.tex);
+    float4 vPos = g_vPosTex.Sample(g_sampler, input.tex);
     
     float ao = spec.r;
     float roughness = spec.g;
@@ -316,12 +372,16 @@ PixelOutput main(PixelInput input)
     float4 lightVal = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float shadowFactor = 1.0f;
     
-    float4 dirShadowPos[10];
+    float4 dirShadowPos[10][5];
     float4 spotShadowPos[20];
     [unroll]
     for (int i = 0; i < g_dirCnt; ++i)
-    {
-        dirShadowPos[i] = mul(wPos, g_dirLightMatrices[i]);
+    {   
+        for (int j = 0; j < 5;++j)
+        {
+            dirShadowPos[i][j] = mul(wPos, g_dirLightMatrices[i][j]);
+        }
+            
     }
     [unroll]
     for (int i = 0; i < g_sptCnt; ++i)
@@ -330,14 +390,16 @@ PixelOutput main(PixelInput input)
     }
     
     
+    uint level = CalCascadeLevel(vPos.z);
     float3 L;
     [unroll]
-    for (int i = 0; i < g_dirCnt; ++i)
-    {
-        float3 lightDir = normalize(g_DirLight[i].position.xyz - wPos.xyz);
-        CalDirectionalLight(g_DirLight[i], lightDir, normal.xyz, viewDir,
-        albedo.xyz, metalness, roughness, F0, L);
-        shadowFactor = CalShadowFactor(g_shadowSampler, g_dirShadowMaps[i], dirShadowPos[i], normal.xyz, lightDir);
+    for (uint i = 0; i < g_dirCnt; ++i)
+    {   
+        float3 lightDir = - normalize(g_DirLight[i].direction);
+        CalDirectionalLight(g_DirLight[i], normal.xyz, viewDir,
+        albedo.xyz, metalness, roughness, F0, lightDir,L);
+       
+        shadowFactor = CalDirShadowFactor(g_shadowSampler, level, g_dirShadowMaps[i], dirShadowPos[i], normal.xyz, lightDir);
         lightVal.xyz +=  shadowFactor * L;
         
     }
@@ -370,9 +432,9 @@ PixelOutput main(PixelInput input)
    
     const float MAX_REFLECTION_LOD = 4.0f;
     float3 prefilteredColor = g_prefilterMap.SampleLevel(g_cubeShadowSampler, reflection, roughness * MAX_REFLECTION_LOD).rgb;
-    float2 brdfUV = float2(max(dot(normal.xyz, viewDir), 0.0f), roughness);
+    float2 brdfUV = float2(max(dot(normal.xyz, viewDir), 0.0f),1.0f-roughness);
     float2 brdf = g_brdfLUT.Sample(g_sampler, brdfUV).rg;
-    float3 specular = prefilteredColor * (F0 * brdf.x + brdf.y);
+    float3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
     
     float3 ambient = (kD * diffuse+specular) * ao;
    

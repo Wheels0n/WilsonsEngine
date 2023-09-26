@@ -1,7 +1,7 @@
 #include "ShadowMap.h"
 namespace wilson
 {	
-	bool ShadowMap::Init(ID3D11Device* pDevice, const UINT width, const UINT height,
+	bool ShadowMap::Init(ID3D11Device* pDevice, const UINT width, const UINT height, const UINT cascadeLevel,
 		const UINT dirLightCap, const UINT pntLightCap, const UINT spotLightCap)
 	{
 		m_dirTex.resize(dirLightCap);
@@ -35,7 +35,7 @@ namespace wilson
 		texDesc.Width = width;
 		texDesc.Height = height;
 		texDesc.MipLevels = 1;
-		texDesc.ArraySize = 1;
+		texDesc.ArraySize = cascadeLevel;
 		texDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 		texDesc.SampleDesc.Count = 1;
 		texDesc.SampleDesc.Quality = 0;
@@ -47,13 +47,15 @@ namespace wilson
 
 		dsvDesc.Flags = 0;
 		dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
-		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-		dsvDesc.Texture2D.MipSlice = 0;
+		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+		dsvDesc.Texture2DArray.ArraySize = texDesc.ArraySize;
+		dsvDesc.Texture2DArray.MipSlice = 0;
 
 		srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
-		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
-		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+		srvDesc.Texture2DArray.ArraySize = texDesc.ArraySize;
+		srvDesc.Texture2DArray.MipLevels = texDesc.MipLevels;
+		srvDesc.Texture2DArray.MostDetailedMip = 0;
 
 		for (int i = 0; i < m_dirTex.size(); ++i)
 		{
@@ -82,6 +84,15 @@ namespace wilson
 			m_dirSRVs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ShadowMap::m_dirSRVs[i]") - 1, "ShadowMap::m_dirSRVs[i]");
 		}
+
+		texDesc.ArraySize = 1;
+
+		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		dsvDesc.Texture2D.MipSlice = 0;
+
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
+		srvDesc.Texture2D.MostDetailedMip = 0;
 		for (int i = 0; i < m_spotTex.size(); ++i)
 		{
 			hr = pDevice->CreateTexture2D(&texDesc, 0, &m_spotTex[i]);

@@ -9,7 +9,7 @@ namespace wilson
 	{
 
 	public:
-		bool Init(ID3D11Device* pDevice, const UINT width, const UINT height,
+		bool Init(ID3D11Device* pDevice, const UINT width, const UINT height, const UINT cascadeLevel,
 			const UINT dirLightCap, const UINT pntLightCap, const UINT spotLightCap);
 
 		void BindDirDSV(ID3D11DeviceContext* pContext, const UINT i);

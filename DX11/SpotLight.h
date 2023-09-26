@@ -72,7 +72,6 @@ namespace wilson
 		float m_cutoff;
 		float m_outerCutoff;
 		
-		DirectX::XMFLOAT3 m_direction;
 		DirectX::XMFLOAT3 m_attenuation;
 		DirectX::XMMATRIX m_perspectiveMat;
 		DirectX::XMMATRIX m_viewMat;

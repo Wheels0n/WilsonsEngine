@@ -11,10 +11,10 @@ namespace wilson
 	constexpr UINT _MAX_DIR_LIGHTS = 10;
 	constexpr UINT _MAX_PNT_LIGHTS = 48;
 	constexpr UINT _MAX_SPT_LIGHTS = 20;
-
+	
 	struct DirLightMatrices
 	{
-		DirectX::XMMATRIX matrices[_MAX_DIR_LIGHTS];
+		DirectX::XMMATRIX matrices[_MAX_DIR_LIGHTS][5];
 		UINT dirCnt;
 	};
 	struct SpotLightMatrices

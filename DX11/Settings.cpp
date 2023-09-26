@@ -97,6 +97,7 @@ namespace wilson
 				{	
 					m_pCam->Update();
 					m_pFrustum->Init(m_pCam);
+					
 				}
 				m_prevNearZ = *curNearZ;
 				m_prevFarZ = *curFarZ;

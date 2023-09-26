@@ -63,7 +63,7 @@ float GeometrySmith(float3 normal, float3 viewDir, float3 lightDir, float roughn
     
     return ggx1 * ggx2;
 }
-float2 IntergrateBRDF(float NdotV, float r)
+float2 IntergrateBRDF(float NdotV,float r)
 {
     float3 V;
     V.x = sqrt(1.0f - NdotV * NdotV);
@@ -105,5 +105,5 @@ float2 IntergrateBRDF(float NdotV, float r)
 
 float2 main(PixelInputType input) : SV_TARGET
 {    
-    return IntergrateBRDF(input.tex.x , 1.0f-input.tex.y); 
+    return IntergrateBRDF(input.tex.x ,1.0f-input.tex.y); 
 }

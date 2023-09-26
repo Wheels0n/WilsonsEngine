@@ -403,45 +403,79 @@ namespace wilson
 		m_pSelectedEntity = nullptr;
 	}
 	void Scene::DrawLightControl(Light* pLight)
-	{
+	{	
 		DirectX::XMFLOAT3* pos3 = pLight->GetPos();
 		DirectX::XMFLOAT3 copyPos3 = *pos3;
-		ImGui::Text("Position");
-		if (ImGui::Button("X"))
-		{
-			pos3->x = 0.0f;
-		}
-		ImGui::SameLine();
-		ImGui::DragFloat("##X", &(pos3->x), 1.0f, -1000.0f, 1000.0f);
 
-		if (ImGui::Button("Y"))
+		DirectX::XMFLOAT3* dir3 = pLight->GetDir();
+		DirectX::XMFLOAT3 copyDir3 = *dir3;
+		switch (pLight->GetType())
 		{
-			pos3->y = 0.0f;
-		}
-		ImGui::SameLine();
-		ImGui::DragFloat("##Y", &(pos3->y), 1.0f, -1000.0f, 1000.0f);
-
-		if (ImGui::Button("Z"))
-		{
-			pos3->z = 0.0f;
-		}
-		ImGui::SameLine();
-		ImGui::DragFloat("##Z", &(pos3->z), 1.0f, -1000.0f, 1000.0f);
-		if (pos3->x != copyPos3.x || pos3->y != copyPos3.y || pos3->z != copyPos3.z)
-		{
-			switch (pLight->GetType())
+		case eLIGHT_TYPE::DIR:
+			ImGui::Text("Direction");
+			if (ImGui::Button("X"))
 			{
-			case eLIGHT_TYPE::DIR:
-				((DirectionalLight*)pLight)->UpdateViewMat();
-				break;
-			case eLIGHT_TYPE::PNT:
-				((PointLight*)pLight)->CreateShadowMatrices();
-				break;
-			case eLIGHT_TYPE::SPT:
-				((SpotLight*)pLight)->UpdateViewMat();
+				dir3->x = 0.0f;
 			}
-			
+			ImGui::SameLine();
+			ImGui::DragFloat("##X", &(dir3->x), 0.01f, -1.0f, 1.0f);
+
+			if (ImGui::Button("Y"))
+			{
+				dir3->y = 0.0f;
+			}
+			ImGui::SameLine();
+			ImGui::DragFloat("##Y", &(dir3->y), 0.01f, -1.0f, 1.0f);
+
+			if (ImGui::Button("Z"))
+			{
+				dir3->z = 0.0f;
+			}
+			ImGui::SameLine();
+			ImGui::DragFloat("##Z", &(dir3->z), 0.01f, -1.0f, 1.0f);
+			if (dir3->x != copyDir3.x || dir3->y != copyDir3.y || dir3->z != copyDir3.z)
+			{
+				((DirectionalLight*)pLight)->UpdateLightSpaceMatrices();
+			}
+			break;
+		default:
+			ImGui::Text("Position");
+			if (ImGui::Button("X"))
+			{
+				pos3->x = 0.0f;
+			}
+			ImGui::SameLine();
+			ImGui::DragFloat("##X", &(pos3->x), 1.0f, -1000.0f, 1000.0f);
+
+			if (ImGui::Button("Y"))
+			{
+				pos3->y = 0.0f;
+			}
+			ImGui::SameLine();
+			ImGui::DragFloat("##Y", &(pos3->y), 1.0f, -1000.0f, 1000.0f);
+
+			if (ImGui::Button("Z"))
+			{
+				pos3->z = 0.0f;
+			}
+			ImGui::SameLine();
+			ImGui::DragFloat("##Z", &(pos3->z), 1.0f, -1000.0f, 1000.0f);
+			if (pos3->x != copyPos3.x || pos3->y != copyPos3.y || pos3->z != copyPos3.z)
+			{
+				switch (pLight->GetType())
+				{
+				case eLIGHT_TYPE::PNT:
+					((PointLight*)pLight)->CreateShadowMatrices();
+					break;
+				case eLIGHT_TYPE::SPT:
+					((SpotLight*)pLight)->UpdateViewMat();
+				}
+
+			}
+			break;
 		}
+		
+		
 
 
 		DirectX::XMFLOAT4 ambient4;

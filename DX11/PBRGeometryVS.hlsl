@@ -14,6 +14,7 @@ struct PixelInputType
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
     float4 wPosition : POSITION0;
+    float4 vPosition : POSITION1;
 };
 
 cbuffer MatrixBuffer
@@ -42,6 +43,7 @@ PixelInputType main(VertexInputType input)
     output.wPosition = output.position;
    
     output.position = mul(output.position, g_viewMatrix);
+    output.vPosition = output.position;
     output.position = mul(output.position, g_projectionMatrix);
     
     output.tex = input.tex;

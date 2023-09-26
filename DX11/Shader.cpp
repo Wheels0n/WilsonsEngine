@@ -9,6 +9,8 @@ namespace wilson
 		m_pPS = nullptr;
 
 		m_pPosOnlyVS = nullptr;
+		m_pCascadeDirVS = nullptr;
+		m_pCascadeDirGS = nullptr;
 		m_pEquirect2CubeGS = nullptr;
 		m_pEquirect2CubePS = nullptr;
 		m_pDiffuseIrradiancePS = nullptr;
@@ -124,8 +126,17 @@ namespace wilson
 			m_pBRDFPS->Release();
 			m_pBRDFPS = nullptr;
 		}
+		if (m_pCascadeDirVS != nullptr)
+		{
+			m_pCascadeDirVS->Release();
+			m_pCascadeDirVS = nullptr;
+		}
 
-
+		if (m_pCascadeDirGS != nullptr)
+		{
+			m_pCascadeDirGS->Release();
+			m_pCascadeDirGS = nullptr;
+		}
 
 		if (m_pOmniDirShadowVS != nullptr)
 		{
@@ -365,6 +376,38 @@ namespace wilson
 		}
 		m_pPosOnlyVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("Shader::m_pPosOnlyVS") - 1, "Shader::m_pPosOnlyVS");
+
+
+		hr = D3DX11CompileFromFile(L"CascadeVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pVSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pCascadeDirVS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pCascadeDirVS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pCascadeDirVS") - 1, "Shader::m_pCascadeDirVS");
+
+
+		
+		hr = D3DX11CompileFromFile(L"CascadeGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pGSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		hr = pDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &m_pCascadeDirGS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pCascadeDirGS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pCascadeDirGS") - 1, "Shader::m_pCascadeDirGS");
+
 
 
 		hr = D3DX11CompileFromFile(L"Equirectangular2CubeMapGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pGSBlob, &pErrorBlob, nullptr);

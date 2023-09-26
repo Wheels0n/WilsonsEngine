@@ -1,5 +1,7 @@
 #pragma once
 
+#include<vector>
+
 #include"Light.h"
 
 namespace wilson
@@ -9,28 +11,18 @@ namespace wilson
 		DirectX::XMVECTOR ambient;
 		DirectX::XMVECTOR diffuse;
 		DirectX::XMVECTOR specular;
-		DirectX::XMFLOAT3 position;
+		DirectX::XMFLOAT3 direction;
 		float pad;
 	};
 
 	class DirectionalLight : public Light
 	{
 	public:
-
-		void UpdateViewMat();
-		void UpdateProjMat();
-		inline DirectX::XMMATRIX* GetLightSpaceMat()
+		inline std::vector<DirectX::XMMATRIX>& GetLightSpaceMat()
 		{
-			return &m_lightSpaceMat;
+			return m_lightSpaceMat;
 		}
-		inline DirectX::XMMATRIX* GetLitViewMat()
-		{
-			return &m_viewMat;
-		}
-		inline DirectX::XMMATRIX* GetLitProjMat()
-		{
-			return &m_projMat;
-		}
+	
 		inline DirLightProperty* GetProperty()
 		{
 			return &m_dirLightProperty;
@@ -38,16 +30,21 @@ namespace wilson
 		
 		bool Init(ID3D11Device*);
 		void UpdateProperty();
+		void SetShadowMatrices(ID3D11DeviceContext*);
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::DIR; };
+		DirectX::XMMATRIX UpdateLightSpaceMat(const float nearZ, const float farZ);
+		void UpdateLightSpaceMatrices();
 
-		DirectionalLight()=default;
+		DirectionalLight(Camera* pCam);
 		DirectionalLight(const DirectionalLight&) = default;
-		~DirectionalLight() { Light::~Light(); };
+		~DirectionalLight();
 	private:
+		std::vector<DirectX::XMVECTOR> GetFrustumCornersWorldSpace(DirectX::XMMATRIX viewMat, DirectX::XMMATRIX projMat);
+	private:
+		Camera* m_pCam;
 		DirLightProperty m_dirLightProperty;
+		std::vector<DirectX::XMMATRIX> m_lightSpaceMat;
 
-		DirectX::XMMATRIX m_lightSpaceMat;
-		DirectX::XMMATRIX m_viewMat;
-		DirectX::XMMATRIX m_projMat;
+		ID3D11Buffer* m_pMatriceBuffer;
 	};
 }

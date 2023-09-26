@@ -2,7 +2,7 @@
 
 #include<DirectXMath.h>
 #include<d3d11.h>
-
+#include<vector>
 
 namespace wilson {
 
@@ -21,8 +21,11 @@ namespace wilson {
 
 		bool Init(ID3D11Device* pDevice);
 		void Update();
+		bool SetCascadeLevels(ID3D11DeviceContext* pContext);
 		bool SetCamPos(ID3D11DeviceContext* pContext);
 		void ResetTranslation();
+		void UpdateCascadeLevels();
+
 		inline void ResetRotation()
 		{
 			m_rotation = DirectX::XMVectorZero();
@@ -60,6 +63,11 @@ namespace wilson {
 		{
 			return &m_projMat;
 		}
+		inline std::vector<float>& GetCascadeLevels()
+		{
+			return m_shadowCascadeLevels;
+		}
+
 
 		inline float* GetTRSpeed()
 		{
@@ -87,6 +95,7 @@ namespace wilson {
 		Camera(const UINT screenWidth, const UINT screenHeight, float ScreenFar, float ScreenNear);
 		~Camera();
 	private:
+		
 
 		DirectX::XMVECTOR m_pos;
 		DirectX::XMVECTOR m_dir;
@@ -100,6 +109,9 @@ namespace wilson {
 		DirectX::XMMATRIX m_projMat;// think of the frustum as the lens of our camera, for it controls our view
 
 		ID3D11Buffer* m_pCamPosBuffer;
+		ID3D11Buffer* m_pCascadeLevelBuffer;
+
+		std::vector<float> m_shadowCascadeLevels; 
 
 		float m_fFOV;
 		float m_fScreenRatio;

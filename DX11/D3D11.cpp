@@ -599,7 +599,7 @@ namespace wilson
 		m_pShader->Init(m_pDevice, m_pContext);
 
 		m_pShadowMap = new ShadowMap();
-		m_pShadowMap->Init(m_pDevice, _SHADOWMAP_SIZE, _SHADOWMAP_SIZE,
+		m_pShadowMap->Init(m_pDevice, _SHADOWMAP_SIZE, _SHADOWMAP_SIZE, m_pCam->GetCascadeLevels().size(),
 			m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
 		{
 			D3D11_BUFFER_DESC bds = { 0, };
@@ -1101,15 +1101,19 @@ namespace wilson
 			m_pContext->RSSetState(m_pQuadRS);
 			m_pContext->OMSetDepthStencilState(0, 0);
 			
-			m_pShader->SetTexInputlayout(m_pContext);
-			m_pShader->SetShadowShader(m_pContext);
-			
+		
+			m_pShader->SetPosOnlyInputLayout(m_pContext);
+			m_pShader->SetCascadeDirShadowShader(m_pContext);
 			for (int i = 0; i < dirLights.size(); ++i)
 			{	
-				m_pMatBuffer->SetLightSpaceMatrix(dirLights[i]->GetLightSpaceMat());
+				dirLights[i]->UpdateLightSpaceMatrices();
+				dirLights[i]->SetShadowMatrices(m_pContext);
 				m_pShadowMap->BindDirDSV(m_pContext,i);
 				DrawENTT(bGeoPass);
 			}
+
+			m_pShader->SetTexInputlayout(m_pContext);
+			m_pShader->SetSpotShadowShader(m_pContext);
 			for (int i = 0; i < spotLights.size(); ++i)
 			{
 				m_pMatBuffer->SetLightSpaceMatrix(spotLights[i]->GetLightSpaceMat());
@@ -1164,6 +1168,7 @@ namespace wilson
 			m_pLightBuffer->UpdateSpotLightMatrices(m_pContext);
 			m_pLightBuffer->UpdateLightBuffer(m_pContext);
 			m_pCam->SetCamPos(m_pContext);
+			m_pCam->SetCascadeLevels(m_pContext);
 			stride = sizeof(QUAD);
 			m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
 			m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
@@ -1682,7 +1687,6 @@ namespace wilson
 			sizeof("D3D11::m_pPrefilterSRV") - 1, "D3D11::m_pPrefilterSRV");
 
 
-		m_pContext->GenerateMips(m_pPrefilterSRV);
 		return true;
 	}
 	bool D3D11::CreateDepthBuffer(int width, int height,
