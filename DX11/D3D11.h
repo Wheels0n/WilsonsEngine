@@ -36,7 +36,7 @@ namespace wilson
 	};
 	constexpr UINT _SHADOWMAP_SIZE = 1024;
 	constexpr float CUBE_SIZE = 0.25;
-	constexpr UINT _GBUF_CNT =6;
+	constexpr UINT _GBUF_CNT =7;
 	class D3D11
 	{
 
@@ -161,7 +161,7 @@ namespace wilson
 		ID3D11RenderTargetView* m_pBrightRTTV; 
 		ID3D11RenderTargetView* m_pViewportRTTV;
 		ID3D11RenderTargetView* m_pPingPongRTTV[2];
-		ID3D11RenderTargetView* m_pGbufferRTTV[_GBUF_CNT];//0:pos, 1:normal, 2:albedo, 3:specular, 4:emissive, 5: vPos
+		ID3D11RenderTargetView* m_pGbufferRTTV[_GBUF_CNT];//0:pos, 1:normal, 2:albedo, 3:specular, 4:emissive, 5: vPos, 6:vNormal;
 		ID3D11RenderTargetView* m_pSkyBoxRTTV;
 		ID3D11RenderTargetView* m_pDiffIrradianceRTTV;
 		ID3D11RenderTargetView* m_pPrefilterRTTV;

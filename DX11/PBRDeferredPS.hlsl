@@ -50,6 +50,7 @@ Texture2D g_abeldoTex;
 Texture2D g_specualrTex;//R:AO, G:Roughness, B:Metalness
 Texture2D g_emissiveTex;
 Texture2D g_vPosTex;
+Texture2D g_AOTex;
 TextureCube g_irradianceMap;
 TextureCube g_prefilterMap;
 Texture2D g_brdfLUT;
@@ -167,7 +168,7 @@ float CalDirShadowFactor(SamplerComparisonState shadowSampler,
     shadowPos.x = shadowPos.x * 0.5f + 0.5f;
     shadowPos.y = shadowPos.y * -0.5f + 0.5f;
     float bias =  max((0.05f * (1.0f - dot(normal, lightDir))), 0.005f);
-    //bias *= 1 / (g_farZ[level] * 0.5f);
+   // bias *= 1 / (g_farZ[level] * 0.5f);
     float depth = shadowPos.z - bias;
     
     shadowPos.z = level;
@@ -351,8 +352,9 @@ PixelOutput main(PixelInput input)
     float4 spec = g_specualrTex.Sample(g_sampler, input.tex);
     float4 emissive = g_emissiveTex.Sample(g_sampler, input.tex);
     float4 vPos = g_vPosTex.Sample(g_sampler, input.tex);
+ 
     
-    float ao = spec.r;
+    float ao = g_AOTex.Sample(g_sampler, input.tex).r;
     float roughness = spec.g;
     float metalness =spec.b;
     
@@ -436,7 +438,7 @@ PixelOutput main(PixelInput input)
     float2 brdf = g_brdfLUT.Sample(g_sampler, brdfUV).rg;
     float3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
     
-    float3 ambient = (kD * diffuse+specular) * ao;
+    float3 ambient = (kD * diffuse+specular)*0.4f * ao;
    
     output.mainColor.xyz = lightVal.xyz + ambient +emissive.xyz;
     output.mainColor.a = 1.0f;

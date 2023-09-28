@@ -13,6 +13,7 @@ struct PixelInputType
     float3 binormal : BINORMAL;
     float4 wPosition : POSITION0;
     float4 vPosition : POSITION1;
+    float3 vNormal : vNORMAL;
 };
 struct PixelOutputType
 {
@@ -22,6 +23,7 @@ struct PixelOutputType
     float4 specular : SV_Target3;
     float4 emissive : SV_Target4;
     float4 vPos : SV_Target5;
+    float4 vNormal : SV_Target6;
 };
 struct Material
 {
@@ -52,6 +54,8 @@ PixelOutputType main(PixelInputType input)
     clip(output.albeldo.a - 0.1f);
     output.position = input.wPosition;
     output.vPos = input.vPosition;
+    output.vNormal = float4(normalize(input.vNormal), 1.0f);
+    
     float3 normal = normalize(input.normal);
     [branch]
     if(g_hasNormal)

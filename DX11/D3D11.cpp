@@ -682,7 +682,77 @@ namespace wilson
 			m_pAABBIBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pAABBIBuffer") - 1, "D3D11::m_pAABBIBuffer");
 		}
-	
+		{
+
+			//Gen Sample points
+			D3D11_MAPPED_SUBRESOURCE mappedResource;
+			SamplePoints* pSamplePoints;
+			hr = m_pContext->Map(m_pSSAOKernelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+			pSamplePoints = (SamplePoints*)mappedResource.pData;
+
+			std::uniform_real_distribution<float> randomFloats(0.0, 1.0f);
+			std::default_random_engine gen;
+			for (int i = 0; i < 64; ++i)
+			{
+				XMFLOAT3 sample(
+					randomFloats(gen) * 2.0f - 1.0f,
+					randomFloats(gen) * 2.0f - 1.0f,
+					randomFloats(gen));
+				XMVECTOR sampleV = XMLoadFloat3(&sample);
+				sampleV = DirectX::XMVector3Normalize(sampleV);
+				sampleV = XMVectorScale(sampleV, randomFloats(gen));
+				float scale = i / 64.0f;
+				scale = 0.1f + (1.0f - 0.1f) * scale * scale;
+				sampleV = XMVectorScale(sampleV, scale);
+
+				pSamplePoints->coord[i] = sampleV;
+			}
+			m_pContext->Unmap(m_pSSAOKernelBuffer, 0);
+
+
+			//Gen noise texture
+			for (int i = 0; i < 16; ++i)
+			{
+				XMFLOAT3 rot(
+					randomFloats(gen) * 2.0f - 1.0f,
+					randomFloats(gen) * 2.0f - 1.0f,
+					0.0f);
+				m_rotationVecs.push_back(rot);
+			}
+			D3D11_TEXTURE2D_DESC texDesc = {};
+			texDesc.Width = 4;
+			texDesc.Height = 4;
+			texDesc.Usage = D3D11_USAGE_DEFAULT;
+			texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			texDesc.ArraySize = 1;
+			texDesc.MipLevels = 1;
+			texDesc.SampleDesc.Count = 1;
+			D3D11_SUBRESOURCE_DATA data = { 0, };
+			data.pSysMem = &m_rotationVecs[0];
+			data.SysMemPitch = texDesc.Width * sizeof(XMFLOAT3);
+
+			hr = m_pDevice->CreateTexture2D(&texDesc, &data, &m_pNoiseRTT);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Format = texDesc.Format;
+			srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
+			srvDesc.Texture2D.MostDetailedMip = 0;
+			hr = m_pDevice->CreateShaderResourceView(m_pNoiseRTT, &srvDesc, &m_pNoiseSRV);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+		}
 		//Gen Equirectangular map
 		{
 			int width, height, nrComponents;
@@ -1069,7 +1139,7 @@ namespace wilson
 		//clear views
 		HRESULT hr;
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
-		UINT texCnt = _GBUF_CNT;
+		UINT texCnt = _GBUF_CNT-1;
 		UINT stride;
 		UINT offset = 0;
 		int drawed = 0;
@@ -1080,6 +1150,8 @@ namespace wilson
 		m_pContext->ClearRenderTargetView(m_pScreenRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pViewportRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pSceneRTTV, color);
+		m_pContext->ClearRenderTargetView(m_pSSAORTTV, color);
+		m_pContext->ClearRenderTargetView(m_pSSAOBlurRTTV, color);
 		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
 			m_pContext->ClearRenderTargetView(m_pGbufferRTTV[i], color);
@@ -1160,8 +1232,31 @@ namespace wilson
 			
 			m_pContext->OMSetRenderTargets(_GBUF_CNT, m_pGbufferRTTV, m_pSceneDSV);
 			DrawENTT(!bGeoPass);
+			
 
-			// PBR FBX들은 대부분 AO 맵이 달려온다.
+			//SSAO Pass
+			stride = sizeof(QUAD);
+			m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
+			m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
+
+			m_pShader->SetTexInputlayout(m_pContext);
+			m_pShader->SetSSAOShader(m_pContext);
+
+			m_pContext->PSSetConstantBuffers(0, 1, &m_pSSAOKernelBuffer);
+			m_pMatBuffer->UploadProjMat(m_pContext);
+			m_pContext->OMSetRenderTargets(1, &m_pSSAORTTV, nullptr);
+			m_pContext->PSSetShaderResources(0, 2, &m_pGbufferSRV[_GBUF_CNT-2]);
+			m_pContext->PSSetShaderResources(2, 1, &m_pNoiseSRV);
+			m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
+			m_pContext->PSSetSamplers(1, 1, &m_pClampSS);
+			m_pContext->DrawIndexed(6, 0, 0);
+			//Blur SSAOTex
+			m_pShader->SetSSAOBlurShader(m_pContext);
+			m_pContext->OMSetRenderTargets(1, &m_pSSAOBlurRTTV, nullptr);
+			m_pContext->PSSetShaderResources(0, 1, &m_pSSAOSRV);
+			m_pContext->DrawIndexed(6, 0, 0);
+
+			//Lighting Pass
 			m_pShader->SetTexInputlayout(m_pContext);
 			m_pShader->SetPBRDeferredLightingShader(m_pContext);
 			m_pLightBuffer->UpdateDirLightMatrices(m_pContext);
@@ -1169,13 +1264,11 @@ namespace wilson
 			m_pLightBuffer->UpdateLightBuffer(m_pContext);
 			m_pCam->SetCamPos(m_pContext);
 			m_pCam->SetCascadeLevels(m_pContext);
-			stride = sizeof(QUAD);
-			m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
-			m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
-			m_pContext->RSSetState(m_pQuadRS);
+	
 			m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, m_pSceneDSV);
 			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
-			m_pContext->PSSetShaderResources(0, _GBUF_CNT, m_pGbufferSRV);
+			m_pContext->PSSetShaderResources(0, _GBUF_CNT-1, m_pGbufferSRV);
+			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pSSAOBlurSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pDiffIrradianceSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pPrefilterSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pBRDFSRV);
