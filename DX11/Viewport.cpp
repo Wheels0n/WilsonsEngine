@@ -12,11 +12,16 @@ namespace wilson
 		m_top = 0;
 
 		m_pSwapChain = pD3D11->GetSwapChain();
-		m_pSRV = pD3D11->GetRTT();
 		m_pDevice = pD3D11->GetDevice();
 		m_pD3D11 = pD3D11;
 		m_pCam = pD3D11->GetCam();
 		m_pScene = pScene;
+
+		m_pFinalSRV = pD3D11->GetFinalSRV();
+		m_pSSAOBlurredSRV = pD3D11->GetSSAOBlurredSRV();
+		m_pGbufferSRV = pD3D11->GetGbufferSRV();
+
+		m_GbufferCount = pD3D11->GetGbufferCount();
 	}
 
 	void Viewport::Draw()
@@ -32,7 +37,7 @@ namespace wilson
 			m_top = pos.y;
 			m_IsFocused = ImGui::IsWindowFocused();
 
-			ImGui::Image((void*)m_pSRV, ImVec2(m_width, m_height));
+			ImGui::Image((void*)m_pFinalSRV, ImVec2(m_width, m_height));
 			if (ImGui::BeginDragDropTarget())
 			{
 				const ImGuiPayload* payLoad;
@@ -41,7 +46,7 @@ namespace wilson
 					payLoad = ImGui::AcceptDragDropPayload(g_types[i]);
 					if (payLoad != nullptr)
 					{
-						int idx =m_pScene->GetEntitySize();
+						int idx = m_pScene->GetEntitySize();
 						XMVECTOR pos = CalEntityPos();
 						if (i < 2)
 						{
@@ -59,12 +64,12 @@ namespace wilson
 							}
 							int modelIdx = m_pD3D11->GetModelGroupSize();
 							m_pD3D11->AddModelGroup(pModelGroup, m_pDevice);
-							m_pScene->AddModelEntity(pModelGroup,idx,modelIdx);
+							m_pScene->AddModelEntity(pModelGroup, idx, modelIdx);
 							break;
 						}
 						else
-						{	
-							Light* pLight=nullptr;
+						{
+							Light* pLight = nullptr;
 							std::string type;
 							switch (i)
 							{
@@ -83,17 +88,26 @@ namespace wilson
 							int lightIdx = m_pD3D11->GetLightSize(pLight);
 							DirectX::XMFLOAT3* pPos = pLight->GetPos();
 							DirectX::XMStoreFloat3(pPos, pos);
-							
+
 							m_pD3D11->AddLight(pLight);
 							m_pScene->AddLightEntity(pLight, type, idx, lightIdx);
 						}
 					}
 				}
-				
+
 				ImGui::EndDragDropTarget();
 			}
 			ImGui::End();
 		}
+		if (ImGui::Begin("Deferred", nullptr))
+		{
+			for (int i = 0; i < m_GbufferCount; ++i)
+			{
+				ImGui::Image((void*)m_pGbufferSRV[i], ImVec2(m_width, m_height));
+			}
+			ImGui::Image((void*)m_pSSAOBlurredSRV, ImVec2(m_width, m_height));
+		}
+		ImGui::End();
 		ImGui::PopStyleVar(2);
 	}
 	void Viewport::Resize()

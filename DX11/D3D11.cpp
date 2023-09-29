@@ -28,8 +28,8 @@ namespace wilson
 		m_pAABBIBuffer = nullptr;
 
 		m_pScreenRTTV = nullptr;
-		m_pDSBuffer = nullptr;
-		m_pDSBufferForRTT = nullptr;
+		m_pScreenDepthRTT = nullptr;
+		m_pSceneDepthRTT = nullptr;
 		m_pOutlinerSetupDSS = nullptr;
 		m_pOutlinerTestDSS = nullptr;
 
@@ -39,12 +39,18 @@ namespace wilson
 		m_pSSAOBlurRTT = nullptr;
 		m_pSSAOBlurRTTV = nullptr;
 		m_pSSAOBlurSRV = nullptr;
+
+		m_pSSAOBlurDebugRTT = nullptr;
+		m_pSSAOBlurDebugRTTV = nullptr;
+		m_pSSAOBlurDebugSRV = nullptr;
+
 		m_pViewportRTT = nullptr;
 		m_pViewportRTTV = nullptr;
 		m_pViewportSRV = nullptr;
 		m_pSceneRTT = nullptr;
 		m_pSceneRTTV = nullptr;
 		m_pSceneSRV = nullptr;
+		
 		m_pBrightRTT = nullptr;
 		m_pBrightRTTV = nullptr;
 		m_pBrightSRV = nullptr;
@@ -464,12 +470,12 @@ namespace wilson
 			return false;
 		}
 
-		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pDSBuffer, &m_pScreenDSV))
+		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pScreenDepthRTT, &m_pScreenDSV))
 		{
 			return false;
 		}
 		
-		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pDSBufferForRTT, &m_pSceneDSV))
+		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pSceneDepthRTT, &m_pSceneDSV))
 		{
 			return false;
 		}
@@ -939,10 +945,10 @@ namespace wilson
 
 		DestroyRTT();
 		DestroyDSBforRTT();
-		if (m_pDSBuffer != nullptr)
+		if (m_pScreenDepthRTT != nullptr)
 		{
-			m_pDSBuffer->Release();
-			m_pDSBuffer = nullptr;
+			m_pScreenDepthRTT->Release();
+			m_pScreenDepthRTT = nullptr;
 		}
 
 		if (m_pScreenDSV != nullptr)
@@ -1139,19 +1145,21 @@ namespace wilson
 		//clear views
 		HRESULT hr;
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
-		UINT texCnt = _GBUF_CNT-1;
+		UINT texCnt = _GBUF_CNT-2;
 		UINT stride;
 		UINT offset = 0;
 		int drawed = 0;
 		bool bGeoPass = false;
 		
 		ID3D11RenderTargetView* nullRTV[_GBUF_CNT] = { nullptr, };
+		ID3D11RenderTargetView* pSSAORTVs[2] = {m_pSSAOBlurRTTV, m_pSSAOBlurDebugRTTV};
 
 		m_pContext->ClearRenderTargetView(m_pScreenRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pViewportRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pSceneRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pSSAORTTV, color);
 		m_pContext->ClearRenderTargetView(m_pSSAOBlurRTTV, color);
+		m_pContext->ClearRenderTargetView(m_pSSAOBlurDebugRTTV, color);
 		for (int i = 0; i < _GBUF_CNT; ++i)
 		{
 			m_pContext->ClearRenderTargetView(m_pGbufferRTTV[i], color);
@@ -1252,7 +1260,7 @@ namespace wilson
 			m_pContext->DrawIndexed(6, 0, 0);
 			//Blur SSAOTex
 			m_pShader->SetSSAOBlurShader(m_pContext);
-			m_pContext->OMSetRenderTargets(1, &m_pSSAOBlurRTTV, nullptr);
+			m_pContext->OMSetRenderTargets(2, pSSAORTVs, nullptr);
 			m_pContext->PSSetShaderResources(0, 1, &m_pSSAOSRV);
 			m_pContext->DrawIndexed(6, 0, 0);
 
@@ -1265,9 +1273,9 @@ namespace wilson
 			m_pCam->SetCamPos(m_pContext);
 			m_pCam->SetCascadeLevels(m_pContext);
 	
-			m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, m_pSceneDSV);
+			m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, nullptr);
 			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
-			m_pContext->PSSetShaderResources(0, _GBUF_CNT-1, m_pGbufferSRV);
+			m_pContext->PSSetShaderResources(0, _GBUF_CNT-2, m_pGbufferSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pSSAOBlurSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pDiffIrradianceSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pPrefilterSRV);
@@ -1454,6 +1462,16 @@ namespace wilson
 		m_pSceneRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSceneRTT") - 1, "D3D11::m_pSceneRTT");
 
+
+		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSSAOBlurDebugRTT);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pSSAOBlurDebugRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSSAOBlurDebugRTT") - 1, "D3D11::m_pSSAOBlurDebugRTT");
+
+
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pBrightRTT);
 		if (FAILED(hr))
 		{
@@ -1507,6 +1525,14 @@ namespace wilson
 			sizeof("D3D11::m_pSceneRTTV") - 1, "D3D11::m_pSceneRTTV");
 
 
+		hr = m_pDevice->CreateRenderTargetView(m_pSSAOBlurDebugRTT, &RTTVDesc, &m_pSSAOBlurDebugRTTV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pSSAOBlurDebugRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSSAOBlurDebugRTTV") - 1, "D3D11::m_pSSAOBlurDebugRTTV");
+
 		hr = m_pDevice->CreateRenderTargetView(m_pBrightRTT, &RTTVDesc, &m_pBrightRTTV);
 		if (FAILED(hr))
 		{
@@ -1559,6 +1585,15 @@ namespace wilson
 		}
 		m_pSceneSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSceneSRV") - 1, "D3D11::m_pSceneSRV");
+
+
+		hr = m_pDevice->CreateShaderResourceView(m_pSSAOBlurDebugRTT, &SRVDesc, &m_pSSAOBlurDebugSRV);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pSSAOBlurDebugSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pSSAOBlurDebugSRV") - 1, "D3D11::m_pSSAOBlurDebugSRV");
 
 
 		hr = m_pDevice->CreateShaderResourceView(m_pBrightRTT, &SRVDesc, &m_pBrightSRV);
@@ -1783,8 +1818,8 @@ namespace wilson
 		return true;
 	}
 	bool D3D11::CreateDepthBuffer(int width, int height,
-		ID3D11Texture2D** dsb,
-		ID3D11DepthStencilView** dsbv)
+		ID3D11Texture2D** DepthRTT,
+		ID3D11DepthStencilView** DepthDSV)
 	{
 		D3D11_TEXTURE2D_DESC depthBufferDesc;
 		D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
@@ -1796,21 +1831,21 @@ namespace wilson
 		depthBufferDesc.Height = height;
 		depthBufferDesc.MipLevels = 1;
 		depthBufferDesc.ArraySize = 1;
-		depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depthBufferDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
 		depthBufferDesc.SampleDesc.Count = 1;
 		depthBufferDesc.SampleDesc.Quality = 0;
 		depthBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-		depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL|D3D11_BIND_SHADER_RESOURCE;
 		depthBufferDesc.CPUAccessFlags = 0;
 		depthBufferDesc.MiscFlags = 0;
 
-		hr = m_pDevice->CreateTexture2D(&depthBufferDesc, nullptr, dsb);
+		hr = m_pDevice->CreateTexture2D(&depthBufferDesc, nullptr, DepthRTT);
 		if (FAILED(hr))
 		{
 			return false;
 		}
-		(*dsb)->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::dsb") - 1, "D3D11::dsb");
+		(*DepthRTT)->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::DepthRTT") - 1, "D3D11::DepthRTT");
 
 
 		ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
@@ -1820,14 +1855,13 @@ namespace wilson
 		depthStencilViewDesc.Texture2D.MipSlice = 0;
 
 
-		hr = m_pDevice->CreateDepthStencilView(*dsb, &depthStencilViewDesc, dsbv);
+		hr = m_pDevice->CreateDepthStencilView(*DepthRTT, &depthStencilViewDesc, DepthDSV);
 		if (FAILED(hr))
 		{
 			return false;
 		}
-		(*dsbv)->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::dsbv") - 1, "D3D11::dsbv");
-
+		(*DepthDSV)->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::DepthDSV") - 1, "D3D11::DepthDSV");
 
 		return true;
 	}
@@ -2000,6 +2034,7 @@ namespace wilson
 			m_pSceneSRV = nullptr;
 		}
 
+
 		if (m_pSSAORTT != nullptr)
 		{
 			m_pSSAORTT->Release();
@@ -2035,6 +2070,26 @@ namespace wilson
 			m_pSSAOBlurSRV->Release();
 			m_pSSAOBlurSRV = nullptr;
 		}
+
+		if (m_pSSAOBlurDebugRTT != nullptr)
+		{
+			m_pSSAOBlurDebugRTT->Release();
+			m_pSSAOBlurDebugRTT = nullptr;
+		}
+
+		if (m_pSSAOBlurDebugRTTV != nullptr)
+		{
+			m_pSSAOBlurDebugRTTV->Release();
+			m_pSSAOBlurDebugRTTV = nullptr;
+		}
+
+		if (m_pSSAOBlurDebugSRV != nullptr)
+		{
+			m_pSSAOBlurDebugSRV->Release();
+			m_pSSAOBlurDebugSRV = nullptr;
+		}
+
+
 
 		if (m_pBrightRTT != nullptr)
 		{
@@ -2188,10 +2243,10 @@ namespace wilson
 	}
 	void D3D11::DestroyDSBforRTT()
 	{
-		if (m_pDSBufferForRTT != nullptr)
+		if (m_pSceneDepthRTT != nullptr)
 		{
-			m_pDSBufferForRTT->Release();
-			m_pDSBufferForRTT = nullptr;
+			m_pSceneDepthRTT->Release();
+			m_pSceneDepthRTT = nullptr;
 		}
 
 		if (m_pSceneDSV != nullptr)

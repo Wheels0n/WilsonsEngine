@@ -3,11 +3,16 @@ struct PixelInputType
     float4 position : SV_POSITION;
     float2 tex : TEXTURE;
 };
-
+struct PixelOutput
+{
+    float4 SSAO : SV_Target0;
+    float4 Debug : SV_Target1;
+};
 Texture2D g_SSAOTex;
 SamplerState g_sampler;
-float4 main(PixelInputType input) : SV_TARGET
-{
+PixelOutput main(PixelInputType input)
+{   
+    PixelOutput output;
     float2 texelSize;
     g_SSAOTex.GetDimensions(texelSize.x, texelSize.y);
     texelSize = 1.0f / texelSize;
@@ -22,6 +27,8 @@ float4 main(PixelInputType input) : SV_TARGET
 
     }
     
-    return result / (4.0f * 4.0f);
-
+    result /= (4.0f * 4.0f);
+    output.SSAO = result;
+    output.Debug = float4(result, result, result, 1.0f);
+    return output;
 }

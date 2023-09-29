@@ -36,7 +36,7 @@ namespace wilson
 	};
 	constexpr UINT _SHADOWMAP_SIZE = 1024;
 	constexpr float CUBE_SIZE = 0.25;
-	constexpr UINT _GBUF_CNT =7;
+	constexpr UINT _GBUF_CNT =8;
 	class D3D11
 	{
 
@@ -63,10 +63,19 @@ namespace wilson
 		{
 			return m_pSwapChain;
 		}
-		inline ID3D11ShaderResourceView* GetRTT() const
+		inline ID3D11ShaderResourceView* GetFinalSRV() const
 		{
 			return m_pViewportSRV;
 		};
+		inline ID3D11ShaderResourceView* GetSSAOBlurredSRV() const
+		{
+			return m_pSSAOBlurDebugSRV;
+		};
+		inline ID3D11ShaderResourceView** GetGbufferSRV()
+		{
+			return &m_pGbufferSRV[0];
+		};
+
 		inline ID3D11Device* GetDevice() const
 		{
 			return m_pDevice;
@@ -96,15 +105,14 @@ namespace wilson
 		{
 			m_bAABBGridOn = !m_bAABBGridOn;
 		}
-		UINT GetLightSize(Light* pLight);
-
-		bool CreateRTT(int, int);
-		bool CreateDSBforRTT(int w, int h)
+		inline UINT GetGbufferCount() const
 		{
-			DestroyDSBforRTT();
-			return CreateDepthBuffer(w, h, &m_pDSBufferForRTT, &m_pSceneDSV);
-		};
-
+			return _GBUF_CNT;
+		}
+		UINT GetLightSize(Light* pLight);
+		
+		bool CreateRTT(int, int);
+	
 		D3D11();
 		D3D11(const D3D11&) = delete;
 		~D3D11()=default;
@@ -138,11 +146,12 @@ namespace wilson
 		ID3D11Buffer* m_pAABBVBuffer;
 		ID3D11Buffer* m_pAABBIBuffer;
 
-		ID3D11Texture2D* m_pDSBuffer;
-		ID3D11Texture2D* m_pDSBufferForRTT;
+		ID3D11Texture2D* m_pScreenDepthRTT;
+		ID3D11Texture2D* m_pSceneDepthRTT;
 		ID3D11Texture2D* m_pSceneRTT;
 		ID3D11Texture2D* m_pSSAORTT;
 		ID3D11Texture2D* m_pSSAOBlurRTT;
+		ID3D11Texture2D* m_pSSAOBlurDebugRTT;
 		ID3D11Texture2D* m_pBrightRTT;
 		ID3D11Texture2D* m_pViewportRTT;
 		ID3D11Texture2D* m_pPingPongRTT[2];
@@ -158,10 +167,11 @@ namespace wilson
 		ID3D11RenderTargetView* m_pSceneRTTV; 
 		ID3D11RenderTargetView* m_pSSAORTTV;
 		ID3D11RenderTargetView* m_pSSAOBlurRTTV; 
+		ID3D11RenderTargetView* m_pSSAOBlurDebugRTTV;
 		ID3D11RenderTargetView* m_pBrightRTTV; 
 		ID3D11RenderTargetView* m_pViewportRTTV;
 		ID3D11RenderTargetView* m_pPingPongRTTV[2];
-		ID3D11RenderTargetView* m_pGbufferRTTV[_GBUF_CNT];//0:pos, 1:normal, 2:albedo, 3:specular, 4:emissive, 5: vPos, 6:vNormal;
+		ID3D11RenderTargetView* m_pGbufferRTTV[_GBUF_CNT];//0:pos, 1:normal, 2:albedo, 3:specular, 4:emissive, 5: vPos, 6:vNormal, 7:depth;
 		ID3D11RenderTargetView* m_pSkyBoxRTTV;
 		ID3D11RenderTargetView* m_pDiffIrradianceRTTV;
 		ID3D11RenderTargetView* m_pPrefilterRTTV;
@@ -171,6 +181,7 @@ namespace wilson
 		ID3D11ShaderResourceView* m_pSceneSRV;
 		ID3D11ShaderResourceView* m_pSSAOSRV;
 		ID3D11ShaderResourceView* m_pSSAOBlurSRV;
+		ID3D11ShaderResourceView* m_pSSAOBlurDebugSRV;
 		ID3D11ShaderResourceView* m_pBrightSRV;
 		ID3D11ShaderResourceView* m_pViewportSRV;
 		ID3D11ShaderResourceView* m_pPingPongSRV[2];

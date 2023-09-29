@@ -51,6 +51,7 @@ namespace wilson
 
 		UINT m_width;
 		UINT m_height;
+		UINT m_GbufferCount;
 		int m_left;
 		int m_top;
 
@@ -59,7 +60,11 @@ namespace wilson
 		Scene* m_pScene;
 		Importer m_importer;
 		IDXGISwapChain* m_pSwapChain;
-		ID3D11ShaderResourceView* m_pSRV;
+
+		ID3D11ShaderResourceView* m_pFinalSRV;
+		ID3D11ShaderResourceView* m_pSSAOBlurredSRV;
+		ID3D11ShaderResourceView** m_pGbufferSRV;
+
 		ID3D11Device* m_pDevice;
 	};
 }

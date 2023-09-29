@@ -24,6 +24,7 @@ struct PixelOutputType
     float4 emissive : SV_Target4;
     float4 vPos : SV_Target5;
     float4 vNormal : SV_Target6;
+    float4 depth : SV_Target7;
 };
 struct Material
 {
@@ -46,6 +47,8 @@ cbuffer PerModel
     float3 pad;
 
 };
+
+
 PixelOutputType main(PixelInputType input)
 {   
     PixelOutputType output;
@@ -54,6 +57,9 @@ PixelOutputType main(PixelInputType input)
     clip(output.albeldo.a - 0.1f);
     output.position = input.wPosition;
     output.vPos = input.vPosition;
+    
+    float depth = output.vPos.z / 100.0f;
+    output.depth = float4(depth, depth, depth, 1.0f);
     output.vNormal = float4(normalize(input.vNormal), 1.0f);
     
     float3 normal = normalize(input.normal);
