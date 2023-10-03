@@ -28,7 +28,7 @@ namespace wilson
 			return &m_dirLightProperty;
 		}
 		
-		bool Init(ID3D11Device*);
+		bool Init(ID3D11Device*, UINT);
 		void UpdateProperty();
 		void SetShadowMatrices(ID3D11DeviceContext*);
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::DIR; };

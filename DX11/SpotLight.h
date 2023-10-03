@@ -4,8 +4,8 @@
 
 namespace wilson
 {	
-	constexpr float _S_NEAR = 0.1f;
-	constexpr float _S_FAR = 100.0f;
+	constexpr float _S_NEAR = 1.0f;
+	constexpr float _S_FAR = 150.0f;
 
 	struct SpotLightProperty
 	{
@@ -55,7 +55,7 @@ namespace wilson
 			return &m_spotLightProperty;
 		}
 
-		bool Init(ID3D11Device*);
+		bool Init(ID3D11Device*, UINT);
 		void UpdateViewMat();
 		void UpdateProjMat();
 		void UpdateLitMat();

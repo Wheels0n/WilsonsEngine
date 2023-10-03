@@ -3,7 +3,7 @@
 namespace wilson
 {   
     constexpr float g_near = 1.0f;
-    constexpr float g_far = 25.0f;
+    constexpr float g_far =150.0f;
     constexpr float g_ratio = 1.0f;
     constexpr float g_FOV = DirectX::XMConvertToRadians(90.0f);
     DirectX::XMMATRIX PointLight::g_perspectiveMat =
@@ -25,7 +25,7 @@ namespace wilson
         DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f),
     };
 
-    bool PointLight::Init(ID3D11Device* pDevice)
+    bool PointLight::Init(ID3D11Device* pDevice, UINT idx)
     {   
         m_cubeMats.resize(6);
         D3D11_BUFFER_DESC lightCBD = {};
@@ -54,7 +54,7 @@ namespace wilson
         m_pPosBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
             sizeof("PointLight::m_pPosBuffer") - 1, "PointLight::m_pPosBuffer");
 
-        Light::Init(pDevice);
+        Light::Init(pDevice,idx);
         m_attenuation = DirectX::XMFLOAT3(0.0f, 0.1f, 0.0f);
         m_range = 25.0f;
 

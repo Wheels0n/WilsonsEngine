@@ -46,7 +46,7 @@ namespace wilson
 
 		void UpdateScene();
 		void DrawScene();
-		void AddLight(Light*);
+		void AddLight(Light*, UINT);
 		void AddModelGroup(ModelGroup*, ID3D11Device*);
 		void RemoveModelGroup(int i);
 		void RemoveLight(int i, Light* pLight);
@@ -58,6 +58,10 @@ namespace wilson
 		inline Frustum* GetFrustum() const
 		{
 			return m_pFrustum;
+		};
+		inline ShadowMap* GetShadowMap() const
+		{
+			return m_pShadowMap;
 		};
 		inline IDXGISwapChain* GetSwapChain() const
 		{
@@ -79,6 +83,10 @@ namespace wilson
 		inline ID3D11Device* GetDevice() const
 		{
 			return m_pDevice;
+		};
+		inline ID3D11DeviceContext* GetDeviceContext() const
+		{
+			return m_pContext;
 		};
 		inline float* GetExposure()
 		{

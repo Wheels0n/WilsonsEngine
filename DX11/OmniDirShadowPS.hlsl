@@ -8,7 +8,7 @@ struct PS_INPUT
 };
 struct PS_OUTPUT
 {
-    float color : SV_Target;
+    float4 color : SV_Target;
     float depth : SV_Depth;
 };
 cbuffer lightPos

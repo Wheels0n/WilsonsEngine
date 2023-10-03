@@ -143,9 +143,9 @@ namespace wilson
 				ImGui::TreePop();
 			}
 
-			ImGui::End();
+			
 		}
-
+		ImGui::End();
 		if (ImGui::Begin("Properties"))
 		{
 			if (m_pSelectedEntity != nullptr)
@@ -224,16 +224,7 @@ namespace wilson
 						*trMat = tr;
 
 					}
-					if (ImGui::Button("Instancing On/Off"))
-					{
-						pModel->ToggleInstancing();
-					}
-
-					int numInstance = pModel->GetNumInstance();
-					if (ImGui::DragInt("InstanceCount", &numInstance, 1, 1, 50))
-					{
-						pModel->SetNumInstance(numInstance);
-					}
+					
 				}
 				else
 				{
@@ -251,8 +242,9 @@ namespace wilson
 					pLight->UpdateProperty();
 				}
 			}
-			ImGui::End();
+			
 		}
+		ImGui::End();
 
 	}
 	void Scene::DrawVec3Control(const std::string& label, float* vals)
@@ -409,6 +401,10 @@ namespace wilson
 
 		DirectX::XMFLOAT3* dir3 = pLight->GetDir();
 		DirectX::XMFLOAT3 copyDir3 = *dir3;
+
+		ID3D11DeviceContext* pContext = m_pD3D11->GetDeviceContext();
+		UINT idx =pLight->GetLightIndex();
+		static int mipLevel = -1;
 		switch (pLight->GetType())
 		{
 		case eLIGHT_TYPE::DIR:
@@ -437,6 +433,13 @@ namespace wilson
 			{
 				((DirectionalLight*)pLight)->UpdateLightSpaceMatrices();
 			}
+			
+			if (ImGui::Combo("mipLevel",&mipLevel, " 0\0 1\0 2\0 3\0 4\0"))
+			{	
+				m_pShadowSRV = m_pShadow->GetDirDebugSRV(pContext,idx,mipLevel);
+			
+			}
+
 			break;
 		default:
 			ImGui::Text("Position");
@@ -472,6 +475,20 @@ namespace wilson
 				}
 
 			}
+			
+			switch (pLight->GetType())
+			{
+			case eLIGHT_TYPE::PNT:
+				if (ImGui::Combo("ShadowMap", &mipLevel, " right\0 left\0 up\0 down\0 front\0 back\0"))
+				{	
+					m_pShadowSRV = m_pShadow->GetCubeDebugSRV(pContext, idx, mipLevel);
+				}
+				break;
+			case eLIGHT_TYPE::SPT:
+				ImGui::Text("ShadowMap");
+				m_pShadowSRV = m_pShadow->GetSpotDebugSRV(pContext, idx);
+			}
+			
 			break;
 		}
 		
@@ -499,6 +516,13 @@ namespace wilson
 		specular4 = DirectX::XMFLOAT4(specular[0], specular[1], specular[2], specular[3]);
 		*(pLight->GetSpecular()) = DirectX::XMLoadFloat4(&specular4);
 
+		
+		if (m_pShadowSRV != nullptr)
+		{	
+			ImGui::Image((void*)m_pShadowSRV, ImVec2(128.f, 128.f));
+		}
+		
+		
 	}
 	void Scene::DrawPointLightControl(Light* pLight) 
 	{
@@ -553,7 +577,7 @@ namespace wilson
 		ImGui::DragFloat("##DZ", &dir3.z, 0.1f);
 		*(pSpotLight->GetDirection()) = dir3;
 		if (dir3.x != copyDir3.x || dir3.y != copyDir3.y || dir3.z != copyDir3.z)
-		{
+		{	
 			pSpotLight->UpdateViewMat();
 		}
 

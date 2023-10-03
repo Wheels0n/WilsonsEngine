@@ -5,11 +5,29 @@ namespace wilson
 		const UINT dirLightCap, const UINT pntLightCap, const UINT spotLightCap)
 	{
 		m_dirTex.resize(dirLightCap);
+		m_dirDebugTex.resize(dirLightCap);
+		m_dirDebugRTVs.resize(dirLightCap);
+
 		m_cubeTex.resize(pntLightCap);
+		m_cubeDebugTex.resize(pntLightCap);
+		m_cubeDebugRTVs.resize(pntLightCap);
+
 		m_spotTex.resize(spotLightCap);
+		m_spotDebugTex.resize(spotLightCap);
+		m_spotDebugRTVs.resize(spotLightCap);
+
 		m_dirSRVs.resize(dirLightCap);
+		m_dirDebugSRVs.resize(dirLightCap);
+
 		m_cubeSRVs.resize(pntLightCap);
+		m_cubeDebugSRVs.resize(pntLightCap);
+
 		m_spotSRVs.resize(spotLightCap);
+		m_spotDebugSRVs.resize(spotLightCap);
+
+		m_debugTexs.resize(6);
+		m_debugSRVs.resize(6);
+
 		m_dirDSVs.resize(dirLightCap);
 		m_cubeDSVs.resize(pntLightCap);
 		m_spotDSVs.resize(spotLightCap);
@@ -23,6 +41,9 @@ namespace wilson
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		D3D11_SAMPLER_DESC samDesc = {};
+
+		m_width = width;
+		m_height = height;
 
 		m_viewport.TopLeftX = 0.0f;
 		m_viewport.TopLeftY = 0.0f;
@@ -192,20 +213,137 @@ namespace wilson
 				m_cubeSRVs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("ShadowMap::m_cubeSRVs[i]") - 1, "ShadowMap::m_cubeSRVs[i]");
 			}
+
+			texDesc.ArraySize = cascadeLevel;
+			texDesc.MiscFlags = 0;
 			texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 			texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			pDevice->CreateTexture2D(&texDesc, 0, &m_pTex);
-			m_pTex->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("ShadowMap::m_pTex") - 1, "ShadowMap::m_pTex");
 
 			RTVDesc.Format = texDesc.Format;
 			RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
-			RTVDesc.Texture2DArray.ArraySize = 6;
+			RTVDesc.Texture2DArray.ArraySize = cascadeLevel;
 			RTVDesc.Texture2DArray.FirstArraySlice = 0;
 			RTVDesc.Texture2DArray.MipSlice = 0;
-			pDevice->CreateRenderTargetView(m_pTex, &RTVDesc, &m_pRTV);
-			m_pRTV->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("ShadowMap::m_pRTV") - 1, "ShadowMap::m_pRTV");
+
+			srvDesc.Format = texDesc.Format;
+			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+			srvDesc.Texture2DArray.ArraySize = cascadeLevel;
+			srvDesc.Texture2DArray.FirstArraySlice = 0;
+			srvDesc.Texture2DArray.MipLevels = texDesc.MipLevels;
+			srvDesc.Texture2DArray.MostDetailedMip = 0;
+			for (int i = 0; i < dirLightCap; ++i)
+			{
+				hr= pDevice->CreateTexture2D(&texDesc, 0, &m_dirDebugTex[i]);
+				if (FAILED(hr))
+				{
+					return false;
+				}
+				m_dirDebugTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_dirDebugTex[i]") - 1, "ShadowMap::m_dirDebugTex[i]");
+
+				hr = pDevice->CreateRenderTargetView(m_dirDebugTex[i], &RTVDesc, &m_dirDebugRTVs[i]);
+				if (FAILED(hr))
+				{
+					return false;
+				}
+				m_dirDebugRTVs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_dirDebugRTVs[i]") - 1, "ShadowMap::m_dirDebugRTVs[i]");
+
+				
+				hr = pDevice->CreateShaderResourceView(m_dirDebugTex[i], &srvDesc, &m_dirDebugSRVs[i]);
+				if (FAILED(hr))
+				{
+					return false;
+				}
+				m_dirDebugSRVs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_dirDebugSRVs[i]") - 1, "ShadowMap::m_dirDebugSRVs[i]");
+				
+			}
+			texDesc.ArraySize = 6;
+			RTVDesc.Texture2DArray.ArraySize = 6;
+			for (int i = 0; i < pntLightCap; ++i)
+			{	
+				hr = pDevice->CreateTexture2D(&texDesc, 0, &m_cubeDebugTex[i]);
+				if (FAILED(hr))
+				{
+					return false;
+				}
+				m_cubeDebugTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_cubeDebugTex[i]") - 1, "ShadowMap::m_cubeDebugTex[i]");
+
+				hr = pDevice->CreateRenderTargetView(m_cubeDebugTex[i], &RTVDesc, &m_cubeDebugRTVs[i]);
+				if (FAILED(hr))
+				{
+					return false;
+				}
+				m_cubeDebugRTVs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_cubeDebugRTVs[i]") - 1, "ShadowMap::m_cubeDebugRTVs[i]");
+
+				
+				hr = pDevice->CreateShaderResourceView(m_cubeDebugTex[i], &srvDesc, &m_cubeDebugSRVs[i]);
+				if (FAILED(hr))
+				{
+					return false;
+				}
+				m_cubeDebugSRVs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+						sizeof("ShadowMap::m_cubeDebugSRVs[i]") - 1, "ShadowMap::m_cubeDebugSRVs[i]");
+				
+			}
+			texDesc.ArraySize = 1;
+
+			RTVDesc.Texture2DArray.ArraySize = 1;
+			RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+			dsvDesc.Texture2D.MipSlice = 0;
+
+			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
+			srvDesc.Texture2D.MostDetailedMip = 0;
+			for (int i = 0; i < spotLightCap; ++i)
+			{
+				hr = pDevice->CreateTexture2D(&texDesc, 0, &m_spotDebugTex[i]);
+				if (FAILED(hr))
+				{
+					return false;
+				}
+				m_spotDebugTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_spotDebugTex[i]") - 1, "ShadowMap::m_spotDebugTex[i]");
+
+
+				hr = pDevice->CreateRenderTargetView(m_spotDebugTex[i], &RTVDesc, &m_spotDebugRTVs[i]);
+				if (FAILED(hr))
+				{
+					return false;
+				}
+				m_spotDebugRTVs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_spotDebugRTVs[i]") - 1, "ShadowMap::m_spotDebugRTVs[i]");
+
+				hr = pDevice->CreateShaderResourceView(m_spotDebugTex[i], &srvDesc, &m_spotDebugSRVs[i]);
+				if (FAILED(hr))
+				{
+					return false;
+				}
+				m_spotDebugSRVs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_spotDebugSRVs[i]") - 1, "ShadowMap::m_spotDebugSRVs[i]");
+			}
+			//Create Textures for Display
+			for (int i = 0; i < 6; ++i)
+			{
+				hr = pDevice->CreateTexture2D(&texDesc, 0, &m_debugTexs[i]);
+				if (FAILED(hr))
+				{
+					return false;
+				}
+				m_debugTexs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_debugTexs[i]") - 1, "ShadowMap::m_debugTexs[i]");
+
+				hr = pDevice->CreateShaderResourceView(m_debugTexs[i], &srvDesc, &m_debugSRVs[i]);
+				if (FAILED(hr))
+				{
+					return false;
+				}
+				m_debugSRVs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_debugSRVs[i]") - 1, "ShadowMap::m_debugSRVs[i]");
+			}
 		}
 
 		return true;
@@ -214,25 +352,47 @@ namespace wilson
 
 	void ShadowMap::BindDirDSV(ID3D11DeviceContext* pContext, const UINT i)
 	{	
-		ID3D11RenderTargetView* renderTargets[1] = { nullptr };
-		pContext->OMSetRenderTargets(1, renderTargets, m_dirDSVs[i]);
+		ID3D11RenderTargetView* renderTargets[1] = { m_dirDebugRTVs[i] };
+		pContext->ClearRenderTargetView(m_dirDebugRTVs[i], m_clear);
 		pContext->ClearDepthStencilView(m_dirDSVs[i], D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+		pContext->OMSetRenderTargets(1, renderTargets, m_dirDSVs[i]);
 	}
 
 	void ShadowMap::BindCubeDSV(ID3D11DeviceContext* pContext, const UINT i)
 	{	
-		FLOAT clear[4] = { 1, };
-		ID3D11RenderTargetView* renderTargets[1] = { m_pRTV };
+		ID3D11RenderTargetView* renderTargets[1] = { m_cubeDebugRTVs[i] };
+		pContext->ClearRenderTargetView(m_cubeDebugRTVs[i], m_clear);
+		pContext->ClearDepthStencilView(m_cubeDSVs[i], D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
 		pContext->OMSetRenderTargets(1, renderTargets, m_cubeDSVs[i]);
-		pContext->ClearRenderTargetView(m_pRTV, clear);
-		pContext->ClearDepthStencilView(m_cubeDSVs[i], D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
 	}
 
 	void ShadowMap::BindSpotDSV(ID3D11DeviceContext* pContext, const UINT i)
-	{
-		ID3D11RenderTargetView* renderTargets[1] = { nullptr };
-		pContext->OMSetRenderTargets(1, renderTargets, m_spotDSVs[i]);
+	{	
+		ID3D11RenderTargetView* renderTargets[1] = { m_spotDebugRTVs[i] };
+		pContext->ClearRenderTargetView(m_spotDebugRTVs[i], m_clear);
 		pContext->ClearDepthStencilView(m_spotDSVs[i], D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+		pContext->OMSetRenderTargets(1, renderTargets, m_spotDSVs[i]);
+	}
+
+	ID3D11ShaderResourceView* ShadowMap::GetDirDebugSRV(ID3D11DeviceContext* pContext, UINT i, UINT lod)
+	{	
+		pContext->CopySubresourceRegion(m_debugTexs[lod], 0, 0, 0, 0,
+			m_dirDebugTex[i], lod, NULL);
+		return m_debugSRVs[lod];
+	}
+
+	ID3D11ShaderResourceView* ShadowMap::GetCubeDebugSRV(ID3D11DeviceContext* pContext, UINT i, UINT face)
+	{
+		pContext->CopySubresourceRegion(m_debugTexs[face], 0, 0, 0, 0,
+			m_cubeDebugTex[i], face, NULL);
+		return m_debugSRVs[face];
+	}
+
+	ID3D11ShaderResourceView* ShadowMap::GetSpotDebugSRV(ID3D11DeviceContext* pContext, UINT i)
+	{
+		pContext->CopySubresourceRegion(m_debugTexs[0], 0, 0, 0, 0,
+			m_spotDebugTex[i], 0, NULL);
+		return m_debugSRVs[0];
 	}
 
 	ShadowMap::~ShadowMap()
@@ -245,17 +405,38 @@ namespace wilson
 				m_dirTex[i] = nullptr;
 			}
 
+			if (m_dirDebugTex[i] != nullptr)
+			{
+				m_dirDebugTex[i]->Release();
+				m_dirDebugTex[i] = nullptr;
+			}
+
 			if (m_dirDSVs[i] != nullptr)
 			{
 				m_dirDSVs[i]->Release();
 				m_dirDSVs[i] = nullptr;
 			}
 
+			if (m_dirDebugRTVs[i] != nullptr)
+			{
+				m_dirDebugRTVs[i]->Release();
+				m_dirDebugRTVs[i] = nullptr;
+			}
+
+
 			if (m_dirSRVs[i] != nullptr)
 			{
 				m_dirSRVs[i]->Release();
 				m_dirSRVs[i] = nullptr;
 			}
+
+		
+			if (m_dirDebugSRVs[i] != nullptr)
+			{
+				m_dirDebugSRVs[i]->Release();
+				m_dirDebugSRVs[i] = nullptr;
+			}
+			
 		}
 
 		for (int i = 0; i < m_cubeTex.size(); ++i)
@@ -265,6 +446,11 @@ namespace wilson
 				m_cubeTex[i]->Release();
 				m_cubeTex[i] = nullptr;
 			}
+			if (m_cubeDebugTex[i] != nullptr)
+			{
+				m_cubeDebugTex[i]->Release();
+				m_cubeDebugTex[i] = nullptr;
+			}
 
 			if (m_cubeDSVs[i] != nullptr)
 			{
@@ -272,12 +458,25 @@ namespace wilson
 				m_cubeDSVs[i] = nullptr;
 			}
 
+			if (m_cubeDebugRTVs[i] != nullptr)
+			{
+				m_cubeDebugRTVs[i]->Release();
+				m_cubeDebugRTVs[i] = nullptr;
+			}
 
 			if (m_cubeSRVs[i] != nullptr)
 			{
 				m_cubeSRVs[i]->Release();
 				m_cubeSRVs[i] = nullptr;
 			}
+
+			
+			if (m_cubeDebugSRVs[i] != nullptr)
+			{
+				m_cubeDebugSRVs[i]->Release();
+				m_cubeDebugSRVs[i] = nullptr;
+			}
+			
 		}
 
 		for (int i = 0; i < m_spotTex.size(); ++i)
@@ -288,10 +487,22 @@ namespace wilson
 				m_spotTex[i] = nullptr;
 			}
 
+			if (m_spotDebugTex[i] != nullptr)
+			{
+				m_spotDebugTex[i]->Release();
+				m_spotDebugTex[i] = nullptr;
+			}
+
 			if (m_spotDSVs[i] != nullptr)
 			{
 				m_spotDSVs[i]->Release();
 				m_spotDSVs[i] = nullptr;
+			}
+
+			if (m_spotDebugRTVs[i] != nullptr)
+			{
+				m_spotDebugRTVs[i]->Release();
+				m_spotDebugRTVs[i] = nullptr;
 			}
 
 			if (m_spotSRVs[i] != nullptr)
@@ -299,8 +510,28 @@ namespace wilson
 				m_spotSRVs[i]->Release();
 				m_spotSRVs[i] = nullptr;
 			}
+
+			if (m_spotDebugSRVs[i] != nullptr)
+			{
+				m_spotDebugSRVs[i]->Release();
+				m_spotDebugSRVs[i] = nullptr;
+			}
 		}
 
+		for (int i = 0; i < 6; ++i)
+		{
+			if (m_debugTexs[i]!=nullptr)
+			{
+				m_debugTexs[i]->Release();
+				m_debugTexs[i] = nullptr;
+			}
+
+			if (m_debugSRVs[i] != nullptr)
+			{
+				m_debugSRVs[i]->Release();
+				m_debugSRVs[i] = nullptr;
+			}
+		}
 
 		if (m_pDirShadowSamplerState != nullptr)
 		{
@@ -312,14 +543,7 @@ namespace wilson
 			m_pCubeShadowSamplerState->Release();
 			m_pCubeShadowSamplerState = nullptr;
 		}
-		if (m_pRTV != nullptr)
-		{
-			m_pRTV->Release();
-		}
-		if (m_pTex != nullptr)
-		{
-			m_pTex->Release();
-		}
+	
 		m_dirTex.clear();
 		m_dirDSVs.clear();
 		m_dirSRVs.clear();

@@ -8,9 +8,9 @@
 
 namespace wilson
 {	
-	constexpr UINT _MAX_DIR_LIGHTS = 10;
-	constexpr UINT _MAX_PNT_LIGHTS = 48;
-	constexpr UINT _MAX_SPT_LIGHTS = 20;
+	constexpr UINT _MAX_DIR_LIGHTS = 5;
+	constexpr UINT _MAX_PNT_LIGHTS = 24;
+	constexpr UINT _MAX_SPT_LIGHTS = 10;
 	
 	struct DirLightMatrices
 	{

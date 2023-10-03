@@ -21,7 +21,7 @@ namespace wilson
 
         Light::~Light();
     }
-    bool DirectionalLight::Init(ID3D11Device* pDevice)
+    bool DirectionalLight::Init(ID3D11Device* pDevice, UINT idx)
     {
         D3D11_BUFFER_DESC CBD = {};
         CBD.Usage = D3D11_USAGE_DYNAMIC;
@@ -39,7 +39,7 @@ namespace wilson
         m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("DirectionalLight::m_pLightBuffer") - 1, "DirectionalLight::m_pLightBuffer");
 
-        Light::Init(pDevice);
+        Light::Init(pDevice, idx);
 
 
         CBD.ByteWidth = sizeof(DirectX::XMMATRIX)*m_pCam->GetCascadeLevels().size();

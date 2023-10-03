@@ -41,7 +41,7 @@ namespace wilson
 			pMatrices->matrices[i] = *(m_pSpotLights[i]->GetLightSpaceMat());
 		}
 		pContext->Unmap(m_pSpotLitMatricesBuffer, 0);
-		pContext->PSSetConstantBuffers(m_pDirLights.empty()?3:4, 1, &m_pSpotLitMatricesBuffer);
+		pContext->PSSetConstantBuffers(4, 1, &m_pSpotLitMatricesBuffer);
 	}
 	void LightBuffer::UpdateLightBuffer(ID3D11DeviceContext* pContext)
 	{

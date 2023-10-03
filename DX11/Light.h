@@ -18,9 +18,13 @@ namespace wilson
 	class Light
 	{
 	public:
-		bool virtual Init(ID3D11Device* pDevice);
+		bool virtual Init(ID3D11Device* pDevice, UINT idx);
 		eLIGHT_TYPE virtual GetType() { return eLIGHT_TYPE::PNT; };
 
+		inline UINT GetLightIndex() const
+		{
+			return m_idx;
+		}
 		inline DirectX::XMFLOAT3* GetPos()
 		{
 			return &m_position;
@@ -53,5 +57,6 @@ namespace wilson
 		DirectX::XMFLOAT3 m_position;
 		DirectX::XMFLOAT3 m_direction;
 
+		UINT m_idx;
 	};
 }

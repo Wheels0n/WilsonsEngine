@@ -18,6 +18,7 @@ namespace wilson
 		inline void Init(D3D11* pD3D11)
 		{
 			m_pD3D11 = pD3D11;
+			m_pShadow = pD3D11->GetShadowMap();
 		}
 		void AddModelEntity(ModelGroup* pModelGroup, UINT idx, UINT modelIdx);
 		void AddLightEntity(Light* pLight, std::string type, UINT idx, UINT lightIdx);
@@ -60,10 +61,12 @@ namespace wilson
 		std::vector<Entity*> m_entites;
 		std::string m_name;
 
+		ID3D11ShaderResourceView* m_pShadowSRV = nullptr;
 		bool m_isModel;
 		D3D11* m_pD3D11;
 		void* m_pSelectedEntity;
 		Camera* m_pCam;
+		ShadowMap* m_pShadow;
 		Scene* sceneHandler;
 	};
 }

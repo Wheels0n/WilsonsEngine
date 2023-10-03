@@ -1253,7 +1253,7 @@ namespace wilson
 			m_pContext->PSSetConstantBuffers(0, 1, &m_pSSAOKernelBuffer);
 			m_pMatBuffer->UploadProjMat(m_pContext);
 			m_pContext->OMSetRenderTargets(1, &m_pSSAORTTV, nullptr);
-			m_pContext->PSSetShaderResources(0, 2, &m_pGbufferSRV[_GBUF_CNT-2]);
+			m_pContext->PSSetShaderResources(0, 2, &m_pGbufferSRV[_GBUF_CNT-3]);
 			m_pContext->PSSetShaderResources(2, 1, &m_pNoiseSRV);
 			m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
 			m_pContext->PSSetSamplers(1, 1, &m_pClampSS);
@@ -1280,9 +1280,15 @@ namespace wilson
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pDiffIrradianceSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pPrefilterSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pBRDFSRV);
+			
+			m_pContext->PSSetShaderResources(texCnt, dirLights.capacity(), m_pShadowMap->GetDirSRV());
+			m_pContext->PSSetShaderResources(texCnt +dirLights.capacity(), spotLights.capacity(), m_pShadowMap->GetSpotSRV());
+			m_pContext->PSSetShaderResources(texCnt +dirLights.capacity() + spotLights.capacity(), pointLights.capacity(), m_pShadowMap->GetCubeSRV());
+	
+
 			m_pContext->PSSetShaderResources(texCnt++, 1, m_pShadowMap->GetDirSRV());
-			//m_pContext->PSSetShaderResources(_GBUF_CNT +1 +dirLights.capacity(), spotLights.capacity(), m_pShadowMap->GetSpotSRV());
-			//m_pContext->PSSetShaderResources(_GBUF_CNT +1+dirLights.capacity() + spotLights.capacity(), pointLights.capacity(), m_pShadowMap->GetCubeSRV());
+			m_pContext->PSSetShaderResources(texCnt++, 1, m_pShadowMap->GetSpotSRV());
+			m_pContext->PSSetShaderResources(texCnt, 1, m_pShadowMap->GetCubeSRV());
 			m_pContext->PSSetSamplers(1, 1, m_pShadowMap->GetCubeShadowSampler());
 			m_pContext->PSSetSamplers(2, 1, m_pShadowMap->GetDirShadowSampler());
 			m_pContext->DrawIndexed(6, 0, 0);
@@ -1293,6 +1299,7 @@ namespace wilson
 		m_pShader->SetTexInputlayout(m_pContext);
 		m_pShader->SetOutlinerShader(m_pContext);
 		m_pContext->OMSetDepthStencilState(m_pOutlinerTestDSS, 1);
+		m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, m_pSceneDSV);
 		if (m_selectedModelGroup != -1)
 		{
 			std::vector<Model*> pModels = m_pModelGroups[m_selectedModelGroup]->GetModels();
@@ -1355,9 +1362,9 @@ namespace wilson
 		}
 	}
 
-	void D3D11::AddLight(Light* pLight)
+	void D3D11::AddLight(Light* pLight, UINT idx)
 	{	
-		pLight->Init(m_pDevice);
+		pLight->Init(m_pDevice, idx);
 		switch (pLight->GetType())
 		{
 		case eLIGHT_TYPE::DIR:
@@ -1898,7 +1905,7 @@ namespace wilson
 			sizeof("D3D11::m_pOutlinerSetupDSS") - 1, "D3D11::m_pOutlinerSetupDSS");
 
 
-		depthStencilDesc.DepthEnable = false;
+		depthStencilDesc.DepthEnable = true;
 		depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 		depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 		depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL;
@@ -1943,30 +1950,6 @@ namespace wilson
 							ENTTDrawn++;
 							m_pMatBuffer->SetWorldMatrix(&worldMat);
 							m_pMatBuffer->Update(m_pContext);
-							/*
-							if(m_bAABBGridOn)
-							{
-								XMFLOAT3* pFloat3;
-								hr = m_pContext->Map(m_pAABBVBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-								if (FAILED(hr))
-								{
-									return;
-								}
-								pFloat3 = (XMFLOAT3*)mappedResource.pData;
-								memcpy(pFloat3, aabb.GetVertices(), sizeof(XMFLOAT3) * 8);
-								m_pContext->Unmap(m_pAABBVBuffer, 0);
-
-								m_pShader->SetPosOnlyInputLayout(m_pContext);
-								m_pShader->SetAABBShader(m_pContext);
-
-								m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-								m_pContext->IASetVertexBuffers(0, 1, &m_pAABBVBuffer, &stride, &offset);
-								m_pContext->IASetIndexBuffer(m_pAABBIBuffer, DXGI_FORMAT_R32_UINT, 0);
-								m_pContext->RSSetState(m_pAABBRS);
-								m_pContext->OMSetRenderTargets(1, &m_pGbufferRTTV[2], nullptr);
-								m_pContext->DrawIndexed(24, 0, 0);
-							}
-							*/
 						
 					
 							bool isSelected = (i == m_selectedModelGroup && j == m_selectedModel);

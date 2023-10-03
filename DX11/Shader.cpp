@@ -11,6 +11,7 @@ namespace wilson
 		m_pPosOnlyVS = nullptr;
 		m_pCascadeDirVS = nullptr;
 		m_pCascadeDirGS = nullptr;
+		m_pCascadeDirPS = nullptr;
 		m_pEquirect2CubeGS = nullptr;
 		m_pEquirect2CubePS = nullptr;
 		m_pDiffuseIrradiancePS = nullptr;
@@ -136,6 +137,12 @@ namespace wilson
 		{
 			m_pCascadeDirGS->Release();
 			m_pCascadeDirGS = nullptr;
+		}
+
+		if (m_pCascadeDirPS != nullptr)
+		{
+			m_pCascadeDirPS->Release();
+			m_pCascadeDirPS = nullptr;
 		}
 
 		if (m_pOmniDirShadowVS != nullptr)
@@ -407,6 +414,22 @@ namespace wilson
 		}
 		m_pCascadeDirGS->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("Shader::m_pCascadeDirGS") - 1, "Shader::m_pCascadeDirGS");
+
+		hr = D3DX11CompileFromFile(L"CascadePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, nullptr, &pPSBlob, &pErrorBlob, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+			return false;
+		}
+		hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pCascadeDirPS);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+		m_pCascadeDirPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("Shader::m_pCascadeDirPS") - 1, "Shader::m_pCascadeDirPS");
+
+
 
 
 

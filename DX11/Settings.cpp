@@ -33,10 +33,6 @@ namespace wilson
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "TotalENTTs:%d", m_pFrustum->GetENTTsInTotal());
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ENTTSInFrustum:%d", m_pFrustum->GetENTTsInFrustum());
 			ImGui::Separator();
-			if (ImGui::Button("Toggle AABGrid"))
-			{
-				m_pD3D11->ToggleAABBGrid();
-			}
 
 			ImGuiIO io = ImGui::GetIO();
 			ImGui::Text("Mouse Pos: %g, %g", io.MousePos.x, io.MousePos.y);
@@ -149,6 +145,7 @@ namespace wilson
 		if (ImGui::Begin("Exposure"))
 		{
 			ImGui::DragFloat("Exposure", m_pExposure, 0.01f, 0.1f, 5.0f);
+			
 		}
 		ImGui::End();
 	}

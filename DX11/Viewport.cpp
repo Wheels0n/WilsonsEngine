@@ -89,7 +89,7 @@ namespace wilson
 							DirectX::XMFLOAT3* pPos = pLight->GetPos();
 							DirectX::XMStoreFloat3(pPos, pos);
 
-							m_pD3D11->AddLight(pLight);
+							m_pD3D11->AddLight(pLight, lightIdx);
 							m_pScene->AddLightEntity(pLight, type, idx, lightIdx);
 						}
 					}
@@ -97,18 +97,20 @@ namespace wilson
 
 				ImGui::EndDragDropTarget();
 			}
-			ImGui::End();
+			
 		}
-		if (ImGui::Begin("Deferred", nullptr))
+		ImGui::End();
+		ImGui::PopStyleVar(2);
+		if (ImGui::Begin("Deferred"))
 		{
 			for (int i = 0; i < m_GbufferCount; ++i)
 			{
 				ImGui::Image((void*)m_pGbufferSRV[i], ImVec2(m_width, m_height));
 			}
 			ImGui::Image((void*)m_pSSAOBlurredSRV, ImVec2(m_width, m_height));
+			
 		}
 		ImGui::End();
-		ImGui::PopStyleVar(2);
 	}
 	void Viewport::Resize()
 	{

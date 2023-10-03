@@ -19,7 +19,7 @@ float4 main(PixelInputType input) : SV_Target
 {   
     float3 hdrColor = g_sceneTex.Sample(g_sampler, input.tex).rgb;
     
-    hdrColor = hdrColor / (float3(1.0f, 1.0f, 1.0f) + hdrColor); //- exp(-hdrColor * g_exposure);
+    hdrColor = float3(1.0f, 1.0f, 1.0f) - exp(-hdrColor * g_exposure);
     hdrColor = pow(hdrColor, float3(1.0f / _GAMMA, 1.0f / _GAMMA, 1.0f / _GAMMA));
     return float4(hdrColor, 1.0f);
 }

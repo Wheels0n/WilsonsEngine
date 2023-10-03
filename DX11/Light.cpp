@@ -20,9 +20,9 @@ namespace wilson
 		}
 		
 	}
-	bool Light::Init(ID3D11Device* pDevice)
+	bool Light::Init(ID3D11Device* pDevice, UINT idx)
 	{
-		
+		m_idx = idx;
 		return true;
 	}
 

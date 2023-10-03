@@ -3,7 +3,7 @@
 namespace wilson
 {   
 
-	bool SpotLight::Init(ID3D11Device* pDevice)
+	bool SpotLight::Init(ID3D11Device* pDevice, UINT idx)
 	{	
         D3D11_BUFFER_DESC lightCBD;
         lightCBD.Usage = D3D11_USAGE_DYNAMIC;
@@ -22,9 +22,9 @@ namespace wilson
             sizeof("SpotLight::m_pLightBuffer") - 1, "SpotLight::m_pLightBuffer");
 
 
-        Light::Init(pDevice);
-        m_direction =   DirectX::XMFLOAT3(0.0f, 0.0f, -1.0f);
-        m_attenuation = DirectX::XMFLOAT3(1.0f, 0.09f, 0.032f);
+        Light::Init(pDevice, idx);
+        m_direction =   DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+        m_attenuation = DirectX::XMFLOAT3(0.1f, 0.01f, 0.001f);
         m_cutoff = 12.5f;
         m_outerCutoff = 25.0f;
         m_range = 10000.0f;
@@ -37,9 +37,19 @@ namespace wilson
 	}
     void SpotLight::UpdateViewMat()
     {
+        DirectX::XMVECTOR dir = XMLoadFloat3(&m_direction);
+        dir = DirectX::XMVector3Normalize(dir);
+        DirectX::XMStoreFloat3(&m_direction, dir);
+        m_spotLightProperty.direction = m_direction;
+
+        DirectX::XMVECTOR pos = XMLoadFloat3(&m_position);
+        DirectX::XMVECTOR target = DirectX::XMVectorAdd(pos, dir);
+        DirectX::XMFLOAT3 target3;
+        DirectX::XMStoreFloat3(&target3, target);
+
         m_viewMat = DirectX::XMMatrixLookAtLH(
             DirectX::XMLoadFloat3(&m_position),
-            DirectX::XMLoadFloat3(&m_direction),
+            DirectX::XMLoadFloat3(&target3),
             DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
         UpdateLitMat();
     }

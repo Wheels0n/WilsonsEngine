@@ -35,7 +35,7 @@ namespace wilson
 			return &m_pointLightProperty;
 		}
 
-		bool Init(ID3D11Device*);
+		bool Init(ID3D11Device*, UINT);
 		void UpdateProperty();
 		void CreateShadowMatrices();
 		void SetShadowMatrices(ID3D11DeviceContext*);
