@@ -363,7 +363,7 @@ namespace wilson {
 			pMaterial->specular = matInfo.material.specular;
 			pMaterial->reflect = matInfo.material.reflect;
 			pContext->Unmap(m_pMaterialBuffer, 0);
-			pContext->PSSetConstantBuffers(0, 1, &m_pMaterialBuffer);
+			pContext->PSSetConstantBuffers(2, 1, &m_pMaterialBuffer);
 
 
 			hr = pContext->Map(m_pPerModelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);

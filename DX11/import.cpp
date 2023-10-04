@@ -1038,6 +1038,7 @@ namespace wilson
 			geoMat.SetS(scailing);
 
 			wMat = wMat * geoMat;
+		
 
 			std::unordered_set<FbxSurfaceMaterial*> localMatSet;
 			std::vector<std::string> matNames;

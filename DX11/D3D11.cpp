@@ -1232,10 +1232,11 @@ namespace wilson
 		//Deferred Shading First Pass
 		if (!m_pModelGroups.empty())
 		{	
+			m_pCam->SetCamPos(m_pContext);
 			m_pShader->SetDeferredGeoLayout(m_pContext);
 			m_pShader->SetPBRDeferredGeoShader(m_pContext);
-			m_pContext->OMSetDepthStencilState(0, 0);
 			m_pContext->RSSetState(m_pQuadRS);
+			m_pContext->OMSetDepthStencilState(0, 0);
 			m_pContext->OMSetBlendState(m_pGBufferWriteBS, color, 0xffffffff);
 			
 			m_pContext->OMSetRenderTargets(_GBUF_CNT, m_pGbufferRTTV, m_pSceneDSV);
