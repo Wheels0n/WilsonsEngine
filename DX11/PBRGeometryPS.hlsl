@@ -17,7 +17,7 @@ struct PixelInputType
 };
 struct PixelOutputType
 {
-    float4 position : SV_Target0;
+    float4 position : SV_Target;
     float4 normal : SV_Target1;
     float4 albeldo : SV_Target2;
     float4 specular : SV_Target3;
@@ -40,35 +40,31 @@ cbuffer CamBuffer
 };
 cbuffer PerModel
 {
-    bool g_isInstanced;
     bool g_hasNormal;
     bool g_hasSpecular;
     bool g_hasEmissive;
     bool g_hasAlpha;
-    float3 pad;
-
 };
 cbuffer cbMaterial
 {
     Material g_Material;
 };
 
-static const float g_heightScale = 0.1;
+static const float g_heightScale = 0.0001f;
 static const float g_minLayers = 8;
-static const float g_maxLayers = 32;
+static const float g_maxLayers = 128;
 
 float2 ParallaxOcclusionMapping(float2 texCoord, float3 viewDir)
 {
-    float numLayer = lerp(g_maxLayers, g_minLayers, abs(dot(float3(0.0, 0.0, 1.0f), viewDir)));
-    float layerDepth = 1.0f / numLayer;
+    int numLayer = (int) lerp(g_maxLayers, g_minLayers, abs(dot(float3(0.0, 0.0, 1.0f), viewDir)));
+    float layerDepth = 1.0f / (float) numLayer;
     float curLayerDepth = 0.0f;
     float2 p = viewDir.xy / viewDir.z * g_heightScale;
-    p.y *= -1;
     
     float2 dTexCoord = p / numLayer;
     
     float2 curTexCoord = texCoord;
-    float curDepthMapVal = ( g_normalMap.Sample(g_sampler, texCoord).a - 1.0f);
+    float curDepthMapVal = g_normalMap.Sample(g_sampler, texCoord).a - 1.0f;
     
     for (int i = 0; i < g_maxLayers;++i)
     {       
@@ -83,7 +79,7 @@ float2 ParallaxOcclusionMapping(float2 texCoord, float3 viewDir)
     }
     float2 prevTexCoord = curTexCoord + dTexCoord;
     
-    float afterDepth = curDepthMapVal - curLayerDepth;
+    float afterDepth = curDepthMapVal - curLayerDepth; //¾ç   //À½
     float beforeDepth = (g_normalMap.Sample(g_sampler, prevTexCoord).a - 1.0f) - (curLayerDepth + layerDepth);
     
     float weight = afterDepth / (afterDepth - beforeDepth);
@@ -103,23 +99,25 @@ PixelOutputType main(PixelInputType input)
     
         float3 tangent = normalize(input.tangent);
         float3 binormal = normalize(input.binormal);
-        float3x3 TBN = float3x3(tangent, binormal, normal);
+        float3x3 TBN = transpose(float3x3(tangent, binormal, normal));
         
-        float3 viewDir = normalize(g_camPos.xyz - input.wPosition.xyz);    
+        float3 viewDir = normalize(g_camPos-input.wPosition);
         viewDir = mul(viewDir, TBN);
         viewDir = normalize(viewDir);
+        
         texCoord = ParallaxOcclusionMapping(input.tex, viewDir);
         if (texCoord.x > 1.0f || texCoord.x < 0.0f || texCoord.y > 1.0f || texCoord.y < 0.0f)
         {
             clip(-1);
         }
         
-        normal = g_normalMap.Sample(g_sampler, input.tex);
+        normal = g_normalMap.Sample(g_sampler, texCoord);
         normal = normal * 2.0 - 1.0;
         normal = mul(normal, TBN);
         normal = normalize(normal);
      
     }
+   
     output.normal = float4(normal, 1.0f);
     
     output.albeldo = g_diffuseMap.Sample(g_sampler, texCoord);

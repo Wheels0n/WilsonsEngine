@@ -28,12 +28,10 @@ cbuffer MatrixBuffer
 
 cbuffer PerModel
 {
-    bool g_isInstanced;
     bool g_hasNormal;
     bool g_hasSpecular;
     bool g_hasEmssive;
     bool g_hasAlpha;
-    float3 pad;
 };
 
 PixelInputType main(VertexInputType input)
@@ -59,7 +57,6 @@ PixelInputType main(VertexInputType input)
     [branch]
     if (g_hasNormal)
     {
-    
         output.tangent = mul(input.tangent, (float3x3) g_worldMatrix);
         output.tangent = normalize(output.tangent);
         output.binormal = cross(output.normal, output.tangent);

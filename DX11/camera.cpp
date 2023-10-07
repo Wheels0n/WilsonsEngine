@@ -114,7 +114,7 @@ namespace wilson {
 	void Camera::Update()
 	{
 		DirectX::XMMATRIX rtMat = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
-		m_dir = DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rtMat);
+		m_dir = DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f), rtMat);
 		m_dir = DirectX::XMVector3Normalize(m_dir);
 		m_target = DirectX::XMVectorAdd(m_dir, m_pos);
 		

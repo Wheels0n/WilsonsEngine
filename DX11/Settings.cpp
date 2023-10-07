@@ -71,15 +71,15 @@ namespace wilson
 				XMFLOAT3 angleFloat;
 				XMStoreFloat3(&angleFloat, *angleVec);
 				//Rad to Degree
-				angleFloat.x *= 57.2958f;
-				angleFloat.y *= 57.2958f;
+				//angleFloat.x = 57.2958f;
+				//angleFloat.y = 57.2958f;
 
 				ImGui::Text("Rotation");
 				ImGui::DragFloat("Pitch", &angleFloat.x, 0.01f, -180, 180);
 				ImGui::DragFloat("Yaw", &angleFloat.y, 0.01f,-360, 360);
 				//Degree to Rad
-				angleFloat.x /= 57.2958f;
-				angleFloat.y /= 57.2958f;
+				//angleFloat.x /= 57.2958f;
+				//angleFloat.y /= 57.2958f;
 				*angleVec = XMLoadFloat3(&angleFloat);
 				ImGui::PushID(1);
 				if (ImGui::Button("Reset"))

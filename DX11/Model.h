@@ -16,12 +16,10 @@ namespace wilson {
 	};
 	struct PerModel
 	{
-		BOOL isInstanced;
 		BOOL hasNormal;
 		BOOL hasSpecular;
 		BOOL hasEmissive;
 		BOOL hasAlpha;
-		DirectX::XMFLOAT3 pad;
 	};
 	struct VertexData
 	{

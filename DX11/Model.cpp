@@ -373,10 +373,9 @@ namespace wilson {
 			}
 
 			pPerModel = reinterpret_cast<PerModel*>(mappedResource.pData);
-			pPerModel->isInstanced = m_isInstanced;
 			pPerModel->hasSpecular = m_perModels[i].hasSpecular;
 			pPerModel->hasNormal = m_perModels[i].hasNormal;
-			//pPerModel->hasAlpha = m_perModels[i].hasAlpha;
+			pPerModel->hasAlpha = m_perModels[i].hasAlpha;
 			pPerModel->hasEmissive=m_perModels[i].hasEmissive;
 
 			pContext->Unmap(m_pPerModelBuffer, 0);

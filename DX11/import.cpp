@@ -771,6 +771,7 @@ namespace wilson
 		indicesPos.push_back(m_indexCount);
 		m_pIndices = new unsigned long[m_indexCount];
 		m_pVertexData = new VertexData[m_vertexCount];
+		FbxVector4 tan;
 
 		int idx = -1;
 		int idxCnt = 0;
@@ -780,7 +781,7 @@ namespace wilson
 			int verticesCnt = pMesh->GetPolygonSize(j);
 
 			for (int k = 0; k < verticesCnt; ++k)
-			{	
+			{
 				//인덱스를 참조하여 나온 정점데이터를 순서대로 저장하니까, 인덱스버퍼는 오름차순이 된다. 
 				int polygonV = pMesh->GetPolygonVertex(j, k);
 				m_pIndices[idxCnt] = idxCnt;
@@ -788,8 +789,8 @@ namespace wilson
 
 				VertexData v;
 				FbxVector4 pos = pVertices[polygonV].mData;
-				pos=wMat.MultT(pos);
-				
+				pos = wMat.MultT(pos);
+
 				v.position = DirectX::XMFLOAT3(
 					static_cast<float>(pos[0]),
 					static_cast<float>(pos[1]),
@@ -807,14 +808,14 @@ namespace wilson
 					{
 					case FbxGeometryElement::eDirect:
 						norm = pNormal->GetDirectArray().GetAt(polygonV);
-						
+
 						break;
 
 					case FbxGeometryElement::eIndexToDirect:
 
 						idx = pNormal->GetIndexArray().GetAt(polygonV);
 						norm = pNormal->GetDirectArray().GetAt(idx);
-					
+
 						break;
 
 					default:
@@ -827,13 +828,13 @@ namespace wilson
 					case FbxGeometryElement::eDirect:
 						norm = pNormal->GetDirectArray().GetAt(vCnt);
 						break;
-					
+
 					case FbxGeometryElement::eIndexToDirect:
-					
+
 						idx = pNormal->GetIndexArray().GetAt(vCnt);
 						norm = pNormal->GetDirectArray().GetAt(idx);
 						break;
-					
+
 					default:
 						break;
 					}
@@ -841,117 +842,186 @@ namespace wilson
 				default:
 					break;
 				}
+				norm.Normalize();
 				norm = wMat.MultT(norm);
 				v.norm.x = norm.mData[0];
 				v.norm.y = norm.mData[1];
 				v.norm.z = norm.mData[2];
 
-
-				if (pMesh->GetElementTangentCount())
-				{
-					FbxGeometryElementTangent* pTangent = pMesh->GetElementTangent();
-					FbxVector4 tan;
-					switch (pTangent->GetMappingMode())
-					{
-					case FbxGeometryElement::eByControlPoint:
-						switch (pTangent->GetReferenceMode())
-						{
-							case FbxGeometryElement::eDirect:
-								tan = pTangent->GetDirectArray().GetAt(polygonV);
-								break;
-							
-							case FbxGeometryElement::eIndexToDirect:
-							
-								idx = pTangent->GetIndexArray().GetAt(polygonV);
-								tan = pTangent->GetDirectArray().GetAt(idx);
-								
-								break;
-							
-							default:
-							
-								break;
-							
-							
-						}
-						break;
-					case FbxGeometryElement::eByPolygonVertex:
-						switch (pTangent->GetReferenceMode())
-						{
-							case FbxGeometryElement::eDirect:
-							
-								tan = pTangent->GetDirectArray().GetAt(vCnt);
-								
-								break;
-							
-							case FbxGeometryElement::eIndexToDirect:
-							
-								idx = pTangent->GetIndexArray().GetAt(vCnt);
-								tan = pTangent->GetDirectArray().GetAt(idx);
-								
-								break;
-							
-							default:
-							
-								break;
-							
-						}
-					}
-					tan = wMat.MultT(tan);
-					v.tangent.x = tan.mData[0];
-					v.tangent.y = tan.mData[1];
-					v.tangent.z = tan.mData[2];
-				}
-
 				FbxGeometryElementUV* pUV = pMesh->GetElementUV();
 				int uvIndx = pMesh->GetTextureUVIndex(j, k);
 				switch (pUV->GetMappingMode())
 				{
-					case FbxGeometryElement::eByControlPoint:
-						switch (pUV->GetReferenceMode())
-						{
-							case FbxGeometryElement::eDirect:
-							
-								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(polygonV).mData[0]);
-								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(polygonV).mData[1]);
-								break;
-							
-							case FbxGeometryElement::eIndexToDirect:
-							
-								idx = pUV->GetIndexArray().GetAt(polygonV);
-								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[0]);
-								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[1]);
-								break;
-							
-							default:
-								break;
-						}
-						break;
-					case FbxGeometryElement::eByPolygonVertex:
+				case FbxGeometryElement::eByControlPoint:
+					switch (pUV->GetReferenceMode())
 					{
-						switch (pUV->GetReferenceMode())
+					case FbxGeometryElement::eDirect:
+
+						v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(polygonV).mData[0]);
+						v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(polygonV).mData[1]);
+						break;
+
+					case FbxGeometryElement::eIndexToDirect:
+
+						idx = pUV->GetIndexArray().GetAt(polygonV);
+						v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[0]);
+						v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[1]);
+						break;
+
+					default:
+						break;
+					}
+					break;
+				case FbxGeometryElement::eByPolygonVertex:
+				{
+					switch (pUV->GetReferenceMode())
+					{
+					case FbxGeometryElement::eDirect:
+
+						v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
+						v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
+						break;
+
+					case FbxGeometryElement::eIndexToDirect:
+
+						v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
+						v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
+						break;
+
+					default:
+						break;
+					}
+
+				}
+
+				if (vCnt && vCnt % 3 == 0)
+				{
+
+					if (pMesh->GetElementTangentCount())
+					{
+						FbxGeometryElementTangent* pTangent = pMesh->GetElementTangent();
+						switch (pTangent->GetMappingMode())
 						{
+						case FbxGeometryElement::eByControlPoint:
+							switch (pTangent->GetReferenceMode())
+							{
 							case FbxGeometryElement::eDirect:
-							
-								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
-								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
+								tan = pTangent->GetDirectArray().GetAt(polygonV);
 								break;
-							
+
 							case FbxGeometryElement::eIndexToDirect:
-							
-								v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
-								v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
+
+								idx = pTangent->GetIndexArray().GetAt(polygonV);
+								tan = pTangent->GetDirectArray().GetAt(idx);
+
 								break;
-							
+
 							default:
+
 								break;
+
+
+							}
+							break;
+						case FbxGeometryElement::eByPolygonVertex:
+							switch (pTangent->GetReferenceMode())
+							{
+							case FbxGeometryElement::eDirect:
+
+								tan = pTangent->GetDirectArray().GetAt(vCnt);
+
+								break;
+
+							case FbxGeometryElement::eIndexToDirect:
+
+								idx = pTangent->GetIndexArray().GetAt(vCnt);
+								tan = pTangent->GetDirectArray().GetAt(idx);
+
+								break;
+
+							default:
+
+								break;
+
+							}
 						}
 
 					}
+					else
+					{
+						DirectX::XMVECTOR pos1 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 3].position);
+						DirectX::XMVECTOR uv1 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 3].uv);
+						DirectX::XMVECTOR pos2 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 2].position);
+						DirectX::XMVECTOR uv2 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 2].uv);
+						DirectX::XMVECTOR pos3 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 1].position);
+						DirectX::XMVECTOR uv3 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 1].uv);
+
+						DirectX::XMFLOAT3 e1;
+						DirectX::XMStoreFloat3(&e1, DirectX::XMVectorSubtract(pos2, pos1));
+						DirectX::XMFLOAT3 e2;
+						DirectX::XMStoreFloat3(&e2, DirectX::XMVectorSubtract(pos3, pos1));
+						DirectX::XMFLOAT2 dUV1;
+						DirectX::XMStoreFloat2(&dUV1, DirectX::XMVectorSubtract(uv2, uv1));
+						DirectX::XMFLOAT2 dUV2;
+						DirectX::XMStoreFloat2(&dUV2, DirectX::XMVectorSubtract(uv3, uv1));
+
+						float det = 1.0f / (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
+						DirectX::XMFLOAT3 tangent;
+						tangent.x = det * (dUV2.y * e1.x - dUV1.y * e2.x);
+						tangent.y = det * (dUV2.y * e1.y - dUV1.y * e2.y);
+						tangent.z = det * (dUV2.y * e1.z - dUV1.y * e2.z);
+
+						tan = FbxVector4(tangent.x, tangent.y, tangent.z);
+					}
+					tan.Normalize();
+					for (int i = 1; i < 4; ++i)
+					{
+						m_pVertexData[vCnt - i].tangent.x = tan.mData[0];
+						m_pVertexData[vCnt - i].tangent.y = tan.mData[1];
+						m_pVertexData[vCnt - i].tangent.z = tan.mData[2];
+					}
+				}
 				}
 
 				v.uv.y = 1 - v.uv.y;
 				m_pVertexData[vCnt] = v;
 				++vCnt;
+
+
+			}
+
+			{
+				DirectX::XMVECTOR pos1 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 3].position);
+				DirectX::XMVECTOR uv1 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 3].uv);
+				DirectX::XMVECTOR pos2 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 2].position);
+				DirectX::XMVECTOR uv2 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 2].uv);
+				DirectX::XMVECTOR pos3 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 1].position);
+				DirectX::XMVECTOR uv3 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 1].uv);
+
+				DirectX::XMFLOAT3 e1;
+				DirectX::XMStoreFloat3(&e1, DirectX::XMVectorSubtract(pos2, pos1));
+				DirectX::XMFLOAT3 e2;
+				DirectX::XMStoreFloat3(&e2, DirectX::XMVectorSubtract(pos3, pos1));
+				DirectX::XMFLOAT2 dUV1;
+				DirectX::XMStoreFloat2(&dUV1, DirectX::XMVectorSubtract(uv2, uv1));
+				DirectX::XMFLOAT2 dUV2;
+				DirectX::XMStoreFloat2(&dUV2, DirectX::XMVectorSubtract(uv3, uv1));
+
+				float det = 1.0f / (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
+				DirectX::XMFLOAT3 tangent;
+				tangent.x = det * (dUV2.y * e1.x - dUV1.y * e2.x);
+				tangent.y = det * (dUV2.y * e1.y - dUV1.y * e2.y);
+				tangent.z = det * (dUV2.y * e1.z - dUV1.y * e2.z);
+
+				tan = FbxVector4(tangent.x, tangent.y, tangent.z);
+			
+				tan.Normalize();
+				for (int i = 1; i < 4; ++i)
+				{
+					m_pVertexData[vCnt - i].tangent.x = tan.mData[0];
+					m_pVertexData[vCnt - i].tangent.y = tan.mData[1];
+					m_pVertexData[vCnt - i].tangent.z = tan.mData[2];
+				}
 			}
 		}
 

@@ -481,7 +481,7 @@ namespace wilson
 		}
 
 		rasterDesc.AntialiasedLineEnable = false;
-		rasterDesc.CullMode = D3D11_CULL_BACK;
+		rasterDesc.CullMode =D3D11_CULL_BACK;
 		rasterDesc.DepthBias = 0.0f;
 		rasterDesc.DepthBiasClamp = 0.0f;
 		rasterDesc.DepthClipEnable = true;
@@ -567,7 +567,7 @@ namespace wilson
 		rtBlendDSC.BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		rtBlendDSC.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-		D3D11_BLEND_DESC blendDSC = { false, false, rtBlendDSC };
+		D3D11_BLEND_DESC blendDSC = { FALSE, FALSE, rtBlendDSC };
 		hr = m_pDevice->CreateBlendState(&blendDSC, &m_pGBufferWriteBS);
 		if (FAILED(hr))
 		{
