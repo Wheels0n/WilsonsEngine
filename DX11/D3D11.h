@@ -92,6 +92,10 @@ namespace wilson
 		{
 			return &m_exposure;
 		}
+		inline float* GetHeightScale()
+		{
+			return &m_heightScale;
+		}
 		inline int GetClientWidth() const
 		{
 			return m_clientWidth;
@@ -150,6 +154,7 @@ namespace wilson
 		ID3D11Buffer* m_pColorBuffer; 
 		ID3D11Buffer* m_pSSAOKernelBuffer; 
 		ID3D11Buffer* m_pExposureBuffer; 
+		ID3D11Buffer* m_pHeightScaleBuffer;
 		ID3D11Buffer* m_pEquirect2CubeBuffer;
 		ID3D11Buffer* m_pAABBVBuffer;
 		ID3D11Buffer* m_pAABBIBuffer;
@@ -235,6 +240,7 @@ namespace wilson
 
 		XMMATRIX m_idMat = XMMatrixIdentity();
 		float m_exposure;
+		float m_heightScale;
 		UINT m_clientWidth;
 		UINT m_clientHeight;
 		int m_selectedModelGroup;

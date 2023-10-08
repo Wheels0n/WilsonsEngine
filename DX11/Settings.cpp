@@ -11,6 +11,7 @@ namespace wilson
 		m_pCam = pD3D11->GetCam();
 		m_pFrustum = pD3D11->GetFrustum();
 		m_pExposure = pD3D11->GetExposure();
+		m_pHeightScale = pD3D11->GetHeightScale();
 
 		ID3D11Device* pDevice= pD3D11->GetDevice();
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/sun-color-icon.png", nullptr, nullptr, &m_icons[0], nullptr);
@@ -142,10 +143,11 @@ namespace wilson
 		}
 		ImGui::End();
 		
-		if (ImGui::Begin("Exposure"))
+		if (ImGui::Begin("Scale"))
 		{
 			ImGui::DragFloat("Exposure", m_pExposure, 0.01f, 0.1f, 5.0f);
-			
+			ImGui::DragFloat("HeightScale", m_pHeightScale, 0.0001f, 0.0001f, 5.0f, "%.4f");
+
 		}
 		ImGui::End();
 	}

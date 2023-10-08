@@ -23,6 +23,7 @@ namespace wilson
 		m_pColorBuffer = nullptr;
 		m_pSSAOKernelBuffer = nullptr;
 		m_pExposureBuffer = nullptr;
+		m_pHeightScaleBuffer = nullptr;
 		m_pEquirect2CubeBuffer = nullptr;
 		m_pAABBVBuffer = nullptr;
 		m_pAABBIBuffer = nullptr;
@@ -126,7 +127,7 @@ namespace wilson
 		m_bAABBGridOn=false;
 
 		m_exposure = 1.0f;
-
+		m_heightScale = 0.0001f;
 	}
 
 	bool D3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
@@ -648,6 +649,16 @@ namespace wilson
 			m_pExposureBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pExposureBuffer") - 1, "D3D11::m_pExposureBuffer");
 
+
+			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pHeightScaleBuffer);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+			m_pHeightScaleBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pHeightScaleBuffer") - 1, "D3D11::m_pHeightScaleBuffer");
+
+
 			bds.ByteWidth = sizeof(XMMATRIX)*6;
 			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pEquirect2CubeBuffer);
 			if (FAILED(hr))
@@ -1055,6 +1066,12 @@ namespace wilson
 			m_pExposureBuffer = nullptr;
 		}
 
+		if (m_pHeightScaleBuffer != nullptr)
+		{
+			m_pHeightScaleBuffer->Release();
+			m_pHeightScaleBuffer = nullptr;
+		}
+
 		if (m_pEquirect2CubeBuffer != nullptr)
 		{
 			m_pEquirect2CubeBuffer->Release();
@@ -1238,8 +1255,16 @@ namespace wilson
 			m_pContext->RSSetState(m_pQuadRS);
 			m_pContext->OMSetDepthStencilState(0, 0);
 			m_pContext->OMSetBlendState(m_pGBufferWriteBS, color, 0xffffffff);
-			
 			m_pContext->OMSetRenderTargets(_GBUF_CNT, m_pGbufferRTTV, m_pSceneDSV);
+			{
+				D3D11_MAPPED_SUBRESOURCE mappedResource;
+				XMFLOAT4* pHeightScale;
+				m_pContext->Map(m_pHeightScaleBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+				pHeightScale = (XMFLOAT4*)mappedResource.pData;
+				pHeightScale->x = m_heightScale;
+				m_pContext->Unmap(m_pHeightScaleBuffer, 0);
+				m_pContext->PSSetConstantBuffers(3, 1, &m_pHeightScaleBuffer);
+			}
 			DrawENTT(!bGeoPass);
 			
 
@@ -1324,9 +1349,9 @@ namespace wilson
 		m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
 		{	
 			D3D11_MAPPED_SUBRESOURCE mappedResource;
-			XMFLOAT3* pExposure;
+			XMFLOAT4* pExposure;
 			m_pContext->Map(m_pExposureBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-			pExposure = (XMFLOAT3*)mappedResource.pData;
+			pExposure = (XMFLOAT4*)mappedResource.pData;
 			pExposure->x = m_exposure;
 			m_pContext->Unmap(m_pExposureBuffer, 0);
 			m_pContext->PSSetConstantBuffers(0, 1, &m_pExposureBuffer);

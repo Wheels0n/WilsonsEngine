@@ -34,23 +34,27 @@ struct Material
     float4 reflect;
 };
 
-cbuffer CamBuffer
+cbuffer CamBuffer :register(b0)
 {
     float4 g_camPos;
 };
-cbuffer PerModel
+cbuffer PerModel : register(b1)
 {
     bool g_hasNormal;
     bool g_hasSpecular;
     bool g_hasEmissive;
     bool g_hasAlpha;
 };
-cbuffer cbMaterial
+cbuffer cbMaterial : register(b2)
 {
     Material g_Material;
 };
 
-static const float g_heightScale = 0.0001f;
+cbuffer heightScale : register(b3)
+{
+    float g_heightScale;
+    float3 pad;
+};
 static const float g_minLayers = 8;
 static const float g_maxLayers = 128;
 
@@ -99,7 +103,7 @@ PixelOutputType main(PixelInputType input)
     
         float3 tangent = normalize(input.tangent);
         float3 binormal = normalize(input.binormal);
-        float3x3 TBN = transpose(float3x3(tangent, binormal, normal));
+        float3x3 TBN = (float3x3(tangent, binormal, normal));
         
         float3 viewDir = normalize(g_camPos-input.wPosition);
         viewDir = mul(viewDir, TBN);
