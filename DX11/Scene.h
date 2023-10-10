@@ -51,8 +51,8 @@ namespace wilson
 		void DrawPointLightControl(Light*);
 		void DrawSpotLightControl(Light*);
 		bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float, float*);
-		void RemoveSelectedModel(int, int);
-		void RemoveModelGroup(int);
+		void RemoveSelectedModel(int, int, int);
+		void RemoveModelGroup(int,int);
 		void RemoveLight(int, int, Light*);
 		void RemoveEntity(int);
 		void UnselectModel();
@@ -60,6 +60,7 @@ namespace wilson
 		std::unordered_map<std::string, int> m_entityCnt;
 		std::vector<Entity*> m_entites;
 		std::string m_name;
+		std::string m_popUpID;
 
 		ID3D11ShaderResourceView* m_pShadowSRV = nullptr;
 		bool m_isModel;

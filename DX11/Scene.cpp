@@ -1,4 +1,6 @@
 #include <cmath>
+#include <string>
+
 #include "Scene.h"
 
 namespace wilson
@@ -44,6 +46,7 @@ namespace wilson
 			if (ImGui::TreeNode(m_name.c_str()))
 			{
 				ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+				//i:Entitiy배열, j:모델 그룹 내 하위 모델 배열
 				for (int i = 0; i < m_entites.size(); ++i)
 				{	
 					int idx = m_entites[i]->GetIndex();
@@ -52,6 +55,7 @@ namespace wilson
 						ModelGroup* pModelGroup = m_entites[i]->GetModelGroup();
 						std::string groupName = pModelGroup->GetName();
 						std::vector<Model*>& pModels = pModelGroup->GetModels();
+						UINT modelIdx= m_entites[i]->GetModelIndex();
 						if (ImGui::TreeNode(groupName.c_str()))
 						{
 							if (ImGui::Button(groupName.c_str()))
@@ -65,11 +69,13 @@ namespace wilson
 								ImGui::Separator();
 								if (ImGui::Selectable(actions))
 								{
-									RemoveModelGroup(idx);
+									RemoveModelGroup(modelIdx,i);
+									//
 									for (int j = i; j < m_entites.size(); ++j)
 									{
 										if (m_entites[j]->isModel())
 										{
+											m_entites[j]->DecreaseModelIndex();
 											m_entites[j]->DecreaseIndex();
 										}
 									}
@@ -80,22 +86,39 @@ namespace wilson
 							{
 								ImGui::PushID(i);
 								std::string modelName = pModels[j]->GetName();
-								UINT modelIdx= m_entites[i]->GetModelIndex();
+								std::string popUpID =std::to_string(i);
+								popUpID += '-';
+								popUpID += std::to_string(j);
 								if (ImGui::Button(modelName.c_str()))
 								{	
 									m_isModel = true;
 									m_pSelectedEntity = pModels[j];
 
 									m_pD3D11->PickModel(modelIdx, j);
-									ImGui::OpenPopup("Edit");
+									m_popUpID = popUpID;
+									ImGui::OpenPopup(m_popUpID.c_str());
 								}
-								if (ImGui::BeginPopup("Edit"))
+								if (m_popUpID==popUpID&&ImGui::BeginPopup(m_popUpID.c_str()))
 								{
 									ImGui::Text("Edit");
 									ImGui::Separator();
 									if (ImGui::Selectable(actions))
 									{
-										RemoveSelectedModel(idx, j);
+										RemoveSelectedModel(modelIdx, i,j);
+										if (!m_pD3D11->GetModelSize(modelIdx))
+										{
+											RemoveModelGroup(modelIdx, idx);
+											for (int k = i; k < m_entites.size(); ++k)
+											{	
+												m_entites[k]->DecreaseIndex();
+												if (m_entites[k]->isModel())
+												{
+													m_entites[k]->DecreaseModelIndex();
+													
+												}
+											}
+										}
+
 									}
 									ImGui::EndPopup();
 								}
@@ -127,11 +150,12 @@ namespace wilson
 								eLIGHT_TYPE type = pLight->GetType();
 								RemoveLight(lightIdx, idx, pLight);
 								for (int j = i; j < m_entites.size(); ++j)
-								{
+								{	
+									m_entites[j]->DecreaseIndex();
 									if (!m_entites[j]->isModel()&&
 										(m_entites[j]->GetLight()->GetType()) == type)
 									{
-										m_entites[j]->DecreaseIndex();
+										m_entites[j]->DecreaseLightIndex();
 									}
 								}
 							}
@@ -387,11 +411,10 @@ namespace wilson
 		*hitDistance = (-b - sqrt(discriminant)) / (2.0f * a);
 		return true;
 	}
-
-	void Scene::RemoveSelectedModel(int i,int j)
+	//그룹 단위로 모델이 만들어진다. 고로 하위 모델 삭제시에 RemoveEntity를 호출 해서는 안된다.
+	void Scene::RemoveSelectedModel(int modelIdx, int i,int j)
 	{   
-		m_pD3D11->RemoveModel(i,j);
-		RemoveEntity(j);
+		m_pD3D11->RemoveModel(modelIdx,j);
 		m_pSelectedEntity = nullptr;
 	}
 	void Scene::DrawLightControl(Light* pLight)
@@ -606,10 +629,15 @@ namespace wilson
 		
 
 	};
-	void Scene::RemoveModelGroup(int i)
+	void Scene::RemoveModelGroup(int modelIdx, int idx)
 	{	
-		m_pD3D11->RemoveModelGroup(i);
-		RemoveEntity(i);	
+		m_pD3D11->RemoveModelGroup(modelIdx);
+		//개별 모델 삭제로 인한 인덱스 차이 감안
+		if (idx< m_entites.size())
+		{
+			RemoveEntity(idx);
+		}
+		
 	}
 	void Scene::RemoveEntity(int i)
 	{	

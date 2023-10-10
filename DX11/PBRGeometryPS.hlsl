@@ -112,7 +112,7 @@ PixelOutputType main(PixelInputType input)
         texCoord = ParallaxOcclusionMapping(input.tex, viewDir);
         if (texCoord.x > 1.0f || texCoord.x < 0.0f || texCoord.y > 1.0f || texCoord.y < 0.0f)
         {
-            clip(-1);
+            //clip(-1);
         }
         
         normal = g_normalMap.Sample(g_sampler, texCoord);

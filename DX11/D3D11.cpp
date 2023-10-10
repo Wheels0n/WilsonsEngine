@@ -1439,6 +1439,12 @@ namespace wilson
 		std::vector<Model*>& pModels = m_pModelGroups[i]->GetModels();
 		delete pModels[j];
 		pModels.erase(pModels.begin() + j);
+		
+	}
+	UINT D3D11::GetModelSize(int i)
+	{
+		std::vector<Model*>& pModels = m_pModelGroups[i]->GetModels();
+		return pModels.size();
 	}
 	UINT D3D11::GetLightSize(Light* pLight)
 	{

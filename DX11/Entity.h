@@ -42,6 +42,14 @@ namespace wilson
 		{
 			return m_modelIdx;
 		}
+		inline void DecreaseLightIndex()
+		{
+			--m_lightIdx;
+		}
+		inline void DecreaseModelIndex()
+		{
+			--m_modelIdx;
+		}
 		inline void DecreaseIndex()
 		{
 			--m_idx;

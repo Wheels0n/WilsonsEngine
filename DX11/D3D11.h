@@ -51,6 +51,7 @@ namespace wilson
 		void RemoveModelGroup(int i);
 		void RemoveLight(int i, Light* pLight);
 		void RemoveModel(int i, int j);
+		UINT GetModelSize(int i);
 		inline Camera* GetCam() const
 		{
 			return m_pCam;
