@@ -55,6 +55,12 @@ cbuffer heightScale : register(b3)
     float g_heightScale;
     float3 pad;
 };
+
+cbuffer heightOnOff : register(b4)
+{
+    bool g_heightOnOff;
+    bool3 padding;
+};
 static const float g_minLayers = 8;
 static const float g_maxLayers = 128;
 
@@ -109,10 +115,14 @@ PixelOutputType main(PixelInputType input)
         viewDir = mul(viewDir, TBN);
         viewDir = normalize(viewDir);
         
-        texCoord = ParallaxOcclusionMapping(input.tex, viewDir);
-        if (texCoord.x > 1.0f || texCoord.x < 0.0f || texCoord.y > 1.0f || texCoord.y < 0.0f)
+        if(g_heightOnOff)
         {
-            //clip(-1);
+        
+            texCoord = ParallaxOcclusionMapping(input.tex, viewDir);
+            if (texCoord.x > 1.0f || texCoord.x < 0.0f || texCoord.y > 1.0f || texCoord.y < 0.0f)
+            {
+                clip(-1);
+            }
         }
         
         normal = g_normalMap.Sample(g_sampler, texCoord);

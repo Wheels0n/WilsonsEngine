@@ -12,6 +12,7 @@ namespace wilson
 		m_pFrustum = pD3D11->GetFrustum();
 		m_pExposure = pD3D11->GetExposure();
 		m_pHeightScale = pD3D11->GetHeightScale();
+		m_pHeightOnOFF = pD3D11->GetHeighOnOFF();
 
 		ID3D11Device* pDevice= pD3D11->GetDevice();
 		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/sun-color-icon.png", nullptr, nullptr, &m_icons[0], nullptr);
@@ -142,7 +143,14 @@ namespace wilson
 			
 		}
 		ImGui::End();
-		
+		if (ImGui::Begin("ON/OFF"))
+		{
+			if (ImGui::Button("ToggleParallaxMapping"))
+			{
+				*m_pHeightOnOFF = !(*m_pHeightOnOFF);
+			}
+		}
+		ImGui::End();
 		if (ImGui::Begin("Scale"))
 		{
 			ImGui::DragFloat("Exposure", m_pExposure, 0.01f, 0.1f, 5.0f);

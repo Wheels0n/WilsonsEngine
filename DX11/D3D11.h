@@ -97,6 +97,10 @@ namespace wilson
 		{
 			return &m_heightScale;
 		}
+		inline BOOL* GetHeighOnOFF()
+		{
+			return &m_bHeightOnOFF;
+		}
 		inline int GetClientWidth() const
 		{
 			return m_clientWidth;
@@ -156,6 +160,7 @@ namespace wilson
 		ID3D11Buffer* m_pSSAOKernelBuffer; 
 		ID3D11Buffer* m_pExposureBuffer; 
 		ID3D11Buffer* m_pHeightScaleBuffer;
+		ID3D11Buffer* m_pHeightOnOffBuffer;
 		ID3D11Buffer* m_pEquirect2CubeBuffer;
 		ID3D11Buffer* m_pAABBVBuffer;
 		ID3D11Buffer* m_pAABBIBuffer;
@@ -239,6 +244,7 @@ namespace wilson
 		Shader* m_pShader;
 		ShadowMap* m_pShadowMap;
 
+		BOOL m_bHeightOnOFF;
 		XMMATRIX m_idMat = XMMatrixIdentity();
 		float m_exposure;
 		float m_heightScale;

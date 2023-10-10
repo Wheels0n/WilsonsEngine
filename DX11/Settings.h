@@ -24,6 +24,8 @@ namespace wilson
 		Light* m_pLight;
 		Camera* m_pCam;
 		Frustum* m_pFrustum;
+		
+		BOOL* m_pHeightOnOFF;
 		float* m_pExposure;
 		float* m_pHeightScale;
 

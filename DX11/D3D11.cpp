@@ -24,6 +24,7 @@ namespace wilson
 		m_pSSAOKernelBuffer = nullptr;
 		m_pExposureBuffer = nullptr;
 		m_pHeightScaleBuffer = nullptr;
+		m_pHeightOnOffBuffer = nullptr;
 		m_pEquirect2CubeBuffer = nullptr;
 		m_pAABBVBuffer = nullptr;
 		m_pAABBIBuffer = nullptr;
@@ -125,6 +126,7 @@ namespace wilson
 
 		m_bVsyncOn = false;
 		m_bAABBGridOn=false;
+		m_bHeightOnOFF = FALSE;
 
 		m_exposure = 1.0f;
 		m_heightScale = 0.0001f;
@@ -620,7 +622,16 @@ namespace wilson
 				return false;
 			}
 			m_pBoolBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pBoolBuffer") - 1, "D3D11::m_pBoolBuffer");			
+				sizeof("D3D11::m_pBoolBuffer") - 1, "D3D11::m_pBoolBuffer");		
+
+			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pHeightOnOffBuffer);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+			m_pHeightOnOffBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pHeightOnOffBuffer") - 1, "D3D11::m_pHeightOnOffBuffer");
+
 
 			bds.ByteWidth = sizeof(XMVECTOR);
 			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pColorBuffer);
@@ -1072,6 +1083,11 @@ namespace wilson
 			m_pHeightScaleBuffer = nullptr;
 		}
 
+		if (m_pHeightOnOffBuffer != nullptr)
+		{
+			m_pHeightOnOffBuffer->Release();
+			m_pHeightOnOffBuffer = nullptr;
+		}
 		if (m_pEquirect2CubeBuffer != nullptr)
 		{
 			m_pEquirect2CubeBuffer->Release();
@@ -1256,6 +1272,7 @@ namespace wilson
 			m_pContext->OMSetDepthStencilState(0, 0);
 			m_pContext->OMSetBlendState(m_pGBufferWriteBS, color, 0xffffffff);
 			m_pContext->OMSetRenderTargets(_GBUF_CNT, m_pGbufferRTTV, m_pSceneDSV);
+
 			{
 				D3D11_MAPPED_SUBRESOURCE mappedResource;
 				XMFLOAT4* pHeightScale;
@@ -1264,6 +1281,14 @@ namespace wilson
 				pHeightScale->x = m_heightScale;
 				m_pContext->Unmap(m_pHeightScaleBuffer, 0);
 				m_pContext->PSSetConstantBuffers(3, 1, &m_pHeightScaleBuffer);
+
+				BOOL* pHeightOnOFF;
+				m_pContext->Map(m_pHeightOnOffBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+				pHeightOnOFF = (BOOL*)mappedResource.pData;
+				*pHeightOnOFF = m_bHeightOnOFF;
+				m_pContext->Unmap(m_pHeightOnOffBuffer, 0);
+				m_pContext->PSSetConstantBuffers(4, 1, &m_pHeightOnOffBuffer);
+
 			}
 			DrawENTT(!bGeoPass);
 			
