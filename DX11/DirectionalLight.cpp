@@ -135,6 +135,8 @@ namespace wilson
         //Gen subFrustum
         DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH(fovY, ratio, nearZ, farZ);
         DirectX::XMMATRIX view = *(m_pCam->GetViewMatrix());
+        view = DirectX::XMMatrixTranspose(view);
+      
         const std::vector<DirectX::XMVECTOR> corners = GetFrustumCornersWorldSpace(view, proj);
         
         DirectX::XMVECTOR center = DirectX::XMVectorZero();

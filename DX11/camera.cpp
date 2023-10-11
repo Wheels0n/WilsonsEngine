@@ -19,6 +19,9 @@ namespace wilson {
 
 		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
+		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
+		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
+
 
 		m_pCamPosBuffer = nullptr;
 		m_pCascadeLevelBuffer = nullptr;
@@ -122,8 +125,9 @@ namespace wilson {
 		m_up = DirectX::XMVector3Normalize(m_up);
 
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
+		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
 		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
-		
+		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
 		UpdateCascadeLevels();
 	}
 

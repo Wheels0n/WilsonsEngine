@@ -52,6 +52,7 @@ namespace wilson {
 
 	public:
 
+		void UpdateWorldMatrix();
 		void BindMaterial(std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
 			std::unordered_map<std::string, int>& texhash, std::vector<ID3D11ShaderResourceView*>& textures);
 		void UploadBuffers(ID3D11DeviceContext* context, int i, bool bGeoPass);
@@ -65,7 +66,10 @@ namespace wilson {
 		{
 			return m_matInfos.size();
 		}
-
+		inline DirectX::XMMATRIX GetTransformMatrix(bool bOutliner)
+		{
+			return bOutliner?m_outlinerMat:m_wMat;
+		}
 		inline DirectX::XMMATRIX* GetTranslationMatrix()
 		{
 			return &m_trMat;
@@ -82,7 +86,6 @@ namespace wilson {
 		{
 			return &m_rtMat;
 		}
-		DirectX::XMMATRIX GetTransformMatrix(bool);
 		inline DirectX::XMVECTOR* GetAngle()
 		{
 			return &m_angleVec;
@@ -173,6 +176,7 @@ namespace wilson {
 		std::unordered_map<std::string, int> m_texHash;
 
 		DirectX::XMMATRIX m_outlinerScaleMat;
+		DirectX::XMMATRIX m_outlinerMat;
 		DirectX::XMMATRIX m_scMat;
 		DirectX::XMMATRIX m_rtMat;
 		DirectX::XMMATRIX m_trMat;

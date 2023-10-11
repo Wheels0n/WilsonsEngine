@@ -179,6 +179,7 @@ namespace wilson
 			{	
 				if (m_isModel)
 				{	
+					bool bDirty = false;
 					Model* pModel = (Model*)m_pSelectedEntity;
 					std::string name = pModel->GetName();
 					ImGui::Text(name.c_str());
@@ -196,28 +197,40 @@ namespace wilson
 						DirectX::XMFLOAT4X4 scMat4;
 						DirectX::XMStoreFloat4x4(&scMat4, *scMat);
 
+						float prevScale[3] = { scMat4._11, scMat4._22, scMat4._33 };
 						float scale[3] = { scMat4._11, scMat4._22, scMat4._33 };
 						DrawVec3Control("scale", scale);
+
 						for (int i = 0; i < 3; ++i)
 						{
-							scale[i] = scale[i] < 0.1f ? 0.1f : scale[i];
+							if (prevScale[i] != scale[i])
+							{	
+								bDirty = true;
+								for (int j = 0; j < 3; ++i)
+								{
+									scale[j] = scale[j] < 0.1f ? 0.1f : scale[j];
+								}
+
+								DirectX::XMVECTOR xv = DirectX::XMVectorSet(
+									scale[0],
+									scale[1],
+									scale[2],
+									1.0f);
+								DirectX::XMMATRIX sc = DirectX::XMMatrixScalingFromVector(xv);
+								*scMat = sc;
+
+								xv = DirectX::XMVectorSet(scale[0] * 1.01f, scale[1] * 1.01f, scale[2] * 1.01f, 1.0f);
+								DirectX::XMMATRIX outliner = DirectX::XMMatrixScalingFromVector(xv);
+								outlinerMat = pModel->GetOutlinerScaleMatrix();
+								if (outlinerMat != nullptr)
+								{
+									*outlinerMat = outliner;
+								}
+								break;
+							}
 						}
 
-						DirectX::XMVECTOR xv = DirectX::XMVectorSet(
-							scale[0],
-							scale[1],
-							scale[2],
-							1.0f);
-						DirectX::XMMATRIX sc = DirectX::XMMatrixScalingFromVector(xv);
-						*scMat = sc;
-
-						xv = DirectX::XMVectorSet(scale[0]*1.01f, scale[1]*1.01f, scale[2]*1.01f, 1.0f);
-						DirectX::XMMATRIX outliner = DirectX::XMMatrixScalingFromVector(xv);
-						outlinerMat = pModel->GetOutlinerScaleMatrix();
-						if (outlinerMat != nullptr)
-						{
-							*outlinerMat = outliner;
-						}
+					
 					}
 
 					rtMat = pModel->GetRoatationMatrix();
@@ -227,12 +240,23 @@ namespace wilson
 						DirectX::XMVECTOR* angleVec = pModel->GetAngle();
 						DirectX::XMStoreFloat3(&angleFloat, *angleVec);
 
+						float prevAngle[3] = { angleFloat.x, angleFloat.y, angleFloat.z };
 						float newAngle[3] = { angleFloat.x, angleFloat.y, angleFloat.z };
 						DrawVec3Control("Rotation", newAngle);
-						XMVECTOR newAngleVec = DirectX::XMVectorSet(newAngle[0], newAngle[1], newAngle[2], 0.0f);
-						XMMATRIX rt = DirectX::XMMatrixRotationRollPitchYawFromVector(newAngleVec);
-						*rtMat = rt;
-						*angleVec = newAngleVec;
+
+						for (int i = 0; i < 3; ++i)
+						{
+							if (prevAngle[i] != newAngle[i])
+							{
+								bDirty = true;
+								XMVECTOR newAngleVec = DirectX::XMVectorSet(newAngle[0], newAngle[1], newAngle[2], 0.0f);
+								XMMATRIX rt = DirectX::XMMatrixRotationRollPitchYawFromVector(newAngleVec);
+								*rtMat = rt;
+								*angleVec = newAngleVec;
+
+								break;
+							}
+						}
 
 
 					}
@@ -243,15 +267,29 @@ namespace wilson
 						DirectX::XMFLOAT4X4 trMat4;
 						DirectX::XMStoreFloat4x4(&trMat4, *trMat);
 
+						float prevPos[3] = { trMat4._41, trMat4._42, trMat4._43 };
 						float newPos[3] = { trMat4._41, trMat4._42, trMat4._43 };
-						DrawVec3Control("Position", newPos);
 
-						DirectX::XMVECTOR xv = DirectX::XMVectorSet(newPos[0], newPos[1], newPos[2], 0.0f);
-						DirectX::XMMATRIX tr = DirectX::XMMatrixTranslationFromVector(xv);
-						*trMat = tr;
+						DrawVec3Control("Position", newPos);
+						for (int i = 0; i < 3; ++i)
+						{
+							if (prevPos[i] != newPos[i])
+							{
+								bDirty = true;
+								DirectX::XMVECTOR xv = DirectX::XMVectorSet(newPos[0], newPos[1], newPos[2], 0.0f);
+								DirectX::XMMATRIX tr = DirectX::XMMatrixTranslationFromVector(xv);
+								*trMat = tr;
+								break;
+							}
+						}
+
 
 					}
 					
+					if (bDirty)
+					{
+						pModel->UpdateWorldMatrix();
+					}
 				}
 				else
 				{
@@ -366,6 +404,7 @@ namespace wilson
 				Model* pModel = pModels[j];
 
 				XMMATRIX m_worldMat = pModel->GetTransformMatrix(false);
+				m_worldMat = DirectX::XMMatrixTranspose(m_worldMat);
 				XMMATRIX invWorldMat = XMMatrixInverse(nullptr, m_worldMat);
 				XMMATRIX toLocal = XMMatrixMultiply(invViewMat, invWorldMat);
 

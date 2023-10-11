@@ -71,9 +71,9 @@ void MatBuffer::Update(ID3D11DeviceContext* pContext)
 		return;
 	}
 	pMatrices = reinterpret_cast<MatrixBuffer*>(mappedResource.pData);
-	pMatrices->m_worldMat = XMMatrixTranspose(m_worldMat);
-	pMatrices->m_viewMat = XMMatrixTranspose(m_viewMat);
-	pMatrices->m_projMat = XMMatrixTranspose(m_projMat);
+	pMatrices->m_worldMat =m_worldMat;
+	pMatrices->m_viewMat = m_viewMat;
+	pMatrices->m_projMat = m_projMat;
 	pMatrices->m_lightSpaceMat = m_lightSpaceMat;
 	pContext->Unmap(m_pMatBuffer, 0);
 
@@ -93,7 +93,7 @@ void MatBuffer::UploadProjMat(ID3D11DeviceContext* pContext)
 		return;
 	}
 	pMatrix = reinterpret_cast<XMMATRIX*>(mappedResource.pData);
-	*pMatrix= XMMatrixTranspose(m_projMat);
+	*pMatrix= m_projMat;
 
 	pContext->Unmap(m_pProjMatBuffer, 0);
 	pContext->PSSetConstantBuffers(1, 1, &m_pProjMatBuffer);

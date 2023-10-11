@@ -46,10 +46,12 @@ namespace wilson {
 
 		m_matNames = matNames;
 
-		m_trMat = DirectX::XMMatrixIdentity();
+		m_wMat = DirectX::XMMatrixIdentity();
+		m_trMat = m_wMat;
 		m_rtMat = m_trMat;
 		m_scMat = m_trMat;
 		m_outlinerScaleMat = m_scMat;
+		m_outlinerMat = m_outlinerScaleMat;
 		m_angleVec = DirectX::XMVectorZero();
 
 		m_instancedData = nullptr;
@@ -454,21 +456,16 @@ namespace wilson {
 		return globalAABB;
 	}
 
-	DirectX::XMMATRIX Model::GetTransformMatrix(bool bOutliner)
-	{	
-		
-		DirectX::XMMATRIX srMat;
-		if (bOutliner)
-		{
-			srMat = XMMatrixMultiply(m_outlinerScaleMat, m_rtMat);
-		}
-		else
-		{
-			srMat = XMMatrixMultiply(m_scMat, m_rtMat);
-		}
-		DirectX::XMMATRIX rtMat = XMMatrixMultiply(srMat,m_trMat);
+	void Model::UpdateWorldMatrix()
+	{
+		DirectX::XMMATRIX srMat, osrMat;
+		osrMat = XMMatrixMultiply(m_outlinerScaleMat, m_rtMat);
+		srMat = XMMatrixMultiply(m_scMat, m_rtMat);
 
-		return rtMat;
+		DirectX::XMMATRIX srtMat = XMMatrixMultiply(srMat, m_trMat);
+		DirectX::XMMATRIX osrtMat = XMMatrixMultiply(osrMat, m_trMat);
+
+		m_wMat = DirectX::XMMatrixTranspose(srtMat);
+		m_outlinerScaleMat = DirectX::XMMatrixTranspose(osrtMat);
 	}
-
 }
