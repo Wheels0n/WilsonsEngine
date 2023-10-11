@@ -28,7 +28,8 @@ namespace wilson {
 		bool LoadTex(LPCWSTR fileName, ID3D11Device* pDevice, bool isDiffuse);
 		bool LoadModel(const char* extension, LPCWSTR fileName, ID3D11Device* pDevice);
 
-		Importer();
+		Importer()=delete;
+		Importer(ID3D11Device* pDevice);
 		~Importer();
 	private:
 		std::streampos GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName);
@@ -76,6 +77,7 @@ namespace wilson {
 		unsigned int m_indexCount;
 		unsigned int m_objectCount;
 
+		ID3D11Device* m_pDevice;
 		ID3D11ShaderResourceView* m_pSRV;
 
 		FbxManager* m_fbxManager;

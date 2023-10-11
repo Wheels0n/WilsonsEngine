@@ -2,7 +2,7 @@
 #include <random>
 #include <chrono>
 namespace wilson {
-	Model::Model(VertexData* pVertices,
+	Model::Model(ID3D11Device* pDevice, VertexData* pVertices,
 		unsigned long* pIndices,
 		std::vector<unsigned int> vertexDataPos,
 		std::vector<unsigned int> indicesPos,
@@ -17,7 +17,21 @@ namespace wilson {
 		m_vertexCount = vertexDataPos[vertexDataPos.size() - 1];
 		m_indexCount = indicesPos[indicesPos.size() - 1];
 
-		m_AABB =AABB::GenAABB(pVertices, m_vertexCount);
+
+		DirectX::XMFLOAT3 minAABB(FLT_MAX, FLT_MAX, FLT_MAX);
+		DirectX::XMFLOAT3 maxAABB(FLT_MIN, FLT_MIN, FLT_MIN);
+		for (UINT i = 0; i < m_vertexCount; ++i)
+		{
+			minAABB.x = min(minAABB.x, m_pVertexData[i].position.x);
+			minAABB.y = min(minAABB.y, m_pVertexData[i].position.y);
+			minAABB.z = min(minAABB.z, m_pVertexData[i].position.z);
+
+			maxAABB.x = max(maxAABB.x, m_pVertexData[i].position.x);
+			maxAABB.y = max(maxAABB.y, m_pVertexData[i].position.y);
+			maxAABB.z = max(maxAABB.z, m_pVertexData[i].position.z);
+		}
+		m_pAABB = nullptr;
+		m_pAABB = new AABB(minAABB, maxAABB);
 
 		m_pVertexBuffer = nullptr;
 		m_pIndexBuffer = nullptr;
@@ -42,6 +56,87 @@ namespace wilson {
 		m_isInstanced = false;
 		m_pInstancePosBuffer = nullptr;
 		m_pPerModelBuffer = nullptr;
+
+		{
+			HRESULT hr;
+			D3D11_BUFFER_DESC vertexBD;
+			D3D11_BUFFER_DESC indexBD;
+			D3D11_BUFFER_DESC materialBD;
+			D3D11_SUBRESOURCE_DATA vertexData;
+			D3D11_SUBRESOURCE_DATA indexData;
+
+			vertexData.pSysMem = m_pVertexData;
+			vertexData.SysMemPitch = 0;
+			vertexData.SysMemSlicePitch = 0;
+
+			vertexBD.Usage = D3D11_USAGE_DEFAULT;
+			vertexBD.ByteWidth = sizeof(VertexData) * m_vertexCount;
+			vertexBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+			vertexBD.CPUAccessFlags = 0;
+			vertexBD.MiscFlags = 0;
+			vertexBD.StructureByteStride = 0;
+
+			hr = pDevice->CreateBuffer(&vertexBD, &vertexData, &m_pVertexBuffer);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("Model::m_pVertexBuffer::CreateBufferFailed");
+			}
+			m_pVertexBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Model::m_pVertexBuffer") - 1, "Model::m_pVertexBuffer");
+
+			indexData.pSysMem = m_pIndices;
+			indexData.SysMemPitch = 0;
+			indexData.SysMemSlicePitch = 0;
+
+			indexBD.Usage = D3D11_USAGE_DEFAULT;
+			indexBD.ByteWidth = sizeof(unsigned long) * m_indexCount;
+			indexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
+			indexBD.CPUAccessFlags = 0;
+			indexBD.MiscFlags = 0;
+			indexBD.StructureByteStride = 0;
+
+			hr = pDevice->CreateBuffer(&indexBD, &indexData, &m_pIndexBuffer);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("Model::m_pIndexBuffer::CreateBufferFailed");
+			}
+			m_pIndexBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Model::m_pIndexBuffer") - 1, "Model::m_pIndexBuffer");
+
+
+			materialBD.Usage = D3D11_USAGE_DYNAMIC;
+			materialBD.ByteWidth = sizeof(Material);
+			materialBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			materialBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			materialBD.MiscFlags = 0;
+			materialBD.StructureByteStride = 0;
+
+			hr = pDevice->CreateBuffer(&materialBD, 0, &m_pMaterialBuffer);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("Model::m_pMaterialBuffer::CreateBufferFailed");
+			}
+			m_pMaterialBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Model::m_pMaterialBuffer") - 1, "Model::m_pMaterialBuffer");
+
+
+			D3D11_BUFFER_DESC perModelBD;
+			perModelBD.Usage = D3D11_USAGE_DYNAMIC;
+			perModelBD.ByteWidth = sizeof(PerModel);
+			perModelBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			perModelBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			perModelBD.MiscFlags = 0;
+			perModelBD.StructureByteStride = 0;
+
+			hr = pDevice->CreateBuffer(&perModelBD, 0, &m_pPerModelBuffer);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("Model::m_pPerModelBuffer::CreateBufferFailed");
+			}
+			m_pPerModelBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Model::m_pPerModelBuffer") - 1, "Model::m_pPerModelBuffer");
+
+		}
 	}
 
 	Model::~Model()
@@ -102,6 +197,10 @@ namespace wilson {
 			delete[] m_instancedData;
 		}
 
+		if (m_pAABB != nullptr)
+		{
+			delete m_pAABB;
+		}
 
 	}
 
@@ -135,91 +234,7 @@ namespace wilson {
 		m_pDevice->CreateBuffer(&instancePosBD, &instanceSubResource, &m_pInstancePosBuffer);
 
 	}
-	bool Model::CreateBuffer(ID3D11Device* pDevice)
-	{	
-		m_pDevice = pDevice;
-
-		HRESULT hr;
-		D3D11_BUFFER_DESC vertexBD;
-		D3D11_BUFFER_DESC indexBD;
-		D3D11_BUFFER_DESC materialBD;
-		D3D11_SUBRESOURCE_DATA vertexData;
-		D3D11_SUBRESOURCE_DATA indexData;
-
-		vertexData.pSysMem = m_pVertexData;
-		vertexData.SysMemPitch = 0;
-		vertexData.SysMemSlicePitch = 0;
-
-		vertexBD.Usage = D3D11_USAGE_DEFAULT;
-		vertexBD.ByteWidth = sizeof(VertexData) * m_vertexCount;
-		vertexBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		vertexBD.CPUAccessFlags = 0;
-		vertexBD.MiscFlags = 0;
-		vertexBD.StructureByteStride = 0;
-
-		hr = pDevice->CreateBuffer(&vertexBD, &vertexData, &m_pVertexBuffer);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pVertexBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("Model::m_pVertexBuffer") - 1, "Model::m_pVertexBuffer");
-
-		indexData.pSysMem = m_pIndices;
-		indexData.SysMemPitch = 0;
-		indexData.SysMemSlicePitch = 0;
-
-		indexBD.Usage = D3D11_USAGE_DEFAULT;
-		indexBD.ByteWidth = sizeof(unsigned long) * m_indexCount;
-		indexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		indexBD.CPUAccessFlags = 0;
-		indexBD.MiscFlags = 0;
-		indexBD.StructureByteStride = 0;
-
-		hr = pDevice->CreateBuffer(&indexBD, &indexData, &m_pIndexBuffer);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pIndexBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("Model::m_pIndexBuffer") - 1, "Model::m_pIndexBuffer");
-
-
-		materialBD.Usage = D3D11_USAGE_DYNAMIC;
-		materialBD.ByteWidth = sizeof(Material);
-		materialBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		materialBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		materialBD.MiscFlags = 0;
-		materialBD.StructureByteStride = 0;
-
-		hr = pDevice->CreateBuffer(&materialBD, 0, &m_pMaterialBuffer);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pMaterialBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("Model::m_pMaterialBuffer") - 1, "Model::m_pMaterialBuffer");
-
-
-		D3D11_BUFFER_DESC perModelBD;
-		perModelBD.Usage = D3D11_USAGE_DYNAMIC;
-		perModelBD.ByteWidth = sizeof(PerModel);
-		perModelBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		perModelBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		perModelBD.MiscFlags = 0;
-		perModelBD.StructureByteStride = 0;
-
-		hr = pDevice->CreateBuffer(&perModelBD, 0, &m_pPerModelBuffer);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pPerModelBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("Model::m_pPerModelBuffer") - 1, "Model::m_pPerModelBuffer");
-
-		return true;
-	}
-	bool Model::Init(ID3D11Device* pDevice, std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
+	void Model::BindMaterial(std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
 		std::unordered_map<std::string, int>& texhash, std::vector<ID3D11ShaderResourceView*>& textures)
 	{	
 		m_matInfos.reserve(m_matNames.size());
@@ -267,7 +282,6 @@ namespace wilson {
 			}
 			m_perModels.push_back(perModel);
 		}
-		return CreateBuffer(pDevice);
 		
 	}
 
@@ -353,7 +367,8 @@ namespace wilson {
 
 			hr = pContext->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 			if (FAILED(hr))
-			{
+			{	
+				OutputDebugStringA("Model::m_pMaterialBuffer::MapFailed");
 				return;
 			}
 
@@ -368,7 +383,8 @@ namespace wilson {
 
 			hr = pContext->Map(m_pPerModelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 			if (FAILED(hr))
-			{
+			{	
+				OutputDebugStringA("Model::m_pPerModelBuffer::MapFailed");
 				return;
 			}
 
@@ -390,12 +406,12 @@ namespace wilson {
 		DirectX::XMMATRIX transform =  GetTransformMatrix(false);
 		
 
-		DirectX::XMVECTOR centerV = m_AABB.GetCenter();
+		DirectX::XMVECTOR centerV = m_pAABB->GetCenter();
 		DirectX::XMVECTOR globalCenterV = DirectX::XMVector3Transform(centerV, transform);
 		DirectX::XMFLOAT4 globalCenter;
 		DirectX::XMStoreFloat4(&globalCenter, globalCenterV);
 
-		DirectX::XMVECTOR extentsV = m_AABB.GetExtents();
+		DirectX::XMVECTOR extentsV = m_pAABB->GetExtents();
 		DirectX::XMFLOAT3 extents;
 		DirectX::XMStoreFloat3(&extents, extentsV);
 

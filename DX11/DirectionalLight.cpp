@@ -4,12 +4,43 @@
 
 namespace wilson
 {
-    DirectionalLight::DirectionalLight(Camera* pCam)
+    DirectionalLight::DirectionalLight(ID3D11Device* pDevice, UINT idx, Camera* pCam)
+        :Light(idx)
     {
         m_pCam = pCam;
         m_lightSpaceMat.resize(pCam->GetCascadeLevels().size());
         UpdateLightSpaceMatrices();
         m_pMatriceBuffer = nullptr;
+
+        {
+            D3D11_BUFFER_DESC CBD = {};
+            CBD.Usage = D3D11_USAGE_DYNAMIC;
+            CBD.ByteWidth = sizeof(DirLightProperty);
+            CBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+            CBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+            CBD.MiscFlags = 0;
+            CBD.StructureByteStride = 0;
+
+            HRESULT result = pDevice->CreateBuffer(&CBD, nullptr, &m_pLightBuffer);
+            if (FAILED(result))
+            {
+                OutputDebugStringA("DirectionalLight::m_pLightBuffer::CreateBufferFailed");
+            }
+            m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+                sizeof("DirectionalLight::m_pLightBuffer") - 1, "DirectionalLight::m_pLightBuffer");
+
+
+
+            CBD.ByteWidth = sizeof(DirectX::XMMATRIX) * m_pCam->GetCascadeLevels().size();
+            result = pDevice->CreateBuffer(&CBD, nullptr, &m_pMatriceBuffer);
+            if (FAILED(result))
+            {
+                OutputDebugStringA("DirectionalLight::m_pMatriceBuffer::CreateBufferFailed");
+            }
+            m_pMatriceBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+                sizeof("DirectionalLight::m_pMatriceBuffer") - 1, "DirectionalLight::m_pMatriceBuffer");
+
+        }
     }
     DirectionalLight::~DirectionalLight()
     {   
@@ -21,40 +52,7 @@ namespace wilson
 
         Light::~Light();
     }
-    bool DirectionalLight::Init(ID3D11Device* pDevice, UINT idx)
-    {
-        D3D11_BUFFER_DESC CBD = {};
-        CBD.Usage = D3D11_USAGE_DYNAMIC;
-        CBD.ByteWidth = sizeof(DirLightProperty);
-        CBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        CBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        CBD.MiscFlags = 0;
-        CBD.StructureByteStride = 0;
-
-        HRESULT result = pDevice->CreateBuffer(&CBD, nullptr, &m_pLightBuffer);
-        if (FAILED(result))
-        {
-            return false;
-        }
-        m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("DirectionalLight::m_pLightBuffer") - 1, "DirectionalLight::m_pLightBuffer");
-
-        Light::Init(pDevice, idx);
-
-
-        CBD.ByteWidth = sizeof(DirectX::XMMATRIX)*m_pCam->GetCascadeLevels().size();
-        result = pDevice->CreateBuffer(&CBD, nullptr, &m_pMatriceBuffer);
-        if (FAILED(result))
-        {
-            return false;
-        }
-        m_pMatriceBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-            sizeof("DirectionalLight::m_pMatriceBuffer") - 1, "DirectionalLight::m_pMatriceBuffer");
-
-
-        return true;
-    }
-
+   
     void DirectionalLight::UpdateProperty()
     {
         m_dirLightProperty.ambient = m_ambient;
@@ -70,7 +68,8 @@ namespace wilson
         HRESULT hr;
         hr = pContext->Map(m_pMatriceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
         if (FAILED(hr))
-        {
+        {   
+            OutputDebugStringA("DirectionalLight::m_pMatriceBuffer::MapFailed");
             return;
         }
         pMatrix = (DirectX::XMMATRIX*)mappedResource.pData;

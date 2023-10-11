@@ -55,7 +55,6 @@ namespace wilson
 			return &m_spotLightProperty;
 		}
 
-		bool Init(ID3D11Device*, UINT);
 		void UpdateViewMat();
 		void UpdateProjMat();
 		void UpdateLitMat();
@@ -63,6 +62,7 @@ namespace wilson
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::SPT; };
 
 		SpotLight() = default;
+		SpotLight(ID3D11Device*, UINT);
 		SpotLight(const SpotLight&) = default;
 		~SpotLight() { Light::~Light(); };
 	private:

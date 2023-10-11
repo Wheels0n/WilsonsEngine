@@ -15,8 +15,7 @@ namespace wilson
 	class Renderer
 	{
 	public:
-		bool Init(int, int, HWND);
-		void Shutdown();
+		
 		void BeginFrame();
 		void EndFrame();
 
@@ -28,11 +27,11 @@ namespace wilson
 		void Translate(XMVECTOR);
 		void Rotate(int dx, int dy);
 
-		Renderer();
+		Renderer()=default;
+		Renderer(int, int, HWND);
 		Renderer(Renderer&) = delete;
 		~Renderer();
 	 private:
-		bool Render();
 
 		D3D11* m_pD3D11;
 		Camera* m_pCam;

@@ -114,11 +114,12 @@ PixelOutputType main(PixelInputType input)
         float3 viewDir = normalize(g_camPos-input.wPosition);
         viewDir = mul(viewDir, TBN);
         viewDir = normalize(viewDir);
-        
+        [branch]
         if(g_heightOnOff)
         {
         
             texCoord = ParallaxOcclusionMapping(input.tex, viewDir);
+            [branch]
             if (texCoord.x > 1.0f || texCoord.x < 0.0f || texCoord.y > 1.0f || texCoord.y < 0.0f)
             {
                 clip(-1);

@@ -15,20 +15,16 @@ namespace wilson{
  class Engine
  {
  public:
-
-	bool Init();
-	void Shutdown();
 	void Run();
 
 	LRESULT CALLBACK MsgHandler(HWND, UINT, WPARAM, LPARAM);
 
 	Engine();
 	Engine(Engine&) = delete;
-	~Engine()=default;
+	~Engine();
  private:
 	bool Frame();
 	void InitWindows(UINT&, UINT&);
-	void ShutdownWindows();
 
  private:
 	UINT m_screenHeight;

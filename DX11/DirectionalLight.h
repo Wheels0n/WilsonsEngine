@@ -28,14 +28,13 @@ namespace wilson
 			return &m_dirLightProperty;
 		}
 		
-		bool Init(ID3D11Device*, UINT);
 		void UpdateProperty();
 		void SetShadowMatrices(ID3D11DeviceContext*);
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::DIR; };
 		DirectX::XMMATRIX UpdateLightSpaceMat(const float nearZ, const float farZ);
 		void UpdateLightSpaceMatrices();
 
-		DirectionalLight(Camera* pCam);
+		DirectionalLight(ID3D11Device*, UINT, Camera* pCam);
 		DirectionalLight(const DirectionalLight&) = default;
 		~DirectionalLight();
 	private:

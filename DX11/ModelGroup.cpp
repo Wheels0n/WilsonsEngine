@@ -1,33 +1,6 @@
 #include "ModelGroup.h"
 namespace wilson
 {
-	void ModelGroup::Init(ID3D11Device* pDevice)
-	{
-		for (int i = 0; i < m_pModels.size(); ++i)
-		{	
-			m_pModels[i]->Init(pDevice, m_matHash, m_materials, m_texHash, m_texMaps);
-		}
-	}
-
-	void ModelGroup::Clear()
-	{
-		for (int i = 0; i < m_pModels.size(); ++i)
-		{
-			delete m_pModels[i];
-		}
-		m_pModels.clear();
-	
-		for (int i = 0; i < m_texMaps.size(); ++i)
-		{
-			m_texMaps[i]->Release();
-		}
-		m_texMaps.clear();
-		m_materials.clear();
-		m_matHash.clear();
-		m_texHash.clear();
-
-	}
-	
 	void ModelGroup::ToggleInstancing()
 	{
 		for (int i = 0; i < m_pModels.size(); ++i)
@@ -56,9 +29,28 @@ namespace wilson
 		m_texMaps = pDiffMaps;
 		m_matHash = matHash;
 		m_texHash = diffuseHash;
+
+		for (int i = 0; i < m_pModels.size(); ++i)
+		{
+			m_pModels[i]->BindMaterial(m_matHash, m_materials, m_texHash, m_texMaps);
+		}
 	}
 	ModelGroup::~ModelGroup()
 	{
-		Clear();
+		for (int i = 0; i < m_pModels.size(); ++i)
+		{
+			delete m_pModels[i];
+		}
+		m_pModels.clear();
+
+		for (int i = 0; i < m_texMaps.size(); ++i)
+		{
+			m_texMaps[i]->Release();
+		}
+		m_texMaps.clear();
+		m_materials.clear();
+		m_matHash.clear();
+		m_texHash.clear();
+
 	}
 }

@@ -12,43 +12,22 @@ namespace wilson {
 		m_lastMouseY = 0;
 		m_curMouseX = 0;
 		m_curMouseY = 0;
-	}
 
-	bool Engine::Init()
-	{
 		bool bResult;
 
 		InitWindows(m_screenHeight, m_screenWidth);
-
-		m_pRenderer = new Renderer;
-		if (m_pRenderer == nullptr)
-		{
-			return false;
-		}
-
+		
 		RECT rc;
 		GetClientRect(m_hWnd, &rc);
-		bResult = m_pRenderer->Init(rc.right - rc.left, rc.bottom - rc.top, m_hWnd);
-		if (bResult == false)
-		{
-			return false;
-		}
-
-		m_pEditor = new Editor;
-		if (m_pEditor == nullptr)
-		{
-			return false;
-		}
-		m_pEditor->Init(m_pRenderer->GetD3D11());
-
-		return true;
+		m_pRenderer = new Renderer(rc.right - rc.left, rc.bottom - rc.top, m_hWnd);
+		m_pEditor = new Editor(m_pRenderer->GetD3D11());
+		
 	}
 
-	void Engine::Shutdown()
+	Engine::~Engine()
 	{
 		if (m_pRenderer != nullptr)
 		{
-			m_pRenderer->Shutdown();
 			delete m_pRenderer;
 			m_pRenderer = nullptr;
 		}
@@ -59,9 +38,21 @@ namespace wilson {
 			m_pEditor = nullptr;
 		}
 
-		ShutdownWindows();
+		if (g_bFULL_SCREEN)
+		{
+			ChangeDisplaySettings(nullptr, 0);
+		}
 
-		return;
+		ImGui_ImplWin32_Shutdown();
+		DestroyWindow(m_hWnd);
+		m_hWnd = nullptr;
+
+		UnregisterClassW(m_appName, m_hInstance);
+		m_hInstance = nullptr;
+
+		g_pEngineHandle = nullptr;
+
+
 	}
 
 	void Engine::Run()
@@ -315,25 +306,6 @@ namespace wilson {
 		ImGui_ImplWin32_Init(m_hWnd);
 		SetForegroundWindow(m_hWnd);
 		SetFocus(m_hWnd);
-
-		return;
-	}
-
-	void Engine::ShutdownWindows()
-	{
-		if (g_bFULL_SCREEN)
-		{
-			ChangeDisplaySettings(nullptr, 0);
-		}
-
-		ImGui_ImplWin32_Shutdown();
-		DestroyWindow(m_hWnd);
-		m_hWnd = nullptr;
-
-		UnregisterClassW(m_appName, m_hInstance);
-		m_hInstance = nullptr;
-
-		g_pEngineHandle = nullptr;
 
 		return;
 	}

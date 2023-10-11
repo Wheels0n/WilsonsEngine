@@ -9,9 +9,6 @@ namespace wilson
 	{
 
 	public:
-		bool Init(ID3D11Device* pDevice, const UINT width, const UINT height, const UINT cascadeLevel,
-			const UINT dirLightCap, const UINT pntLightCap, const UINT spotLightCap);
-
 		void BindDirDSV(ID3D11DeviceContext* pContext, const UINT i);
 		void BindCubeDSV(ID3D11DeviceContext* pContext, const UINT i);
 		void BindSpotDSV(ID3D11DeviceContext* pContext, const UINT i);
@@ -44,6 +41,8 @@ namespace wilson
 			return &m_viewport;
 		}
 		ShadowMap() = default;
+		ShadowMap(ID3D11Device* pDevice, const UINT width, const UINT height, const UINT cascadeLevel,
+			const UINT dirLightCap, const UINT pntLightCap, const UINT spotLightCap);
 		~ShadowMap();
 
 	private:

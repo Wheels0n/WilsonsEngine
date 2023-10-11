@@ -18,9 +18,7 @@ namespace wilson
 	class Light
 	{
 	public:
-		bool virtual Init(ID3D11Device* pDevice, UINT idx);
 		eLIGHT_TYPE virtual GetType() { return eLIGHT_TYPE::PNT; };
-
 		inline UINT GetLightIndex() const
 		{
 			return m_idx;
@@ -47,7 +45,7 @@ namespace wilson
 		}
 
 		void virtual UpdateProperty() {};
-		Light();
+		Light(UINT);
 		virtual ~Light();
 	protected:
 		ID3D11Buffer* m_pLightBuffer;

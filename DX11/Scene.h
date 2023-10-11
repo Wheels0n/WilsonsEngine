@@ -15,11 +15,6 @@ namespace wilson
 	{
 	public:
 
-		inline void Init(D3D11* pD3D11)
-		{
-			m_pD3D11 = pD3D11;
-			m_pShadow = pD3D11->GetShadowMap();
-		}
 		void AddModelEntity(ModelGroup* pModelGroup, UINT idx, UINT modelIdx);
 		void AddLightEntity(Light* pLight, std::string type, UINT idx, UINT lightIdx);
 		void Draw();
@@ -43,7 +38,8 @@ namespace wilson
 			return sceneHandler;
 		}
 
-		Scene();
+		Scene()=default;
+		Scene(D3D11* pD3D11);
 		Scene(const Scene&) = default;
 		~Scene();
 	private:

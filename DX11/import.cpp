@@ -10,8 +10,8 @@ ULONG g_normalVecCount=0;
 
 namespace wilson
 {
-	Importer::Importer()
-	{
+	Importer::Importer(ID3D11Device* pDevice)
+	{	
 		m_vertexCount = 0;
 		m_vertexVecCount = 0;
 		m_texVecCount = 0;
@@ -41,6 +41,8 @@ namespace wilson
 		m_fbxManager = FbxManager::Create();
 		m_fbxIOsettings = FbxIOSettings::Create(m_fbxManager, IOSROOT);
 		m_fbxManager->SetIOSettings(m_fbxIOsettings);
+
+		m_pDevice = pDevice;
 	}
 
 	std::streampos Importer::GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName)
@@ -256,7 +258,7 @@ namespace wilson
 		indicesPos.push_back(m_indexCount);
 		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
 		DirectX::XMVECTOR zeroV = DirectX::XMVectorZero();
-		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
+		m_pModel = new Model(m_pDevice, m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
 		m_pModels.push_back(m_pModel);
 		++m_objectCount;
 
@@ -1027,7 +1029,7 @@ namespace wilson
 
 		
 		std::wstring wName(name.begin(), name.end());
-		m_pModel = new Model(m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
+		m_pModel = new Model(m_pDevice, m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
 			(wchar_t*)wName.c_str(), matNames);
 		m_pModels.push_back(m_pModel);
 	}

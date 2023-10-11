@@ -10,10 +10,10 @@ namespace wilson
 	class Settings
 	{
 	public:
-		void Init(D3D11* pD3D11);
 		void Draw();
 
 		Settings() = default;
+		Settings(D3D11* pD3D11);
 		Settings(const Settings&) = default;
 		~Settings();
 	private:

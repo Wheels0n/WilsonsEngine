@@ -1,7 +1,7 @@
 #include "Camera.h"
 
 namespace wilson {
-	Camera::Camera(const UINT screenWidth, const UINT screenHeight, float screenFar, float screenNear)
+	Camera::Camera(ID3D11Device* pDevice, const UINT screenWidth, const UINT screenHeight, float screenFar, float screenNear)
 	{
 		m_fScreenNear = screenNear;
 		m_fScreenFar = screenFar;
@@ -22,6 +22,32 @@ namespace wilson {
 
 		m_pCamPosBuffer = nullptr;
 		m_pCascadeLevelBuffer = nullptr;
+
+		{
+			D3D11_BUFFER_DESC CBD = {};
+			CBD.Usage = D3D11_USAGE_DYNAMIC;
+			CBD.ByteWidth = sizeof(CamBuffer);
+			CBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			CBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			CBD.MiscFlags = 0;
+			CBD.StructureByteStride = 0;
+			HRESULT hr = pDevice->CreateBuffer(&CBD, nullptr, &m_pCamPosBuffer);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("Camera::m_pCamPosBuffer::CreateBufferFailed");
+			}
+			m_pCamPosBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Camera::m_pCamPosBuffer") - 1, "Camera::m_pCamPosBuffer");
+
+			CBD.ByteWidth = sizeof(DirectX::XMVECTOR) * 5;
+			hr = pDevice->CreateBuffer(&CBD, nullptr, &m_pCascadeLevelBuffer);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("Camera::m_pCascadeLevelBuffer::CreateBufferFailed");
+			}
+			m_pCascadeLevelBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Camera::m_pCascadeLevelBuffer") - 1, "Camera::m_pCascadeLevelBuffer");
+		}
 	}
 
 	Camera::~Camera()
@@ -81,36 +107,6 @@ namespace wilson {
 		m_pos = DirectX::XMVectorAdd(m_pos, dv);
 	}
 
-	bool Camera::Init(ID3D11Device* pDevice)
-	{
-		D3D11_BUFFER_DESC CBD = {};
-		CBD.Usage = D3D11_USAGE_DYNAMIC;
-		CBD.ByteWidth = sizeof(CamBuffer);
-		CBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		CBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		CBD.MiscFlags = 0;
-		CBD.StructureByteStride = 0;
-		HRESULT hr = pDevice->CreateBuffer(&CBD, nullptr, &m_pCamPosBuffer);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pCamPosBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("Camera::m_pCamPosBuffer") - 1, "Camera::m_pCamPosBuffer");
-
-		CBD.ByteWidth = sizeof(DirectX::XMVECTOR)*5;
-		hr = pDevice->CreateBuffer(&CBD, nullptr, &m_pCascadeLevelBuffer);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pCascadeLevelBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("Camera::m_pCascadeLevelBuffer") - 1, "Camera::m_pCascadeLevelBuffer");
-
-
-		return true;
-	}
-
 	void Camera::Update()
 	{
 		DirectX::XMMATRIX rtMat = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
@@ -139,7 +135,8 @@ namespace wilson {
 
 		hr = pContext->Map(m_pCascadeLevelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		if (FAILED(hr))
-		{
+		{	
+			OutputDebugStringA("m_pCascadeLevelBuffer::MapFailed");
 			return false;
 		}
 		
@@ -163,7 +160,8 @@ namespace wilson {
 
 		hr = pContext->Map(m_pCamPosBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		if (FAILED(hr))
-		{
+		{	
+			OutputDebugStringA("m_pCamPosBuffer::MapFailed");
 			return false;
 		}
 

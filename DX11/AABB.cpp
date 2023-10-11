@@ -4,23 +4,6 @@
 
 namespace wilson
 {
-	AABB AABB::GenAABB(const VertexData* pVertexData, UINT cnt)
-	{
-		DirectX::XMFLOAT3 minAABB(FLT_MAX, FLT_MAX, FLT_MAX);
-		DirectX::XMFLOAT3 maxAABB(FLT_MIN, FLT_MIN, FLT_MIN);
-		for (UINT i = 0; i < cnt; ++i)
-		{
-			minAABB.x = min(minAABB.x, pVertexData[i].position.x);
-			minAABB.y = min(minAABB.y, pVertexData[i].position.y);
-			minAABB.z = min(minAABB.z, pVertexData[i].position.z);
-
-			maxAABB.x = max(maxAABB.x, pVertexData[i].position.x);
-			maxAABB.y = max(maxAABB.y, pVertexData[i].position.y);
-			maxAABB.z = max(maxAABB.z, pVertexData[i].position.z);
-		}
-
-		return AABB(minAABB, maxAABB);
-	}
 	AABB::AABB(DirectX::XMFLOAT3 minAABB, DirectX::XMFLOAT3 maxAABB)
 	{	
 		DirectX::XMFLOAT4 center((minAABB.x + maxAABB.x) * 0.5f, (minAABB.y + maxAABB.y) * 0.5f, (minAABB.z + maxAABB.z) * 0.5f, 1.0f);

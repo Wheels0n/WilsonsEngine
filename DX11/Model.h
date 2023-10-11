@@ -52,15 +52,14 @@ namespace wilson {
 
 	public:
 
-		bool Init(ID3D11Device* pDevice, std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
+		void BindMaterial(std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
 			std::unordered_map<std::string, int>& texhash, std::vector<ID3D11ShaderResourceView*>& textures);
-		bool CreateBuffer(ID3D11Device* pDevice);
 		void UploadBuffers(ID3D11DeviceContext* context, int i, bool bGeoPass);
 		AABB GetGlobalAABB();
 
-		inline AABB& GetAABB()
+		inline AABB* GetAABB() const
 		{
-			return m_AABB;
+			return m_pAABB;
 		}
 		inline UINT GetMatCount() const
 		{
@@ -136,7 +135,7 @@ namespace wilson {
 			m_isInstanced = ~m_isInstanced;
 		}
 
-		Model(VertexData* pVertices,
+		Model(ID3D11Device* pDevice, VertexData* pVertices,
 			unsigned long* pIndices,
 			std::vector<unsigned int> vertexDataPos,
 			std::vector<unsigned int> indicesPos,
@@ -184,6 +183,6 @@ namespace wilson {
 		UINT m_numInstance;
 		bool m_isInstanced;
 
-		AABB m_AABB;
+		AABB* m_pAABB;
 	};
 }

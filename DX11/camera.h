@@ -19,7 +19,6 @@ namespace wilson {
 	{
 	public:
 
-		bool Init(ID3D11Device* pDevice);
 		void Update();
 		bool SetCascadeLevels(ID3D11DeviceContext* pContext);
 		bool SetCamPos(ID3D11DeviceContext* pContext);
@@ -92,7 +91,7 @@ namespace wilson {
 		void Rotate(int, int);
 		void Translate(DirectX::XMVECTOR);
 
-		Camera(const UINT screenWidth, const UINT screenHeight, float ScreenFar, float ScreenNear);
+		Camera(ID3D11Device* pDevice, const UINT screenWidth, const UINT screenHeight, float ScreenFar, float ScreenNear);
 		~Camera();
 	private:
 		

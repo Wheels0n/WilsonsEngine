@@ -17,8 +17,6 @@ struct MatrixBuffer
 class MatBuffer
 {
 public:
-	bool Init(ID3D11Device* pDevice);
-	void ShutDown();
 	void Update(ID3D11DeviceContext* pContext);
 	void UploadProjMat(ID3D11DeviceContext* pContext);
 

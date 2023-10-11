@@ -8,8 +8,6 @@ namespace wilson
 	class Shader
 	{
 	public:
-		bool Init(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
-
 		inline void SetInputLayout(ID3D11DeviceContext* pContext)
 		{
 			pContext->IASetInputLayout(m_pInputLayout);
@@ -149,7 +147,7 @@ namespace wilson
 			pContext->PSSetShader(m_pFinPS, nullptr, 0);
 		}
 
-		Shader();
+		Shader(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
 		~Shader();
 
 	private:

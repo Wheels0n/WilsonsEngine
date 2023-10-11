@@ -2,7 +2,7 @@
 
 namespace wilson
 {
-	void Viewport::Init(D3D11* pD3D11, Scene* pScene)
+	Viewport::Viewport(D3D11* pD3D11, Scene* pScene)
 	{
 		m_IsFocused = false;
 
@@ -16,12 +16,22 @@ namespace wilson
 		m_pD3D11 = pD3D11;
 		m_pCam = pD3D11->GetCam();
 		m_pScene = pScene;
+		m_pImporter = new Importer(m_pDevice);
 
 		m_pFinalSRV = pD3D11->GetFinalSRV();
 		m_pSSAOBlurredSRV = pD3D11->GetSSAOBlurredSRV();
 		m_pGbufferSRV = pD3D11->GetGbufferSRV();
 
 		m_GbufferCount = pD3D11->GetGbufferCount();
+	}
+
+	Viewport::~Viewport()
+	{
+		if (m_pImporter != nullptr)
+		{
+			delete m_pImporter;
+			m_pImporter = nullptr;
+		}
 	}
 
 	void Viewport::Draw()
@@ -51,8 +61,8 @@ namespace wilson
 						if (i < 2)
 						{
 							const wchar_t* path = (const wchar_t*)payLoad->Data;
-							m_importer.LoadModel(g_types[i], path, m_pDevice);
-							ModelGroup* pModelGroup = m_importer.GetModelGroup();
+							m_pImporter->LoadModel(g_types[i], path, m_pDevice);
+							ModelGroup* pModelGroup = m_pImporter->GetModelGroup();
 
 							std::vector<Model*> pModels = pModelGroup->GetModels();
 							for (int i = 0; i < pModels.size(); ++i)
@@ -71,25 +81,29 @@ namespace wilson
 						{
 							Light* pLight = nullptr;
 							std::string type;
+							int lightIdx = -1;
+							ID3D11Device* pDevice= m_pD3D11->GetDevice();
 							switch (i)
 							{
 							case 2:
-								pLight = new DirectionalLight(m_pCam);
+								lightIdx = m_pD3D11->GetLightSize(eLIGHT_TYPE::DIR);
+								pLight = new DirectionalLight(pDevice, lightIdx, m_pCam);
 								type = "DirectionalLight";
 								break;
 							case 3:
-								pLight = new PointLight();
+								lightIdx = m_pD3D11->GetLightSize(eLIGHT_TYPE::PNT);
+								pLight = new PointLight(pDevice, lightIdx);
 								type = "PointLight";
 								break;
 							case 4:
-								pLight = new SpotLight();
+								lightIdx = m_pD3D11->GetLightSize(eLIGHT_TYPE::SPT);
+								pLight = new SpotLight(pDevice, lightIdx);
 								type = "SpotLight";
 							}
-							int lightIdx = m_pD3D11->GetLightSize(pLight);
 							DirectX::XMFLOAT3* pPos = pLight->GetPos();
 							DirectX::XMStoreFloat3(pPos, pos);
 
-							m_pD3D11->AddLight(pLight, lightIdx);
+							m_pD3D11->AddLight(pLight);
 							m_pScene->AddLightEntity(pLight, type, idx, lightIdx);
 						}
 					}

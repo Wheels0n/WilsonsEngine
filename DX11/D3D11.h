@@ -41,12 +41,10 @@ namespace wilson
 	{
 
 	public:
-		bool Init(int, int, bool, HWND, bool, float, float);
-		void Shutdown();
 
 		void UpdateScene();
 		void DrawScene();
-		void AddLight(Light*, UINT);
+		void AddLight(Light*);
 		void AddModelGroup(ModelGroup*, ID3D11Device*);
 		void RemoveModelGroup(int i);
 		void RemoveLight(int i, Light* pLight);
@@ -60,6 +58,10 @@ namespace wilson
 		{
 			return m_pFrustum;
 		};
+		inline void SetNewFrustum(Frustum* pFrustum)
+		{
+			m_pFrustum = pFrustum;
+		}
 		inline ShadowMap* GetShadowMap() const
 		{
 			return m_pShadowMap;
@@ -126,13 +128,14 @@ namespace wilson
 		{
 			return _GBUF_CNT;
 		}
-		UINT GetLightSize(Light* pLight);
+		UINT GetLightSize(eLIGHT_TYPE);
 		
 		bool CreateRTT(int, int);
-	
-		D3D11();
+		
+		D3D11() = default;
+		D3D11(int, int, bool, HWND, bool, float, float);
 		D3D11(const D3D11&) = delete;
-		~D3D11()=default;
+		~D3D11();
 	private:
 		bool CreateDepthBuffer(int, int,
 			ID3D11Texture2D**,
@@ -234,7 +237,6 @@ namespace wilson
 		D3D11_VIEWPORT m_diffIrradViewport;
 		D3D11_VIEWPORT m_prefilterViewport;
 
-		Importer* m_pImporter;
 		std::vector<ModelGroup*> m_pModelGroups;
 		Terrain* m_pTerrain;
 		Camera* m_pCam;

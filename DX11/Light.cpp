@@ -2,7 +2,7 @@
 
 namespace wilson
 {
-	Light::Light()
+	Light::Light(UINT idx)
 	{
 		m_ambient = m_ambient = DirectX::XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
 		m_diffuse = m_ambient;
@@ -10,6 +10,8 @@ namespace wilson
 		m_position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.5f);
 		m_direction = DirectX::XMFLOAT3(0.5f, -0.5f, 0.5f);;
 		m_pLightBuffer = nullptr;
+		
+		m_idx =idx;
 	}
 	Light::~Light()
 	{
@@ -19,11 +21,6 @@ namespace wilson
 			m_pLightBuffer = nullptr;
 		}
 		
-	}
-	bool Light::Init(ID3D11Device* pDevice, UINT idx)
-	{
-		m_idx = idx;
-		return true;
 	}
 
 }

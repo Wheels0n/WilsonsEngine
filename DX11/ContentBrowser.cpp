@@ -20,12 +20,21 @@ namespace wilson {
 		}
 	}
 
-	void ContentBrowser::Init(ID3D11Device* pDevice)
-	{
-		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/folderIcon.png", nullptr, nullptr, &m_pDirIcon, nullptr);
+	ContentBrowser::ContentBrowser(ID3D11Device* pDevice)
+	{	
+		HRESULT hr;
+		hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/folderIcon.png", nullptr, nullptr, &m_pDirIcon, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA("ContentBrowser::m_pDirIcon::CreateSRVFailed");
+		}
 		m_pDirIcon->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("ContentBrowser::m_pDirIcon") - 1, "ContentBrowser::m_pDirIcon");
-		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/fileIcon.png", nullptr, nullptr, &m_pFileIcon, nullptr);
+		hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/fileIcon.png", nullptr, nullptr, &m_pFileIcon, nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA("ContentBrowser::m_pFileIcon::CreateSRVFailed");
+		}
 		m_pFileIcon->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("ContentBrowser::m_pFileIcon") - 1, "ContentBrowser::m_pFileIcon");
 	}

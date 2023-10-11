@@ -11,15 +11,6 @@ MatBuffer::MatBuffer(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,
 	m_projMat = *pProjMat;
 	m_lightSpaceMat = XMMatrixIdentity();
 
-}
-
-MatBuffer::~MatBuffer()
-{
-	ShutDown();
-}
-
-bool MatBuffer::Init(ID3D11Device* pDevice)
-{  
 	HRESULT hr;
 	D3D11_BUFFER_DESC matCBD;
 
@@ -32,7 +23,7 @@ bool MatBuffer::Init(ID3D11Device* pDevice)
 	hr = pDevice->CreateBuffer(&matCBD, 0, &m_pMatBuffer);
 	if (FAILED(hr))
 	{
-		return false;
+		OutputDebugStringA("MatrixBuffer::m_pMatBuffer::CreateBufferFailed");
 	}
 	m_pMatBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 		sizeof("MatrixBuffer::m_pMatBuffer") - 1, "MatrixBuffer::m_pMatBuffer");
@@ -41,15 +32,15 @@ bool MatBuffer::Init(ID3D11Device* pDevice)
 	hr = pDevice->CreateBuffer(&matCBD, 0, &m_pProjMatBuffer);
 	if (FAILED(hr))
 	{
-		return false;
+		OutputDebugStringA("MatrixBuffer::m_pProjMatBuffer::CreateBufferFailed");
 	}
 	m_pProjMatBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 		sizeof("MatrixBuffer::m_pProjMatBuffer") - 1, "MatrixBuffer::m_pProjMatBuffer");
 
-	return true;
+	
 }
 
-void MatBuffer::ShutDown()
+MatBuffer::~MatBuffer()
 {
 	if (m_pMatBuffer != nullptr)
 	{
@@ -64,6 +55,7 @@ void MatBuffer::ShutDown()
 	}
 }
 
+
 void MatBuffer::Update(ID3D11DeviceContext* pContext)
 { 
 	HRESULT hr;
@@ -74,7 +66,8 @@ void MatBuffer::Update(ID3D11DeviceContext* pContext)
 	//write CPU data into GPU mem;
 	hr = pContext->Map(m_pMatBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if (FAILED(hr))
-	{
+	{	
+		OutputDebugStringA("m_pMatBuffer::MapFailed");
 		return;
 	}
 	pMatrices = reinterpret_cast<MatrixBuffer*>(mappedResource.pData);
@@ -95,7 +88,8 @@ void MatBuffer::UploadProjMat(ID3D11DeviceContext* pContext)
 	XMMATRIX* pMatrix;
 	hr = pContext->Map(m_pProjMatBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if (FAILED(hr))
-	{
+	{	
+		OutputDebugStringA("m_pProjMatBuffer::MapFailed");
 		return;
 	}
 	pMatrix = reinterpret_cast<XMMATRIX*>(mappedResource.pData);

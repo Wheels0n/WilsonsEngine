@@ -10,8 +10,6 @@ namespace wilson
 	{
 
 	public:
-		void Init(ID3D11Device* pDevice);
-		void Clear();
 		void ToggleInstancing();
 		void SetNumInstance(int n);
 

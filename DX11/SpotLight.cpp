@@ -3,7 +3,8 @@
 namespace wilson
 {   
 
-	bool SpotLight::Init(ID3D11Device* pDevice, UINT idx)
+	SpotLight::SpotLight(ID3D11Device* pDevice, UINT idx)
+        :Light(idx)
 	{	
         D3D11_BUFFER_DESC lightCBD;
         lightCBD.Usage = D3D11_USAGE_DYNAMIC;
@@ -16,13 +17,11 @@ namespace wilson
         HRESULT result = pDevice->CreateBuffer(&lightCBD, nullptr, &m_pLightBuffer);
         if (FAILED(result))
         {
-            return false;
+            OutputDebugStringA("SpotLight::m_pLightBuffer::CreateBufferFailed");
         }
         m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
             sizeof("SpotLight::m_pLightBuffer") - 1, "SpotLight::m_pLightBuffer");
 
-
-        Light::Init(pDevice, idx);
         m_direction =   DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
         m_attenuation = DirectX::XMFLOAT3(0.1f, 0.01f, 0.001f);
         m_cutoff = 12.5f;
@@ -33,7 +32,6 @@ namespace wilson
         UpdateViewMat();
         UpdateProjMat();
 
-		return true;
 	}
     void SpotLight::UpdateViewMat()
     {

@@ -10,7 +10,6 @@ namespace wilson
 	class AABB
 	{
 	public:
-		static AABB GenAABB(const VertexData* pVertexData, UINT cnt);
 		bool IsOnFrustum(const Plane* pPlanes, const DirectX::XMMATRIX transfrom) const;
 
 		inline DirectX::XMVECTOR GetCenter()const

@@ -35,7 +35,6 @@ namespace wilson
 			return &m_pointLightProperty;
 		}
 
-		bool Init(ID3D11Device*, UINT);
 		void UpdateProperty();
 		void CreateShadowMatrices();
 		void SetShadowMatrices(ID3D11DeviceContext*);
@@ -43,6 +42,7 @@ namespace wilson
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::PNT; };
 
 		PointLight() = default;
+		PointLight(ID3D11Device*, UINT idx);
 		PointLight(const PointLight&) = default;
 		~PointLight();
 		

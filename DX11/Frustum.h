@@ -12,7 +12,6 @@ namespace wilson {
 	class Frustum
 	{
 	public:
-		void Init(Camera*);
 		inline void SetENTTsInFrustum(UINT cnt)
 		{
 			m_ENTTsInFrustum = cnt;
@@ -36,6 +35,7 @@ namespace wilson {
 
 		
 		Frustum() = default;
+		Frustum(Camera*);
 		~Frustum() = default;
 
 	private:

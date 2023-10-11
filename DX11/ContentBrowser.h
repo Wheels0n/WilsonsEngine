@@ -10,10 +10,10 @@ namespace wilson
 	class ContentBrowser
 	{
 	public:
-		void Init(ID3D11Device*);
 		void List();
 
 		ContentBrowser() = default;
+		ContentBrowser(ID3D11Device*);
 		ContentBrowser(const ContentBrowser&) = delete;
 		~ContentBrowser();
 

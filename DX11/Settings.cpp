@@ -4,7 +4,7 @@ namespace wilson
 {	
 	const static float _ICON_SZ = 16.0f;
 	const static float _PAD = 32.0f;
-	void Settings::Init(D3D11* pD3D11)
+	Settings::Settings(D3D11* pD3D11)
 	{
 		m_FPS.Init();
 		m_pD3D11 = pD3D11;
@@ -15,15 +15,28 @@ namespace wilson
 		m_pHeightOnOFF = pD3D11->GetHeighOnOFF();
 
 		ID3D11Device* pDevice= pD3D11->GetDevice();
-		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/sun-color-icon.png", nullptr, nullptr, &m_icons[0], nullptr);
+		HRESULT hr;
+		hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/sun-color-icon.png", nullptr, nullptr, &m_icons[0], nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA("Settings::SunIcon::CreateSRVFailed");
+		}
 		m_icons[0]->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("Importer::m_icons[0]") - 1, "Importer::m_icons[0]");
-		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/light-bulb-color-icon.png", nullptr, nullptr, &m_icons[1], nullptr);
+			sizeof("Settings::SunIcon") - 1, "Settings::SunIcon");
+		hr = D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/light-bulb-color-icon.png", nullptr, nullptr, &m_icons[1], nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA("Settings::LightBulbIcon::CreateSRVFailed");
+		}
 		m_icons[1]->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("Importer::m_icons[1]") - 1, "Importer::m_icons[1]");
-		D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/flashlight-icon.png", nullptr, nullptr, &m_icons[2], nullptr);
+			sizeof("Settings::LightBulbIcon") - 1, "Settings::LightBulbIcon");
+		hr=D3DX11CreateShaderResourceViewFromFileW(pDevice, L"./Assets/Icons/flashlight-icon.png", nullptr, nullptr, &m_icons[2], nullptr);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA("Settings::FlashLightIcon::CreateSRVFailed");
+		}
 		m_icons[2]->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("Importer::m_icons[2]") - 1, "Importer::m_icons[2]");
+			sizeof("Settings::FlashLightIcon") - 1, "Settings::FlashLightIcon");
 	}
 
 	void Settings::Draw()
@@ -94,8 +107,9 @@ namespace wilson
 					m_prevNearZ != *curNearZ || m_prevFarZ != *curFarZ)
 				{	
 					m_pCam->Update();
-					m_pFrustum->Init(m_pCam);
-					
+					delete m_pFrustum;
+					m_pFrustum=new Frustum(m_pCam);
+					m_pD3D11->SetNewFrustum(m_pFrustum);
 				}
 				m_prevNearZ = *curNearZ;
 				m_prevFarZ = *curFarZ;
@@ -159,6 +173,7 @@ namespace wilson
 		}
 		ImGui::End();
 	}
+	
 	Settings::~Settings()
 	{
 		for (int i = 0; i < 3; ++i)

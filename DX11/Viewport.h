@@ -17,7 +17,6 @@ namespace wilson
 	class Viewport
 	{
 	public:
-		void Init(D3D11*, Scene*);
 		void Draw();
 		void Resize();
 		bool CheckRange(int, int);
@@ -42,8 +41,9 @@ namespace wilson
 		};
 
 		Viewport() = default;
+		Viewport(D3D11*, Scene*);
 		Viewport(const Viewport&) = delete;
-		~Viewport() = default;
+		~Viewport();
 	private:
 		XMVECTOR CalEntityPos();
 	private:
@@ -58,7 +58,7 @@ namespace wilson
 		D3D11* m_pD3D11;
 		Camera* m_pCam;
 		Scene* m_pScene;
-		Importer m_importer;
+		Importer* m_pImporter;
 		IDXGISwapChain* m_pSwapChain;
 
 		ID3D11ShaderResourceView* m_pFinalSRV;

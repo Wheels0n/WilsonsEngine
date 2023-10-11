@@ -25,52 +25,7 @@ namespace wilson
         DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f),
     };
 
-    bool PointLight::Init(ID3D11Device* pDevice, UINT idx)
-    {   
-        m_cubeMats.resize(6);
-        D3D11_BUFFER_DESC lightCBD = {};
-        lightCBD.Usage = D3D11_USAGE_DYNAMIC;
-        lightCBD.ByteWidth = sizeof(PointLightProperty);
-        lightCBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        lightCBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        lightCBD.MiscFlags = 0;
-        lightCBD.StructureByteStride = 0;
-
-        HRESULT result = pDevice->CreateBuffer(&lightCBD, nullptr, &m_pLightBuffer);
-        if (FAILED(result))
-        {
-            return false;
-        }
-        m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-            sizeof("PointLight::m_pLightBuffer") - 1, "PointLight::m_pLightBuffer");
-
-        m_pPosBuffer = nullptr;
-        lightCBD.ByteWidth = sizeof(DirectX::XMVECTOR);
-        result = pDevice->CreateBuffer(&lightCBD, nullptr, &m_pPosBuffer);
-        if (FAILED(result))
-        {
-            return false;
-        }
-        m_pPosBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-            sizeof("PointLight::m_pPosBuffer") - 1, "PointLight::m_pPosBuffer");
-
-        Light::Init(pDevice,idx);
-        m_attenuation = DirectX::XMFLOAT3(0.0f, 0.1f, 0.0f);
-        m_range = 25.0f;
-
-        m_pMatricesBuffer = nullptr;
-        lightCBD.ByteWidth = sizeof(DirectX::XMMATRIX) * 7;
-        result = pDevice->CreateBuffer(&lightCBD, nullptr, &m_pMatricesBuffer);
-        if (FAILED(result))
-        {
-            return false;
-        }
-        m_pMatricesBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-            sizeof("PointLight::m_pMatricesBuffer") - 1, "PointLight::m_pMatricesBuffer");
-        CreateShadowMatrices();
-
-        return true;
-    }
+  
     void PointLight::UpdateProperty()
     {
         m_pointLightProperty.ambient = m_ambient;
@@ -98,7 +53,8 @@ namespace wilson
         DirectX::XMMATRIX* pMatrix;
         HRESULT hr = pContext->Map(m_pMatricesBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
         if (FAILED(hr))
-        {
+        {   
+            OutputDebugStringA("PointlLight::m_pMatriceBuffer::MapFailed");
             return;
         }
 
@@ -117,7 +73,8 @@ namespace wilson
         DirectX::XMVECTOR* pV;
         HRESULT hr = pContext->Map(m_pPosBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
         if (FAILED(hr))
-        {
+        {   
+            OutputDebugStringA("PointlLight::m_pPosBuffer::MapFailed");
             return;
         }
 
@@ -129,9 +86,55 @@ namespace wilson
         pContext->PSSetConstantBuffers(0, 1, &m_pPosBuffer);
     }
 
+    PointLight::PointLight(ID3D11Device* pDevice, UINT idx)
+        :Light(idx)
+    {
+        m_cubeMats.resize(6);
+        D3D11_BUFFER_DESC lightCBD = {};
+        lightCBD.Usage = D3D11_USAGE_DYNAMIC;
+        lightCBD.ByteWidth = sizeof(PointLightProperty);
+        lightCBD.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        lightCBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        lightCBD.MiscFlags = 0;
+        lightCBD.StructureByteStride = 0;
+
+        HRESULT result = pDevice->CreateBuffer(&lightCBD, nullptr, &m_pLightBuffer);
+        if (FAILED(result))
+        {   
+            OutputDebugStringA("PointLight::m_pLightBuffer::CreateBufferFailed");
+        }
+        m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+            sizeof("PointLight::m_pLightBuffer") - 1, "PointLight::m_pLightBuffer");
+
+        m_pPosBuffer = nullptr;
+        lightCBD.ByteWidth = sizeof(DirectX::XMVECTOR);
+        result = pDevice->CreateBuffer(&lightCBD, nullptr, &m_pPosBuffer);
+        if (FAILED(result))
+        {
+            OutputDebugStringA("PointLight::m_pPosBuffer::CreateBufferFailed");
+        }
+        m_pPosBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+            sizeof("PointLight::m_pPosBuffer") - 1, "PointLight::m_pPosBuffer");
+
+       
+        m_attenuation = DirectX::XMFLOAT3(0.0f, 0.1f, 0.0f);
+        m_range = 25.0f;
+
+        m_pMatricesBuffer = nullptr;
+        lightCBD.ByteWidth = sizeof(DirectX::XMMATRIX) * 7;
+        result = pDevice->CreateBuffer(&lightCBD, nullptr, &m_pMatricesBuffer);
+        if (FAILED(result))
+        {
+            OutputDebugStringA("PointLight::m_pMatricesBuffer::CreateBufferFailed");
+        }
+        m_pMatricesBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+            sizeof("PointLight::m_pMatricesBuffer") - 1, "PointLight::m_pMatricesBuffer");
+        CreateShadowMatrices();
+
+    }
+
     PointLight::~PointLight()
     {
-        Light::~Light();
         if (m_pMatricesBuffer != nullptr)
         {
             m_pMatricesBuffer->Release();
@@ -143,7 +146,7 @@ namespace wilson
             m_pPosBuffer->Release();
             m_pPosBuffer = nullptr;
         }
-
+        Light::~Light();
     }
 
 }

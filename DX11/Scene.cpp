@@ -5,7 +5,7 @@
 
 namespace wilson
 {
-	Scene::Scene()
+	Scene::Scene(D3D11* pD3D11)
 	{
 		m_isModel = false;
 		sceneHandler = this;
@@ -13,6 +13,9 @@ namespace wilson
 		m_pD3D11 = nullptr;
 		m_pSelectedEntity = nullptr;
 		m_pCam = nullptr;
+
+		m_pD3D11 = pD3D11;
+		m_pShadow = pD3D11->GetShadowMap();
 	}
 	Scene::~Scene()
 	{

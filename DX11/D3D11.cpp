@@ -6,7 +6,8 @@
 
 namespace wilson
 {
-	D3D11::D3D11()
+	D3D11::D3D11(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
+		float fScreenFar, float fScreenNear)
 	{
 		m_pSwapChain = nullptr;
 		m_pDevice = nullptr;
@@ -109,8 +110,6 @@ namespace wilson
 		m_pGBufferWriteBS = nullptr;
 		m_pLightingPassBS = nullptr;
 
-		m_pTerrain = nullptr;
-		m_pImporter = nullptr;
 		m_pCam = nullptr;
 		m_pFrustum = nullptr;
 		m_pLightBuffer = nullptr;
@@ -130,780 +129,777 @@ namespace wilson
 
 		m_exposure = 1.0f;
 		m_heightScale = 0.0001f;
-	}
 
-	bool D3D11::Init(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
-		float fScreenFar, float fScreenNear)
-	{
-		HRESULT hr;
-		bool result;
-		IDXGIFactory* pFactory;
-		IDXGIAdapter* pAdapter;
-		IDXGIOutput* pAdapterOutput;
-		UINT numModes=0, i=0, numerator=0, denominator=0;
-		size_t strLen=0;
-		DXGI_MODE_DESC* pDisplayModeList = {};
-		DXGI_ADAPTER_DESC adapterDesc = {};
-		int iError=0;
-		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-		D3D_FEATURE_LEVEL featureLevel = {};
-		ID3D11Texture2D* pBackbuffer = {};
-		D3D11_RASTERIZER_DESC rasterDesc = {};
-		D3D11_RENDER_TARGET_BLEND_DESC rtBlendDSC = {};
-		float fFOV=0.0f, fScreenAspect=0.0f;
-		m_bVsyncOn = bVsync;
-
-		hr = CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&pFactory));
-		if (FAILED(hr))
 		{
-			return false;
-		}
-		pFactory->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::pFactory") - 1, "D3D11::pFactory");
+			HRESULT hr;
+			bool result;
+			IDXGIFactory* pFactory;
+			IDXGIAdapter* pAdapter;
+			IDXGIOutput* pAdapterOutput;
+			UINT numModes = 0, i = 0, numerator = 0, denominator = 0;
+			size_t strLen = 0;
+			DXGI_MODE_DESC* pDisplayModeList = {};
+			DXGI_ADAPTER_DESC adapterDesc = {};
+			int iError = 0;
+			DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+			D3D_FEATURE_LEVEL featureLevel = {};
+			ID3D11Texture2D* pBackbuffer = {};
+			D3D11_RASTERIZER_DESC rasterDesc = {};
+			D3D11_RENDER_TARGET_BLEND_DESC rtBlendDSC = {};
+			float fFOV = 0.0f, fScreenAspect = 0.0f;
+			m_bVsyncOn = bVsync;
 
-		//Enumerates video cards
-		hr = pFactory->EnumAdapters(0, &pAdapter);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		pAdapter->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::pAdapter") - 1, "D3D11::pAdapter");
-
-		//Enumerates outputs(ex:monitor)
-		hr = pAdapter->EnumOutputs(0, &pAdapterOutput);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-
-		//Each monitor has a set of display modes it supports. A display mode refers to the following data in DXGI_MODE_DESC
-		hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, nullptr);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-
-		//Fixing a display mode format, we can get a list of all supported display modes an output supports in that format with the following code :
-		pDisplayModeList = new DXGI_MODE_DESC[numModes];
-		if (pDisplayModeList == nullptr)
-		{
-			return false;
-		}
-
-		hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, pDisplayModeList);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-
-		hr = pAdapter->GetDesc(&adapterDesc);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-
-
-		delete[] pDisplayModeList;
-		pDisplayModeList = nullptr;
-
-		pAdapterOutput->Release();
-		pAdapterOutput = nullptr;
-
-		pAdapter->Release();
-		pAdapter = nullptr;
-
-		pFactory->Release();
-		pFactory = nullptr;
-
-		m_clientWidth = screenWidth;
-		m_clientHeight = screenHeight;
-
-		ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
-
-		swapChainDesc.BufferCount = 1;
-		swapChainDesc.BufferDesc.Width = screenWidth;
-		swapChainDesc.BufferDesc.Height = screenHeight;
-		swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-
-
-		if (m_bVsyncOn == true)
-		{
-			swapChainDesc.BufferDesc.RefreshRate.Numerator = 75;
-			swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
-		}
-		else
-		{
-			swapChainDesc.BufferDesc.RefreshRate.Numerator = 0;
-			swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
-		}
-
-		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.OutputWindow = hWnd;
-
-		swapChainDesc.SampleDesc.Count = 1;
-		swapChainDesc.SampleDesc.Quality = 0;
-
-		if (bFullscreen == true)
-		{
-			swapChainDesc.Windowed = FALSE;
-		}
-		else
-		{
-			swapChainDesc.Windowed = TRUE;
-		}
-
-		swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-		swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-		swapChainDesc.Flags = 0;
-
-		featureLevel = D3D_FEATURE_LEVEL_11_0;
-
-
-		hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_DEBUG, &featureLevel, 1,
-			D3D11_SDK_VERSION, &swapChainDesc, &m_pSwapChain, &m_pDevice, nullptr, &m_pContext);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pDevice->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pDevice") - 1, "D3D11::m_pDevice");
-		m_pContext->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pContext") - 1, "D3D11::m_pContext");
-		m_pSwapChain->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pSwapChain") - 1, "D3D11::m_pSwapChain");
-
-
-
-
-		hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackbuffer));
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		pBackbuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::pBackbuffer") - 1, "D3D11::pBackbuffer");
-
-		hr = m_pDevice->CreateRenderTargetView(pBackbuffer, nullptr, &m_pScreenRTTV);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pScreenRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pScreenRTTV") - 1, "D3D11::m_pScreenRTTV");
-
-
-		pBackbuffer->Release();
-		pBackbuffer = nullptr;
-		{
-			XMFLOAT3 vertices[] = {
-				{XMFLOAT3(-1.0f, -1.0f, 0.0f)},
-				{XMFLOAT3(-1.0f, 1.0f, 0.0f)},
-				{XMFLOAT3(1.0f, 1.0f, 0.0f)},
-				{XMFLOAT3(1.0f, -1.0f, 0.0f)}
-			};
-			XMFLOAT2 texCoords[] = {
-				{XMFLOAT2(0.0f, 1.0f)},
-				{XMFLOAT2(0.0f, 0.0f)},
-				{XMFLOAT2(1.0f, 0.0f)},
-				{XMFLOAT2(1.0f, 1.0f)}
-			};
-
-			QUAD quads[4];
-			for (int i = 0; i < 4; ++i)
-			{
-				quads[i].pos = vertices[i];
-				quads[i].tex = texCoords[i];
-			}
-
-			D3D11_SUBRESOURCE_DATA quadData;
-			quadData.pSysMem = quads;
-			quadData.SysMemPitch = 0;
-			quadData.SysMemSlicePitch = 0;
-
-			D3D11_BUFFER_DESC quadBDSC = {0,};
-			quadBDSC.Usage = D3D11_USAGE_DEFAULT;
-			quadBDSC.ByteWidth = sizeof(QUAD) * 4;
-			quadBDSC.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		
-
-			hr = m_pDevice->CreateBuffer(&quadBDSC, &quadData, &m_pQuadVB);
+			hr = CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&pFactory));
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::pFactory::CreateDXGIFactoryFailed");
 			}
-			m_pQuadVB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pQuadVB") - 1, "D3D11::m_pQuadVB");
+			pFactory->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::pFactory") - 1, "D3D11::pFactory");
 
-
-			unsigned long indices[6] = { 0,1,2, 2,3,0 };
-			D3D11_SUBRESOURCE_DATA indexData;
-			indexData.pSysMem = indices;
-			indexData.SysMemPitch = 0;
-			indexData.SysMemSlicePitch = 0;
-
-			D3D11_BUFFER_DESC indexBD = { 0, };
-			indexBD.Usage = D3D11_USAGE_DEFAULT;
-			indexBD.ByteWidth = sizeof(unsigned long) * 6;
-			indexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-			hr = m_pDevice->CreateBuffer(&indexBD, &indexData, &m_pQuadIB);
+			//Enumerates video cards
+			hr = pFactory->EnumAdapters(0, &pAdapter);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::pAdapter::EnumAdaptersFailed");
 			}
-			m_pQuadIB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pQuadIB") - 1, "D3D11::m_pQuadIB");
+			pAdapter->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::pAdapter") - 1, "D3D11::pAdapter");
 
-		}
-		//Gen Cube Buffer
-		{	
-			XMFLOAT3 vertices[] = {
-			 {XMFLOAT3(-1.0f,  1.0f, -1.0f)},//front-upper-left  0
-			 {XMFLOAT3(1.0f,   1.0f, -1.0f)},//front-upper-right 1
-			 {XMFLOAT3(1.0f,  -1.0f, -1.0f)},//front-down-right  2
-			 {XMFLOAT3(-1.0f, -1.0f, -1.0f)},//front-down-left   3
-
-			 {XMFLOAT3(-1.0f,  1.0f, 1.0f)},//back-upper-left   4
-			 {XMFLOAT3(1.0f,   1.0f, 1.0f)},//back-upper-right  5
-			 {XMFLOAT3(1.0f,  -1.0f, 1.0f)},//back-down-right   6
-			 {XMFLOAT3(-1.0f, -1.0f, 1.0f)}};//back-down-left   7
-			int vertexCount = sizeof(vertices) / sizeof(XMFLOAT3);
-			
-			 D3D11_SUBRESOURCE_DATA skyBoxVertexData;
-			 skyBoxVertexData.pSysMem = vertices;
-			 skyBoxVertexData.SysMemPitch = 0;
-			 skyBoxVertexData.SysMemSlicePitch = 0;
-
-			D3D11_BUFFER_DESC skyBoxVertexBD;
-			skyBoxVertexBD.Usage = D3D11_USAGE_DEFAULT;
-			skyBoxVertexBD.ByteWidth = sizeof(XMFLOAT3) * vertexCount;
-			skyBoxVertexBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-			skyBoxVertexBD.CPUAccessFlags = 0;
-			skyBoxVertexBD.MiscFlags = 0;
-			skyBoxVertexBD.StructureByteStride = 0;
-
-		    hr = m_pDevice->CreateBuffer(&skyBoxVertexBD,&skyBoxVertexData, &m_pCubeVertices);
+			//Enumerates outputs(ex:monitor)
+			hr = pAdapter->EnumOutputs(0, &pAdapterOutput);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::pAdapter::EnumOutputsFailed");
 			}
-			m_pCubeVertices->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pCubeVertices") - 1, "D3D11::m_pCubeVertices");
 
-			//시계방향 감은 면이  frontface
-			unsigned long indices[] = {
-	   //front
-	   0,2,1,
-	   0,3,2,
-	   //back
-	   4,5,6,
-	   4,6,7,
-	   //left
-	   0,4,7,
-	   0,7,3,
-	   //right
-	   5,1,2,
-	   5,2,6,
-	   //top
-	   5,4,0,
-	   5,0,1,
-	   //bottom
-	   7,6,2,
-	   7,2,3
-			};
-			int indexCount = sizeof(indices) / sizeof(unsigned long);
-
-			D3D11_SUBRESOURCE_DATA skyBoxIndexData;
-			skyBoxIndexData.pSysMem = indices;
-			skyBoxIndexData.SysMemPitch = 0;
-			skyBoxIndexData.SysMemSlicePitch = 0;
-
-			D3D11_BUFFER_DESC skyBoxIndexBD;
-			skyBoxIndexBD.Usage = D3D11_USAGE_DEFAULT;
-			skyBoxIndexBD.ByteWidth = sizeof(unsigned long) * indexCount;
-			skyBoxIndexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
-			skyBoxIndexBD.CPUAccessFlags = 0;
-			skyBoxIndexBD.MiscFlags = 0;
-			skyBoxIndexBD.StructureByteStride = 0;
-
-			hr = m_pDevice->CreateBuffer(&skyBoxIndexBD, &skyBoxIndexData, &m_pCubeIndices);
-			if(FAILED(hr))
-			{
-				return false;
-			}
-			m_pCubeIndices->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pCubeIndices") - 1, "D3D11::m_pCubeIndices");
-
-
-			D3D11_DEPTH_STENCIL_DESC skyboxDSD;
-			ZeroMemory(&skyboxDSD, sizeof(D3D11_DEPTH_STENCIL_DESC));
-			skyboxDSD.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-			hr = m_pDevice->CreateDepthStencilState(&skyboxDSD, &m_pSkyBoxDSS);
+			//Each monitor has a set of display modes it supports. A display mode refers to the following data in DXGI_MODE_DESC
+			hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, nullptr);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::pAdapterOutput::GetNumOfDisplayModeListFailed");
 			}
-			m_pSkyBoxDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pSkyBoxDSS") - 1, "D3D11::m_pSkyBoxDSS");
 
+			//Fixing a display mode format, we can get a list of all supported display modes an output supports in that format with the following code :
+			pDisplayModeList = new DXGI_MODE_DESC[numModes];
+			if (pDisplayModeList == nullptr)
+			{
+				OutputDebugStringA("D3D11::CreateDXGI_MODE_DESC Failed");
+			}
 
-			D3D11_RASTERIZER_DESC skyboxRD;
-			ZeroMemory(&skyboxRD, sizeof(D3D11_RASTERIZER_DESC));
-			skyboxRD.FillMode = D3D11_FILL_SOLID;
-			skyboxRD.CullMode = D3D11_CULL_BACK;
-			hr = m_pDevice->CreateRasterizerState(&skyboxRD, &m_pSkyBoxRS);
+			hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, pDisplayModeList);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::pAdapterOutput::GetDisplayModeListFailed");
 			}
-			m_pSkyBoxRS->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pSkyBoxRS") - 1, "D3D11::m_pSkyBoxRS");
 
-		}
-
-		if (!CreateRTT(m_clientWidth, m_clientHeight))
-		{
-			return false;
-		}
-
-		if (!CreateDSS())
-		{
-			return false;
-		}
-
-		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pScreenDepthRTT, &m_pScreenDSV))
-		{
-			return false;
-		}
-		
-		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pSceneDepthRTT, &m_pSceneDSV))
-		{
-			return false;
-		}
-
-		rasterDesc.AntialiasedLineEnable = false;
-		rasterDesc.CullMode =D3D11_CULL_BACK;
-		rasterDesc.DepthBias = 0.0f;
-		rasterDesc.DepthBiasClamp = 0.0f;
-		rasterDesc.DepthClipEnable = true;
-		rasterDesc.FillMode = D3D11_FILL_SOLID;
-		rasterDesc.FrontCounterClockwise = true;
-		rasterDesc.MultisampleEnable = false;
-		rasterDesc.ScissorEnable = false;
-		rasterDesc.SlopeScaledDepthBias = 1.0f;
-
-		hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pGeoRS);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pGeoRS->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pGeoRS") - 1, "D3D11::m_pGeoRS");
-
-		rasterDesc.FrontCounterClockwise = false;
-		hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pQuadRS);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pQuadRS->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pQuadRS") - 1, "D3D11::m_pQuadRS");
-		
-		rasterDesc.FrontCounterClockwise = false;
-		rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
-		hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pAABBRS);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pAABBRS->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pAABBRS") - 1, "D3D11::m_pAABBRS");
-
-		m_viewport.Width = static_cast<float>(screenWidth);
-		m_viewport.Height = static_cast<float>(screenHeight);
-		m_viewport.MinDepth = 0.0f;
-		m_viewport.MaxDepth = 1.0f;
-		m_viewport.TopLeftX = 0.0f;
-		m_viewport.TopLeftY = 0.0f;
-
-		m_diffIrradViewport = m_viewport;
-		m_diffIrradViewport.Width = 32;
-		m_diffIrradViewport.Height = 32;
-
-		m_prefilterViewport = m_viewport;
-		m_prefilterViewport.Width = 128;
-		m_prefilterViewport.Height = 128;
-
-		D3D11_SAMPLER_DESC samplerDesc = {};
-		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-
-		hr = m_pDevice->CreateSamplerState(&samplerDesc, &m_pWrapSS);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pWrapSS->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pWrapSS") - 1, "D3D11::m_pWrapSS");
-
-		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-		hr = m_pDevice->CreateSamplerState(&samplerDesc, &m_pClampSS);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pClampSS->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pClampSS") - 1, "D3D11::m_pClampSS");
-
-		rtBlendDSC.BlendEnable = TRUE;
-		rtBlendDSC.SrcBlend = D3D11_BLEND_ONE;
-		rtBlendDSC.DestBlend = D3D11_BLEND_ZERO;
-		rtBlendDSC.BlendOp = D3D11_BLEND_OP_ADD;
-		rtBlendDSC.SrcBlendAlpha = D3D11_BLEND_ONE;
-		rtBlendDSC.DestBlendAlpha = D3D11_BLEND_ZERO;
-		rtBlendDSC.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		rtBlendDSC.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-		D3D11_BLEND_DESC blendDSC = { FALSE, FALSE, rtBlendDSC };
-		hr = m_pDevice->CreateBlendState(&blendDSC, &m_pGBufferWriteBS);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pGBufferWriteBS->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pGBufferWriteBS") - 1, "D3D11::m_pGBufferWriteBS");
-
-
-		rtBlendDSC.SrcBlend = D3D11_BLEND_SRC_ALPHA;
-		blendDSC.RenderTarget[0] = rtBlendDSC;
-		hr = m_pDevice->CreateBlendState(&blendDSC, &m_pLightingPassBS);
-		if (FAILED(hr))
-		{
-			return false;
-		}
-		m_pLightingPassBS->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D11::m_pLightingPassBS") - 1, "D3D11::m_pLightingPassBS");
-
-		
-		//Set projectionMatrix, viewMatrix;
-		m_pCam = new Camera(screenWidth, screenHeight, fScreenFar, fScreenNear);
-		m_pCam->Init(m_pDevice);
-		m_pCam->SetCamPos(m_pContext);
-		XMMATRIX* m_projMat = m_pCam->GetProjectionMatrix();
-		XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
-		m_pFrustum = new Frustum();
-		m_pFrustum->Init(m_pCam);
-		m_pMatBuffer = new MatBuffer(m_pDevice, m_pContext, m_viewMat, m_projMat);
-		m_pMatBuffer->Init(m_pDevice);
-
-		m_pLightBuffer = new LightBuffer(m_pDevice);
-
-		m_pShader = new Shader();
-		m_pShader->Init(m_pDevice, m_pContext);
-
-		m_pShadowMap = new ShadowMap();
-		m_pShadowMap->Init(m_pDevice, _SHADOWMAP_SIZE, _SHADOWMAP_SIZE, m_pCam->GetCascadeLevels().size(),
-			m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
-		{
-			D3D11_BUFFER_DESC bds = { 0, };
-			bds.ByteWidth = sizeof(BOOL) * 4;
-			bds.Usage = D3D11_USAGE_DYNAMIC;
-			bds.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-			bds.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pBoolBuffer);
+			hr = pAdapter->GetDesc(&adapterDesc);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::pAdapter::GetDescFailed");
 			}
-			m_pBoolBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pBoolBuffer") - 1, "D3D11::m_pBoolBuffer");		
 
-			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pHeightOnOffBuffer);
+
+			delete[] pDisplayModeList;
+			pDisplayModeList = nullptr;
+
+			pAdapterOutput->Release();
+			pAdapterOutput = nullptr;
+
+			pAdapter->Release();
+			pAdapter = nullptr;
+
+			pFactory->Release();
+			pFactory = nullptr;
+
+			m_clientWidth = screenWidth;
+			m_clientHeight = screenHeight;
+
+			ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
+
+			swapChainDesc.BufferCount = 1;
+			swapChainDesc.BufferDesc.Width = screenWidth;
+			swapChainDesc.BufferDesc.Height = screenHeight;
+			swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+
+			if (m_bVsyncOn == true)
+			{
+				swapChainDesc.BufferDesc.RefreshRate.Numerator = 75;
+				swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
+			}
+			else
+			{
+				swapChainDesc.BufferDesc.RefreshRate.Numerator = 0;
+				swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
+			}
+
+			swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+			swapChainDesc.OutputWindow = hWnd;
+
+			swapChainDesc.SampleDesc.Count = 1;
+			swapChainDesc.SampleDesc.Quality = 0;
+
+			if (bFullscreen == true)
+			{
+				swapChainDesc.Windowed = FALSE;
+			}
+			else
+			{
+				swapChainDesc.Windowed = TRUE;
+			}
+
+			swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+			swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+			swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+			swapChainDesc.Flags = 0;
+
+			featureLevel = D3D_FEATURE_LEVEL_11_0;
+
+
+			hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_DEBUG, &featureLevel, 1,
+				D3D11_SDK_VERSION, &swapChainDesc, &m_pSwapChain, &m_pDevice, nullptr, &m_pContext);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::Create Device, Context, and SwapChain Failed");
 			}
-			m_pHeightOnOffBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pHeightOnOffBuffer") - 1, "D3D11::m_pHeightOnOffBuffer");
+			m_pDevice->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pDevice") - 1, "D3D11::m_pDevice");
+			m_pContext->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pContext") - 1, "D3D11::m_pContext");
+			m_pSwapChain->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pSwapChain") - 1, "D3D11::m_pSwapChain");
 
 
-			bds.ByteWidth = sizeof(XMVECTOR);
-			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pColorBuffer);
+
+
+			hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackbuffer));
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::pBackbuffer::CreateBackBufferFailed");
 			}
-			m_pColorBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pColorBuffer") - 1, "D3D11::m_pColorBuffer");
-			
-			bds.ByteWidth = sizeof(SamplePoints);
-			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pSSAOKernelBuffer);
+			pBackbuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::pBackbuffer") - 1, "D3D11::pBackbuffer");
+
+			hr = m_pDevice->CreateRenderTargetView(pBackbuffer, nullptr, &m_pScreenRTTV);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::m_pScreenRTTV::CreateRTVFailed");
 			}
-			m_pSSAOKernelBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pSSAOKernelBuffer") - 1, "D3D11::m_pSSAOKernelBuffer");
+			m_pScreenRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pScreenRTTV") - 1, "D3D11::m_pScreenRTTV");
 
-			bds.ByteWidth = sizeof(XMFLOAT4);
-			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pExposureBuffer);
-			if (FAILED(hr))
+
+			pBackbuffer->Release();
+			pBackbuffer = nullptr;
 			{
-				return false;
-			}
-			m_pExposureBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pExposureBuffer") - 1, "D3D11::m_pExposureBuffer");
+				XMFLOAT3 vertices[] = {
+					{XMFLOAT3(-1.0f, -1.0f, 0.0f)},
+					{XMFLOAT3(-1.0f, 1.0f, 0.0f)},
+					{XMFLOAT3(1.0f, 1.0f, 0.0f)},
+					{XMFLOAT3(1.0f, -1.0f, 0.0f)}
+				};
+				XMFLOAT2 texCoords[] = {
+					{XMFLOAT2(0.0f, 1.0f)},
+					{XMFLOAT2(0.0f, 0.0f)},
+					{XMFLOAT2(1.0f, 0.0f)},
+					{XMFLOAT2(1.0f, 1.0f)}
+				};
+
+				QUAD quads[4];
+				for (int i = 0; i < 4; ++i)
+				{
+					quads[i].pos = vertices[i];
+					quads[i].tex = texCoords[i];
+				}
+
+				D3D11_SUBRESOURCE_DATA quadData;
+				quadData.pSysMem = quads;
+				quadData.SysMemPitch = 0;
+				quadData.SysMemSlicePitch = 0;
+
+				D3D11_BUFFER_DESC quadBDSC = { 0, };
+				quadBDSC.Usage = D3D11_USAGE_DEFAULT;
+				quadBDSC.ByteWidth = sizeof(QUAD) * 4;
+				quadBDSC.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
 
-			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pHeightScaleBuffer);
-			if (FAILED(hr))
-			{
-				return false;
-			}
-			m_pHeightScaleBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pHeightScaleBuffer") - 1, "D3D11::m_pHeightScaleBuffer");
-
-
-			bds.ByteWidth = sizeof(XMMATRIX)*6;
-			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pEquirect2CubeBuffer);
-			if (FAILED(hr))
-			{
-				return false;
-			}
-			m_pEquirect2CubeBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pEquirect2CubeBuffer") - 1, "D3D11::m_pEquirect2CubeBuffer");
-
-			bds.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-			bds.ByteWidth = sizeof(DirectX::XMFLOAT3) * 8;
-			hr = m_pDevice->CreateBuffer(&bds, 0, &m_pAABBVBuffer);
-			if (FAILED(hr))
-			{
-				return false;
-			}
-			m_pAABBVBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pAABBVBuffer") - 1, "D3D11::m_pAABBVBuffer");
-
-
-			unsigned long cubeIndices[24]={ 0, 1,   1, 2,   2, 3,  3,0 ,
-					   0, 4,   1, 5,   2, 6,  3,7,
-					   4, 5,   5, 6,   6, 7,  7,0 };
-			D3D11_SUBRESOURCE_DATA cubeIndexData = {};
-			cubeIndexData.pSysMem = cubeIndices;
-			cubeIndexData.SysMemPitch = 0;
-			cubeIndexData.SysMemSlicePitch = 0;
-
-			bds.Usage = D3D11_USAGE_DEFAULT;
-			bds.BindFlags = D3D11_BIND_INDEX_BUFFER;
-			bds.ByteWidth = sizeof(unsigned long) * 24;
-			bds.CPUAccessFlags = 0;
-			hr = m_pDevice->CreateBuffer(&bds, &cubeIndexData, &m_pAABBIBuffer);
-			if (FAILED(hr))
-			{
-				return false;
-			}
-			m_pAABBIBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D11::m_pAABBIBuffer") - 1, "D3D11::m_pAABBIBuffer");
-		}
-		{
-
-			//Gen Sample points
-			D3D11_MAPPED_SUBRESOURCE mappedResource;
-			SamplePoints* pSamplePoints;
-			hr = m_pContext->Map(m_pSSAOKernelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-			if (FAILED(hr))
-			{
-				return false;
-			}
-			pSamplePoints = (SamplePoints*)mappedResource.pData;
-
-			std::uniform_real_distribution<float> randomFloats(0.0, 1.0f);
-			std::default_random_engine gen;
-			for (int i = 0; i < 64; ++i)
-			{
-				XMFLOAT3 sample(
-					randomFloats(gen) * 2.0f - 1.0f,
-					randomFloats(gen) * 2.0f - 1.0f,
-					randomFloats(gen));
-				XMVECTOR sampleV = XMLoadFloat3(&sample);
-				sampleV = DirectX::XMVector3Normalize(sampleV);
-				sampleV = XMVectorScale(sampleV, randomFloats(gen));
-				float scale = i / 64.0f;
-				scale = 0.1f + (1.0f - 0.1f) * scale * scale;
-				sampleV = XMVectorScale(sampleV, scale);
-
-				pSamplePoints->coord[i] = sampleV;
-			}
-			m_pContext->Unmap(m_pSSAOKernelBuffer, 0);
-
-
-			//Gen noise texture
-			for (int i = 0; i < 16; ++i)
-			{
-				XMFLOAT3 rot(
-					randomFloats(gen) * 2.0f - 1.0f,
-					randomFloats(gen) * 2.0f - 1.0f,
-					0.0f);
-				m_rotationVecs.push_back(rot);
-			}
-			D3D11_TEXTURE2D_DESC texDesc = {};
-			texDesc.Width = 4;
-			texDesc.Height = 4;
-			texDesc.Usage = D3D11_USAGE_DEFAULT;
-			texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-			texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			texDesc.ArraySize = 1;
-			texDesc.MipLevels = 1;
-			texDesc.SampleDesc.Count = 1;
-			D3D11_SUBRESOURCE_DATA data = { 0, };
-			data.pSysMem = &m_rotationVecs[0];
-			data.SysMemPitch = texDesc.Width * sizeof(XMFLOAT3);
-
-			hr = m_pDevice->CreateTexture2D(&texDesc, &data, &m_pNoiseRTT);
-			if (FAILED(hr))
-			{
-				return false;
-			}
-
-			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-			srvDesc.Format = texDesc.Format;
-			srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
-			srvDesc.Texture2D.MostDetailedMip = 0;
-			hr = m_pDevice->CreateShaderResourceView(m_pNoiseRTT, &srvDesc, &m_pNoiseSRV);
-			if (FAILED(hr))
-			{
-				return false;
-			}
-		}
-		//Gen Equirectangular map
-		{
-			int width, height, nrComponents;
-			float* data = stbi_loadf(".\\Assets\\Models\\FBX\\Bistro_v5_2\\Bistro_v5_2\\san_giuseppe_bridge_4k.hdr",
-				&width, &height, &nrComponents, STBI_rgb_alpha);
-			if (data)
-			{
-				D3D11_TEXTURE2D_DESC texDesc = {};
-				texDesc.Width = width;
-				texDesc.Height = height;
-				texDesc.ArraySize = 1;
-				texDesc.MipLevels = 1;
-				texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-				texDesc.SampleDesc.Count = 1;
-				texDesc.SampleDesc.Quality = 0;
-				texDesc.Usage = D3D11_USAGE_DEFAULT;
-				texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-				texDesc.CPUAccessFlags = 0;
-				texDesc.MiscFlags =0;
-
-				D3D11_SUBRESOURCE_DATA subResource = {};
-				subResource.pSysMem = data;
-				subResource.SysMemPitch = sizeof(float)* width * 4;
-
-				hr = m_pDevice->CreateTexture2D(&texDesc, &subResource, &m_pHDRRTT);
-				stbi_image_free(data);
+				hr = m_pDevice->CreateBuffer(&quadBDSC, &quadData, &m_pQuadVB);
 				if (FAILED(hr))
 				{
-					return false;
+					OutputDebugStringA("D3D11::m_pQuadVB::CreateVBFailed");
 				}
-				m_pHDRRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D11::m_pHDRRTT") - 1, "D3D11::m_pHDRRTT");
+				m_pQuadVB->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pQuadVB") - 1, "D3D11::m_pQuadVB");
 
+
+				unsigned long indices[6] = { 0,1,2, 2,3,0 };
+				D3D11_SUBRESOURCE_DATA indexData;
+				indexData.pSysMem = indices;
+				indexData.SysMemPitch = 0;
+				indexData.SysMemSlicePitch = 0;
+
+				D3D11_BUFFER_DESC indexBD = { 0, };
+				indexBD.Usage = D3D11_USAGE_DEFAULT;
+				indexBD.ByteWidth = sizeof(unsigned long) * 6;
+				indexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+				hr = m_pDevice->CreateBuffer(&indexBD, &indexData, &m_pQuadIB);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pQuadIB::CreateIBFailed");
+				}
+				m_pQuadIB->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pQuadIB") - 1, "D3D11::m_pQuadIB");
+
+			}
+			//Gen Cube Buffer
+			{
+				XMFLOAT3 vertices[] = {
+				 {XMFLOAT3(-1.0f,  1.0f, -1.0f)},//front-upper-left  0
+				 {XMFLOAT3(1.0f,   1.0f, -1.0f)},//front-upper-right 1
+				 {XMFLOAT3(1.0f,  -1.0f, -1.0f)},//front-down-right  2
+				 {XMFLOAT3(-1.0f, -1.0f, -1.0f)},//front-down-left   3
+
+				 {XMFLOAT3(-1.0f,  1.0f, 1.0f)},//back-upper-left   4
+				 {XMFLOAT3(1.0f,   1.0f, 1.0f)},//back-upper-right  5
+				 {XMFLOAT3(1.0f,  -1.0f, 1.0f)},//back-down-right   6
+				 {XMFLOAT3(-1.0f, -1.0f, 1.0f)} };//back-down-left   7
+				int vertexCount = sizeof(vertices) / sizeof(XMFLOAT3);
+
+				D3D11_SUBRESOURCE_DATA skyBoxVertexData;
+				skyBoxVertexData.pSysMem = vertices;
+				skyBoxVertexData.SysMemPitch = 0;
+				skyBoxVertexData.SysMemSlicePitch = 0;
+
+				D3D11_BUFFER_DESC skyBoxVertexBD;
+				skyBoxVertexBD.Usage = D3D11_USAGE_DEFAULT;
+				skyBoxVertexBD.ByteWidth = sizeof(XMFLOAT3) * vertexCount;
+				skyBoxVertexBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+				skyBoxVertexBD.CPUAccessFlags = 0;
+				skyBoxVertexBD.MiscFlags = 0;
+				skyBoxVertexBD.StructureByteStride = 0;
+
+				hr = m_pDevice->CreateBuffer(&skyBoxVertexBD, &skyBoxVertexData, &m_pCubeVertices);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pCubeVertices::CreateVBFailed");
+				}
+				m_pCubeVertices->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pCubeVertices") - 1, "D3D11::m_pCubeVertices");
+
+				//시계방향 감은 면이  frontface
+				unsigned long indices[] = {
+					//front
+					0,2,1,
+					0,3,2,
+					//back
+					4,5,6,
+					4,6,7,
+					//left
+					0,4,7,
+					0,7,3,
+					//right
+					5,1,2,
+					5,2,6,
+					//top
+					5,4,0,
+					5,0,1,
+					//bottom
+					7,6,2,
+					7,2,3
+				};
+				int indexCount = sizeof(indices) / sizeof(unsigned long);
+
+				D3D11_SUBRESOURCE_DATA skyBoxIndexData;
+				skyBoxIndexData.pSysMem = indices;
+				skyBoxIndexData.SysMemPitch = 0;
+				skyBoxIndexData.SysMemSlicePitch = 0;
+
+				D3D11_BUFFER_DESC skyBoxIndexBD;
+				skyBoxIndexBD.Usage = D3D11_USAGE_DEFAULT;
+				skyBoxIndexBD.ByteWidth = sizeof(unsigned long) * indexCount;
+				skyBoxIndexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
+				skyBoxIndexBD.CPUAccessFlags = 0;
+				skyBoxIndexBD.MiscFlags = 0;
+				skyBoxIndexBD.StructureByteStride = 0;
+
+				hr = m_pDevice->CreateBuffer(&skyBoxIndexBD, &skyBoxIndexData, &m_pCubeIndices);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pCubeIndices::CreateIBFailed");
+				}
+				m_pCubeIndices->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pCubeIndices") - 1, "D3D11::m_pCubeIndices");
+
+
+				D3D11_DEPTH_STENCIL_DESC skyboxDSD;
+				ZeroMemory(&skyboxDSD, sizeof(D3D11_DEPTH_STENCIL_DESC));
+				skyboxDSD.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+				hr = m_pDevice->CreateDepthStencilState(&skyboxDSD, &m_pSkyBoxDSS);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pSkyBoxDSS::CreateDSSFailed");
+				}
+				m_pSkyBoxDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pSkyBoxDSS") - 1, "D3D11::m_pSkyBoxDSS");
+
+
+				D3D11_RASTERIZER_DESC skyboxRD;
+				ZeroMemory(&skyboxRD, sizeof(D3D11_RASTERIZER_DESC));
+				skyboxRD.FillMode = D3D11_FILL_SOLID;
+				skyboxRD.CullMode = D3D11_CULL_BACK;
+				hr = m_pDevice->CreateRasterizerState(&skyboxRD, &m_pSkyBoxRS);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pSkyBoxRS::CreateRSFailed");
+				}
+				m_pSkyBoxRS->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pSkyBoxRS") - 1, "D3D11::m_pSkyBoxRS");
+
+			}
+
+			if (!CreateRTT(m_clientWidth, m_clientHeight))
+			{
+				OutputDebugStringA("D3D11::CreateRTT()Failed");
+			}
+
+			if (!CreateDSS())
+			{
+				OutputDebugStringA("D3D11::CreateDSS()Failed");
+			}
+
+			if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pScreenDepthRTT, &m_pScreenDSV))
+			{
+				OutputDebugStringA("D3D11::CreateDepthBuffer()onScreenFailed");
+			}
+
+			if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pSceneDepthRTT, &m_pSceneDSV))
+			{
+				OutputDebugStringA("D3D11::CreateDepthBuffer()onSceneFailed");
+			}
+
+			rasterDesc.AntialiasedLineEnable = false;
+			rasterDesc.CullMode = D3D11_CULL_BACK;
+			rasterDesc.DepthBias = 0.0f;
+			rasterDesc.DepthBiasClamp = 0.0f;
+			rasterDesc.DepthClipEnable = true;
+			rasterDesc.FillMode = D3D11_FILL_SOLID;
+			rasterDesc.FrontCounterClockwise = true;
+			rasterDesc.MultisampleEnable = false;
+			rasterDesc.ScissorEnable = false;
+			rasterDesc.SlopeScaledDepthBias = 1.0f;
+
+			hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pGeoRS);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("D3D11::m_pGeoRS::CreateRSFailed");
+			}
+			m_pGeoRS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pGeoRS") - 1, "D3D11::m_pGeoRS");
+
+			rasterDesc.FrontCounterClockwise = false;
+			hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pQuadRS);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("D3D11::m_pQuadRS::CreateRSFailed");
+			}
+			m_pQuadRS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pQuadRS") - 1, "D3D11::m_pQuadRS");
+
+			rasterDesc.FrontCounterClockwise = false;
+			rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+			hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pAABBRS);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("D3D11::m_pAABBRS::CreateRSFailed");
+			}
+			m_pAABBRS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pAABBRS") - 1, "D3D11::m_pAABBRS");
+
+			m_viewport.Width = static_cast<float>(screenWidth);
+			m_viewport.Height = static_cast<float>(screenHeight);
+			m_viewport.MinDepth = 0.0f;
+			m_viewport.MaxDepth = 1.0f;
+			m_viewport.TopLeftX = 0.0f;
+			m_viewport.TopLeftY = 0.0f;
+
+			m_diffIrradViewport = m_viewport;
+			m_diffIrradViewport.Width = 32;
+			m_diffIrradViewport.Height = 32;
+
+			m_prefilterViewport = m_viewport;
+			m_prefilterViewport.Width = 128;
+			m_prefilterViewport.Height = 128;
+
+			D3D11_SAMPLER_DESC samplerDesc = {};
+			samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+			samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+
+			hr = m_pDevice->CreateSamplerState(&samplerDesc, &m_pWrapSS);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("D3D11::m_pWrapSS::CreateSSFailed");
+			}
+			m_pWrapSS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pWrapSS") - 1, "D3D11::m_pWrapSS");
+
+			samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+			hr = m_pDevice->CreateSamplerState(&samplerDesc, &m_pClampSS);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("D3D11::m_pClampSS::CreateSSFailed");
+			}
+			m_pClampSS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pClampSS") - 1, "D3D11::m_pClampSS");
+
+			rtBlendDSC.BlendEnable = TRUE;
+			rtBlendDSC.SrcBlend = D3D11_BLEND_ONE;
+			rtBlendDSC.DestBlend = D3D11_BLEND_ZERO;
+			rtBlendDSC.BlendOp = D3D11_BLEND_OP_ADD;
+			rtBlendDSC.SrcBlendAlpha = D3D11_BLEND_ONE;
+			rtBlendDSC.DestBlendAlpha = D3D11_BLEND_ZERO;
+			rtBlendDSC.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			rtBlendDSC.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+			D3D11_BLEND_DESC blendDSC = { FALSE, FALSE, rtBlendDSC };
+			hr = m_pDevice->CreateBlendState(&blendDSC, &m_pGBufferWriteBS);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("D3D11::m_pGBufferWriteBS::CreateBSFailed");
+			}
+			m_pGBufferWriteBS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pGBufferWriteBS") - 1, "D3D11::m_pGBufferWriteBS");
+
+
+			rtBlendDSC.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+			blendDSC.RenderTarget[0] = rtBlendDSC;
+			hr = m_pDevice->CreateBlendState(&blendDSC, &m_pLightingPassBS);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("D3D11::m_pLightingPassBS::CreateBSFailed");
+			}
+			m_pLightingPassBS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pLightingPassBS") - 1, "D3D11::m_pLightingPassBS");
+
+
+			//Set projectionMatrix, viewMatrix;
+			m_pCam = new Camera(m_pDevice, screenWidth, screenHeight, fScreenFar, fScreenNear);
+			m_pCam->SetCamPos(m_pContext);
+			XMMATRIX* m_projMat = m_pCam->GetProjectionMatrix();
+			XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
+			m_pFrustum = new Frustum(m_pCam);
+			m_pMatBuffer = new MatBuffer(m_pDevice, m_pContext, m_viewMat, m_projMat);
+
+			m_pLightBuffer = new LightBuffer(m_pDevice);
+
+			m_pShader = new Shader(m_pDevice, m_pContext);
+
+			m_pShadowMap = new ShadowMap(m_pDevice, _SHADOWMAP_SIZE, _SHADOWMAP_SIZE, m_pCam->GetCascadeLevels().size(),
+				m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
+			{
+				D3D11_BUFFER_DESC bds = { 0, };
+				bds.ByteWidth = sizeof(BOOL) * 4;
+				bds.Usage = D3D11_USAGE_DYNAMIC;
+				bds.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+				bds.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+				hr = m_pDevice->CreateBuffer(&bds, 0, &m_pBoolBuffer);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pBoolBuffer::CreateBufferFailed");
+				}
+				m_pBoolBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pBoolBuffer") - 1, "D3D11::m_pBoolBuffer");
+
+				hr = m_pDevice->CreateBuffer(&bds, 0, &m_pHeightOnOffBuffer);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pHeightOnOffBuffer::CreateBufferFailed");
+				}
+				m_pHeightOnOffBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pHeightOnOffBuffer") - 1, "D3D11::m_pHeightOnOffBuffer");
+
+
+				bds.ByteWidth = sizeof(XMVECTOR);
+				hr = m_pDevice->CreateBuffer(&bds, 0, &m_pColorBuffer);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pColorBuffer::CreateBufferFailed");
+				}
+				m_pColorBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pColorBuffer") - 1, "D3D11::m_pColorBuffer");
+
+				bds.ByteWidth = sizeof(SamplePoints);
+				hr = m_pDevice->CreateBuffer(&bds, 0, &m_pSSAOKernelBuffer);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pSSAOKernel::CreateBufferFailed");
+				}
+				m_pSSAOKernelBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pSSAOKernelBuffer") - 1, "D3D11::m_pSSAOKernelBuffer");
+
+				bds.ByteWidth = sizeof(XMFLOAT4);
+				hr = m_pDevice->CreateBuffer(&bds, 0, &m_pExposureBuffer);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pExposureBuffer::CreateBufferFailed");
+				}
+				m_pExposureBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pExposureBuffer") - 1, "D3D11::m_pExposureBuffer");
+
+
+				hr = m_pDevice->CreateBuffer(&bds, 0, &m_pHeightScaleBuffer);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pHeightScaleBuffer::CreateBufferFailed");
+				}
+				m_pHeightScaleBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pHeightScaleBuffer") - 1, "D3D11::m_pHeightScaleBuffer");
+
+
+				bds.ByteWidth = sizeof(XMMATRIX) * 6;
+				hr = m_pDevice->CreateBuffer(&bds, 0, &m_pEquirect2CubeBuffer);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pEquirect2CubeBuffer::CreateBufferFailed");
+				}
+				m_pEquirect2CubeBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pEquirect2CubeBuffer") - 1, "D3D11::m_pEquirect2CubeBuffer");
+
+				bds.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+				bds.ByteWidth = sizeof(DirectX::XMFLOAT3) * 8;
+				hr = m_pDevice->CreateBuffer(&bds, 0, &m_pAABBVBuffer);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pAABBVBuffer::CreateVBFailed");
+				}
+				m_pAABBVBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pAABBVBuffer") - 1, "D3D11::m_pAABBVBuffer");
+
+
+				unsigned long cubeIndices[24] = { 0, 1,   1, 2,   2, 3,  3,0 ,
+						   0, 4,   1, 5,   2, 6,  3,7,
+						   4, 5,   5, 6,   6, 7,  7,0 };
+				D3D11_SUBRESOURCE_DATA cubeIndexData = {};
+				cubeIndexData.pSysMem = cubeIndices;
+				cubeIndexData.SysMemPitch = 0;
+				cubeIndexData.SysMemSlicePitch = 0;
+
+				bds.Usage = D3D11_USAGE_DEFAULT;
+				bds.BindFlags = D3D11_BIND_INDEX_BUFFER;
+				bds.ByteWidth = sizeof(unsigned long) * 24;
+				bds.CPUAccessFlags = 0;
+				hr = m_pDevice->CreateBuffer(&bds, &cubeIndexData, &m_pAABBIBuffer);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pAABBIBuffer::CreateIBFailed");
+				}
+				m_pAABBIBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pAABBIBuffer") - 1, "D3D11::m_pAABBIBuffer");
+			}
+			{
+
+				//Gen Sample points
+				D3D11_MAPPED_SUBRESOURCE mappedResource;
+				SamplePoints* pSamplePoints;
+				hr = m_pContext->Map(m_pSSAOKernelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pSSAOKernelBuffer::MapFailed");
+				}
+				pSamplePoints = (SamplePoints*)mappedResource.pData;
+
+				std::uniform_real_distribution<float> randomFloats(0.0, 1.0f);
+				std::default_random_engine gen;
+				for (int i = 0; i < 64; ++i)
+				{
+					XMFLOAT3 sample(
+						randomFloats(gen) * 2.0f - 1.0f,
+						randomFloats(gen) * 2.0f - 1.0f,
+						randomFloats(gen));
+					XMVECTOR sampleV = XMLoadFloat3(&sample);
+					sampleV = DirectX::XMVector3Normalize(sampleV);
+					sampleV = XMVectorScale(sampleV, randomFloats(gen));
+					float scale = i / 64.0f;
+					scale = 0.1f + (1.0f - 0.1f) * scale * scale;
+					sampleV = XMVectorScale(sampleV, scale);
+
+					pSamplePoints->coord[i] = sampleV;
+				}
+				m_pContext->Unmap(m_pSSAOKernelBuffer, 0);
+
+
+				//Gen noise texture
+				for (int i = 0; i < 16; ++i)
+				{
+					XMFLOAT3 rot(
+						randomFloats(gen) * 2.0f - 1.0f,
+						randomFloats(gen) * 2.0f - 1.0f,
+						0.0f);
+					m_rotationVecs.push_back(rot);
+				}
+				D3D11_TEXTURE2D_DESC texDesc = {};
+				texDesc.Width = 4;
+				texDesc.Height = 4;
+				texDesc.Usage = D3D11_USAGE_DEFAULT;
+				texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+				texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+				texDesc.ArraySize = 1;
+				texDesc.MipLevels = 1;
+				texDesc.SampleDesc.Count = 1;
+				D3D11_SUBRESOURCE_DATA data = { 0, };
+				data.pSysMem = &m_rotationVecs[0];
+				data.SysMemPitch = texDesc.Width * sizeof(XMFLOAT3);
+
+				hr = m_pDevice->CreateTexture2D(&texDesc, &data, &m_pNoiseRTT);
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D11::m_pNoiseRTT::CreateTexFailed");
+				}
+				m_pNoiseRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pNoiseRTT") - 1, "D3D11::m_pNoiseRTT");
 
 				D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+				srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 				srvDesc.Format = texDesc.Format;
 				srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
 				srvDesc.Texture2D.MostDetailedMip = 0;
-				srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-				hr = m_pDevice->CreateShaderResourceView(m_pHDRRTT, &srvDesc, &m_pHDRSRV);
+				hr = m_pDevice->CreateShaderResourceView(m_pNoiseRTT, &srvDesc, &m_pNoiseSRV);
 				if (FAILED(hr))
 				{
-					return false;
+					OutputDebugStringA("D3D11::m_pNoiseSRV::CreateSRVFailed");
 				}
-				m_pHDRSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D11::m_pHDRSRV") - 1, "D3D11::m_pHDRSRV");
-
-
-				//Covenrt EquirectangularMap to CubeMap
-				D3D11_MAPPED_SUBRESOURCE mappedSubResource;
-				hr =m_pContext->Map(m_pEquirect2CubeBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubResource);
-				if (FAILED(hr))
-				{
-					return false;
-				}
-				UINT stride;
-				UINT offset = 0;
-
-				XMMATRIX capProj = XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f),
-					1.0F, 0.1f, 10.0f);
-				XMVECTOR eyePos = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-				XMMATRIX capView[6] =
-				{	//변환된 텍스쳐가 뒤집혀져있음에 유의
-					XMMatrixLookAtLH(eyePos, XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
-					XMMatrixLookAtLH(eyePos, XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
-					XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f)),
-					XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f)),
-					XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
-					XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f))
-				};
-				XMMATRIX* pMatrix = (XMMATRIX*)mappedSubResource.pData;
-				for (int i = 0; i < 6; ++i)
-				{
-					pMatrix[i] = XMMatrixMultiplyTranspose(capView[i], capProj);
-
-				}
-				m_pContext->Unmap(m_pEquirect2CubeBuffer, 0);
-
-				
-				stride = sizeof(XMFLOAT3);
-				m_pShader->SetPosOnlyInputLayout(m_pContext);
-				m_pShader->SetEquirect2CubeShader(m_pContext);
-				m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				m_pContext->IASetVertexBuffers(0, 1, &m_pCubeVertices, &stride, &offset);
-				m_pContext->IASetIndexBuffer(m_pCubeIndices, DXGI_FORMAT_R32_UINT, 0);
-				m_pContext->GSSetConstantBuffers(0, 1, &m_pEquirect2CubeBuffer);
-				m_pContext->PSSetShaderResources(0, 1, &m_pHDRSRV);
-				m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
-				m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
-				m_pContext->OMSetDepthStencilState(0, 0);
-				m_pContext->OMSetRenderTargets(1, &m_pSkyBoxRTTV, nullptr);
-				m_pContext->DrawIndexed(36, 0, 0);
-				//Gen Diffuse IrradianceMap
-				m_pShader->SetDiffuseIrradianceShader(m_pContext);
-				m_pContext->OMSetRenderTargets(1, &m_pDiffIrradianceRTTV, nullptr);
-				m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
-				m_pContext->PSSetSamplers(0, 1, &m_pClampSS);
-				m_pContext->RSSetViewports(1, &m_diffIrradViewport);
-				m_pContext->DrawIndexed(36, 0, 0);
-				//Gen PrefileterMap;
-				m_pShader->SetPrefilterShader(m_pContext);
-				m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
-				m_pContext->RSSetViewports(1, &m_prefilterViewport);
-				m_pContext->OMSetRenderTargets(1, &m_pPrefilterRTTV, nullptr);
-				m_pContext->DrawIndexed(36, 0, 0);
-				m_pContext->GenerateMips(m_pPrefilterSRV);
-				//Gen BRDFMap
-				m_pShader->SetTexInputlayout(m_pContext);
-				m_pShader->SetBRDFShader(m_pContext);
-				stride = sizeof(QUAD);
-				m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
-				m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
-				m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
-				m_pContext->PSSetSamplers(0, 1, &m_pClampSS);
-				m_pContext->OMSetRenderTargets(1, &m_pBRDFRTTV, nullptr);
-				m_pContext->DrawIndexed(6, 0, 0);
+				m_pNoiseSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D11::m_pNoiseSRV") - 1, "D3D11::m_pNoiseSRV");
 			}
-		
+			//Gen Equirectangular map
+			{
+				int width, height, nrComponents;
+				float* data = stbi_loadf(".\\Assets\\Models\\FBX\\Bistro_v5_2\\Bistro_v5_2\\san_giuseppe_bridge_4k.hdr",
+					&width, &height, &nrComponents, STBI_rgb_alpha);
+				if (data)
+				{
+					D3D11_TEXTURE2D_DESC texDesc = {};
+					texDesc.Width = width;
+					texDesc.Height = height;
+					texDesc.ArraySize = 1;
+					texDesc.MipLevels = 1;
+					texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+					texDesc.SampleDesc.Count = 1;
+					texDesc.SampleDesc.Quality = 0;
+					texDesc.Usage = D3D11_USAGE_DEFAULT;
+					texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+					texDesc.CPUAccessFlags = 0;
+					texDesc.MiscFlags = 0;
+
+					D3D11_SUBRESOURCE_DATA subResource = {};
+					subResource.pSysMem = data;
+					subResource.SysMemPitch = sizeof(float) * width * 4;
+
+					hr = m_pDevice->CreateTexture2D(&texDesc, &subResource, &m_pHDRRTT);
+					stbi_image_free(data);
+					if (FAILED(hr))
+					{
+						OutputDebugStringA("D3D11::m_pHDRRTT::CreateTexFailed");
+					}
+					m_pHDRRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+						sizeof("D3D11::m_pHDRRTT") - 1, "D3D11::m_pHDRRTT");
+
+
+					D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+					srvDesc.Format = texDesc.Format;
+					srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
+					srvDesc.Texture2D.MostDetailedMip = 0;
+					srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+					hr = m_pDevice->CreateShaderResourceView(m_pHDRRTT, &srvDesc, &m_pHDRSRV);
+					if (FAILED(hr))
+					{
+						OutputDebugStringA("D3D11::m_pHDRSRV::CreateSRVFailed");
+					}
+					m_pHDRSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+						sizeof("D3D11::m_pHDRSRV") - 1, "D3D11::m_pHDRSRV");
+
+
+					//Covenrt EquirectangularMap to CubeMap
+					D3D11_MAPPED_SUBRESOURCE mappedSubResource;
+					hr = m_pContext->Map(m_pEquirect2CubeBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubResource);
+					if (FAILED(hr))
+					{
+						OutputDebugStringA("D3D11::m_pEquirect2CubeBuffer::MapFailed");
+					}
+					UINT stride;
+					UINT offset = 0;
+
+					XMMATRIX capProj = XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f),
+						1.0F, 0.1f, 10.0f);
+					XMVECTOR eyePos = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+					XMMATRIX capView[6] =
+					{	//변환된 텍스쳐가 뒤집혀져있음에 유의
+						XMMatrixLookAtLH(eyePos, XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
+						XMMatrixLookAtLH(eyePos, XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
+						XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f)),
+						XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f)),
+						XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
+						XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f))
+					};
+					XMMATRIX* pMatrix = (XMMATRIX*)mappedSubResource.pData;
+					for (int i = 0; i < 6; ++i)
+					{
+						pMatrix[i] = XMMatrixMultiplyTranspose(capView[i], capProj);
+
+					}
+					m_pContext->Unmap(m_pEquirect2CubeBuffer, 0);
+
+
+					stride = sizeof(XMFLOAT3);
+					m_pShader->SetPosOnlyInputLayout(m_pContext);
+					m_pShader->SetEquirect2CubeShader(m_pContext);
+					m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					m_pContext->IASetVertexBuffers(0, 1, &m_pCubeVertices, &stride, &offset);
+					m_pContext->IASetIndexBuffer(m_pCubeIndices, DXGI_FORMAT_R32_UINT, 0);
+					m_pContext->GSSetConstantBuffers(0, 1, &m_pEquirect2CubeBuffer);
+					m_pContext->PSSetShaderResources(0, 1, &m_pHDRSRV);
+					m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
+					m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
+					m_pContext->OMSetDepthStencilState(0, 0);
+					m_pContext->OMSetRenderTargets(1, &m_pSkyBoxRTTV, nullptr);
+					m_pContext->DrawIndexed(36, 0, 0);
+					//Gen Diffuse IrradianceMap
+					m_pShader->SetDiffuseIrradianceShader(m_pContext);
+					m_pContext->OMSetRenderTargets(1, &m_pDiffIrradianceRTTV, nullptr);
+					m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
+					m_pContext->PSSetSamplers(0, 1, &m_pClampSS);
+					m_pContext->RSSetViewports(1, &m_diffIrradViewport);
+					m_pContext->DrawIndexed(36, 0, 0);
+					//Gen PrefileterMap;
+					m_pShader->SetPrefilterShader(m_pContext);
+					m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
+					m_pContext->RSSetViewports(1, &m_prefilterViewport);
+					m_pContext->OMSetRenderTargets(1, &m_pPrefilterRTTV, nullptr);
+					m_pContext->DrawIndexed(36, 0, 0);
+					m_pContext->GenerateMips(m_pPrefilterSRV);
+					//Gen BRDFMap
+					m_pShader->SetTexInputlayout(m_pContext);
+					m_pShader->SetBRDFShader(m_pContext);
+					stride = sizeof(QUAD);
+					m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
+					m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
+					m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
+					m_pContext->PSSetSamplers(0, 1, &m_pClampSS);
+					m_pContext->OMSetRenderTargets(1, &m_pBRDFRTTV, nullptr);
+					m_pContext->DrawIndexed(6, 0, 0);
+				}
+
+			}
+			ImGui_ImplDX11_Init(m_pDevice, m_pContext);
 		}
-		ImGui_ImplDX11_Init(m_pDevice, m_pContext);
-		return true;
 	}
-	void D3D11::Shutdown()
+
+	D3D11::~D3D11()
 	{
 		ImGui_ImplDX11_Shutdown();
 		if (m_pQuadVB != nullptr)
@@ -1044,13 +1040,6 @@ namespace wilson
 			m_pClampSS = nullptr;
 		}
 
-		if (m_pImporter != nullptr)
-		{
-			delete m_pImporter;
-			m_pImporter = nullptr;
-		}
-
-
 
 
 		if (m_pBoolBuffer != nullptr)
@@ -1164,7 +1153,6 @@ namespace wilson
 		{
 			if (m_pModelGroups[i] != nullptr)
 			{
-				m_pModelGroups[i]->Clear();
 				delete m_pModelGroups[i];
 			}
 		}
@@ -1413,9 +1401,8 @@ namespace wilson
 		}
 	}
 
-	void D3D11::AddLight(Light* pLight, UINT idx)
+	void D3D11::AddLight(Light* pLight)
 	{	
-		pLight->Init(m_pDevice, idx);
 		switch (pLight->GetType())
 		{
 		case eLIGHT_TYPE::DIR:
@@ -1431,7 +1418,6 @@ namespace wilson
 	void D3D11::AddModelGroup(ModelGroup* pModelGroup, ID3D11Device* pDevice)
 	{
 		m_pModelGroups.push_back(pModelGroup);
-		m_pModelGroups.back()->Init(pDevice);
 	}
 	void D3D11::RemoveModelGroup(int i)
 	{
@@ -1471,10 +1457,10 @@ namespace wilson
 		std::vector<Model*>& pModels = m_pModelGroups[i]->GetModels();
 		return pModels.size();
 	}
-	UINT D3D11::GetLightSize(Light* pLight)
+	UINT D3D11::GetLightSize(eLIGHT_TYPE eLType)
 	{
 		UINT size=0;
-		switch (pLight->GetType())
+		switch (eLType)
 		{
 		case eLIGHT_TYPE::DIR:
 			size = m_pLightBuffer->GetDirLightSize();
@@ -1513,7 +1499,7 @@ namespace wilson
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pViewportRTT);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pViewportRTT::CreateTexFailed");
 		}
 		m_pViewportRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pViewportRTT") - 1, "D3D11::m_pViewportRTT");
@@ -1521,7 +1507,7 @@ namespace wilson
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSceneRTT);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSceneRTT::CreateTexFailed");
 		}
 		m_pSceneRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSceneRTT") - 1, "D3D11::m_pSceneRTT");
@@ -1530,7 +1516,7 @@ namespace wilson
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSSAOBlurDebugRTT);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSSAOBlurDebugRTT::CreateTexFailed");
 		}
 		m_pSSAOBlurDebugRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurDebugRTT") - 1, "D3D11::m_pSSAOBlurDebugRTT");
@@ -1539,7 +1525,7 @@ namespace wilson
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pBrightRTT);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pBrightRTT::CreateTexFailed");
 		}
 		m_pBrightRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBrightRTT") - 1, "D3D11::m_pBrightRTT");
@@ -1550,7 +1536,7 @@ namespace wilson
 			hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pPingPongRTT[i]);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::m_pPingPongRTT[i]::CreateTexFailed");
 			}
 			m_pPingPongRTT[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pPingPongRTT[i]") - 1, "D3D11::m_pPingPongRTT[i]");
@@ -1560,7 +1546,7 @@ namespace wilson
 			hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pGbufferRTT[i]);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::m_pGbufferRTT[i]::CreateTexFailed");
 			}
 			m_pGbufferRTT[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pGbufferRTT[i]") - 1, "D3D11::m_pGbufferRTT[i]");
@@ -1574,7 +1560,7 @@ namespace wilson
 		hr = m_pDevice->CreateRenderTargetView(m_pViewportRTT, &RTTVDesc, &m_pViewportRTTV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pViewportRTTV::CreateRTVFailed");
 		}
 		m_pViewportRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pViewportRTTV") - 1, "D3D11::m_pViewportRTTV");
@@ -1583,7 +1569,7 @@ namespace wilson
 		hr = m_pDevice->CreateRenderTargetView(m_pSceneRTT, &RTTVDesc, &m_pSceneRTTV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSceneRTTV::CreateRTVFailed");
 		}
 		m_pSceneRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSceneRTTV") - 1, "D3D11::m_pSceneRTTV");
@@ -1592,7 +1578,7 @@ namespace wilson
 		hr = m_pDevice->CreateRenderTargetView(m_pSSAOBlurDebugRTT, &RTTVDesc, &m_pSSAOBlurDebugRTTV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSSAOBlurDebugRTTV::CreateRTVFailed");
 		}
 		m_pSSAOBlurDebugRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurDebugRTTV") - 1, "D3D11::m_pSSAOBlurDebugRTTV");
@@ -1600,7 +1586,7 @@ namespace wilson
 		hr = m_pDevice->CreateRenderTargetView(m_pBrightRTT, &RTTVDesc, &m_pBrightRTTV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pBrightRTTV::CreateRTVFailed");
 		}
 		m_pBrightRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBrightRTTV") - 1, "D3D11::m_pBrightRTTV");
@@ -1611,7 +1597,7 @@ namespace wilson
 			hr = m_pDevice->CreateRenderTargetView(m_pPingPongRTT[i], &RTTVDesc, &m_pPingPongRTTV[i]);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::m_pPingPongRTTV[i]::CreateRTVFailed");
 			}
 			m_pPingPongRTTV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pPingPongRTTV[i]") - 1, "D3D11::m_pPingPongRTTV[i]");
@@ -1621,7 +1607,7 @@ namespace wilson
 			hr = m_pDevice->CreateRenderTargetView(m_pGbufferRTT[i], &RTTVDesc, &m_pGbufferRTTV[i]);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::m_pGbufferRTTV[i]::CreateRTVFailed");
 			}
 			m_pGbufferRTTV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pGbufferRTTV[i]") - 1, "D3D11::m_pGbufferRTTV[i]");
@@ -1636,7 +1622,7 @@ namespace wilson
 		hr = m_pDevice->CreateShaderResourceView(m_pViewportRTT, &SRVDesc, &m_pViewportSRV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pViewportSRV[i]::CreateSRVFailed");
 		}
 		m_pViewportSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pViewportSRV") - 1, "D3D11::m_pViewportSRV");
@@ -1645,7 +1631,7 @@ namespace wilson
 		hr = m_pDevice->CreateShaderResourceView(m_pSceneRTT, &SRVDesc, &m_pSceneSRV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSceneSRV::CreateSRVFailed");
 		}
 		m_pSceneSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSceneSRV") - 1, "D3D11::m_pSceneSRV");
@@ -1654,7 +1640,7 @@ namespace wilson
 		hr = m_pDevice->CreateShaderResourceView(m_pSSAOBlurDebugRTT, &SRVDesc, &m_pSSAOBlurDebugSRV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSSAOBlurDebug::CreateSRVFailed");
 		}
 		m_pSSAOBlurDebugSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurDebugSRV") - 1, "D3D11::m_pSSAOBlurDebugSRV");
@@ -1663,7 +1649,7 @@ namespace wilson
 		hr = m_pDevice->CreateShaderResourceView(m_pBrightRTT, &SRVDesc, &m_pBrightSRV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pBrightSRV::CreateSRVFailed");
 		}
 		m_pBrightSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBrightSRV") - 1, "D3D11::m_pBrightSRV");
@@ -1674,7 +1660,7 @@ namespace wilson
 			hr = m_pDevice->CreateShaderResourceView(m_pPingPongRTT[i], &SRVDesc, &m_pPingPongSRV[i]);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::m_pPingPongSRV[i]::CreateSRVFailed");
 			}
 			m_pPingPongSRV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pPingPongSRV[i]") - 1, "D3D11::m_pPingPongSRV[i]");
@@ -1684,7 +1670,7 @@ namespace wilson
 			hr = m_pDevice->CreateShaderResourceView(m_pGbufferRTT[i], &SRVDesc, &m_pGbufferSRV[i]);
 			if (FAILED(hr))
 			{
-				return false;
+				OutputDebugStringA("D3D11::m_pGbufferSRV[i]::CreateSRVFailed");
 			}
 			m_pGbufferSRV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pGbufferSRV[i]") - 1, "D3D11::m_pGbufferSRV[i]");
@@ -1694,7 +1680,7 @@ namespace wilson
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSSAORTT);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSSAORTT::CreateTexFailed");
 		}
 		m_pSSAORTT->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAORTT") - 1, "D3D11::m_pSSAORTT");
@@ -1702,7 +1688,7 @@ namespace wilson
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSSAOBlurRTT);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSSAOBlurRTT::CreateTexFailed");
 		}
 		m_pSSAOBlurRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurRTT") - 1, "D3D11::m_pSSAOBlurRTT");
@@ -1712,7 +1698,7 @@ namespace wilson
 		hr = m_pDevice->CreateRenderTargetView(m_pSSAORTT, &RTTVDesc, &m_pSSAORTTV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSSAORTTV::CreateRTVFailed");
 		}
 		m_pSSAORTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAORTTV") - 1, "D3D11::m_pSSAORTTV");
@@ -1721,7 +1707,7 @@ namespace wilson
 		hr = m_pDevice->CreateRenderTargetView(m_pSSAOBlurRTT, &RTTVDesc, &m_pSSAOBlurRTTV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSSAOBlurRTTV::CreateRTVFailed");
 		}
 		m_pSSAOBlurRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurRTTV") - 1, "D3D11::m_pSSAOBlurRTTV");
@@ -1731,7 +1717,7 @@ namespace wilson
 		hr = m_pDevice->CreateShaderResourceView(m_pSSAORTT, &SRVDesc, &m_pSSAOSRV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSSAOSRV::CreateSRVFailed");
 		}
 		m_pSSAOSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOSRV") - 1, "D3D11::m_pSSAOSRV");
@@ -1739,7 +1725,7 @@ namespace wilson
 		hr = m_pDevice->CreateShaderResourceView(m_pSSAOBlurRTT, &SRVDesc, &m_pSSAOBlurSRV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSSAOBlurSRV::CreateSRVVFailed");
 		}
 		m_pSSAOBlurSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurSRV") - 1, "D3D11::m_pSSAOBlurSRV");
@@ -1752,7 +1738,7 @@ namespace wilson
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pBRDFRTT);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pBRDFRTT::CreateTexFailed");
 		}
 		m_pBRDFRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBRDFRTT") - 1, "D3D11::m_pBRDFRTT");
@@ -1764,7 +1750,7 @@ namespace wilson
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSkyBoxRTT);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSkyBoxRTT::CreateTexFailed");
 		}
 		m_pSkyBoxRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSkyBoxRTT") - 1, "D3D11::m_pSkyBoxRTT");
@@ -1775,7 +1761,7 @@ namespace wilson
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pDiffIrradianceRTT);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pDiffIrradianceRTT::CreateTexFailed");
 		}
 		m_pDiffIrradianceRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pDiffIrradianceRTT") - 1, "D3D11::m_pDiffIrradianceRTT");
@@ -1788,7 +1774,7 @@ namespace wilson
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pPrefilterRTT);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pPrefilterRTT::CreateTexFailed");
 		}
 		m_pPrefilterRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pPrefilterRTT") - 1, "D3D11::m_pPrefilterRTT");
@@ -1798,7 +1784,7 @@ namespace wilson
 		hr = m_pDevice->CreateRenderTargetView(m_pBRDFRTT, &RTTVDesc, &m_pBRDFRTTV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pBRDFRTTV::CreateRTVFailed");
 		}
 		m_pBRDFRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBRDFRTTV") - 1, "D3D11::m_pBRDFRTTV");
@@ -1812,7 +1798,7 @@ namespace wilson
 		hr = m_pDevice->CreateRenderTargetView(m_pSkyBoxRTT, &RTTVDesc, &m_pSkyBoxRTTV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSkyBoxRTTV::CreateRTVFailed");
 		}
 		m_pSkyBoxRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSkyBoxRTTV") - 1, "D3D11::m_pSkyBoxRTTV");
@@ -1821,7 +1807,7 @@ namespace wilson
 		hr = m_pDevice->CreateRenderTargetView(m_pDiffIrradianceRTT, &RTTVDesc, &m_pDiffIrradianceRTTV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pDiffIrradianceRTTV::CreateRTVFailed");
 		}
 		m_pDiffIrradianceRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pDiffIrradianceRTTV") - 1, "D3D11::m_pDiffIrradianceRTTV");
@@ -1830,7 +1816,7 @@ namespace wilson
 		hr = m_pDevice->CreateRenderTargetView(m_pPrefilterRTT, &RTTVDesc, &m_pPrefilterRTTV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pPrefilterRTTV::CreateRTVFailed");
 		}
 		m_pPrefilterRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pPrefilterRTTV") - 1, "D3D11::m_pPrefilterRTTV");
@@ -1841,7 +1827,7 @@ namespace wilson
 		hr = m_pDevice->CreateShaderResourceView(m_pBRDFRTT, &SRVDesc, &m_pBRDFSRV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pBRDFSRV::CreateSRVFailed");
 		}
 		m_pBRDFSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBRDFSRV") - 1, "D3D11::m_pBRDFSRV");
@@ -1854,7 +1840,7 @@ namespace wilson
 		hr = m_pDevice->CreateShaderResourceView(m_pSkyBoxRTT, &SRVDesc, &m_pSkyBoxSRV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pSkyBoxSRV::CreateSRVFailed");
 		}
 		m_pSkyBoxSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSkyBoxSRV") - 1, "D3D11::m_pSkyBoxSRV");
@@ -1863,7 +1849,7 @@ namespace wilson
 		hr = m_pDevice->CreateShaderResourceView(m_pDiffIrradianceRTT, &SRVDesc, &m_pDiffIrradianceSRV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pDiffIrradianceSRV::CreateSRVFailed");
 		}
 		m_pDiffIrradianceSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pDiffIrradianceSRV") - 1, "D3D11::m_pDiffIrradianceSRV");
@@ -1873,7 +1859,7 @@ namespace wilson
 		hr = m_pDevice->CreateShaderResourceView(m_pPrefilterRTT, &SRVDesc, &m_pPrefilterSRV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pPrefilterSRV::CreateSRVFailed");
 		}
 		m_pPrefilterSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pPrefilterSRV") - 1, "D3D11::m_pPrefilterSRV");
@@ -1906,7 +1892,7 @@ namespace wilson
 		hr = m_pDevice->CreateTexture2D(&depthBufferDesc, nullptr, DepthRTT);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::D3D11::DepthRTT::CreateTexFailed");
 		}
 		(*DepthRTT)->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::DepthRTT") - 1, "D3D11::DepthRTT");
@@ -1922,7 +1908,7 @@ namespace wilson
 		hr = m_pDevice->CreateDepthStencilView(*DepthRTT, &depthStencilViewDesc, DepthDSV);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::D3D11::DepthDSV::CreateDSVFailed");
 		}
 		(*DepthDSV)->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::DepthDSV") - 1, "D3D11::DepthDSV");
@@ -1956,7 +1942,7 @@ namespace wilson
 		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pOutlinerSetupDSS);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pOutlinerSetupDSS::CreateDSSFailed");
 		}
 		m_pOutlinerSetupDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pOutlinerSetupDSS") - 1, "D3D11::m_pOutlinerSetupDSS");
@@ -1971,7 +1957,7 @@ namespace wilson
 		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pOutlinerTestDSS);
 		if (FAILED(hr))
 		{
-			return false;
+			OutputDebugStringA("D3D11::m_pOutlinerTestDSS::CreateDSSFailed");
 		}
 		m_pOutlinerTestDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pOutlinerTestDSS") - 1, "D3D11::m_pOutlinerTestDSS");
@@ -2001,8 +1987,8 @@ namespace wilson
 					{	
 						ENTTCnt++;
 						worldMat = pModels[j]->GetTransformMatrix(false);
-						AABB aabb = pModels[j]->GetAABB();
-						if (aabb.IsOnFrustum(pPlanes, worldMat))
+						AABB* aabb = pModels[j]->GetAABB();
+						if (aabb->IsOnFrustum(pPlanes, worldMat))
 						{	
 							ENTTDrawn++;
 							m_pMatBuffer->SetWorldMatrix(&worldMat);

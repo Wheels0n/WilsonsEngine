@@ -5,48 +5,22 @@
 
 namespace wilson
 {
-	Renderer::Renderer()
+	Renderer::Renderer(int m_screenWidth, int m_screenHeight, HWND hWnd)
 	{
 		m_pD3D11 = nullptr;
 		m_pCam = nullptr;
+
+		m_pD3D11 = new D3D11(m_screenWidth, m_screenHeight, g_bVSYNC_ENABLE, hWnd, g_bFULL_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
+		m_pCam = m_pD3D11->GetCam();
 	}
 
 	Renderer::~Renderer()
 	{
-		
-	}
-
-	bool Renderer::Init(int m_screenWidth, int m_screenHeight, HWND hWnd)
-	{
-		bool bResult;
-
-		m_pD3D11 = new D3D11;
-		if (m_pD3D11 == nullptr)
-		{
-			return false;
-		}
-
-		bResult = m_pD3D11->Init(m_screenWidth, m_screenHeight, g_bVSYNC_ENABLE, hWnd, g_bFULL_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
-		if (bResult == false)
-		{
-			MessageBox(hWnd, L"Could not initialize D3D", L"Error", MB_OK);
-			return false;
-		}
-
-		m_pCam = m_pD3D11->GetCam();
-		return true;
-	}
-
-	void Renderer::Shutdown()
-	{
 		if (m_pD3D11 != nullptr)
 		{
-			m_pD3D11->Shutdown();
 			delete m_pD3D11;
 			m_pD3D11 = nullptr;
 		}
-
-		return;
 	}
 
 	void Renderer::BeginFrame()

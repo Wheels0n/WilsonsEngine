@@ -1,8 +1,9 @@
 #include "Frustum.h"
 
 namespace wilson {
-	void Frustum::Init(Camera* pCam)
-	{	
+
+	Frustum::Frustum(Camera* pCam)
+	{
 		m_ENTTsInFrustum = 0;
 		m_ENTTsInTotal = 0;
 		float zFar = *(pCam->GetFarZ());
@@ -12,14 +13,14 @@ namespace wilson {
 
 		const float halfVSide = zFar * tanf(fovY * 0.5f);
 		const float halfHSide = halfVSide * ratio;
-		
+
 		DirectX::XMVECTOR frontV = pCam->GetDir();
 		frontV = DirectX::XMVector3Normalize(frontV);
 
 		DirectX::XMVECTOR frontMulNear = DirectX::XMVectorScale(frontV, zNear);
 		DirectX::XMVECTOR frontMulFar = DirectX::XMVectorScale(frontV, zFar);
 
-      	DirectX::XMVECTOR posV = *(pCam->GetPosition());
+		DirectX::XMVECTOR posV = *(pCam->GetPosition());
 		DirectX::XMVECTOR right = pCam->GetRight();
 		DirectX::XMVECTOR up = pCam->GetUp();
 
@@ -46,7 +47,7 @@ namespace wilson {
 
 		cross = DirectX::XMVectorScale(right, halfHSide);
 		cross = DirectX::XMVectorAdd(frontMulFar, cross);
-		cross = DirectX::XMVector3Cross(up,cross);
+		cross = DirectX::XMVector3Cross(up, cross);
 		m_planes[3].norm = DirectX::XMVector3Normalize(cross);
 		dot = DirectX::XMVector3Dot(posV, m_planes[3].norm);
 		DirectX::XMStoreFloat(&m_planes[3].d, dot);
@@ -60,12 +61,10 @@ namespace wilson {
 
 		cross = DirectX::XMVectorScale(up, halfVSide);
 		cross = DirectX::XMVectorAdd(frontMulFar, cross);
-		cross = DirectX::XMVector3Cross(cross,right);
+		cross = DirectX::XMVector3Cross(cross, right);
 		m_planes[5].norm = DirectX::XMVector3Normalize(cross);
-		dot = DirectX::XMVector3Dot(posV,m_planes[5].norm);
+		dot = DirectX::XMVector3Dot(posV, m_planes[5].norm);
 		DirectX::XMStoreFloat(&m_planes[5].d, dot);
-		return;
 	}
-
 
 }

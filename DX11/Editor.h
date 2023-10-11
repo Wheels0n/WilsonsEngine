@@ -9,15 +9,18 @@ namespace wilson {
 	class Editor
 	{
 	public:
-		void Init(D3D11*);
 		void Draw();
 		void Pick();
 		bool CheckRange(int, int);
+		
+		Editor() = default;
+		Editor(D3D11*);
+		~Editor();
 	private:
 		D3D11* m_pD3D11;
-		ContentBrowser m_contentBrowser;
-		Scene m_scene;
-		Viewport m_viewport;
-		Settings m_settings;
+		ContentBrowser* m_pContentBrowser;
+		Scene* m_pScene;
+		Viewport* m_pViewport;
+		Settings* m_pSettings;
 	};
 }
