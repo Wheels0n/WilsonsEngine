@@ -1333,6 +1333,15 @@ namespace wilson
 			m_pContext->DrawIndexed(6, 0, 0);
 			
 		}
+		else
+		{	
+			if (m_pFrustum->GetENTTsInTotal())
+			{
+				m_pFrustum->SetENTTsInFrustum(0);
+				m_pFrustum->SetENTTsInTotal(0);
+			}
+			
+		}
 		
 		//Draw picked Model's Outline
 		m_pShader->SetTexInputlayout(m_pContext);
