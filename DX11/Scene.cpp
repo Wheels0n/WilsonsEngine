@@ -206,9 +206,9 @@ namespace wilson
 							if (prevScale[i] != scale[i])
 							{	
 								bDirty = true;
-								for (int j = 0; j < 3; ++i)
+								for (int i = 0; i < 3; ++i)
 								{
-									scale[j] = scale[j] < 0.1f ? 0.1f : scale[j];
+									scale[i] = scale[i] < 0.1f ? 0.1f : scale[i];
 								}
 
 								DirectX::XMVECTOR xv = DirectX::XMVectorSet(
