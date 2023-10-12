@@ -184,7 +184,7 @@ namespace wilson
 					std::string name = pModel->GetName();
 					ImGui::Text(name.c_str());
 					
-					DirectX::XMMATRIX* outlinerMat = nullptr;
+					DirectX::XMMATRIX* prevOutlinerMat = nullptr;
 					DirectX::XMMATRIX* scMat = nullptr;
 					DirectX::XMMATRIX* rtMat = nullptr;
 					DirectX::XMMATRIX* trMat = nullptr;
@@ -220,11 +220,11 @@ namespace wilson
 								*scMat = sc;
 
 								xv = DirectX::XMVectorSet(scale[0] * 1.01f, scale[1] * 1.01f, scale[2] * 1.01f, 1.0f);
-								DirectX::XMMATRIX outliner = DirectX::XMMatrixScalingFromVector(xv);
-								outlinerMat = pModel->GetOutlinerScaleMatrix();
-								if (outlinerMat != nullptr)
+								DirectX::XMMATRIX outlinerMat = DirectX::XMMatrixScalingFromVector(xv);
+								prevOutlinerMat = pModel->GetOutlinerScaleMatrix();
+								if (prevOutlinerMat != nullptr)
 								{
-									*outlinerMat = outliner;
+									*prevOutlinerMat = outlinerMat;
 								}
 								break;
 							}
