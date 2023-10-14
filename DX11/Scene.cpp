@@ -618,7 +618,7 @@ namespace wilson
 
 
 		DirectX::XMFLOAT3 dir3 = *(pSpotLight->GetDirection());
-		DirectX::XMFLOAT3 copyDir3 = dir3;
+		DirectX::XMFLOAT3 prevDir3 = dir3;
 		ImGui::Text("Direction");
 		if (ImGui::Button("X"))
 		{
@@ -641,7 +641,7 @@ namespace wilson
 		ImGui::SameLine();
 		ImGui::DragFloat("##DZ", &dir3.z, 0.1f);
 		*(pSpotLight->GetDirection()) = dir3;
-		if (dir3.x != copyDir3.x || dir3.y != copyDir3.y || dir3.z != copyDir3.z)
+		if (dir3.x != prevDir3.x || dir3.y != prevDir3.y || dir3.z != prevDir3.z)
 		{	
 			pSpotLight->UpdateViewMat();
 		}
@@ -652,7 +652,7 @@ namespace wilson
 			cutoff = 12.5f;
 		}
 		ImGui::SameLine();
-		ImGui::DragFloat("##CutOff", &cutoff, 0.01f, 0.0f, 360.0f);
+		ImGui::DragFloat("##CutOff", &cutoff, 0.01f, 0.01f, 45.0f);
 		*(pSpotLight->GetCutoff()) = cutoff;
 		
 		float outerCutoff = *(pSpotLight->GetOuterCutoff());
@@ -662,7 +662,7 @@ namespace wilson
 			outerCutoff = 25.0f;
 		}
 		ImGui::SameLine();
-		ImGui::DragFloat("##OuterCutoff", &outerCutoff, 0.01f, 0.0f, 360.0f);
+		ImGui::DragFloat("##OuterCutoff", &outerCutoff, 0.01f, 0.01f, 45.0f);
 		*(pSpotLight->GetOuterCutoff()) = outerCutoff;
 		if (outerCutoff != oldOuterCutOff)
 		{

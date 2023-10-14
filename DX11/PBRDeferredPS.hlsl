@@ -285,12 +285,8 @@ out float3 L0)
     L0 = float3(0.0f, 0.0f, 0.0f);
     
     float distance = length(lightDir);
-    float att = 1.0f / dot(L.att, float3(1.0f, distance, distance * distance));
-	[branch]
-    if (distance > L.range)
-    {
-        return;
-    }
+    float att = 1.0f / (distance * distance);
+	
     lightDir = normalize(lightDir);
     float3 h = normalize(viewDir + lightDir);
     float3 radiance = L.diffuse * att;
@@ -319,7 +315,7 @@ out float3 L0)
     L0 = float3(0.0f, 0.0f, 0.0f);
     
     float distance = length(lightDir);
-    float att = 1.0f / dot(L.att, float3(1.0f, distance, distance * distance));
+    float att = 1.0f / (distance * distance);
     
     lightDir = normalize(lightDir);
     float theta = dot(lightDir, normalize(-L.direction)); //cos그래프 참조
