@@ -168,6 +168,7 @@ float CalDirShadowFactor(SamplerComparisonState shadowSampler,
     shadowPos.x = shadowPos.x * 0.5f + 0.5f;
     shadowPos.y = shadowPos.y * -0.5f + 0.5f;
     float bias =  max((0.05f * (1.0f - dot(normal, lightDir))), 0.005f);
+    bias *= 1 / (g_farZ[level].z * 0.01f);
     float depth = shadowPos.z - bias;
     
     shadowPos.z = level;
@@ -198,8 +199,10 @@ float CalSpotShadowFactor(SamplerComparisonState shadowSampler,
     shadowPos.xyz /= shadowPos.w;
     shadowPos.x = shadowPos.x * 0.5f + 0.5f;
     shadowPos.y = shadowPos.y * -0.5f + 0.5f;
-  
-    float depth = shadowPos.z;
+    
+    float bias = max((0.05f * (1.0f - dot(normal, lightDir))), 0.005f);
+    float depth = shadowPos.z-bias;
+    
     
     const float dx = _SMAP_DX;
     float percentLit = 0.0f;
