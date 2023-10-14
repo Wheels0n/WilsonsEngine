@@ -37,8 +37,6 @@ namespace wilson
     {
         DirectX::XMVECTOR dir = XMLoadFloat3(&m_direction);
         dir = DirectX::XMVector3Normalize(dir);
-        DirectX::XMStoreFloat3(&m_direction, dir);
-        m_spotLightProperty.direction = m_direction;
 
         DirectX::XMVECTOR pos = XMLoadFloat3(&m_position);
         DirectX::XMVECTOR target = DirectX::XMVectorAdd(pos, dir);
