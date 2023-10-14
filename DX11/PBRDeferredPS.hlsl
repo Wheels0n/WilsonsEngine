@@ -200,7 +200,7 @@ float CalSpotShadowFactor(SamplerComparisonState shadowSampler,
     shadowPos.x = shadowPos.x * 0.5f + 0.5f;
     shadowPos.y = shadowPos.y * -0.5f + 0.5f;
     
-    float bias = max((0.05f * (1.0f - dot(normal, lightDir))), 0.005f);
+    float bias = max((0.005f * (1.0f - dot(normal, lightDir))), 0.0005f);
     float depth = shadowPos.z-bias;
     
     
