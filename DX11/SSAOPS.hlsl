@@ -22,11 +22,14 @@ struct PixelInputType
 
 static const float _RADIUS = 0.5;
 static const float _BIAS = 0.025;
-static const float2 _NOISE_SCALE = float2(1584 / 4.0f, 761 / 4.0f);
 static const int _SAMPLE_CNT = 64;
 
 float4 main(PixelInputType input) : SV_TARGET
-{ 
+{   
+    float sizeX, sizeY;
+    g_vPositionTex.GetDimensions(sizeX, sizeY);
+    float2 _NOISE_SCALE = float2(sizeX / 4.0f, sizeY / 4.0f);
+    
     float3 vPos = g_vPositionTex.Sample(g_clampSampler, input.tex).xyz;
     float3 vNormal = normalize(g_vNormalTex.Sample(g_clampSampler, input.tex).xyz);
     float3 randomVec = normalize(g_noiseTex.Sample(g_sampler, input.tex * _NOISE_SCALE).xyz);

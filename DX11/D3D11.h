@@ -42,6 +42,7 @@ namespace wilson
 
 	public:
 
+		void ResizeBackBuffer(int, int);
 		void UpdateScene();
 		void DrawScene();
 		void AddLight(Light*);
@@ -66,6 +67,7 @@ namespace wilson
 		{
 			return m_pShadowMap;
 		};
+
 		inline IDXGISwapChain* GetSwapChain() const
 		{
 			return m_pSwapChain;
@@ -137,15 +139,24 @@ namespace wilson
 		D3D11(const D3D11&) = delete;
 		~D3D11();
 	private:
+		bool CreateEquirentangularMap(const char* pPath);
+		void ConvertEquirectagular2Cube();
+		void CreateDiffuseIrradianceMap();
+		void CreatePrefileterMap();
+		void CreateBRDFMap();
+
 		bool CreateDepthBuffer(int, int,
 			ID3D11Texture2D**,
 			ID3D11DepthStencilView**);
 		bool CreateDSS();
 
 		void DrawENTT(bool bGeoPass);
+
 		void DestroyDSS();
 		void DestroyRTT();
+		void DestroyHDR();
 		void DestroyDSBforRTT();
+		void DestroyBackBuffer();
 	private:
 
 		bool m_bVsyncOn;

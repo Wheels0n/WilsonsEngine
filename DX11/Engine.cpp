@@ -93,7 +93,7 @@ namespace wilson {
 
 		if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
 		{
-
+			return true;
 		}
 
 		if (uMsg == WM_LBUTTONDOWN && m_pEditor != nullptr)
@@ -112,116 +112,127 @@ namespace wilson {
 		}
 		switch (uMsg)
 		{
-		case WM_MOUSEMOVE:
-		{
-			if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
-			{
-
-				RECT rc;
-				GetWindowRect(m_hWnd, &rc);
-				int winPosX = rc.left;
-				int winPosY = rc.top;
-
-				int x = (short)(lParam) & 0xffff;
-				int y = (lParam >> 16) & 0xffff;
-
-				m_curMouseX = x;
-				m_curMouseY = y;
-
-				int dyaw = m_lastMouseX - m_curMouseX;
-				int dpitch = m_lastMouseY - m_curMouseY;
-
-				if (abs(dyaw) > _DRAG_THRESHOLD)
+			case WM_SIZE:
+			{	
+				if (m_pRenderer)
 				{
-					dyaw = dyaw > 0 ? 1 : -1;
-				}
-				else
-				{
-					dyaw = 0;
-				}
-
-				if (abs(dpitch) > _DRAG_THRESHOLD)
-				{
-					dpitch = dpitch > 0 ? 1 : -1;
-				}
-				else
-				{
-					dpitch = 0;
-				}
-
-				if (m_pEditor->CheckRange(winPosX + m_lastMouseX, winPosY + m_lastMouseY))
-				{
-					m_pRenderer->Rotate(dpitch, dyaw);
-					m_lastMouseX = x;
-					m_lastMouseY = y;
-				}
-			}
-			break;
-		}
-
-		case WM_CHAR:
-		{
-			switch (wParam)
-			{
-			case 'w':
-			{
-				if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
-				{
-					m_pRenderer->Translate(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f));
+					m_screenWidth = LOWORD(lParam);
+					m_screenHeight = HIWORD(lParam);
+					m_pRenderer->UpdateResolution(m_screenWidth, m_screenHeight);
+	
 				}
 				break;
 			}
-			case 's':
+			case WM_MOUSEMOVE:
 			{
 				if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
 				{
-					m_pRenderer->Translate(XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f));
-				}
-				break;
-			}
-			case 'a':
-			{
-				if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
-				{
-					m_pRenderer->Translate(XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f));
-				}
-				break;
-			}
-			case 'd':
-			{
-				if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
-				{
-					m_pRenderer->Translate(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f));
+
+					RECT rc;
+					GetWindowRect(m_hWnd, &rc);
+					int winPosX = rc.left;
+					int winPosY = rc.top;
+
+					int x = (short)(lParam) & 0xffff;
+					int y = (lParam >> 16) & 0xffff;
+
+					m_curMouseX = x;
+					m_curMouseY = y;
+
+					int dyaw = m_lastMouseX - m_curMouseX;
+					int dpitch = m_lastMouseY - m_curMouseY;
+
+					if (abs(dyaw) > _DRAG_THRESHOLD)
+					{
+						dyaw = dyaw > 0 ? 1 : -1;
+					}
+					else
+					{
+						dyaw = 0;
+					}
+
+					if (abs(dpitch) > _DRAG_THRESHOLD)
+					{
+						dpitch = dpitch > 0 ? 1 : -1;
+					}
+					else
+					{
+						dpitch = 0;
+					}
+
+					if (m_pEditor->CheckRange(winPosX + m_lastMouseX, winPosY + m_lastMouseY))
+					{
+						m_pRenderer->Rotate(dpitch, dyaw);
+						m_lastMouseX = x;
+						m_lastMouseY = y;
+					}
 				}
 				break;
 			}
 
-			case 'q':
+			case WM_CHAR:
 			{
-				if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+				switch (wParam)
 				{
-					m_pRenderer->Translate(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+				case 'w':
+				{
+					if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+					{
+						m_pRenderer->Translate(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f));
+					}
+					break;
 				}
-				break;
+				case 's':
+				{
+					if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+					{
+						m_pRenderer->Translate(XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f));
+					}
+					break;
+				}
+				case 'a':
+				{
+					if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+					{
+						m_pRenderer->Translate(XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f));
+					}
+					break;
+				}
+				case 'd':
+				{
+					if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+					{
+						m_pRenderer->Translate(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f));
+					}
+					break;
+				}
+
+				case 'q':
+				{
+					if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+					{
+						m_pRenderer->Translate(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+					}
+					break;
+				}
+
+				case 'e':
+				{
+					if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
+					{
+						m_pRenderer->Translate(XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f));
+					}
+					break;
+				}
+				default:
+					break;
+				}
 			}
 
-			case 'e':
-			{
-				if (GetAsyncKeyState(VK_LBUTTON) * 0x8000)
-				{
-					m_pRenderer->Translate(XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f));
-				}
-				break;
-			}
 			default:
-				break;
+			{
+				return DefWindowProc(hWnd, uMsg, wParam, lParam);
 			}
-		}
-
-		default:
-		{
-			return DefWindowProc(hWnd, uMsg, wParam, lParam);
-		}
 		}
 	}
 

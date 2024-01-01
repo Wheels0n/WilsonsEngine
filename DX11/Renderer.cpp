@@ -37,6 +37,11 @@ namespace wilson
 		m_pD3D11->DrawScene();
 	}
 
+	void Renderer::UpdateResolution(int newWidth, int newHeight)
+	{
+		m_pD3D11->ResizeBackBuffer(newWidth, newHeight);
+	}
+
 	void Renderer::Translate(XMVECTOR tr)
 	{
 		m_pCam->Translate(tr);

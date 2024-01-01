@@ -776,122 +776,17 @@ namespace wilson
 				m_pNoiseSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pNoiseSRV") - 1, "D3D11::m_pNoiseSRV");
 			}
-			//Gen Equirectangular map
-			{
-				int width, height, nrComponents;
-				float* data = stbi_loadf(".\\Assets\\Models\\FBX\\Bistro_v5_2\\Bistro_v5_2\\san_giuseppe_bridge_4k.hdr",
-					&width, &height, &nrComponents, STBI_rgb_alpha);
-				if (data)
+				
+			{  
+				
+				bool result = 
+					CreateEquirentangularMap(".\\Assets\\Models\\FBX\\Bistro_v5_2\\Bistro_v5_2\\san_giuseppe_bridge_4k.hdr");
+				if (result)
 				{
-					D3D11_TEXTURE2D_DESC texDesc = {};
-					texDesc.Width = width;
-					texDesc.Height = height;
-					texDesc.ArraySize = 1;
-					texDesc.MipLevels = 1;
-					texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-					texDesc.SampleDesc.Count = 1;
-					texDesc.SampleDesc.Quality = 0;
-					texDesc.Usage = D3D11_USAGE_DEFAULT;
-					texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-					texDesc.CPUAccessFlags = 0;
-					texDesc.MiscFlags = 0;
-
-					D3D11_SUBRESOURCE_DATA subResource = {};
-					subResource.pSysMem = data;
-					subResource.SysMemPitch = sizeof(float) * width * 4;
-
-					hr = m_pDevice->CreateTexture2D(&texDesc, &subResource, &m_pHDRRTT);
-					stbi_image_free(data);
-					if (FAILED(hr))
-					{
-						OutputDebugStringA("D3D11::m_pHDRRTT::CreateTexFailed");
-					}
-					m_pHDRRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
-						sizeof("D3D11::m_pHDRRTT") - 1, "D3D11::m_pHDRRTT");
-
-
-					D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-					srvDesc.Format = texDesc.Format;
-					srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
-					srvDesc.Texture2D.MostDetailedMip = 0;
-					srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-					hr = m_pDevice->CreateShaderResourceView(m_pHDRRTT, &srvDesc, &m_pHDRSRV);
-					if (FAILED(hr))
-					{
-						OutputDebugStringA("D3D11::m_pHDRSRV::CreateSRVFailed");
-					}
-					m_pHDRSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
-						sizeof("D3D11::m_pHDRSRV") - 1, "D3D11::m_pHDRSRV");
-
-
-					//Covenrt EquirectangularMap to CubeMap
-					D3D11_MAPPED_SUBRESOURCE mappedSubResource;
-					hr = m_pContext->Map(m_pEquirect2CubeBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubResource);
-					if (FAILED(hr))
-					{
-						OutputDebugStringA("D3D11::m_pEquirect2CubeBuffer::MapFailed");
-					}
-					UINT stride;
-					UINT offset = 0;
-
-					XMMATRIX capProj = XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f),
-						1.0F, 0.1f, 10.0f);
-					XMVECTOR eyePos = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-					XMMATRIX capView[6] =
-					{	//변환된 텍스쳐가 뒤집혀져있음에 유의
-						XMMatrixLookAtLH(eyePos, XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
-						XMMatrixLookAtLH(eyePos, XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
-						XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f)),
-						XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f)),
-						XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
-						XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f))
-					};
-					XMMATRIX* pMatrix = (XMMATRIX*)mappedSubResource.pData;
-					for (int i = 0; i < 6; ++i)
-					{
-						pMatrix[i] = XMMatrixMultiplyTranspose(capView[i], capProj);
-
-					}
-					m_pContext->Unmap(m_pEquirect2CubeBuffer, 0);
-
-
-					stride = sizeof(XMFLOAT3);
-					m_pShader->SetPosOnlyInputLayout(m_pContext);
-					m_pShader->SetEquirect2CubeShader(m_pContext);
-					m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-					m_pContext->IASetVertexBuffers(0, 1, &m_pCubeVertices, &stride, &offset);
-					m_pContext->IASetIndexBuffer(m_pCubeIndices, DXGI_FORMAT_R32_UINT, 0);
-					m_pContext->GSSetConstantBuffers(0, 1, &m_pEquirect2CubeBuffer);
-					m_pContext->PSSetShaderResources(0, 1, &m_pHDRSRV);
-					m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
-					m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
-					m_pContext->OMSetDepthStencilState(0, 0);
-					m_pContext->OMSetRenderTargets(1, &m_pSkyBoxRTTV, nullptr);
-					m_pContext->DrawIndexed(36, 0, 0);
-					//Gen Diffuse IrradianceMap
-					m_pShader->SetDiffuseIrradianceShader(m_pContext);
-					m_pContext->OMSetRenderTargets(1, &m_pDiffIrradianceRTTV, nullptr);
-					m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
-					m_pContext->PSSetSamplers(0, 1, &m_pClampSS);
-					m_pContext->RSSetViewports(1, &m_diffIrradViewport);
-					m_pContext->DrawIndexed(36, 0, 0);
-					//Gen PrefileterMap;
-					m_pShader->SetPrefilterShader(m_pContext);
-					m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
-					m_pContext->RSSetViewports(1, &m_prefilterViewport);
-					m_pContext->OMSetRenderTargets(1, &m_pPrefilterRTTV, nullptr);
-					m_pContext->DrawIndexed(36, 0, 0);
-					m_pContext->GenerateMips(m_pPrefilterSRV);
-					//Gen BRDFMap
-					m_pShader->SetTexInputlayout(m_pContext);
-					m_pShader->SetBRDFShader(m_pContext);
-					stride = sizeof(QUAD);
-					m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
-					m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
-					m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
-					m_pContext->PSSetSamplers(0, 1, &m_pClampSS);
-					m_pContext->OMSetRenderTargets(1, &m_pBRDFRTTV, nullptr);
-					m_pContext->DrawIndexed(6, 0, 0);
+					ConvertEquirectagular2Cube();
+					CreateDiffuseIrradianceMap();
+					CreatePrefileterMap();
+					CreateBRDFMap();
 				}
 
 			}
@@ -963,24 +858,9 @@ namespace wilson
 
 		DestroyRTT();
 		DestroyDSBforRTT();
-		if (m_pScreenDepthRTT != nullptr)
-		{
-			m_pScreenDepthRTT->Release();
-			m_pScreenDepthRTT = nullptr;
-		}
-
-		if (m_pScreenDSV != nullptr)
-		{
-			m_pScreenDSV->Release();
-			m_pScreenDSV = nullptr;
-		}
-
+		DestroyBackBuffer();
 		DestroyDSS();
-		if (m_pScreenRTTV != nullptr)
-		{
-			m_pScreenRTTV->Release();
-			m_pScreenRTTV = nullptr;
-		}
+		DestroyHDR();
 
 		if (m_pNoiseRTT != nullptr)
 		{
@@ -993,22 +873,6 @@ namespace wilson
 			m_pNoiseSRV->Release();
 			m_pNoiseSRV = nullptr;
 		}
-
-
-		if (m_pHDRRTT != nullptr)
-		{
-			m_pHDRRTT->Release();
-			m_pHDRRTT = nullptr;
-		}
-		if (m_pHDRSRV != nullptr)
-		{
-			m_pHDRSRV->Release();
-			m_pHDRSRV = nullptr;
-		}
-
-
-
-
 
 		if (m_pContext != nullptr)
 		{
@@ -1159,6 +1023,213 @@ namespace wilson
 		m_pModelGroups.clear();
 		m_pModelGroups.shrink_to_fit();
 		return;
+	}
+
+	bool D3D11::CreateEquirentangularMap(const char* pPath)
+	{
+		HRESULT hr;
+		int width, height, nrComponents;
+		float* data = stbi_loadf(pPath,
+			&width, &height, &nrComponents, STBI_rgb_alpha);
+		if (data)
+		{
+			D3D11_TEXTURE2D_DESC texDesc = {};
+			texDesc.Width = width;
+			texDesc.Height = height;
+			texDesc.ArraySize = 1;
+			texDesc.MipLevels = 1;
+			texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			texDesc.SampleDesc.Count = 1;
+			texDesc.SampleDesc.Quality = 0;
+			texDesc.Usage = D3D11_USAGE_DEFAULT;
+			texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			texDesc.CPUAccessFlags = 0;
+			texDesc.MiscFlags = 0;
+
+			D3D11_SUBRESOURCE_DATA subResource = {};
+			subResource.pSysMem = data;
+			subResource.SysMemPitch = sizeof(float) * width * 4;
+
+			hr = m_pDevice->CreateTexture2D(&texDesc, &subResource, &m_pHDRRTT);
+			stbi_image_free(data);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("D3D11::m_pHDRRTT::CreateTexFailed");
+				return false;
+			}
+			m_pHDRRTT->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pHDRRTT") - 1, "D3D11::m_pHDRRTT");
+
+
+			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Format = texDesc.Format;
+			srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
+			srvDesc.Texture2D.MostDetailedMip = 0;
+			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			hr = m_pDevice->CreateShaderResourceView(m_pHDRRTT, &srvDesc, &m_pHDRSRV);
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("D3D11::m_pHDRSRV::CreateSRVFailed");
+				return false;
+			}
+			m_pHDRSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D11::m_pHDRSRV") - 1, "D3D11::m_pHDRSRV");
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	void D3D11::ConvertEquirectagular2Cube()
+	{
+		//Covenrt EquirectangularMap to CubeMap
+		HRESULT hr;
+		D3D11_MAPPED_SUBRESOURCE mappedSubResource;
+		hr = m_pContext->Map(m_pEquirect2CubeBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubResource);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA("D3D11::m_pEquirect2CubeBuffer::MapFailed");
+		}
+		UINT stride;
+		UINT offset = 0;
+
+		XMMATRIX capProj = XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f),
+			1.0F, 0.1f, 10.0f);
+		XMVECTOR eyePos = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+		XMMATRIX capView[6] =
+		{	//변환된 텍스쳐가 뒤집혀져있음에 유의
+			XMMatrixLookAtLH(eyePos, XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
+			XMMatrixLookAtLH(eyePos, XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
+			XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f)),
+			XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f)),
+			XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
+			XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f))
+		};
+		XMMATRIX* pMatrix = (XMMATRIX*)mappedSubResource.pData;
+		for (int i = 0; i < 6; ++i)
+		{
+			pMatrix[i] = XMMatrixMultiplyTranspose(capView[i], capProj);
+
+		}
+		m_pContext->Unmap(m_pEquirect2CubeBuffer, 0);
+
+
+		stride = sizeof(XMFLOAT3);
+		m_pShader->SetPosOnlyInputLayout(m_pContext);
+		m_pShader->SetEquirect2CubeShader(m_pContext);
+		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_pContext->IASetVertexBuffers(0, 1, &m_pCubeVertices, &stride, &offset);
+		m_pContext->IASetIndexBuffer(m_pCubeIndices, DXGI_FORMAT_R32_UINT, 0);
+		m_pContext->GSSetConstantBuffers(0, 1, &m_pEquirect2CubeBuffer);
+		m_pContext->PSSetShaderResources(0, 1, &m_pHDRSRV);
+		m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
+		m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
+		m_pContext->OMSetDepthStencilState(0, 0);
+		m_pContext->OMSetRenderTargets(1, &m_pSkyBoxRTTV, nullptr);
+		m_pContext->DrawIndexed(36, 0, 0);
+	}
+
+	void  D3D11::CreateDiffuseIrradianceMap()
+	{
+		//Gen Diffuse IrradianceMap
+		m_pShader->SetDiffuseIrradianceShader(m_pContext);
+		m_pContext->OMSetRenderTargets(1, &m_pDiffIrradianceRTTV, nullptr);
+		m_pContext->PSSetShaderResources(0, 1, &m_pSkyBoxSRV);
+		m_pContext->PSSetSamplers(0, 1, &m_pClampSS);
+		m_pContext->RSSetViewports(1, &m_diffIrradViewport);
+		m_pContext->DrawIndexed(36, 0, 0);
+	}
+
+	void D3D11::CreatePrefileterMap()
+	{
+		//Gen PrefileterMap;
+		m_pShader->SetPrefilterShader(m_pContext);
+		m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
+		m_pContext->RSSetViewports(1, &m_prefilterViewport);
+		m_pContext->OMSetRenderTargets(1, &m_pPrefilterRTTV, nullptr);
+		m_pContext->DrawIndexed(36, 0, 0);
+		m_pContext->GenerateMips(m_pPrefilterSRV);
+	}
+
+	void D3D11::CreateBRDFMap()
+	{	
+		UINT stride;
+		UINT offset=0;
+
+		//Gen BRDFMap
+		m_pShader->SetTexInputlayout(m_pContext);
+		m_pShader->SetBRDFShader(m_pContext);
+		stride = sizeof(QUAD);
+		m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
+		m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
+		m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
+		m_pContext->PSSetSamplers(0, 1, &m_pClampSS);
+		m_pContext->OMSetRenderTargets(1, &m_pBRDFRTTV, nullptr);
+		m_pContext->DrawIndexed(6, 0, 0);
+	}
+
+	void D3D11::ResizeBackBuffer(int newWidth, int newHeight)
+	{	
+		m_clientWidth = newWidth;
+		m_clientHeight = newHeight;
+
+		m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
+		DestroyRTT();
+		DestroyDSBforRTT();
+		DestroyHDR();
+		DestroyBackBuffer();
+
+		m_pSwapChain->ResizeBuffers(1, m_clientWidth, m_clientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
+
+
+		HRESULT hr;
+		ID3D11Texture2D* pBackbuffer;
+		hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackbuffer));
+		if (FAILED(hr))
+		{
+			OutputDebugStringA("D3D11::pBackbuffer::CreateBackBufferFailed");
+		}
+		pBackbuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::pBackbuffer") - 1, "D3D11::pBackbuffer");
+		hr = m_pDevice->CreateRenderTargetView(pBackbuffer, nullptr, &m_pScreenRTTV);
+		if (FAILED(hr))
+		{
+			OutputDebugStringA("D3D11::m_pScreenRTTV::CreateRTVFailed");
+		}
+		m_pScreenRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D11::m_pScreenRTTV") - 1, "D3D11::m_pScreenRTTV");
+		pBackbuffer->Release();
+		
+		
+		if (!CreateRTT(m_clientWidth, m_clientHeight))
+		{
+			OutputDebugStringA("D3D11::CreateRTT()Failed");
+		}
+
+		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pScreenDepthRTT, &m_pScreenDSV))
+		{
+			OutputDebugStringA("D3D11::CreateDepthBuffer()onScreenFailed");
+		}
+
+		if (!CreateDepthBuffer(m_clientWidth, m_clientHeight, &m_pSceneDepthRTT, &m_pSceneDSV))
+		{
+			OutputDebugStringA("D3D11::CreateDepthBuffer()onSceneFailed");
+		}
+		m_viewport.Width = static_cast<float>(m_clientWidth);
+		m_viewport.Height = static_cast<float>(m_clientHeight);
+
+		
+		bool result =
+			CreateEquirentangularMap(".\\Assets\\Models\\FBX\\Bistro_v5_2\\Bistro_v5_2\\san_giuseppe_bridge_4k.hdr");
+		if (result)
+		{
+			ConvertEquirectagular2Cube();
+			CreateDiffuseIrradianceMap();
+			CreatePrefileterMap();
+			CreateBRDFMap();
+		}
 	}
 
 	void D3D11::UpdateScene()
@@ -2276,6 +2347,20 @@ namespace wilson
 		}
 
 	}
+	void D3D11::DestroyHDR()
+	{
+
+		if (m_pHDRRTT != nullptr)
+		{
+			m_pHDRRTT->Release();
+			m_pHDRRTT = nullptr;
+		}
+		if (m_pHDRSRV != nullptr)
+		{
+			m_pHDRSRV->Release();
+			m_pHDRSRV = nullptr;
+		}
+	}
 	void D3D11::DestroyDSBforRTT()
 	{
 		if (m_pSceneDepthRTT != nullptr)
@@ -2288,6 +2373,27 @@ namespace wilson
 		{
 			m_pSceneDSV->Release();
 			m_pSceneDSV = nullptr;
+		}
+	}
+
+	void D3D11::DestroyBackBuffer()
+	{
+		if (m_pScreenDepthRTT != nullptr)
+		{
+			m_pScreenDepthRTT->Release();
+			m_pScreenDepthRTT = nullptr;
+		}
+
+		if (m_pScreenRTTV != nullptr)
+		{
+			m_pScreenRTTV->Release();
+			m_pScreenRTTV = nullptr;
+		}
+
+		if (m_pScreenDSV != nullptr)
+		{
+			m_pScreenDSV->Release();
+			m_pScreenDSV = nullptr;
 		}
 	}
 	

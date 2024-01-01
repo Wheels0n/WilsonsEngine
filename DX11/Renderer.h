@@ -24,6 +24,7 @@ namespace wilson
 			return m_pD3D11;
 		};
 
+		void UpdateResolution(int, int);
 		void Translate(XMVECTOR);
 		void Rotate(int dx, int dy);
 

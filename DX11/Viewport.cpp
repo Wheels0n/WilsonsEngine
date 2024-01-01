@@ -11,6 +11,7 @@ namespace wilson
 		m_left = 0;
 		m_top = 0;
 
+		m_pD3D11 = pD3D11;
 		m_pSwapChain = pD3D11->GetSwapChain();
 		m_pDevice = pD3D11->GetDevice();
 		m_pD3D11 = pD3D11;
@@ -18,11 +19,6 @@ namespace wilson
 		m_pScene = pScene;
 		m_pImporter = new Importer(m_pDevice);
 
-		m_pFinalSRV = pD3D11->GetFinalSRV();
-		m_pSSAOBlurredSRV = pD3D11->GetSSAOBlurredSRV();
-		m_pGbufferSRV = pD3D11->GetGbufferSRV();
-
-		m_GbufferCount = pD3D11->GetGbufferCount();
 	}
 
 	Viewport::~Viewport()
@@ -35,7 +31,12 @@ namespace wilson
 	}
 
 	void Viewport::Draw()
-	{
+	{	
+		m_pFinalSRV = m_pD3D11->GetFinalSRV();
+		m_pSSAOBlurredSRV = m_pD3D11->GetSSAOBlurredSRV();
+		m_pGbufferSRV = m_pD3D11->GetGbufferSRV();
+		m_GbufferCount = m_pD3D11->GetGbufferCount();
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
