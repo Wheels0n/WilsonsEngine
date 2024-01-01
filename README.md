@@ -1,9 +1,10 @@
 # WilsonsEngine
 DX11을 이용한 렌더링 엔진 
 ##
-![image](https://github.com/Wheels0n/WilsonsEngine/assets/96295807/a768df0a-cda4-4cae-8659-35385d459c49)
-![image](https://github.com/Wheels0n/WilsonsEngine/assets/96295807/ec05df86-5688-47ed-830e-09d46856ac7b)
+![Capture](https://github.com/Wheels0n/WilsonsEngine/assets/96295807/1f91b757-2dfd-4bc8-9323-1ab62e46471f)
 
+
+[https://youtu.be/wbYEyiZzkSE](https://youtu.be/wbYEyiZzkSE)
 ##
 - [x] 카메라
 - [x] 블린퐁
