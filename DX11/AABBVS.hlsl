@@ -3,7 +3,7 @@ cbuffer MatrixBuffer
     matrix worldMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
-    matrix lightSpaceMat;
+    matrix g_extraMat;
 };
 
 float4 main( float3 pos : POSITION ) : SV_POSITION

@@ -15,7 +15,7 @@ cbuffer MatrixBuffer
     matrix g_worldMatrix;
     matrix g_viewMatrix;
     matrix g_projectionMatrix;
-    matrix g_lightSpaceMat;
+    matrix g_extraMat;
 };
 
 GS_INPUT main(VertexInputType input)

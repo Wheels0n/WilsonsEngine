@@ -7,9 +7,13 @@ MatBuffer::MatBuffer(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,
 	m_pProjMatBuffer = nullptr;
 
 	m_worldMat = XMMatrixIdentity();
+	m_invWorldMat = m_worldMat;
+	m_lightSpaceMat = m_worldMat;
+	m_extraMat = m_worldMat;
+
 	m_viewMat =  *pViewMat;
 	m_projMat = *pProjMat;
-	m_lightSpaceMat = XMMatrixIdentity();
+	
 
 	HRESULT hr;
 	D3D11_BUFFER_DESC matCBD;
@@ -56,7 +60,7 @@ MatBuffer::~MatBuffer()
 }
 
 
-void MatBuffer::Update(ID3D11DeviceContext* pContext)
+void MatBuffer::Update(ID3D11DeviceContext* pContext, bool bSpotShadowPass)
 { 
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -74,7 +78,7 @@ void MatBuffer::Update(ID3D11DeviceContext* pContext)
 	pMatrices->m_worldMat =m_worldMat;
 	pMatrices->m_viewMat = m_viewMat;
 	pMatrices->m_projMat = m_projMat;
-	pMatrices->m_lightSpaceMat = m_lightSpaceMat;
+	pMatrices->m_extraMat = bSpotShadowPass ? m_lightSpaceMat:m_invWorldMat;
 	pContext->Unmap(m_pMatBuffer, 0);
 
  	pContext->VSSetConstantBuffers(0, 1, &m_pMatBuffer);

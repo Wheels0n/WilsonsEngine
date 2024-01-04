@@ -23,7 +23,7 @@ cbuffer MatrixBuffer
     matrix g_worldMatrix;
     matrix g_viewMatrix;
     matrix g_projectionMatrix;
-    matrix g_lightSpaceMat;
+    matrix g_invWorldMat;
 };
 
 cbuffer PerModel
@@ -47,7 +47,7 @@ PixelInputType main(VertexInputType input)
     
     output.tex = input.tex;
     
-    output.normal = mul(input.normal, (float3x3) g_worldMatrix);
+    output.normal = mul(input.normal, (float3x3) transpose(g_invWorldMat));
     output.normal = normalize(output.normal);
     output.vNormal = mul(output.normal, (float3x3) g_viewMatrix);
     output.vNormal = normalize(output.vNormal);
@@ -57,7 +57,7 @@ PixelInputType main(VertexInputType input)
     [branch]
     if (g_hasNormal)
     {
-        output.tangent = mul(input.tangent, (float3x3) g_worldMatrix);
+        output.tangent = mul(input.tangent, (float3x3) transpose(g_invWorldMat));
         output.tangent = normalize(output.tangent);
         output.binormal = cross(output.normal, output.tangent);
         output.binormal = normalize(output.binormal);

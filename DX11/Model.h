@@ -70,6 +70,10 @@ namespace wilson {
 		{
 			return bOutliner?m_outlinerMat:m_wMat;
 		}
+		inline DirectX::XMMATRIX GetInverseWorldMatrix()
+		{
+			return m_invWMat;
+		}
 		inline DirectX::XMMATRIX* GetTranslationMatrix()
 		{
 			return &m_trMat;
@@ -181,6 +185,7 @@ namespace wilson {
 		DirectX::XMMATRIX m_rtMat;
 		DirectX::XMMATRIX m_trMat;
 		DirectX::XMMATRIX m_wMat;
+		DirectX::XMMATRIX m_invWMat;
 		DirectX::XMVECTOR m_angleVec;
 		
 		DirectX::XMMATRIX* m_instancedData;

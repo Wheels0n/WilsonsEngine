@@ -50,6 +50,7 @@ namespace wilson {
 		m_trMat = m_wMat;
 		m_rtMat = m_trMat;
 		m_scMat = m_trMat;
+		m_invWMat = m_wMat;
 
 		DirectX::XMVECTOR xv = DirectX::XMVectorSet(1.01f, 1.01f, 1.01f, 1.0f);
 		m_outlinerScaleMat = DirectX::XMMatrixScalingFromVector(xv);
@@ -469,6 +470,8 @@ namespace wilson {
 		DirectX::XMMATRIX osrtMat = XMMatrixMultiply(osrMat, m_trMat);
 
 		m_wMat = DirectX::XMMatrixTranspose(srtMat);
+		m_invWMat = DirectX::XMMatrixInverse(nullptr, srtMat);
+		m_invWMat = DirectX::XMMatrixTranspose(m_invWMat);
 		m_outlinerMat = DirectX::XMMatrixTranspose(osrtMat);
 	}
 }

@@ -148,7 +148,7 @@ namespace wilson
         DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
         DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&m_direction);
         pos = DirectX::XMVector4Normalize(pos);
-        pos = DirectX::XMVectorAdd(center,pos);
+        pos = DirectX::XMVectorSubtract(center,pos);
         
         const DirectX::XMMATRIX lightView = DirectX::XMMatrixLookAtLH(pos,center, up);
 

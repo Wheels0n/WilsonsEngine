@@ -1242,7 +1242,9 @@ namespace wilson
 		UINT offset = 0;
 		int drawed = 0;
 		bool bGeoPass = false;
-		
+		bool bSpotShadowPass = false;
+
+
 		ID3D11RenderTargetView* nullRTV[_GBUF_CNT] = { nullptr, };
 		ID3D11RenderTargetView* pSSAORTVs[2] = {m_pSSAOBlurRTTV, m_pSSAOBlurDebugRTTV};
 
@@ -1281,18 +1283,19 @@ namespace wilson
 				dirLights[i]->UpdateLightSpaceMatrices();
 				dirLights[i]->SetShadowMatrices(m_pContext);
 				m_pShadowMap->BindDirDSV(m_pContext,i);
-				DrawENTT(bGeoPass);
+				DrawENTT(bGeoPass, bSpotShadowPass);
 			}
 
 			m_pShader->SetTexInputlayout(m_pContext);
 			m_pShader->SetSpotShadowShader(m_pContext);
+			bSpotShadowPass = true;
 			for (int i = 0; i < spotLights.size(); ++i)
 			{
 				m_pMatBuffer->SetLightSpaceMatrix(spotLights[i]->GetLightSpaceMat());
 				m_pShadowMap->BindSpotDSV(m_pContext, i);
-				DrawENTT(bGeoPass);
+				DrawENTT(bGeoPass, bSpotShadowPass);
 			}
-
+			bSpotShadowPass = false;
 
 			m_pContext->RSSetState(m_pSkyBoxRS);
 			m_pShader->SetOmniDirShadowShader(m_pContext);
@@ -1301,7 +1304,7 @@ namespace wilson
 				m_pShadowMap->BindCubeDSV(m_pContext, i);
 				pointLights[i]->SetShadowMatrices(m_pContext);
 				pointLights[i]->SetLightPos(m_pContext);
-				DrawENTT(bGeoPass);
+				DrawENTT(bGeoPass, bSpotShadowPass);
 			}
 			
 		}
@@ -1310,7 +1313,7 @@ namespace wilson
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);	
 		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-		m_pMatBuffer->Update(m_pContext);
+		m_pMatBuffer->Update(m_pContext, bSpotShadowPass);
 		m_pShader->SetSkyBoxShader(m_pContext);
 		m_pContext->IASetVertexBuffers(0, 1, &m_pCubeVertices, &stride, &offset);
 		m_pContext->IASetIndexBuffer(m_pCubeIndices, DXGI_FORMAT_R32_UINT, 0);
@@ -1349,7 +1352,7 @@ namespace wilson
 				m_pContext->PSSetConstantBuffers(4, 1, &m_pHeightOnOffBuffer);
 
 			}
-			DrawENTT(!bGeoPass);
+			DrawENTT(!bGeoPass, bSpotShadowPass);
 			
 
 			//SSAO Pass
@@ -1424,7 +1427,7 @@ namespace wilson
 			std::vector<Model*> pModels = m_pModelGroups[m_selectedModelGroup]->GetModels();
 			XMMATRIX worldMat = pModels[m_selectedModel]->GetTransformMatrix(true);
 			m_pMatBuffer->SetWorldMatrix(&worldMat);
-			m_pMatBuffer->Update(m_pContext);
+			m_pMatBuffer->Update(m_pContext, bSpotShadowPass);
 
 			for (int k = 0; k < pModels[m_selectedModel]->GetMatCount(); ++k)
 			{
@@ -2045,11 +2048,11 @@ namespace wilson
 		return true;
 	}
 
-	void D3D11::DrawENTT(bool bGeoPass)
+	void D3D11::DrawENTT(bool bGeoPass, bool bSpotShadowPass)
 	{	
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
 		HRESULT hr;
-		XMMATRIX worldMat;
+		XMMATRIX worldMat, invWorldMat;
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		UINT stride = sizeof(XMFLOAT3);
 		UINT offset = 0;
@@ -2067,13 +2070,15 @@ namespace wilson
 					{	
 						ENTTCnt++;
 						worldMat = pModels[j]->GetTransformMatrix(false);
+						invWorldMat = pModels[j]->GetInverseWorldMatrix();
 						AABB* aabb = pModels[j]->GetAABB();
 						if (aabb->IsOnFrustum(pPlanes, worldMat))
 						{	
 							ENTTDrawn++;
 							m_pMatBuffer->SetWorldMatrix(&worldMat);
-							m_pMatBuffer->Update(m_pContext);
-						
+							m_pMatBuffer->SetInvWorldMatrix(&invWorldMat);
+							m_pMatBuffer->Update(m_pContext, bSpotShadowPass);
+						    
 					
 							bool isSelected = (i == m_selectedModelGroup && j == m_selectedModel);
 							if (isSelected)
