@@ -1,0 +1,236 @@
+#include "Camera12.h"
+#include "DescriptorHeapManager.h"
+namespace wilson {
+
+	Camera12::Camera12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager,
+		const UINT screenWidth, const UINT screenHeight, float screenFar, float screenNear)
+	{
+		m_fScreenNear = screenNear;
+		m_fScreenFar = screenFar;
+		m_fFOV = static_cast<float>(3.1459) / 4.0f;
+		m_fScreenRatio = screenWidth / static_cast<float>(screenHeight);
+		m_trSpeed = 0.1f;
+		m_rtSpeed = 0.0175f;
+		UpdateCascadeLevels();
+
+
+		ResetTranslation();
+		ResetRotation();
+		m_up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+		m_worldUp = m_up;
+
+		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
+		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
+		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
+		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
+
+		m_pCamPos12CB = nullptr;
+		m_pCascadeLevel12CB = nullptr;
+
+		HRESULT hr;
+
+
+		D3D12_HEAP_PROPERTIES heapProps = {};
+		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		heapProps.CreationNodeMask = 1;
+		heapProps.VisibleNodeMask = 1;
+
+		D3D12_RESOURCE_DESC cbufferDesc = {};
+		cbufferDesc.Width = _64KB_ALIGN(sizeof(CamBuffer));
+		cbufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		cbufferDesc.Alignment = 0;
+		cbufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		cbufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+		cbufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		cbufferDesc.Height = 1;
+		cbufferDesc.DepthOrArraySize = 1;
+		cbufferDesc.MipLevels = 1;
+		cbufferDesc.SampleDesc.Count = 1;
+		cbufferDesc.SampleDesc.Quality = 0;
+
+		
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+
+			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pCamPos12CB));
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("Camera::m_pCamPos12CB::CreateBufferFailed");
+			}
+			m_pCamPos12CB->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Camera::m_pCamPos12CB") - 1, "Camera::m_pCamPos12CB");
+
+			UINT constantBufferSize = sizeof(CamBuffer);
+
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);//255aligned
+			cbvDesc.BufferLocation = m_pCamPos12CB->GetGPUVirtualAddress();
+			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
+			m_camPosCBV = cbvSrvGpuHandle;
+			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+
+		}
+
+
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+
+			cbufferDesc.Width = sizeof(DirectX::XMVECTOR) * 5;
+			cbufferDesc.Width = _64KB_ALIGN(cbufferDesc.Width);
+
+			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pCascadeLevel12CB));
+			if (FAILED(hr))
+			{
+				hr = pDevice->GetDeviceRemovedReason();
+				OutputDebugStringA("Camera::m_pCascadeLevel12CB::CreateBufferFailed");
+			}
+			m_pCascadeLevel12CB->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Camera::m_pCascadeLevel12CB") - 1, "Camera::m_pCascadeLevel12CB");
+
+
+
+			UINT constantBufferSize = sizeof(DirectX::XMVECTOR) * 5;
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
+			cbvDesc.BufferLocation = m_pCascadeLevel12CB->GetGPUVirtualAddress();
+			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
+			m_cascadeLevelCBV = cbvSrvGpuHandle;
+			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+		}
+		
+
+	}
+
+	Camera12::~Camera12()
+	{
+
+		if (m_pCamPos12CB != nullptr)
+		{
+			m_pCamPos12CB->Release();
+			m_pCamPos12CB = nullptr;
+		}
+
+		if (m_pCascadeLevel12CB != nullptr)
+		{
+			m_pCascadeLevel12CB->Release();
+			m_pCascadeLevel12CB = nullptr;
+		}
+
+	}
+
+	void Camera12::ResetTranslation()
+	{
+		m_pos = DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 1.0f);
+		m_target = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+	}
+
+	void Camera12::UpdateCascadeLevels()
+	{
+		m_shadowCascadeLevels = std::vector({ m_fScreenFar / 100.0f,  m_fScreenFar / 50.0f,  m_fScreenFar / 25.0f,  m_fScreenFar / 5.0f , m_fScreenFar });
+	}
+
+
+	void Camera12::Rotate(int dpitch, int dyaw)
+	{
+		DirectX::XMFLOAT4 float4;
+		DirectX::XMStoreFloat4(&float4, m_rotation);
+		float pitch = float4.x + dpitch * m_rtSpeed;
+		float yaw = float4.y + dyaw * m_rtSpeed;
+
+		if (pitch < 0.0f)
+		{
+			pitch += _RAD;
+		}
+		if (yaw < 0.0f)
+		{
+			yaw += _RAD;
+		}
+		pitch = pitch > _RAD ? 0 : pitch;
+		yaw = yaw > _RAD ? 0 : yaw;
+
+		m_rotation = DirectX::XMVectorSet(pitch, yaw, 0.0f, 0.0f);
+	}
+
+	void Camera12::Translate(DirectX::XMVECTOR dv)
+	{
+		DirectX::XMMATRIX rtMat = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
+		dv = DirectX::XMVector3Transform(dv, rtMat);
+		dv = DirectX::XMVectorScale(dv, m_trSpeed);
+
+		m_pos = DirectX::XMVectorAdd(m_pos, dv);
+	}
+
+	void Camera12::Update()
+	{
+		DirectX::XMMATRIX rtMat = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
+		m_dir = DirectX::XMVector3Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f), rtMat);
+		m_dir = DirectX::XMVector3Normalize(m_dir);
+		m_target = DirectX::XMVectorAdd(m_dir, m_pos);
+
+
+		m_right = DirectX::XMVector3Cross(m_dir, m_worldUp);
+		m_right = DirectX::XMVector3Normalize(m_right);
+
+		m_up = DirectX::XMVector3Cross(m_right, m_dir);
+		m_up = DirectX::XMVector3Normalize(m_up);
+
+		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
+		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
+		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
+		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
+		UpdateCascadeLevels();
+	}
+
+	bool Camera12::SetCascadeLevels(ID3D12GraphicsCommandList* pCommandlist)
+	{
+		HRESULT hr;
+		UINT8* pCascadeLevel12Buffer;
+		D3D12_RANGE readRange = { 0, };
+		hr = m_pCascadeLevel12CB->Map(0, &readRange, reinterpret_cast<void**>(&pCascadeLevel12Buffer));
+		if (FAILED(hr))
+		{
+			OutputDebugStringA("Camera::m_pCascadeLevel12CB::Map()Failed");
+		}
+
+		std::vector<DirectX::XMVECTOR> FarZs(_CASCADE_LEVELS);
+		for (int i = 0; i < _CASCADE_LEVELS; ++i)
+		{
+			FarZs[i] = DirectX::XMVectorSet(0, 0, m_shadowCascadeLevels[i], 1.0f);
+		}
+
+		memcpy(pCascadeLevel12Buffer, &FarZs[0], sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS);
+		m_pCascadeLevel12CB->Unmap(0, nullptr);
+
+		pCommandlist->SetGraphicsRootDescriptorTable(ePbrLightRP::ePbrLight_ePsCasCadeLevels, m_cascadeLevelCBV);
+		return true;
+	}
+
+
+	bool Camera12::SetCamPos(ID3D12GraphicsCommandList* pCommandlist, bool bGeoPass)
+	{
+
+		HRESULT hr;
+		UINT8* pCamPos12Buffer;
+		D3D12_RANGE readRange = { 0, };
+		hr = m_pCamPos12CB->Map(0, &readRange, reinterpret_cast<void**>(&pCamPos12Buffer));
+		if (FAILED(hr))
+		{
+			OutputDebugStringA("Camera::m_pCamPos12CB::Map()Failed");
+		}
+
+		memcpy(pCamPos12Buffer, &m_pos, sizeof(CamBuffer));
+		m_pCamPos12CB->Unmap(0, nullptr);
+
+		pCommandlist->SetGraphicsRootDescriptorTable(bGeoPass?ePbrGeoRP::ePbrGeo_ePsCamPos: ePbrLightRP::ePbrLight_ePsCamPos,
+			m_camPosCBV);
+		return true;
+
+	}
+
+}

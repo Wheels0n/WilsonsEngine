@@ -1,0 +1,58 @@
+#pragma once
+
+#include <dxgi.h>
+#include <d3d12.h>
+#include <DirectXMath.h>
+
+#include "Camera12.h"
+#include "typedef.h"
+
+namespace wilson
+{
+
+	class Light12
+	{
+	public:
+		eLIGHT_TYPE virtual GetType() { return eLIGHT_TYPE::PNT; };
+		inline UINT GetLightIndex() const
+		{
+			return m_entityIdx;
+		}
+		inline DirectX::XMFLOAT3* GetPos()
+		{
+			return &m_position;
+		}
+		inline DirectX::XMFLOAT3* GetDir()
+		{
+			return &m_direction;
+		}
+		inline DirectX::XMVECTOR* GetAmbient()
+		{
+			return &m_ambient;
+		}
+		inline DirectX::XMVECTOR* GetDiffuse()
+		{
+			return &m_diffuse;
+		}
+		inline DirectX::XMVECTOR* GetSpecular()
+		{
+			return &m_specular;
+		}
+
+		void virtual UpdateProperty() {};
+		Light12(UINT);
+		virtual ~Light12();
+	protected:
+
+		ID3D12Resource* m_pLight12Buffer;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_lightCBV;
+
+		DirectX::XMVECTOR m_ambient;
+		DirectX::XMVECTOR m_diffuse;
+		DirectX::XMVECTOR m_specular;
+		DirectX::XMFLOAT3 m_position;
+		DirectX::XMFLOAT3 m_direction;
+
+		UINT m_entityIdx;
+	};
+}
