@@ -1,5 +1,5 @@
 # WilsonsEngine
-DX11을 이용한 렌더링 엔진 
+DX11/12를 이용한 렌더링 엔진 
 ##
 ![Capture](https://github.com/Wheels0n/WilsonsEngine/assets/96295807/1f91b757-2dfd-4bc8-9323-1ab62e46471f)
 
