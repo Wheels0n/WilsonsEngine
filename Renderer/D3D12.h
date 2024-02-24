@@ -43,6 +43,8 @@ namespace wilson
 		void DrawENTT(bool bGeoPass, bool bSpotShadowPass);
 		void D3DMemoryLeakCheck();
 	public:
+		static D3D12_RESOURCE_BARRIER CreateResourceBarrier(ID3D12Resource* pResource,
+			D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState);
 		void ExecuteCommandLists(ID3D12GraphicsCommandList** ppCmdLists, UINT cnt);
 		void ResizeBackBuffer(int, int);
 		inline ID3D12Device* GetDevice() const
@@ -268,20 +270,6 @@ namespace wilson
 		D3D12_RECT m_scissorRect;
 		D3D12_RECT m_diffIrradRect;
 		D3D12_RECT m_prefilterRect;
-
-		D3D12_RESOURCE_BARRIER m_presentToRtv;
-		D3D12_RESOURCE_BARRIER m_rtvToPresent;
-		D3D12_RESOURCE_BARRIER m_rtvToSrv;
-		D3D12_RESOURCE_BARRIER m_rtvToDsv;
-		D3D12_RESOURCE_BARRIER m_srvToRtv;
-		D3D12_RESOURCE_BARRIER m_dsvToSrv;
-		D3D12_RESOURCE_BARRIER m_srvToDsv;
-		D3D12_RESOURCE_BARRIER m_srvToNsrv;
-		D3D12_RESOURCE_BARRIER m_nsrvToSrv;
-		D3D12_RESOURCE_BARRIER m_srvToCopyDst;
-		D3D12_RESOURCE_BARRIER m_uavToCopySrc;
-		D3D12_RESOURCE_BARRIER m_copyDstToSrv;
-		D3D12_RESOURCE_BARRIER m_copySrcToUav;
 
 		std::vector<ModelGroup12*> m_pModelGroups;
 		DescriptorHeapManager* m_pDescriptorHeapManager;

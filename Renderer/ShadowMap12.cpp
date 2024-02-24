@@ -1,5 +1,6 @@
 #include "ShadowMap12.h"
 #include "DescriptorHeapManager.h"
+#include "D3D12.h"
 namespace wilson
 {
 	ShadowMap12::ShadowMap12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList,
@@ -426,49 +427,48 @@ namespace wilson
 		}
 	}
 
-	void ShadowMap12::SetResourceBarrier(ID3D12GraphicsCommandList* pCommandlist, D3D12_RESOURCE_BARRIER resourceBarrier, bool bRTV)
+	void ShadowMap12::SetResourceBarrier(ID3D12GraphicsCommandList* pCommandlist, UINT litCnts[], 
+		D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState, bool bRTV)
 	{
+		UINT litCntSum = litCnts[0] + litCnts[1] + litCnts[2];
+		std::vector<D3D12_RESOURCE_BARRIER> barriers(litCntSum);
+		int j = 0;
 		if (bRTV)
-		{
-			for (int i = 0; i < m_dirDebug12Tex.size(); ++i)
-			{
-				resourceBarrier.Transition.pResource = m_dirDebug12Tex[i];
-				pCommandlist->ResourceBarrier(1, &resourceBarrier);
+		{	
+			for (int i = 0; i < litCnts[0]; ++i)
+			{	
+				barriers[j++] = D3D12::CreateResourceBarrier(m_dirDebug12Tex[i], beforeState, afterState);
 			}
 
-			for (int i = 0; i < m_cubeDebug12Tex.size(); ++i)
+			for (int i = 0; i < litCnts[1]; ++i)
 			{
-				resourceBarrier.Transition.pResource = m_cubeDebug12Tex[i];
-				pCommandlist->ResourceBarrier(1, &resourceBarrier);
+				barriers[j++] = D3D12::CreateResourceBarrier(m_cubeDebug12Tex[i], beforeState, afterState);
 			}
 
-			for (int i = 0; i < m_spotDebug12Tex.size(); ++i)
+			for (int i = 0; i < litCnts[2]; ++i)
 			{
-				resourceBarrier.Transition.pResource = m_spotDebug12Tex[i];
-				pCommandlist->ResourceBarrier(1, &resourceBarrier);
+				barriers[j++] = D3D12::CreateResourceBarrier(m_spotDebug12Tex[i], beforeState, afterState);
 			}
 		}
 		else
 		{
-			for (int i = 0; i < m_dir12Tex.size(); ++i)
+			for (int i = 0; i < litCnts[0]; ++i)
 			{
-				resourceBarrier.Transition.pResource = m_dir12Tex[i];
-				pCommandlist->ResourceBarrier(1, &resourceBarrier);
+				barriers[j++] = D3D12::CreateResourceBarrier(m_dir12Tex[i], beforeState, afterState);
 			}
 
-			for (int i = 0; i < m_cube12Tex.size(); ++i)
+			for (int i = 0; i < litCnts[1]; ++i)
 			{
-				resourceBarrier.Transition.pResource = m_cube12Tex[i];
-				pCommandlist->ResourceBarrier(1, &resourceBarrier);
+				barriers[j++] = D3D12::CreateResourceBarrier(m_cube12Tex[i], beforeState, afterState);
 			}
 
-			for (int i = 0; i < m_spot12Tex.size(); ++i)
+			for (int i = 0; i < litCnts[2]; ++i)
 			{
-				resourceBarrier.Transition.pResource = m_spot12Tex[i];
-				pCommandlist->ResourceBarrier(1, &resourceBarrier);
+				barriers[j++] = D3D12::CreateResourceBarrier(m_spot12Tex[i], beforeState, afterState);
 			}
 		}
-		
+
+		pCommandlist->ResourceBarrier(litCntSum, barriers.data());
 	}
 
 	D3D12_GPU_DESCRIPTOR_HANDLE* ShadowMap12::GetDirDebugSRV(ID3D12GraphicsCommandList* pCommandlist, UINT i, UINT lod)

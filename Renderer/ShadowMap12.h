@@ -26,7 +26,8 @@ namespace wilson
 		{
 			pCommandlist->SetGraphicsRootDescriptorTable(ePbrLight_ePsSpotShadow, m_spot12SRVs[0]);
 		};
-		void SetResourceBarrier(ID3D12GraphicsCommandList*, D3D12_RESOURCE_BARRIER, bool bRTV);
+		void SetResourceBarrier(ID3D12GraphicsCommandList*, UINT litCnts[], 
+			D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState, bool bRTV);
 		D3D12_GPU_DESCRIPTOR_HANDLE* GetDirDebugSRV(ID3D12GraphicsCommandList* pCommandlist, UINT i, UINT lod);
 		D3D12_GPU_DESCRIPTOR_HANDLE* GetCubeDebugSRV(ID3D12GraphicsCommandList* pCommandlist, UINT i, UINT face);
 		D3D12_GPU_DESCRIPTOR_HANDLE* GetSpotDebugSRV(ID3D12GraphicsCommandList* pCommandlist, UINT i);
