@@ -389,40 +389,40 @@ namespace wilson
 		pCommandlist->OMSetRenderTargets(1, &m_spotDebug12RTVs[i], TRUE, &m_spot12DSVs[i]);
 	}
 
-	void ShadowMap12::ClearDSV(ID3D12GraphicsCommandList* pCommandlist)
+	void ShadowMap12::ClearDSV(ID3D12GraphicsCommandList* pCommandlist, UINT litCounts[])
 	{
-		for (int i = 0; i < m_dir12Tex.size(); ++i)
+		for (int i = 0; i < litCounts[0]; ++i)
 		{
-			pCommandlist->ClearDepthStencilView(m_dir12DSVs[i], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 1, &m_rect);
+			pCommandlist->ClearDepthStencilView(m_dir12DSVs[i], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
 		}
 
-		for (int i = 0; i < m_cube12Tex.size(); ++i)
+		for (int i = 0; i < litCounts[1]; ++i)
 		{
-			pCommandlist->ClearDepthStencilView(m_cube12DSVs[i], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 1, &m_rect);
+			pCommandlist->ClearDepthStencilView(m_cube12DSVs[i], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
 		}
 
-		for (int i = 0; i < m_spot12Tex.size(); ++i)
+		for (int i = 0; i < litCounts[2]; ++i)
 		{
-			pCommandlist->ClearDepthStencilView(m_spot12DSVs[i], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 1, &m_rect);
+			pCommandlist->ClearDepthStencilView(m_spot12DSVs[i], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
 		}
 	}
 
-	void ShadowMap12::ClearRTV(ID3D12GraphicsCommandList* pCommandlist)
+	void ShadowMap12::ClearRTV(ID3D12GraphicsCommandList* pCommandlist, UINT litCounts[])
 	{	
 
-		for (int i = 0; i < m_dirDebug12Tex.size(); ++i)
+		for (int i = 0; i < litCounts[0]; ++i)
 		{
-			pCommandlist->ClearRenderTargetView(m_dirDebug12RTVs[i], m_clear, 1, &m_rect);
+			pCommandlist->ClearRenderTargetView(m_dirDebug12RTVs[i], m_clear, 0, nullptr);
 		}
 
-		for (int i = 0; i < m_cubeDebug12Tex.size(); ++i)
+		for (int i = 0; i < litCounts[1]; ++i)
 		{
-			pCommandlist->ClearRenderTargetView(m_cubeDebug12RTVs[i], m_clear, 1, &m_rect);
+			pCommandlist->ClearRenderTargetView(m_cubeDebug12RTVs[i], m_clear, 0, nullptr);
 		}
 
-		for (int i = 0; i < m_spotDebug12Tex.size(); ++i)
+		for (int i = 0; i < litCounts[2]; ++i)
 		{
-			pCommandlist->ClearRenderTargetView(m_spotDebug12RTVs[i], m_clear, 1, &m_rect);
+			pCommandlist->ClearRenderTargetView(m_spotDebug12RTVs[i], m_clear, 0, nullptr);
 		}
 	}
 

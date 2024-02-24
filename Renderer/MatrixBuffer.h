@@ -13,7 +13,7 @@ namespace wilson
 	class MatBuffer
 	{
 	public:
-		void UpdateMatBuffer(ID3D11DeviceContext* pContext, bool bSpotShadowPass);
+		void UploadMatBuffer(ID3D11DeviceContext* pContext, bool bSpotShadowPass);
 		void UploadProjMat(ID3D11DeviceContext* pContext);
 
 		inline void SetProjMatrix(XMMATRIX* projMat)

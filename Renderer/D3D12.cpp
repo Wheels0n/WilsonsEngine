@@ -1050,9 +1050,13 @@ namespace wilson
 							if (bSpotShadowPass)
 							{
 								pMatBuffer->SetLightSpaceMatrix(m_pLitMat);
+								pMatBuffer->UpdateCombinedMat(bSpotShadowPass);
+								pMatBuffer->UploadCombinedMat(m_pCommandList, bSpotShadowPass);
 							}
-							
-							pMatBuffer->UpdateMatBuffer(m_pCommandList, bSpotShadowPass);
+							else
+							{
+								pMatBuffer->UploadMatBuffer(m_pCommandList, bSpotShadowPass);
+							}
 
 							//PbrGeoPass의 깊이 버퍼에 Outline을 위한 Stencil값을 설정함
 							bool isSelected = (i == m_selectedModelGroup && j == m_selectedModel);
@@ -1225,14 +1229,14 @@ namespace wilson
 		std::vector<DirectionalLight12*>& dirLights = m_pLightBuffer->GetDirLights();
 		std::vector<PointLight12*>& pointLights = m_pLightBuffer->GetPointLights();
 		std::vector<SpotLight12*>& spotLights = m_pLightBuffer->GetSpotLights();
-
+		UINT litCounts[3] = { dirLights.size(), pointLights.size(), spotLights.size() };
 		//Gen ShadowMap	
 		{	
 			//텍스쳐 rtv,dsv떄문에 에러
 			m_pShadowMap->SetResourceBarrier(m_pCommandList, m_srvToRtv, true);
-			m_pShadowMap->ClearRTV(m_pCommandList);
+			m_pShadowMap->ClearRTV(m_pCommandList, litCounts);
 			m_pShadowMap->SetResourceBarrier(m_pCommandList, m_srvToDsv, false);
-			m_pShadowMap->ClearDSV(m_pCommandList);
+			m_pShadowMap->ClearDSV(m_pCommandList, litCounts);
 
 			m_pCommandList->RSSetViewports(1, m_pShadowMap->GetViewport12());
 			m_pCommandList->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
@@ -1252,7 +1256,6 @@ namespace wilson
 			for (int i = 0; i < spotLights.size(); ++i)
 			{
 				spotLights[i]->UpdateLitMat();
-				//DrawENTT는 그림자에대해 아는 게 없다;
 				m_pLitMat = spotLights[i]->GetLightSpaceMat();
 				m_pShadowMap->BindSpotDSV(m_pCommandList, i);
 				DrawENTT(bGeoPass, bSpotShadowPass);
@@ -1288,8 +1291,9 @@ namespace wilson
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);
 		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-		m_pMatBuffer->UpdateMatBuffer(m_pCommandList, bSpotShadowPass);
-
+		m_pMatBuffer->UpdateCombinedMat(bSpotShadowPass);
+		m_pMatBuffer->UploadCombinedMat(m_pCommandList, bSpotShadowPass);
+		//움직이면 큐브맵도 이상해짐
 		m_pCommandList->DrawIndexedInstanced(_CUBE_IDX_COUNT, 1, 0, 0, 0);
 
 		//Deferred Shading First Pass
@@ -1431,7 +1435,8 @@ namespace wilson
 			m_pOutlinerMatBuffer->SetWorldMatrix(&worldMat);
 			m_pOutlinerMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 			m_pOutlinerMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-			m_pOutlinerMatBuffer->UpdateMatBuffer(m_pCommandList, bSpotShadowPass);
+			m_pOutlinerMatBuffer->UpdateCombinedMat(bSpotShadowPass);
+			m_pOutlinerMatBuffer->UploadCombinedMat(m_pCommandList, bSpotShadowPass);
 
 			for (int k = 0; k < pModels[m_selectedModel]->GetMatCount(); ++k)
 			{
@@ -2630,7 +2635,7 @@ namespace wilson
 				XMVECTOR sampleV = XMLoadFloat3(&sample);
 				sampleV = DirectX::XMVector3Normalize(sampleV);
 				sampleV = XMVectorScale(sampleV, randomFloats(gen));
-				float scale = i / 64.0f;
+				float scale = i /(float) _KERNEL_COUNT;
 				scale = 0.1f + (1.0f - 0.1f) * scale * scale;
 				sampleV = XMVectorScale(sampleV, scale);
 

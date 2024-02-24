@@ -1345,7 +1345,7 @@ namespace wilson
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);	
 		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-		m_pMatBuffer->UpdateMatBuffer(m_pContext, bSpotShadowPass);
+		m_pMatBuffer->UploadMatBuffer(m_pContext, bSpotShadowPass);
 		m_pShader->SetSkyBoxShader(m_pContext);
 		m_pContext->IASetVertexBuffers(0, 1, &m_pCubeVertices, &stride, &offset);
 		m_pContext->IASetIndexBuffer(m_pCubeIndices, DXGI_FORMAT_R32_UINT, 0);
@@ -1461,7 +1461,7 @@ namespace wilson
 			std::vector<Model*> pModels = m_pModelGroups[m_selectedModelGroup]->GetModels();
 			XMMATRIX worldMat = pModels[m_selectedModel]->GetTransformMatrix(true);
 			m_pMatBuffer->SetWorldMatrix(&worldMat);
-			m_pMatBuffer->UpdateMatBuffer(m_pContext, bSpotShadowPass);
+			m_pMatBuffer->UploadMatBuffer(m_pContext, bSpotShadowPass);
 
 			for (int k = 0; k < pModels[m_selectedModel]->GetMatCount(); ++k)
 			{
@@ -2111,7 +2111,7 @@ namespace wilson
 							ENTTDrawn++;
 							m_pMatBuffer->SetWorldMatrix(&worldMat);
 							m_pMatBuffer->SetInvWorldMatrix(&invWorldMat);
-							m_pMatBuffer->UpdateMatBuffer(m_pContext, bSpotShadowPass);
+							m_pMatBuffer->UploadMatBuffer(m_pContext, bSpotShadowPass);
 						    
 					
 							bool isSelected = (i == m_selectedModelGroup && j == m_selectedModel);

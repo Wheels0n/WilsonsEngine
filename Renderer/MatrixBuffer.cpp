@@ -63,7 +63,7 @@ namespace wilson
 
 	}
 
-	void MatBuffer::UpdateMatBuffer(ID3D11DeviceContext* pContext, bool bSpotShadowPass)
+	void MatBuffer::UploadMatBuffer(ID3D11DeviceContext* pContext, bool bSpotShadowPass)
 	{
 		HRESULT hr;
 		D3D11_MAPPED_SUBRESOURCE mappedResource;

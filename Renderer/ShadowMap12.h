@@ -12,8 +12,8 @@ namespace wilson
 		void BindDirDSV(ID3D12GraphicsCommandList* pCommandlist, const UINT i);
 		void BindCubeDSV(ID3D12GraphicsCommandList* pCommandlist, const UINT i);
 		void BindSpotDSV(ID3D12GraphicsCommandList* pCommandlist, const UINT i);
-		void ClearDSV(ID3D12GraphicsCommandList* pCommandlist);
-		void ClearRTV(ID3D12GraphicsCommandList* pCommandlist);
+		void ClearDSV(ID3D12GraphicsCommandList* pCommandlist, UINT litCounts[]);
+		void ClearRTV(ID3D12GraphicsCommandList* pCommandlist, UINT litCounts[]);
 		inline void BindDirSRV(ID3D12GraphicsCommandList* pCommandlist)
 		{
 			pCommandlist->SetGraphicsRootDescriptorTable(ePbrLight_ePsDirShadow, m_dir12SRVs[0]);

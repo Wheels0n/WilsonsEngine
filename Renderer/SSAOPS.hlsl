@@ -5,9 +5,14 @@ Texture2D g_noiseTex;
 SamplerState g_WrapSampler;
 SamplerState g_clampSampler;
 
+static const float _RADIUS = 0.5;
+static const float _BIAS = 0.025;
+static const int _SAMPLE_CNT = 64;
+static const int _NoiseTex_Len=4;
+
 cbuffer SamplePoints : register(b0)
 {
-    float4 g_samplePoints[64];
+    float4 g_samplePoints[_SAMPLE_CNT];
 };
 cbuffer ProjMat : register(b1)
 {
@@ -20,15 +25,12 @@ struct PixelInputType
     float2 tex : TEXTURE;
 };
 
-static const float _RADIUS = 0.5;
-static const float _BIAS = 0.025;
-static const int _SAMPLE_CNT = 64;
 
 float4 main(PixelInputType input) : SV_TARGET
 {   
     float sizeX, sizeY;
     g_vPositionTex.GetDimensions(sizeX, sizeY);
-    float2 _NOISE_SCALE = float2(sizeX / 4.0f, sizeY / 4.0f);
+    float2 _NOISE_SCALE = float2(sizeX / _NoiseTex_Len,    sizeY / _NoiseTex_Len);
     
     float3 vPos = g_vPositionTex.Sample(g_clampSampler, input.tex).xyz;
     float3 vNormal = normalize(g_vNormalTex.Sample(g_clampSampler, input.tex).xyz);

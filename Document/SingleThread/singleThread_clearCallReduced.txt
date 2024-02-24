@@ -1,0 +1,61 @@
+D:/DX3D/ToyEngine/WilsonsEngine/Document/singleThread_clearCallReduced.rdc - Frame #3283
+
+ EID  | Event                                                             | Action #
+------------------------------------------------------------------------------------
+427   | - Copy/Clear Pass #1                                              | 1-16  
+19    |  \- => ExecuteCommandLists(2)[0]: Reset(Baked Command List 10371) | 1     
+20    |   - => ExecuteCommandLists(2)[0]: Close(Baked Command List 10371) | 1     
+21    |   - => ExecuteCommandLists(2)[1]: Reset(Baked Command List 10370) | 1     
+30    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 1     
+31    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 2     
+32    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 3     
+33    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 4     
+34    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 5     
+35    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 6     
+37    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 7     
+39    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 8     
+41    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 9     
+43    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 10    
+45    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 11    
+47    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 12    
+49    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 13    
+51    |   - ClearRenderTargetView({ 0.00, 0.00, 0.00, 1.00 })             | 14    
+52    |   - ClearDepthStencilView(1.00, 0)                                | 15    
+53    |   - ClearDepthStencilView(1.00, 0)                                | 16    
+230   | - DrawIndexedInstanced(36, 1)                                     | 17    
+251   | - DrawIndexedInstanced(6, 1)                                      | 18    
+275   | - DrawIndexedInstanced(6, 1)                                      | 19    
+282   | - DrawIndexedInstanced(6, 1)                                      | 20    
+309   | - DrawIndexedInstanced(6, 1)                                      | 21    
+319   | - DrawIndexedInstanced(6, 1)                                      | 22    
+331   | - DrawIndexedInstanced(6, 1)                                      | 23    
+428   | - Colour Pass #1 (1 Targets + Depth)                              | 24-50 
+344   |  \- DrawIndexedInstanced(6, 1)                                    | 24    
+347   |   - DrawIndexedInstanced(1833, 1)                                 | 25    
+350   |   - DrawIndexedInstanced(6, 1)                                    | 26    
+353   |   - DrawIndexedInstanced(210, 1)                                  | 27    
+356   |   - DrawIndexedInstanced(6, 1)                                    | 28    
+359   |   - DrawIndexedInstanced(54, 1)                                   | 29    
+362   |   - DrawIndexedInstanced(6, 1)                                    | 30    
+365   |   - DrawIndexedInstanced(90, 1)                                   | 31    
+368   |   - DrawIndexedInstanced(6, 1)                                    | 32    
+371   |   - DrawIndexedInstanced(96, 1)                                   | 33    
+374   |   - DrawIndexedInstanced(6, 1)                                    | 34    
+377   |   - DrawIndexedInstanced(174, 1)                                  | 35    
+380   |   - DrawIndexedInstanced(30, 1)                                   | 36    
+383   |   - DrawIndexedInstanced(30, 1)                                   | 37    
+386   |   - DrawIndexedInstanced(144, 1)                                  | 38    
+389   |   - DrawIndexedInstanced(6, 1)                                    | 39    
+392   |   - DrawIndexedInstanced(48, 1)                                   | 40    
+395   |   - DrawIndexedInstanced(144, 1)                                  | 41    
+398   |   - DrawIndexedInstanced(6, 1)                                    | 42    
+401   |   - DrawIndexedInstanced(48, 1)                                   | 43    
+404   |   - DrawIndexedInstanced(156, 1)                                  | 44    
+407   |   - DrawIndexedInstanced(6, 1)                                    | 45    
+410   |   - DrawIndexedInstanced(993, 1)                                  | 46    
+413   |   - DrawIndexedInstanced(132, 1)                                  | 47    
+416   |   - DrawIndexedInstanced(174, 1)                                  | 48    
+419   |   - DrawIndexedInstanced(36, 1)                                   | 49    
+422   |   - DrawIndexedInstanced(24, 1)                                   | 50    
+424   | - => ExecuteCommandLists(2)[1]: Close(Baked Command List 10370)   | 51    
+426   | - Present(D3D12::m_pScreenTex)                                    | 51    
