@@ -21,7 +21,7 @@ namespace wilson
 		}
 		
 		void UpdateProperty();
-		void SetShadowMatrices(ID3D11DeviceContext*);
+		void UploadShadowMatrices(ID3D11DeviceContext*);
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::DIR; };
 		DirectX::XMMATRIX UpdateLightSpaceMat(const float nearZ, const float farZ);
 		void UpdateLightSpaceMatrices();

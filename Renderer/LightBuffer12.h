@@ -79,5 +79,9 @@ namespace wilson
 		std::vector<DirectionalLight12*> m_pDirLights;
 		std::vector<PointLight12*>m_pPointLights;
 		std::vector<SpotLight12*>m_pSpotLights;
+
+		UINT* m_pLightPropertyCbBegin;
+		UINT* m_pDirLitMatricesCbBegin;
+		UINT* m_pSpotLitMatricesCbBegin;
 	};
 }

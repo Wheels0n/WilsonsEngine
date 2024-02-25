@@ -53,6 +53,7 @@ namespace wilson
 		DirectX::XMFLOAT3 m_position;
 		DirectX::XMFLOAT3 m_direction;
 
+		UINT* m_pLightCbBegin;
 		UINT m_entityIdx;
 	};
 }

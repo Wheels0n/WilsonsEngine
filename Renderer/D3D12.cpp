@@ -1268,7 +1268,7 @@ namespace wilson
 			for (int i = 0; i < dirLights.size(); ++i)
 			{
 				dirLights[i]->UpdateLightSpaceMatrices();
-				dirLights[i]->SetShadowMatrices(m_pCommandList);
+				dirLights[i]->UploadShadowMatrices(m_pCommandList);
 				m_pShadowMap->BindDirDSV(m_pCommandList, i);
 				DrawENTT(bGeoPass, bSpotShadowPass);
 			}
@@ -1291,8 +1291,8 @@ namespace wilson
 			for (int i = 0; i < pointLights.size(); ++i)
 			{
 				m_pShadowMap->BindCubeDSV(m_pCommandList, i);
-				pointLights[i]->SetShadowMatrices(m_pCommandList);
-				pointLights[i]->SetLightPos(m_pCommandList);
+				pointLights[i]->UploadShadowMatrices(m_pCommandList);
+				pointLights[i]->UploadLightPos(m_pCommandList);
 				DrawENTT(bGeoPass, bSpotShadowPass);
 			}
 			
@@ -1330,28 +1330,10 @@ namespace wilson
 			m_pCam->SetCamPos(m_pCommandList, !bGeoPass);
 			//Upload HeightScale and bHeightOnOff
 			{
-				UINT8* pHeightScale;
-				hr = m_pHeightScaleCB->Map(0, &readRange, reinterpret_cast<void**>(&pHeightScale));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pHeightScaleCB::Map()Failed");
-				}
-
-				memcpy(pHeightScale, &m_heightScale, sizeof(float));
-				m_pHeightScaleCB->Unmap(0, nullptr);
-
+				memcpy(m_pHeightScaleCbBegin, &m_heightScale, sizeof(float));
 				m_pCommandList->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsHeightScale, m_HeightScaleCBV);
 
-				UINT8* pHeightOnOff;
-				hr = m_pHeightOnOffCB->Map(0, &readRange, reinterpret_cast<void**>(&pHeightOnOff));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pHeightOnOffCB::Map()Failed");
-				}
-
-				memcpy(pHeightOnOff, &m_bHeightOnOff, sizeof(BOOL));
-				m_pHeightOnOffCB->Unmap(0, nullptr);
-
+				memcpy(m_pHeightOnOffCbBegin, &m_bHeightOnOff, sizeof(BOOL));
 				m_pCommandList->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsbHeight, m_HeightOnOffCBV);
 			}
 			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsSampler, m_WrapSSV);
@@ -1485,16 +1467,7 @@ namespace wilson
 		
 		//Exporsure CBV ¹ÙÀÎµù
 		{
-			UINT8* pExposure;
-			hr = m_pExposureCB->Map(0, &readRange, reinterpret_cast<void**>(&pExposure));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pExposureCB::Map()Failed");
-			}
-
-			memcpy(pExposure, &m_exposure, sizeof(float));
-			m_pExposureCB->Unmap(0, nullptr);
-
+			memcpy(m_pExposureCbBegin, &m_exposure, sizeof(float));
 			m_pCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsCb, m_ExposureCBV);
 		}
 
@@ -1735,6 +1708,10 @@ namespace wilson
 		m_pOutlinerMatBuffer = nullptr;
 		m_pShader = nullptr;
 		m_pShadowMap = nullptr;
+
+		m_pHeightOnOffCbBegin = nullptr;
+		m_pHeightScaleCbBegin = nullptr;
+		m_pExposureCbBegin = nullptr;
 
 		m_bVsyncOn = false;
 
@@ -2309,7 +2286,7 @@ namespace wilson
 
 		//Gen ConstantBuffers
 		{
-
+			D3D12_RANGE readRange = {};
 			D3D12_HEAP_PROPERTIES heapProps = {};
 			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
 			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -2366,6 +2343,12 @@ namespace wilson
 				}
 				m_pHeightOnOffCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pHeightOnOffCB") - 1, "D3D12::m_pHeightOnOffCB");
+
+				hr = m_pHeightOnOffCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pHeightOnOffCbBegin));
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D12::m_pHeightOnOffCB::Map()Failed");
+				}
 
 				UINT constantBufferSize = sizeof(BOOL) * 4;
 				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -2468,6 +2451,11 @@ namespace wilson
 				m_pExposureCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pExposureCB") - 1, "D3D12::m_pExposureCB");
 
+				hr = m_pExposureCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pExposureCbBegin));
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D12::m_pExposureCB::Map()Failed");
+				}
 
 
 				UINT constantBufferSize = sizeof(XMFLOAT4);
@@ -2495,6 +2483,11 @@ namespace wilson
 				m_pHeightScaleCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pHeightScaleCB") - 1, "D3D12::m_pHeightScaleCB");
 
+				hr = m_pHeightScaleCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pHeightScaleCbBegin));
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("D3D12::m_pHeightScaleCB::Map()Failed");
+				}
 
 				UINT constantBufferSize = sizeof(XMFLOAT4);
 				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};

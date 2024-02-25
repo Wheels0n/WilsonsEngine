@@ -25,8 +25,8 @@ namespace wilson
 
 		void UpdateProperty();
 		void CreateShadowMatrices();
-		void SetShadowMatrices(ID3D11DeviceContext*);
-		void SetLightPos(ID3D11DeviceContext*);
+		void UploadShadowMatrices(ID3D11DeviceContext*);
+		void UploadLightPos(ID3D11DeviceContext*);
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::PNT; };
 
 		PointLight() = default;

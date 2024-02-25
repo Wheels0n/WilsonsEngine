@@ -1313,7 +1313,7 @@ namespace wilson
 			for (int i = 0; i < dirLights.size(); ++i)
 			{	
 				dirLights[i]->UpdateLightSpaceMatrices();
-				dirLights[i]->SetShadowMatrices(m_pContext);
+				dirLights[i]->UploadShadowMatrices(m_pContext);
 				m_pShadowMap->BindDirDSV(m_pContext,i);
 				DrawENTT(bGeoPass, bSpotShadowPass);
 			}
@@ -1334,8 +1334,8 @@ namespace wilson
 			for (int i = 0; i < pointLights.size(); ++i)
 			{
 				m_pShadowMap->BindCubeDSV(m_pContext, i);
-				pointLights[i]->SetShadowMatrices(m_pContext);
-				pointLights[i]->SetLightPos(m_pContext);
+				pointLights[i]->UploadShadowMatrices(m_pContext);
+				pointLights[i]->UploadLightPos(m_pContext);
 				DrawENTT(bGeoPass, bSpotShadowPass);
 			}
 			

@@ -21,7 +21,7 @@ namespace wilson
 		}
 
 		void UpdateProperty();
-		void SetShadowMatrices(ID3D12GraphicsCommandList*);
+		void UploadShadowMatrices(ID3D12GraphicsCommandList*);
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::DIR; };
 		DirectX::XMMATRIX UpdateLightSpaceMat(const float nearZ, const float farZ);
 		void UpdateLightSpaceMatrices();
@@ -37,6 +37,8 @@ namespace wilson
 		std::vector<DirectX::XMMATRIX> m_lightSpaceMat;
 
 		ID3D12Resource* m_pMatrice12Buffer;
+		UINT8* m_pMatricesCbBegin;
+
 		D3D12_GPU_DESCRIPTOR_HANDLE m_matriceCBV;
 	};
 }

@@ -10,6 +10,10 @@ namespace wilson
 		m_pProjMat12Cb = nullptr;
 		m_pCombinedMat12Cb = nullptr;
 
+		m_pMatricesCbBegin = nullptr;
+		m_pProjMatCbBegin = nullptr;
+		m_pCombinedMatCbBegin = nullptr;
+
 		m_worldMat = XMMatrixIdentity();
 		m_invWorldMat = m_worldMat;
 		m_lightSpaceMat = m_worldMat;
@@ -53,6 +57,13 @@ namespace wilson
 			m_pMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("MatBuffer::m_pMat12Cb") - 1, "MatBuffer::m_pMat12Cb");
 
+			D3D12_RANGE readRange = { 0, };
+			hr = m_pMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&m_pMatricesCbBegin));
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("MatBuffer::m_pMat12Cb::Map()Failed");
+			}
+
 			UINT constantBufferSize = sizeof(MatrixBuffer);
 
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -77,6 +88,13 @@ namespace wilson
 			m_pProjMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("MatBuffer::m_pProjMat12Cb") - 1, "MatBuffer::m_pProjMat12Cb");
 
+			D3D12_RANGE readRange = { 0, };
+			hr = m_pProjMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&m_pProjMatCbBegin));
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("MatBuffer::m_pProjMat12Cb::Map()Failed");
+			}
+
 			UINT constantBufferSize = sizeof(DirectX::XMMATRIX);
 
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -100,6 +118,13 @@ namespace wilson
 			}
 			m_pCombinedMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("MatBuffer::m_pCombinedMat12Cb") - 1, "MatBuffer::m_pCombinedMat12Cb");
+
+			D3D12_RANGE readRange = { 0, };
+			hr = m_pCombinedMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&m_pCombinedMatCbBegin));
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("MatBuffer:: m_pCombinedMat12Cb::Map()Failed");
+			}
 
 			UINT constantBufferSize = sizeof(DirectX::XMMATRIX);
 
@@ -136,59 +161,27 @@ namespace wilson
 
 	void MatBuffer12::UploadMatBuffer(ID3D12GraphicsCommandList* pCommandlist, bool bSpotShadowPass)
 	{
-		HRESULT hr;
-		UINT8* pMatBuffer;
-		D3D12_RANGE readRange = { 0, };
-		hr = m_pMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&pMatBuffer));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("MatBuffer::m_pMat12Cb::Map()Failed");
-		}
 		MatrixBuffer matBuffer;
 		matBuffer.m_worldMat = m_worldMat;
 		matBuffer.m_viewMat = m_viewMat;
 		matBuffer.m_projMat = m_projMat;
 		matBuffer.m_extraMat = bSpotShadowPass ? m_lightSpaceMat : m_invWorldMat;
 
-
-		memcpy(pMatBuffer, &matBuffer, sizeof(matBuffer));
-		m_pMat12Cb->Unmap(0, nullptr);
-
+		memcpy(m_pMatricesCbBegin, &matBuffer, sizeof(matBuffer));
 		pCommandlist->SetGraphicsRootDescriptorTable(0, m_matCBV);
 		return;
 	}
 
 	void MatBuffer12::UploadProjMat(ID3D12GraphicsCommandList* pCommandlist)
 	{
-		HRESULT hr;
-		UINT8* pMatBuffer;
-		D3D12_RANGE readRange = { 0, };
-		hr = m_pProjMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&pMatBuffer));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("MatBuffer::m_pMat12Cb::Map()Failed");
-		}
-
-		memcpy(pMatBuffer, &m_projMat, sizeof(XMMATRIX));
-		m_pProjMat12Cb->Unmap(0, nullptr);
-
+		memcpy(m_pProjMatCbBegin, &m_projMat, sizeof(XMMATRIX));
 		pCommandlist->SetGraphicsRootDescriptorTable(eSsaoRP::eSsao_ePsProj, m_projMatCBV);
 		return;
 	}
 	void MatBuffer12::UploadCombinedMat(ID3D12GraphicsCommandList* pCommandlist, bool bSpotShadowPass)
 	{
-		HRESULT hr;
-		UINT8* pMatBuffer;
-		D3D12_RANGE readRange = { 0, };
-		hr = m_pCombinedMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&pMatBuffer));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("MatBuffer:: m_pCombinedMat12Cb::Map()Failed");
-		}
 		const void* pSrc = bSpotShadowPass ? &m_wvpLitMat : &m_wvpMat;
-		memcpy(pMatBuffer, pSrc, sizeof(XMMATRIX));
-		m_pCombinedMat12Cb->Unmap(0, nullptr);
-
+		memcpy(m_pCombinedMatCbBegin, pSrc, sizeof(XMMATRIX));
 		//Skybox, SpotShadow, OutlinerTest Pass¿¡ ÀÌ¿ëµÊ 
 		pCommandlist->SetGraphicsRootDescriptorTable(0, m_combinedMatCBV);
 		return;

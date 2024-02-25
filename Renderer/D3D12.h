@@ -287,6 +287,9 @@ namespace wilson
 		BOOL m_bHeightOnOff;
 		float m_exposure;
 		float m_heightScale;
+		UINT* m_pHeightOnOffCbBegin;
+		UINT* m_pHeightScaleCbBegin;
+		UINT* m_pExposureCbBegin;
 		UINT m_selectedModelGroup;
 		UINT m_selectedModel;
 		UINT m_fenceValue;

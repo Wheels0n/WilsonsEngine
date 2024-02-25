@@ -14,6 +14,7 @@ namespace wilson
         UpdateLightSpaceMatrices();
 
         m_pMatrice12Buffer = nullptr;
+        m_pMatricesCbBegin = nullptr;
 
         {
             HRESULT hr;
@@ -79,6 +80,14 @@ namespace wilson
                 m_pMatrice12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
                     sizeof("DirectionalLight::m_pMatrices12Buffer") - 1, "DirectionalLight::m_pMatrices12Buffer");
 
+                D3D12_RANGE readRange = { 0, };
+                hr = m_pMatrice12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pMatricesCbBegin));
+                if (FAILED(hr))
+                {
+                    OutputDebugStringA("DirectionalLight::m_pMatrices12Buffer::Map()Failed");
+                }
+
+
                 UINT constantBufferSize = sizeof(DirectX::XMMATRIX) * _CASCADE_LEVELS;
 
                 D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -111,26 +120,16 @@ namespace wilson
     }
 
 
-    void DirectionalLight12::SetShadowMatrices(ID3D12GraphicsCommandList* pCommandlist)
+    void DirectionalLight12::UploadShadowMatrices(ID3D12GraphicsCommandList* pCommandlist)
     {
-        HRESULT hr;
-        UINT8* pMatrix;
-        D3D12_RANGE readRange = { 0, };
-        hr = m_pMatrice12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&pMatrix));
-        if (FAILED(hr))
-        {
-            OutputDebugStringA("DirectionalLight::m_pMatrices12Buffer::Map()Failed");
-        }
-
         std::vector<DirectX::XMMATRIX> matrices(m_lightSpaceMat.size());
         for (int i = 0; i < m_lightSpaceMat.size(); ++i)
         {
             matrices[i] = m_lightSpaceMat[i];
         }
 
-        memcpy(pMatrix, &matrices[0], sizeof(DirectX::XMMATRIX) * m_lightSpaceMat.size());
-        m_pMatrice12Buffer->Unmap(0, nullptr);
-        
+        memcpy(m_pMatricesCbBegin, &matrices[0], sizeof(DirectX::XMMATRIX) * m_lightSpaceMat.size());
+   
         pCommandlist->SetGraphicsRootDescriptorTable(eCascadeShadowRP::eCascadeShadow_eGsMat, m_matriceCBV);
         return;
 

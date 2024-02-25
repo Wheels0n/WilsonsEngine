@@ -60,5 +60,9 @@ namespace wilson
 		D3D12_GPU_DESCRIPTOR_HANDLE m_matCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_projMatCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_combinedMatCBV;
+
+		UINT8* m_pMatricesCbBegin;
+		UINT8* m_pProjMatCbBegin;
+		UINT8* m_pCombinedMatCbBegin;
 	};
 }

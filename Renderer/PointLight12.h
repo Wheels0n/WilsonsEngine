@@ -25,8 +25,8 @@ namespace wilson
 
 		void UpdateProperty();
 		void CreateShadowMatrices();
-		void SetShadowMatrices(ID3D12GraphicsCommandList*);
-		void SetLightPos(ID3D12GraphicsCommandList*);
+		void UploadShadowMatrices(ID3D12GraphicsCommandList*);
+		void UploadLightPos(ID3D12GraphicsCommandList*);
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::PNT; };
 
 		PointLight12() = default;
@@ -36,9 +36,9 @@ namespace wilson
 
 	private:
 		PointLightProperty m_pointLightProperty;
-	
+
 		ID3D12Resource* m_pMatrices12Buffer;
-		ID3D12Resource* m_pPos12Buffer;
+		ID3D12Resource* m_pPosCb;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_posCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_matriceCBV;
 
@@ -49,5 +49,8 @@ namespace wilson
 		static std::vector<DirectX::XMVECTOR> g_upVectors;
 		static std::vector<DirectX::XMVECTOR> g_dirVectors;
 		std::vector<DirectX::XMMATRIX> m_cubeMats;
+
+		UINT8* m_pMatricesCbBegin;
+		UINT8* m_pPosCbBegin;
 	};
 }

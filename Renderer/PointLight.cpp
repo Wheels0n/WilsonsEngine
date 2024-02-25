@@ -47,7 +47,7 @@ namespace wilson
             m_cubeMats[i] = DirectX::XMMatrixMultiplyTranspose(viewMat, g_perspectiveMat);
         }
     }
-    void PointLight::SetShadowMatrices(ID3D11DeviceContext* pContext)
+    void PointLight::UploadShadowMatrices(ID3D11DeviceContext* pContext)
     {
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         DirectX::XMMATRIX* pMatrix;
@@ -67,7 +67,7 @@ namespace wilson
         pContext->GSSetConstantBuffers(0, 1, &m_pMatricesBuffer);
         
     }
-    void PointLight::SetLightPos(ID3D11DeviceContext* pContext)
+    void PointLight::UploadLightPos(ID3D11DeviceContext* pContext)
     {
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         DirectX::XMVECTOR* pV;

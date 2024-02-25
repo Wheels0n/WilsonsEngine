@@ -62,7 +62,7 @@ namespace wilson
         m_dirLightProperty.direction = m_direction;
     }
 
-    void DirectionalLight::SetShadowMatrices(ID3D11DeviceContext* pContext)
+    void DirectionalLight::UploadShadowMatrices(ID3D11DeviceContext* pContext)
     {   
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         DirectX::XMMATRIX* pMatrix;

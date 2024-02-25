@@ -108,7 +108,8 @@ namespace wilson {
 		D3D12_GPU_DESCRIPTOR_HANDLE m_cascadeLevelCBV;
 
 		std::vector<float> m_shadowCascadeLevels;
-
+		UINT* m_pCamPosCbBegin;
+		UINT* m_pCascadeLevelCbBegin;
 		float m_fFOV;
 		float m_fScreenRatio;
 		float m_fScreenNear;

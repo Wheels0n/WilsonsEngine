@@ -1,5 +1,6 @@
 #include "Camera12.h"
 #include "DescriptorHeapManager.h"
+#include "typedef.h"
 namespace wilson {
 
 	Camera12::Camera12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager,
@@ -26,6 +27,8 @@ namespace wilson {
 
 		m_pCamPos12CB = nullptr;
 		m_pCascadeLevel12CB = nullptr;
+		m_pCamPosCbBegin = nullptr;
+		m_pCascadeLevelCbBegin = nullptr;
 
 		HRESULT hr;
 
@@ -64,6 +67,13 @@ namespace wilson {
 			m_pCamPos12CB->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Camera::m_pCamPos12CB") - 1, "Camera::m_pCamPos12CB");
 
+			D3D12_RANGE readRange = { 0, };
+			hr = m_pCamPos12CB->Map(0, &readRange, reinterpret_cast<void**>(&m_pCamPosCbBegin));
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("Camera::m_pCamPos12CB::Map()Failed");
+			}
+
 			UINT constantBufferSize = sizeof(CamBuffer);
 
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -80,7 +90,7 @@ namespace wilson {
 			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
 			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
 
-			cbufferDesc.Width = sizeof(DirectX::XMVECTOR) * 5;
+			cbufferDesc.Width = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;
 			cbufferDesc.Width = _64KB_ALIGN(cbufferDesc.Width);
 
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
@@ -93,9 +103,14 @@ namespace wilson {
 			m_pCascadeLevel12CB->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Camera::m_pCascadeLevel12CB") - 1, "Camera::m_pCascadeLevel12CB");
 
+			D3D12_RANGE readRange = { 0, };
+			hr = m_pCascadeLevel12CB->Map(0, &readRange, reinterpret_cast<void**>(&m_pCascadeLevelCbBegin));
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("Camera::m_pCascadeLevel12CB::Map()Failed");
+			}
 
-
-			UINT constantBufferSize = sizeof(DirectX::XMVECTOR) * 5;
+			UINT constantBufferSize = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;;
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
 			cbvDesc.BufferLocation = m_pCascadeLevel12CB->GetGPUVirtualAddress();
@@ -189,24 +204,13 @@ namespace wilson {
 
 	bool Camera12::SetCascadeLevels(ID3D12GraphicsCommandList* pCommandlist)
 	{
-		HRESULT hr;
-		UINT8* pCascadeLevel12Buffer;
-		D3D12_RANGE readRange = { 0, };
-		hr = m_pCascadeLevel12CB->Map(0, &readRange, reinterpret_cast<void**>(&pCascadeLevel12Buffer));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("Camera::m_pCascadeLevel12CB::Map()Failed");
-		}
-
 		std::vector<DirectX::XMVECTOR> FarZs(_CASCADE_LEVELS);
 		for (int i = 0; i < _CASCADE_LEVELS; ++i)
 		{
 			FarZs[i] = DirectX::XMVectorSet(0, 0, m_shadowCascadeLevels[i], 1.0f);
 		}
 
-		memcpy(pCascadeLevel12Buffer, &FarZs[0], sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS);
-		m_pCascadeLevel12CB->Unmap(0, nullptr);
-
+		memcpy(m_pCascadeLevelCbBegin, &FarZs[0], sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS);
 		pCommandlist->SetGraphicsRootDescriptorTable(ePbrLightRP::ePbrLight_ePsCasCadeLevels, m_cascadeLevelCBV);
 		return true;
 	}
@@ -214,19 +218,7 @@ namespace wilson {
 
 	bool Camera12::SetCamPos(ID3D12GraphicsCommandList* pCommandlist, bool bGeoPass)
 	{
-
-		HRESULT hr;
-		UINT8* pCamPos12Buffer;
-		D3D12_RANGE readRange = { 0, };
-		hr = m_pCamPos12CB->Map(0, &readRange, reinterpret_cast<void**>(&pCamPos12Buffer));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("Camera::m_pCamPos12CB::Map()Failed");
-		}
-
-		memcpy(pCamPos12Buffer, &m_pos, sizeof(CamBuffer));
-		m_pCamPos12CB->Unmap(0, nullptr);
-
+		memcpy(m_pCamPosCbBegin, &m_pos, sizeof(CamBuffer));
 		pCommandlist->SetGraphicsRootDescriptorTable(bGeoPass?ePbrGeoRP::ePbrGeo_ePsCamPos: ePbrLightRP::ePbrLight_ePsCamPos,
 			m_camPosCBV);
 		return true;

@@ -49,47 +49,24 @@ namespace wilson
         }
     }
    
-    void PointLight12::SetShadowMatrices(ID3D12GraphicsCommandList* pCommandlist)
+    void PointLight12::UploadShadowMatrices(ID3D12GraphicsCommandList* pCommandlist)
     {
-        HRESULT hr;
-        UINT8* pMatrices12Buffer;
-        D3D12_RANGE readRange = { 0, };
-        hr = m_pMatrices12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&pMatrices12Buffer));
-        if (FAILED(hr))
-        {
-            OutputDebugStringA("PointLight::m_pMatrices12Buffer::Map()Failed");
-        }
-
         std::vector<DirectX::XMMATRIX> matrices(6);
         for (int i = 0; i < 6; ++i)
         {
             matrices[i] = m_cubeMats[i];
         }
 
-        memcpy(pMatrices12Buffer, &matrices[0], sizeof(DirectX::XMMATRIX) * 6);
-        m_pMatrices12Buffer->Unmap(0, nullptr);
-
+        memcpy(m_pMatricesCbBegin, &matrices[0], sizeof(DirectX::XMMATRIX) * 6);
         pCommandlist->SetGraphicsRootDescriptorTable(eCubeShadowRP::eCubeShadow_eGsMat , m_matriceCBV);
         return;
     }
    
-    void PointLight12::SetLightPos(ID3D12GraphicsCommandList* pCommandlist)
+    void PointLight12::UploadLightPos(ID3D12GraphicsCommandList* pCommandlist)
     {
-
-        HRESULT hr;
-        UINT8* pPos12Buffer;
-        D3D12_RANGE readRange = { 0, };
-        hr = m_pPos12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&pPos12Buffer));
-        if (FAILED(hr))
-        {
-            OutputDebugStringA("PointlLight::m_pPos12Buffer::Map()Failed");
-        }
-
         DirectX::XMVECTOR pos = DirectX::XMVectorSet(m_position.x, m_position.y, m_position.z, g_far);
 
-        memcpy(pPos12Buffer, &pos, sizeof(DirectX::XMVECTOR));
-        m_pPos12Buffer->Unmap(0, nullptr);
-
+        memcpy(m_pPosCbBegin, &pos, sizeof(DirectX::XMVECTOR));
         pCommandlist->SetGraphicsRootDescriptorTable(eCubeShadowRP::eCubeShadow_ePsLightPos, m_posCBV);
         return;
     }
@@ -99,8 +76,9 @@ namespace wilson
         :Light12(idx)
     {
         m_pMatrices12Buffer = nullptr;
-        m_pPos12Buffer = nullptr;
-
+        m_pPosCb = nullptr;
+        m_pMatricesCbBegin = nullptr;
+        m_pPosCbBegin = nullptr;
         HRESULT hr;
         {
 
@@ -165,6 +143,14 @@ namespace wilson
                 }
                 m_pMatrices12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
                     sizeof("PointlLight::m_pMatrices12Buffer") - 1, "PointlLight::m_pMatrices12Buffer");
+                
+                D3D12_RANGE readRange = { 0, };
+                hr = m_pMatrices12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pMatricesCbBegin));
+                if (FAILED(hr))
+                {
+                    OutputDebugStringA("PointLight::m_pMatrices12Buffer::Map()Failed");
+                }
+
 
                 UINT constantBufferSize = sizeof(DirectX::XMMATRIX) * 7;
 
@@ -183,13 +169,20 @@ namespace wilson
                 cbufferDesc.Width = _64KB_ALIGN(sizeof(DirectX::XMVECTOR));
 
                 hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-                    &cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pPos12Buffer));
+                    &cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pPosCb));
                 if (FAILED(hr))
                 {
-                    OutputDebugStringA("PointlLight::m_pPos12Buffer::CreateBufferFailed");
+                    OutputDebugStringA("PointlLight::m_pPosCb::CreateBufferFailed");
                 }
-                m_pPos12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-                    sizeof("PointlLight::m_pPos12Buffer") - 1, "PointlLight::m_pPos12Buffer");
+                m_pPosCb->SetPrivateData(WKPDID_D3DDebugObjectName,
+                    sizeof("PointlLight::m_pPosCb") - 1, "PointlLight::m_pPosCb");
+
+                D3D12_RANGE readRange = { 0, };
+                hr = m_pPosCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pPosCbBegin));
+                if (FAILED(hr))
+                {
+                    OutputDebugStringA("PointlLight::m_pPosCb::Map()Failed");
+                }
 
 
                 UINT constantBufferSize = cbufferDesc.Width;
@@ -216,10 +209,10 @@ namespace wilson
             m_pMatrices12Buffer = nullptr;
         }
 
-        if (m_pPos12Buffer != nullptr)
+        if (m_pPosCb != nullptr)
         {
-            m_pPos12Buffer->Release();
-            m_pPos12Buffer = nullptr;
+            m_pPosCb->Release();
+            m_pPosCb = nullptr;
         }
         Light12::~Light12();
     }

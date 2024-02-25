@@ -4,14 +4,6 @@ namespace wilson
 {
 	void LightBuffer12::UpdateDirLightMatrices(ID3D12GraphicsCommandList* pCommandlist)
 	{
-		HRESULT hr;
-		UINT8* pMatrixBuffer;
-		D3D12_RANGE readRange = { 0, };
-		hr = m_pDirLitMatrices12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&pMatrixBuffer));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("LightBuffer::m_pDirLitMatrices12Buffer::Map()Failed");
-		}
 
 		UINT offset = 0;
 		UINT len = sizeof(DirectX::XMMATRIX)*_CASCADE_LEVELS;
@@ -19,65 +11,44 @@ namespace wilson
 		for (int i = 0; i < m_pDirLights.size(); ++i)
 		{
 			std::vector<DirectX::XMMATRIX> cascadeMat = m_pDirLights[i]->GetLightSpaceMat();
-			memcpy(pMatrixBuffer + offset, &cascadeMat[0], len);
+			memcpy(m_pDirLitMatricesCbBegin + offset, &cascadeMat[0], len);
 			offset += len;
 		}
 		offset = len * _MAX_DIR_LIGHTS;
-		memcpy(pMatrixBuffer + offset, &numOfLights, sizeof(UINT));
-		m_pDirLitMatrices12Buffer->Unmap(0, nullptr);
-		
+		memcpy(m_pDirLitMatricesCbBegin + offset, &numOfLights, sizeof(UINT));
+	
 		pCommandlist->SetGraphicsRootDescriptorTable(ePbrLightRP::ePbrLight_ePsDirLitMat, m_dirLitMatrices12BufferCBV);
 		return;
 	}
 
 	void LightBuffer12::UpdateSpotLightMatrices(ID3D12GraphicsCommandList* pCommandlist)
 	{
-		HRESULT hr;
-		UINT8* pMatrixBuffer;
-		D3D12_RANGE readRange = { 0, };
-		hr = m_pSpotLitMatrices12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&pMatrixBuffer));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("LightBuffer::m_pSpotLitMatrices12Buffer::Map()Failed");
-		}
-
 		UINT offset = 0;
 		UINT len = sizeof(DirectX::XMMATRIX);
 		UINT numOfLights = m_pSpotLights.size();
 		for (int i = 0; i < m_pSpotLights.size(); ++i)
 		{
-			memcpy(pMatrixBuffer + offset, m_pSpotLights[i]->GetLightSpaceMat(), len);
+			memcpy(m_pSpotLitMatricesCbBegin + offset, m_pSpotLights[i]->GetLightSpaceMat(), len);
 			offset += len;
 		}
 		offset = len * _MAX_SPT_LIGHTS;
-		memcpy(pMatrixBuffer + offset, &numOfLights, sizeof(UINT));
-		m_pSpotLitMatrices12Buffer->Unmap(0, nullptr);
-
+		memcpy(m_pSpotLitMatricesCbBegin + offset, &numOfLights, sizeof(UINT));
 		pCommandlist->SetGraphicsRootDescriptorTable(ePbrLightRP::ePbrLight_ePsSpotLitMat, m_spotLitMatrices12BufferCBV);
 		return;
 	}
 	
 	void LightBuffer12::UpdateLightBuffer(ID3D12GraphicsCommandList* pCommandlist)
 	{
-		HRESULT hr;
-		UINT8* pLightPropertyBuffer;
-		D3D12_RANGE readRange = { 0, };
-		hr = m_pLightProperty12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&pLightPropertyBuffer));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("LightBuffer::m_pLightProperty12Buffer::Map()Failed");
-		}
-
 		UINT dirLightOffset = 0;
 		UINT len = sizeof(DirLightProperty);
 		UINT numOfLights = m_pDirLights.size();
 		for (int i = 0; i < m_pDirLights.size(); ++i)
 		{
-			memcpy(pLightPropertyBuffer + dirLightOffset, m_pDirLights[i]->GetProperty(), len);
+			memcpy(m_pLightPropertyCbBegin + dirLightOffset, m_pDirLights[i]->GetProperty(), len);
 			dirLightOffset += len;
 		}
 		dirLightOffset = len * _MAX_DIR_LIGHTS;
-		memcpy(pLightPropertyBuffer + dirLightOffset, &numOfLights, sizeof(UINT));
+		memcpy(m_pLightPropertyCbBegin + dirLightOffset, &numOfLights, sizeof(UINT));
 		dirLightOffset += 16;//hlsl 16bytes align;
 
 
@@ -86,11 +57,11 @@ namespace wilson
 		numOfLights = m_pPointLights.size();
 		for (int i = 0; i < m_pPointLights.size(); ++i)
 		{
-			memcpy(pLightPropertyBuffer + pntLightOffset, m_pPointLights[i]->GetProperty(), len);
+			memcpy(m_pLightPropertyCbBegin + pntLightOffset, m_pPointLights[i]->GetProperty(), len);
 			pntLightOffset += len;
 		}
 		pntLightOffset = dirLightOffset+len * _MAX_PNT_LIGHTS;
-		memcpy(pLightPropertyBuffer + pntLightOffset, &numOfLights, sizeof(UINT));
+		memcpy(m_pLightPropertyCbBegin + pntLightOffset, &numOfLights, sizeof(UINT));
 		pntLightOffset += 16;
 		
 		
@@ -99,14 +70,12 @@ namespace wilson
 		numOfLights = m_pSpotLights.size();
 		for (int i = 0; i < m_pSpotLights.size(); ++i)
 		{
-			memcpy(pLightPropertyBuffer + sptLightOffset, m_pSpotLights[i]->GetProperty(), len);
+			memcpy(m_pLightPropertyCbBegin + sptLightOffset, m_pSpotLights[i]->GetProperty(), len);
 			sptLightOffset += len;
 		}
 
 		sptLightOffset = pntLightOffset+len * _MAX_SPT_LIGHTS;
-		memcpy(pLightPropertyBuffer + sptLightOffset, &numOfLights, sizeof(UINT));
-
-		m_pLightProperty12Buffer->Unmap(0, nullptr);
+		memcpy(m_pLightPropertyCbBegin + sptLightOffset, &numOfLights, sizeof(UINT));
 
 		pCommandlist->SetGraphicsRootDescriptorTable(ePbrLightRP::ePbrLight_ePsLight, m_lightPropertyBufferCBV);
 		return;
@@ -120,6 +89,10 @@ namespace wilson
 		m_pLightProperty12Buffer = nullptr;
 		m_pDirLitMatrices12Buffer = nullptr;
 		m_pSpotLitMatrices12Buffer = nullptr;
+
+		m_pLightPropertyCbBegin = nullptr;
+		m_pDirLitMatricesCbBegin = nullptr;
+		m_pSpotLitMatricesCbBegin = nullptr;
 
 		m_pDirLights.reserve(_MAX_DIR_LIGHTS);
 		m_pPointLights.reserve(_MAX_PNT_LIGHTS);
@@ -182,6 +155,13 @@ namespace wilson
 			m_pLightProperty12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("LightBuffer::m_pLightPropertyBuffer") - 1, "LightBuffer::m_pLightPropertyBuffer");
 
+			D3D12_RANGE readRange = { 0, };
+			hr = m_pLightProperty12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pLightPropertyCbBegin));
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("LightBuffer::m_pLightProperty12Buffer::Map()Failed");
+			}
+
 			UINT constantBufferSize = sizeof(LightBufferProperty);
 
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -209,6 +189,13 @@ namespace wilson
 			m_pDirLitMatrices12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("LightBuffer::m_pDirLitMatrices12Buffer") - 1, "LightBuffer::m_pDirLitMatrices12Buffer");
 
+			D3D12_RANGE readRange = { 0, };
+			hr = m_pDirLitMatrices12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pDirLitMatricesCbBegin));
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("LightBuffer::m_pDirLitMatrices12Buffer::Map()Failed");
+			}
+
 			UINT constantBufferSize = sizeof(DirLightMatrices);
 
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -234,6 +221,13 @@ namespace wilson
 			}
 			m_pSpotLitMatrices12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("LightBuffer::m_pSpotLitMatrices12Buffer") - 1, "LightBuffer::m_pSpotLitMatrices12Buffer");
+
+			D3D12_RANGE readRange = { 0, };
+			hr = m_pSpotLitMatrices12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pSpotLitMatricesCbBegin));
+			if (FAILED(hr))
+			{
+				OutputDebugStringA("LightBuffer::m_pSpotLitMatrices12Buffer::Map()Failed");
+			}
 
 
 			UINT constantBufferSize = sizeof(SpotLightMatrices);
