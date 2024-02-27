@@ -366,3 +366,4 @@ FodyWeavers.xsd
 /Renderer/stb_image.h
 /Renderer/Assets
 *.rdc
+/DX11

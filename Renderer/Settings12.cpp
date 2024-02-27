@@ -37,7 +37,10 @@ namespace wilson
 				DirectX::ScratchImage image;
 				hr = DirectX::LoadFromWICFile(L"./Assets/Icons/sun-color-icon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 				UINT8* pData = image.GetPixels();
-				UINT bytePerPixel = image.GetPixelsSize() / (image.GetMetadata().width * image.GetMetadata().height);
+				size_t rowPitch;
+				size_t slidePitch;
+				DirectX::TexMetadata metadata = image.GetMetadata();
+				ComputePitch(metadata.format, metadata.width, metadata.height, rowPitch, slidePitch);
 
 				D3D12_RESOURCE_DESC	texDesc = {};
 				texDesc.Width = image.GetMetadata().width;
@@ -67,7 +70,7 @@ namespace wilson
 				m_pDirLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pDirLitIcon12Tex") - 1, "Settings12::m_pDirLitIcon12Tex");
 				
-				m_pD3D12->UploadTexThroughCB(texDesc, bytePerPixel, pData, m_pDirLitIcon12Tex, &m_pDirLitIcon12UploadCB, pCommandlist);
+				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pDirLitIcon12Tex, &m_pDirLitIcon12UploadCB, pCommandlist);
 
 				//Gen SRV
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -93,7 +96,10 @@ namespace wilson
 				DirectX::ScratchImage image;
 				hr = DirectX::LoadFromWICFile(L"./Assets/Icons/sun-color-icon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 				UINT8* pData = image.GetPixels();
-				UINT bytePerPixel = image.GetPixelsSize() / (image.GetMetadata().width * image.GetMetadata().height);
+				size_t rowPitch;
+				size_t slidePitch;
+				DirectX::TexMetadata metadata = image.GetMetadata();
+				ComputePitch(metadata.format, metadata.width, metadata.height, rowPitch, slidePitch);
 
 				D3D12_RESOURCE_DESC	texDesc = {};
 				texDesc.Width = image.GetMetadata().width;
@@ -123,7 +129,7 @@ namespace wilson
 				m_pPntLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pPntLitIcon12Tex") - 1, "Settings12::m_pPntLitIcon12Tex");
 
-				m_pD3D12->UploadTexThroughCB(texDesc, bytePerPixel, pData, m_pPntLitIcon12Tex, &m_pPntLitIcon12UploadCB, pCommandlist);
+				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pPntLitIcon12Tex, &m_pPntLitIcon12UploadCB, pCommandlist);
 
 				//Gen SRV
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -149,7 +155,10 @@ namespace wilson
 				DirectX::ScratchImage image;
 				hr = DirectX::LoadFromWICFile(L"./Assets/Icons/flashlight-icon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 				UINT8* pData = image.GetPixels();
-				UINT bytePerPixel = image.GetPixelsSize() / (image.GetMetadata().width * image.GetMetadata().height);
+				size_t rowPitch;
+				size_t slidePitch;
+				DirectX::TexMetadata metadata = image.GetMetadata();
+				ComputePitch(metadata.format, metadata.width, metadata.height, rowPitch, slidePitch);
 
 				D3D12_RESOURCE_DESC	texDesc = {};
 				texDesc.Width = image.GetMetadata().width;
@@ -179,7 +188,7 @@ namespace wilson
 				m_pSpotLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pSpotLitIcon12Tex") - 1, "Settings12::m_pSpotLitIcon12Tex");
 
-				m_pD3D12->UploadTexThroughCB(texDesc, bytePerPixel, pData, m_pSpotLitIcon12Tex, &m_pSpotLitIcon12UploadCB, pCommandlist);
+				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pSpotLitIcon12Tex, &m_pSpotLitIcon12UploadCB, pCommandlist);
 
 				//Gen SRV
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};

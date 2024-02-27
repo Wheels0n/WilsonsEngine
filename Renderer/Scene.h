@@ -58,7 +58,7 @@ namespace wilson
 		std::string m_name;
 		std::string m_popUpID;
 
-		ID3D11ShaderResourceView* m_pShadowSRV = nullptr;
+		ID3D11ShaderResourceView* m_pShadowSrv = nullptr;
 		bool m_isModel;
 		D3D11* m_pD3D11;
 		void* m_pSelectedEntity;

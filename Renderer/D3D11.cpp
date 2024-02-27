@@ -264,7 +264,7 @@ namespace wilson
 			swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 			swapChainDesc.SampleDesc.Count = 1;
 			swapChainDesc.SampleDesc.Quality = 0;
-			swapChainDesc.Windowed = bFullscreen?TRUE:FALSE;
+			swapChainDesc.Windowed = bFullscreen?FALSE: TRUE;
 			swapChainDesc.OutputWindow = hWnd;
 			swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 			swapChainDesc.Flags = 0;

@@ -7,7 +7,7 @@
 #include "DescriptorHeapManager.h"
 namespace wilson 
 {
-
+	//Pos를 담는 변수들은 가장 끝 원소로 전체 크기를 담고 있음에 유의
 	Model12::Model12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, DescriptorHeapManager* pDescriptorHeapManager,
 		VertexData* pVertices,
 		unsigned long* pIndices,
@@ -25,6 +25,7 @@ namespace wilson
 			m_pIndices = pIndices;
 			m_vertexDataPos = vertexDataPos;
 			m_indicesPos = indicesPos;
+			m_ibVs.resize(indicesPos.size()-1);
 			m_vertexCount = vertexDataPos[vertexDataPos.size() - 1];
 			m_indexCount = indicesPos[indicesPos.size() - 1];
 
@@ -50,6 +51,8 @@ namespace wilson
 			m_pInstancePosCB = nullptr;
 			m_pPerModelCB = nullptr;
 			m_pMatBuffer = nullptr;
+			m_pPerModel = nullptr;
+			m_pMaterial = nullptr;
 		}
 
 		//Gen MatBuffer
@@ -128,7 +131,7 @@ namespace wilson
 				OutputDebugStringA("Model12::m_pVB::Map()Failed");
 			}
 			memcpy(pVB, m_pVertexData, vbSize);
-			m_pVB->Unmap(0, nullptr);
+			m_pVB->Unmap(0, 0);
 
 			m_vbV.BufferLocation = m_pVB->GetGPUVirtualAddress();
 			m_vbV.SizeInBytes = vbSize; 
@@ -178,16 +181,19 @@ namespace wilson
 				OutputDebugStringA("Model12::m_pIB::Map()Failed");
 			}
 			memcpy(pIB, m_pIndices, ibSize);
-			m_pIB->Unmap(0, nullptr);
+			m_pIB->Unmap(0, 0);
 
-			m_ibV.BufferLocation = m_pIB->GetGPUVirtualAddress();
-			m_ibV.SizeInBytes = ibSize;
-			m_ibV.Format= DXGI_FORMAT_R32_UINT;
+			for (int i = 0; i < m_ibVs.size(); ++i)
+			{
+				m_ibVs[i].BufferLocation = m_pIB->GetGPUVirtualAddress()+ sizeof(UINT)*indicesPos[i];
+				m_ibVs[i].Format = DXGI_FORMAT_R32_UINT;
+				m_ibVs[i].SizeInBytes = sizeof(UINT)*(indicesPos[i+1]-indicesPos[i]);
+			}
 		}
 
 		//Gen CB
 		{
-
+			D3D12_RANGE readRange = { 0, };
 			//Gen materialCB
 			{
 
@@ -221,6 +227,13 @@ namespace wilson
 				}
 				m_pMaterialCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Model12::m_pMaterialCB") - 1, "Model12::m_pMaterialCB");
+
+				hr = m_pMaterialCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pMaterial));
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("Model12::m_pMaterialCB::Map()Failed");
+				}
+
 
 				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
 				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
@@ -281,6 +294,7 @@ namespace wilson
 				m_pInstancePosCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Model12::m_pInstancePosCB") - 1, "Model12::m_pInstancePosCB");
 
+
 				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
 				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
@@ -325,6 +339,12 @@ namespace wilson
 				m_pPerModelCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Model12::m_pPerModelCB") - 1, "Model12::m_pPerModelCB");
 				
+				hr = m_pPerModelCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pPerModel));
+				if (FAILED(hr))
+				{
+					OutputDebugStringA("Model12::m_pPerModelCB::Map()Failed");
+				}
+
 				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
 				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
 				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -488,42 +508,23 @@ namespace wilson
 
 		//SetVB&IB
 		pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
-		pCommandlist->IASetIndexBuffer(&m_ibV);
+		pCommandlist->IASetIndexBuffer(&m_ibVs[i]);
 		
 
 		//Upload CBV
 		if(bGeoPass)
 		{
-			D3D12_RANGE readRange = { 0, };
 			MaterialInfo matInfo = m_matInfos[i];
 			//Upload materialCB
 			{
-				UINT8* pMaterial;
-
-				hr = m_pMaterialCB->Map(0, &readRange, reinterpret_cast<void**>(&pMaterial));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("Model12::m_pMaterialCB::Map()Failed");
-				}
-
-				memcpy(pMaterial, &matInfo.material, sizeof(Material));
-				m_pMaterialCB->Unmap(0, nullptr);
+				memcpy(m_pMaterial, &matInfo.material, sizeof(Material));
 				pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsMaterial, m_materialCBV);
 			}
 
 			//Upload perModelCB
 			{
-				UINT8* pPerModel;
-
-				hr = m_pPerModelCB->Map(0, &readRange, reinterpret_cast<void**>(&pPerModel));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("Model12::m_pPerModelCB::Map()Failed");
-				}
-
-				memcpy(pPerModel, &m_perModels[i], sizeof(PerModel));
-				m_pPerModelCB->Unmap(0, nullptr);
 				
+				memcpy(m_pPerModel, &m_perModels[i], sizeof(PerModel));
 				pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_eVsPerModel, m_perModelCBV);
 				pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsPerModel, m_perModelCBV);
 			}
@@ -652,5 +653,64 @@ namespace wilson
 		m_invWMat = DirectX::XMMatrixInverse(nullptr, srtMat);
 		m_invWMat = DirectX::XMMatrixTranspose(m_invWMat);
 		m_outlinerMat = DirectX::XMMatrixTranspose(osrtMat);
+	}
+	D3D12_GPU_DESCRIPTOR_HANDLE* Model12::GetTextureSrv(int matIndex, eTexType texType)
+	{
+		UINT idx;
+		MaterialInfo matInfo = m_matInfos[matIndex];
+		switch (texType)
+		{
+		case Diffuse:
+			idx = m_texHash[matInfo.diffuseMap];
+			return &m_texSrvs[idx];
+			break;
+		case Normal:
+			if (m_perModels[matIndex].hasNormal)
+			{
+				idx = m_texHash[matInfo.normalMap];
+				return &m_texSrvs[idx];
+			}
+			else
+			{
+				return &m_nullSrvs[0];
+			}
+			break;
+		case Specular:
+			if (m_perModels[matIndex].hasSpecular)
+			{
+				idx = m_texHash[matInfo.specularMap];
+				return &m_texSrvs[idx];
+			}
+			else
+			{
+				return &m_nullSrvs[matIndex];
+			}
+			break;
+		case Emissive:
+			if (m_perModels[matIndex].hasEmissive)
+			{
+				idx = m_texHash[matInfo.emissiveMap];
+				return &m_texSrvs[idx];
+			}
+			else
+			{
+				return &m_nullSrvs[0];
+			}
+
+			break;
+		case Alpha:
+			if (m_perModels[matIndex].hasAlpha)
+			{
+				idx = m_texHash[matInfo.alphaMap];
+				return &m_texSrvs[idx];
+			}
+			else
+			{
+				return &m_nullSrvs[0];
+			}
+			break;
+		default:
+			return &m_nullSrvs[matIndex];
+		}
 	}
 }

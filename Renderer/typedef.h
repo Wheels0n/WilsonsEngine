@@ -110,6 +110,14 @@ namespace wilson
 	};
 
 	//Model
+	enum eTexType
+	{
+		Diffuse,
+		Normal,
+		Specular,
+		Emissive,
+		Alpha
+	};
 	enum class eFileType
 	{
 		OBJ,
@@ -326,7 +334,7 @@ namespace wilson
 	constexpr UINT  _NOISE_VEC_COUNT = 16;
 	constexpr UINT  _NOISE_TEX_SIZE = 4;
 	constexpr UINT  _SAMPLER_COUNT = 50;
-	constexpr UINT  _CBV_SRV_COUNT = 10000;
+	constexpr UINT  _CBV_SRV_COUNT = 100000;
 	constexpr UINT  _RTV_DSV_COUNT = 1000;
 	constexpr UINT  _PREFILTER_MIP_LEVELS = 5;
 	constexpr UINT  _PREFILTER_WIDTH = 128;

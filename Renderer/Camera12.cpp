@@ -25,8 +25,7 @@ namespace wilson {
 		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
 		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
 
-		m_pCamPos12CB = nullptr;
-		m_pCascadeLevel12CB = nullptr;
+		m_pCamCb = nullptr;
 		m_pCamPosCbBegin = nullptr;
 		m_pCascadeLevelCbBegin = nullptr;
 
@@ -59,26 +58,26 @@ namespace wilson {
 			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
 
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pCamPos12CB));
+				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pCamCb));
 			if (FAILED(hr))
 			{
-				OutputDebugStringA("Camera::m_pCamPos12CB::CreateBufferFailed");
+				OutputDebugStringA("Camera::m_pCamCb::CreateBufferFailed");
 			}
-			m_pCamPos12CB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Camera::m_pCamPos12CB") - 1, "Camera::m_pCamPos12CB");
+			m_pCamCb->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Camera::m_pCamCb") - 1, "Camera::m_pCamCb");
 
 			D3D12_RANGE readRange = { 0, };
-			hr = m_pCamPos12CB->Map(0, &readRange, reinterpret_cast<void**>(&m_pCamPosCbBegin));
+			hr = m_pCamCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pCamPosCbBegin));
 			if (FAILED(hr))
 			{
-				OutputDebugStringA("Camera::m_pCamPos12CB::Map()Failed");
+				OutputDebugStringA("Camera::m_pCamCb::Map()Failed");
 			}
 
 			UINT constantBufferSize = sizeof(CamBuffer);
-
+			m_pCascadeLevelCbBegin = m_pCamPosCbBegin + (_CBV_ALIGN(constantBufferSize));
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);//255aligned
-			cbvDesc.BufferLocation = m_pCamPos12CB->GetGPUVirtualAddress();
+			cbvDesc.BufferLocation = m_pCamCb->GetGPUVirtualAddress();
 			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
 			m_camPosCBV = cbvSrvGpuHandle;
 			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
@@ -90,30 +89,10 @@ namespace wilson {
 			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
 			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
 
-			cbufferDesc.Width = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;
-			cbufferDesc.Width = _64KB_ALIGN(cbufferDesc.Width);
-
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pCascadeLevel12CB));
-			if (FAILED(hr))
-			{
-				hr = pDevice->GetDeviceRemovedReason();
-				OutputDebugStringA("Camera::m_pCascadeLevel12CB::CreateBufferFailed");
-			}
-			m_pCascadeLevel12CB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Camera::m_pCascadeLevel12CB") - 1, "Camera::m_pCascadeLevel12CB");
-
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pCascadeLevel12CB->Map(0, &readRange, reinterpret_cast<void**>(&m_pCascadeLevelCbBegin));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Camera::m_pCascadeLevel12CB::Map()Failed");
-			}
-
-			UINT constantBufferSize = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;;
+			UINT constantBufferSize = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-			cbvDesc.BufferLocation = m_pCascadeLevel12CB->GetGPUVirtualAddress();
+			cbvDesc.BufferLocation = m_pCamCb->GetGPUVirtualAddress()+256;
 			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
 			m_cascadeLevelCBV = cbvSrvGpuHandle;
 			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
@@ -125,16 +104,10 @@ namespace wilson {
 	Camera12::~Camera12()
 	{
 
-		if (m_pCamPos12CB != nullptr)
+		if (m_pCamCb != nullptr)
 		{
-			m_pCamPos12CB->Release();
-			m_pCamPos12CB = nullptr;
-		}
-
-		if (m_pCascadeLevel12CB != nullptr)
-		{
-			m_pCascadeLevel12CB->Release();
-			m_pCascadeLevel12CB = nullptr;
+			m_pCamCb->Release();
+			m_pCamCb = nullptr;
 		}
 
 	}

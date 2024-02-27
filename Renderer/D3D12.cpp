@@ -710,7 +710,7 @@ namespace wilson
 			m_pHDRTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pHDRTex") - 1, "D3D12::m_pHDRTex");
 
-			UploadTexThroughCB(texDesc, sizeof(XMVECTOR), (UINT8*)data, m_pHDRTex, &m_pHdrUploadCB, m_pPbrSetupCommandList);
+			UploadTexThroughCB(texDesc, sizeof(XMVECTOR)*width, (UINT8*)data, m_pHDRTex, &m_pHdrUploadCB, m_pPbrSetupCommandList);
 			ID3D12CommandList* ppCommandList[1] = { m_pPbrSetupCommandList };
 			ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
 											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
@@ -1087,7 +1087,7 @@ namespace wilson
 							{
 								pModels[j]->UploadBuffers(m_pCommandList, k, bGeoPass);
 								m_pCommandList->DrawIndexedInstanced(pModels[j]->GetIndexCount(k),1,
-									pModels[j]->GetIndexOffset(k), 0, 0);
+									0, 0, 0);
 							}
 
 							if (isSelected && bGeoPass)
@@ -1521,37 +1521,55 @@ namespace wilson
 	}
 }
 
-	void D3D12::UploadTexThroughCB(const D3D12_RESOURCE_DESC& texDesc, const UINT bytesPerPixel,
+	void D3D12::UploadTexThroughCB(D3D12_RESOURCE_DESC texDesc, const UINT rp,
 	const UINT8* pData, ID3D12Resource* pDst, ID3D12Resource** ppUploadCB, ID3D12GraphicsCommandList* pCommandList)
 {
 	HRESULT hr;
 	D3D12_RESOURCE_BARRIER readOnlyToCopyDst = {};
 	readOnlyToCopyDst.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	readOnlyToCopyDst.Transition.pResource = nullptr;
+	readOnlyToCopyDst.Transition.Subresource= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	readOnlyToCopyDst.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	readOnlyToCopyDst.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 
 	readOnlyToCopyDst.Transition.pResource = pDst;
 	pCommandList->ResourceBarrier(1, &readOnlyToCopyDst);
-
-	const UINT64 uploadPitch = (texDesc.Width * bytesPerPixel + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u);
-	const UINT64 uploadSize = uploadPitch * texDesc.Height;
+	
+	UINT rowPitch = rp;
+	UINT height = texDesc.Height;
+	//4x4단위라서 감안해줘야함. +3은 4의배수로 나눠떨어지게 하기 위함.
+	if (DirectX::IsCompressed(texDesc.Format))
+	{	
+		height = (height + 3) / 4;
+		if (texDesc.Format == DXGI_FORMAT_BC1_UNORM ||
+			texDesc.Format == DXGI_FORMAT_BC1_UNORM_SRGB ||
+			texDesc.Format == DXGI_FORMAT_BC1_TYPELESS)
+		{
+			rowPitch = (texDesc.Width + 3) / 4 * 8;
+		}
+		else
+		{
+			rowPitch = (texDesc.Width + 3) / 4 * 16;
+		}
+	}
+	UINT64 uploadPitch = (rp + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u);
+	UINT64 uploadSize = uploadPitch * height;
 	GenUploadBuffer(ppUploadCB, uploadPitch, uploadSize);
-
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
+	D3D12_RESOURCE_DESC copytexDesc= texDesc;
+	UINT numRows;
+	UINT64 rowSizeInByte;
+	UINT64 totalBytes;
+	m_pDevice->GetCopyableFootprints(&copytexDesc, 0, 1, 0, &footprint, &numRows, &rowSizeInByte, &totalBytes);
 	UINT8* pUploadCbPtr;
 	D3D12_RANGE readRange = { 0, };
 	hr = (*ppUploadCB)->Map(0, &readRange, reinterpret_cast<void**>(&pUploadCbPtr));
-	if (FAILED(hr))
-	{
-		OutputDebugStringA("D3D12::pUploadCb::Map()Failed");
-		//assert(SUCCEEDED(hr));
-	}
-
+	assert(SUCCEEDED(hr));
 	//Padding 떄문에 memcpy한줄로 처리 불가
-	for (int y = 0; y < texDesc.Height; ++y)
+	for (int y = 0; y < height; ++y)
 	{
 		memcpy((void*)(pUploadCbPtr + y * uploadPitch),
-			(UINT8*)pData + y * (ULONG)texDesc.Width * bytesPerPixel, texDesc.Width * bytesPerPixel);
+			(UINT8*)pData + y * rp, rp);
 	}
 
 	D3D12_TEXTURE_COPY_LOCATION dst = {};
@@ -1561,11 +1579,7 @@ namespace wilson
 	D3D12_TEXTURE_COPY_LOCATION src = {};
 	src.pResource = (*ppUploadCB);
 	src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-	src.PlacedFootprint.Footprint.Format = texDesc.Format;
-	src.PlacedFootprint.Footprint.Width = texDesc.Width;
-	src.PlacedFootprint.Footprint.Height = texDesc.Height;
-	src.PlacedFootprint.Footprint.Depth = 1;
-	src.PlacedFootprint.Footprint.RowPitch = uploadPitch;
+	src.PlacedFootprint = footprint;
 
 	pCommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
 	(*ppUploadCB)->Unmap(0, 0);
@@ -2630,7 +2644,7 @@ namespace wilson
 				sizeof("D3D12:::m_pNoiseTex") - 1, "D3D12:::m_pNoiseTex");
 
 			//Gen Cbuffer for Upload
-			UploadTexThroughCB(texDesc, sizeof(XMVECTOR), (UINT8*)noiseVecs, m_pNoiseTex, &m_pNoiseUploadCB, m_pCommandList);
+			UploadTexThroughCB(texDesc, sizeof(XMVECTOR)*_NOISE_TEX_SIZE, (UINT8*)noiseVecs, m_pNoiseTex, &m_pNoiseUploadCB, m_pCommandList);
 				
 			D3D12_RESOURCE_BARRIER copyDstToSrvBarrier =
 				CreateResourceBarrier(m_pNoiseTex, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -3229,6 +3243,15 @@ namespace wilson
 		{
 			m_pPbrSetupCommandList->Release();
 			m_pCommandList = nullptr;
+		}
+		
+		for (int i = 0; i < m_pModelGroups.size(); ++i)
+		{
+			if (m_pModelGroups[i] != nullptr)
+			{
+				delete m_pModelGroups[i];
+				m_pModelGroups[i] = nullptr;
+			}
 		}
 
 		if (m_pDescriptorHeapManager != nullptr)

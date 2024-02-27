@@ -102,14 +102,13 @@ namespace wilson {
 		DirectX::XMMATRIX m_viewMat;
 		DirectX::XMMATRIX m_projMat;// think of the frustum as the lens of our camera, for it controls our view
 
-		ID3D12Resource* m_pCamPos12CB;
-		ID3D12Resource* m_pCascadeLevel12CB;
+		ID3D12Resource* m_pCamCb;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_camPosCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_cascadeLevelCBV;
 
 		std::vector<float> m_shadowCascadeLevels;
-		UINT* m_pCamPosCbBegin;
-		UINT* m_pCascadeLevelCbBegin;
+		UINT8* m_pCamPosCbBegin;
+		UINT8* m_pCascadeLevelCbBegin;
 		float m_fFOV;
 		float m_fScreenRatio;
 		float m_fScreenNear;

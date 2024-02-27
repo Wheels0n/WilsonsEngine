@@ -450,8 +450,8 @@
     <LibraryPath>D:\2020.0.1\lib\vs2017\x64\debug;$(LibraryPath);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\2020.0.1\include;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.22000.0\shared</IncludePath>
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>D:\2020.0.1\include;C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.22000.0\um</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);D:\2020.0.1\lib\vs2017\x64\release;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

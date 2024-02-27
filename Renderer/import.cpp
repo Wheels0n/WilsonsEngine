@@ -44,7 +44,26 @@ namespace wilson
 
 		m_pDevice = pDevice;
 	}
+	void Importer::GetExtension(char* dst, const char* src)
+	{
+		int i = 0;
+		while (true)
+		{
+			++i;
+			if (src[i] == '.')
+			{
+				++i;
+				break;
+			}
+		}
 
+		for (int j = 0; j < 3; ++j, ++i)
+		{
+			dst[j] = src[i];
+		}
+		dst[3] = '\0';
+		return;
+	}
 	std::streampos Importer::GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName)
 	{
 		std::string line;
@@ -640,22 +659,51 @@ namespace wilson
 				if (texCount > 0)
 				{
 					HRESULT hr;
+					HRESULT hrr;
 					std::string relativePath(texture->GetRelativeFileName());
 					std::string path = texturesPath + relativePath;
 					std::string name = std::string(texture->GetName());
-					
 					if (m_texHash.find(name) == m_texHash.end())
 					{		
-
+						char extension[4];
+						GetExtension(extension, path.c_str());
 						std::wstring wPath = std::wstring(path.begin(), path.end());
 						DirectX::ScratchImage image;
-						hr = DirectX::LoadFromWICFile(wPath.c_str(), DirectX::WIC_FLAGS_NONE, nullptr, image);
-						hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(),&m_pSRV);
-						if (FAILED(hr))
+						if (strcmp(extension, "dds") == 0)
 						{
-							//return false;
+							hrr = DirectX::LoadFromDDSFile(wPath.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
 						}
+						else
+						{
+							hr = DirectX::LoadFromWICFile(wPath.c_str(), DirectX::WIC_FLAGS_NONE, nullptr, image);
 
+						}
+						DirectX::TexMetadata metadata = image.GetMetadata();
+						if (DirectX::IsCompressed(metadata.format)&&
+							(metadata.width < 4 || metadata.height < 4))
+						{
+							//Decompress
+							DirectX::ScratchImage decompressdImage;
+							hr = DirectX::Decompress(image.GetImages(), image.GetImageCount(), metadata, DXGI_FORMAT_UNKNOWN, decompressdImage);
+							metadata = decompressdImage.GetMetadata();
+							//Resize
+							DirectX::ScratchImage resizedImage;
+							hr = DirectX::Resize(decompressdImage.GetImages(), decompressdImage.GetImageCount(), metadata,
+								4, 4, DirectX::TEX_FILTER_DEFAULT, resizedImage);
+							metadata = resizedImage.GetMetadata();
+							//Compress
+							DirectX::ScratchImage dstImage;
+							hr = DirectX::Compress(resizedImage.GetImages(), resizedImage.GetImageCount(), metadata, image.GetMetadata().format,
+								DirectX::TEX_COMPRESS_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, dstImage);
+							metadata = dstImage.GetMetadata();
+							hr = CreateShaderResourceView(pDevice, dstImage.GetImages(), dstImage.GetImageCount(), metadata, &m_pSRV);
+						}
+						else
+						{
+							hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), metadata, &m_pSRV);
+						}
+					
+						assert(SUCCEEDED(hr));
 						
 						m_pSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 							sizeof("Importer::m_pSRV") - 1, "Importer::m_pSRV");

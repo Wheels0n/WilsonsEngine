@@ -291,6 +291,18 @@ namespace wilson
 					{
 						pModel->UpdateWorldMatrix();
 					}
+
+					int texType;
+					if (ImGui::Combo("Texture", &texType, " Diffuse\0 Normal\0 Specular\0 Emissive\0 Alpha\0"))
+					{
+						m_pTextureSrv = pModel->GetTextureSrv(0, (eTexType)texType);
+					}
+					
+					
+					if (m_pTextureSrv != nullptr)
+					{
+						ImGui::Image((ImTextureID)m_pTextureSrv->ptr, ImVec2(128.f, 128.f));
+					}
 				}
 				else
 				{
@@ -502,7 +514,7 @@ namespace wilson
 
 			if (ImGui::Combo("mipLevel", &mipLevel, " 0\0 1\0 2\0 3\0 4\0"))
 			{
-				m_pShadowSRV = m_pShadow->GetDirDebugSRV(pCommandlist, lightIdx, mipLevel);
+				m_pShadowSrv = m_pShadow->GetDirDebugSRV(pCommandlist, lightIdx, mipLevel);
 
 			}
 
@@ -547,12 +559,12 @@ namespace wilson
 			case eLIGHT_TYPE::PNT:
 				if (ImGui::Combo("ShadowMap", &mipLevel, " right\0 left\0 up\0 down\0 front\0 back\0"))
 				{
-					m_pShadowSRV = m_pShadow->GetCubeDebugSRV(pCommandlist, lightIdx, mipLevel);
+					m_pShadowSrv = m_pShadow->GetCubeDebugSRV(pCommandlist, lightIdx, mipLevel);
 				}
 				break;
 			case eLIGHT_TYPE::SPT:
 				ImGui::Text("ShadowMap");
-				m_pShadowSRV = m_pShadow->GetSpotDebugSRV(pCommandlist, lightIdx);
+				m_pShadowSrv = m_pShadow->GetSpotDebugSRV(pCommandlist, lightIdx);
 			}
 
 			break;
@@ -583,9 +595,9 @@ namespace wilson
 		*(pLight->GetSpecular()) = DirectX::XMLoadFloat4(&specular4);
 
 
-		if (m_pShadowSRV != nullptr)
+		if (m_pShadowSrv != nullptr)
 		{
-			ImGui::Image((ImTextureID)m_pShadowSRV->ptr, ImVec2(128.f, 128.f));
+			ImGui::Image((ImTextureID)m_pShadowSrv->ptr, ImVec2(128.f, 128.f));
 		}
 
 

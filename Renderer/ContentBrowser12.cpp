@@ -55,7 +55,10 @@ namespace wilson {
 			DirectX::ScratchImage image;
 			hr = DirectX::LoadFromWICFile(L"./Assets/Icons/folderIcon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 			UINT8* pData = image.GetPixels();
-			UINT bytePerPixel = image.GetPixelsSize()/(image.GetMetadata().width* image.GetMetadata().height);
+			size_t rowPitch;
+			size_t slidePitch;
+			DirectX::TexMetadata metadata = image.GetMetadata();
+			ComputePitch(metadata.format, metadata.width, metadata.height, rowPitch, slidePitch);
 
 			D3D12_RESOURCE_DESC	texDesc = {};
 			texDesc.Width = image.GetMetadata().width;
@@ -85,7 +88,7 @@ namespace wilson {
 			m_pDirIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ContentBrowser12::m_pDirIcon12Tex") - 1, "ContentBrowser12::m_pDirIcon12Tex");
 			
-			pD3D12->UploadTexThroughCB(texDesc, bytePerPixel, pData, m_pDirIcon12Tex, &m_pDirIcon12UploadCB, pCommandlist);
+			pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pDirIcon12Tex, &m_pDirIcon12UploadCB, pCommandlist);
 
 			//Gen SRV
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -111,7 +114,12 @@ namespace wilson {
 			DirectX::ScratchImage image;
 			hr = DirectX::LoadFromWICFile(L"./Assets/Icons/fileIcon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 			UINT8* pData = image.GetPixels();
-			UINT bytePerPixel = image.GetPixelsSize() / (image.GetMetadata().width * image.GetMetadata().height);
+			
+			size_t rowPitch;
+			size_t slidePitch;
+			DirectX::TexMetadata metadata = image.GetMetadata();
+			ComputePitch(metadata.format, metadata.width, metadata.height, rowPitch, slidePitch);
+			
 
 			D3D12_RESOURCE_DESC	texDesc = {};
 			texDesc.Width = image.GetMetadata().width;
@@ -141,7 +149,7 @@ namespace wilson {
 			m_pFileIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ContentBrowser12::m_pFileIcon12Tex") - 1, "ContentBrowser12::m_pFileIcon12Tex");
 
-			pD3D12->UploadTexThroughCB(texDesc, bytePerPixel, pData, m_pFileIcon12Tex, &m_pFileIcon12UploadCB, pCommandlist);
+			pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pFileIcon12Tex, &m_pFileIcon12UploadCB, pCommandlist);
 
 			//Gen SRV
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};

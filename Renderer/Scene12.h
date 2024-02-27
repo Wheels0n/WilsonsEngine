@@ -57,7 +57,8 @@ namespace wilson
 		std::string m_name;
 		std::string m_popUpID;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE* m_pShadowSRV = nullptr;
+		D3D12_GPU_DESCRIPTOR_HANDLE* m_pShadowSrv = nullptr;
+		D3D12_GPU_DESCRIPTOR_HANDLE* m_pTextureSrv = nullptr;
 		bool m_isModel;
 		D3D12* m_pD3D12;
 		void* m_pSelectedEntity;

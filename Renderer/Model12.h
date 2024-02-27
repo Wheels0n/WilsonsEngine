@@ -19,6 +19,7 @@ namespace wilson {
 	public:
 
 		void UpdateWorldMatrix();
+		D3D12_GPU_DESCRIPTOR_HANDLE* GetTextureSrv(int matIndex, eTexType texType);
 		void BindMaterial(std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
 			std::unordered_map<std::string, int>& texhash, std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& texSrvs);
 		void UploadBuffers(ID3D12GraphicsCommandList* pCommandList, int i, bool bGeoPass);
@@ -131,7 +132,7 @@ namespace wilson {
 		ID3D12Resource* m_pPerModelCB;
 
 		D3D12_VERTEX_BUFFER_VIEW m_vbV;
-		D3D12_INDEX_BUFFER_VIEW m_ibV;
+		std::vector<D3D12_INDEX_BUFFER_VIEW> m_ibVs;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_materialCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_instancePosCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_perModelCBV;
@@ -170,5 +171,8 @@ namespace wilson {
 
 		AABB* m_pAABB;
 		MatBuffer12* m_pMatBuffer;
+
+		UINT* m_pPerModel;
+		UINT* m_pMaterial;
 	};
 }

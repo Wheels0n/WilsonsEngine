@@ -190,7 +190,7 @@ namespace wilson
 	{
 		if (bSpotShadowPass)
 		{
-			m_wvpLitMat = XMMatrixMultiplyTranspose(m_worldMat, m_lightSpaceMat);
+			m_wvpLitMat = XMMatrixMultiplyTranspose(m_worldMat, XMMatrixTranspose(m_lightSpaceMat));
 		}
 		else
 		{

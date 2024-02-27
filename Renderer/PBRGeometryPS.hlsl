@@ -3,7 +3,7 @@ Texture2D g_normalMap : register(t1);
 Texture2D g_specularMap : register(t2);
 Texture2D g_emissiveMap : register(t3);
 Texture2D g_alphaMap : register(t4);
-SamplerState g_sampler : register(s0);
+SamplerState g_WrapSampler : register(s0);
 struct PixelInputType
 {
     float4 position : SV_POSITION;
@@ -74,7 +74,7 @@ float2 ParallaxOcclusionMapping(float2 texCoord, float3 viewDir)
     float2 dTexCoord = p / numLayer;
     
     float2 curTexCoord = texCoord;
-    float curDepthMapVal = g_normalMap.Sample(g_sampler, texCoord).a - 1.0f;
+    float curDepthMapVal = g_normalMap.Sample(g_WrapSampler, texCoord).a - 1.0f;
     
     for (int i = 0; i < g_maxLayers;++i)
     {       
@@ -83,14 +83,14 @@ float2 ParallaxOcclusionMapping(float2 texCoord, float3 viewDir)
             break;
         }
         curTexCoord -= dTexCoord;
-        curDepthMapVal = g_normalMap.Sample(g_sampler, curTexCoord).a -1.0f;
+        curDepthMapVal = g_normalMap.Sample(g_WrapSampler, curTexCoord).a - 1.0f;
         curLayerDepth -= layerDepth;
         
     }
     float2 prevTexCoord = curTexCoord + dTexCoord;
     
     float afterDepth = curDepthMapVal - curLayerDepth; //¾ç   //À½
-    float beforeDepth = (g_normalMap.Sample(g_sampler, prevTexCoord).a - 1.0f) - (curLayerDepth + layerDepth);
+    float beforeDepth = (g_normalMap.Sample(g_WrapSampler, prevTexCoord).a - 1.0f) - (curLayerDepth + layerDepth);
     
     float weight = afterDepth / (afterDepth - beforeDepth);
     
@@ -126,7 +126,7 @@ PixelOutputType main(PixelInputType input)
             }
         }
         
-        normal = g_normalMap.Sample(g_sampler, texCoord);
+        normal = g_normalMap.Sample(g_WrapSampler, texCoord);
         normal = normal * 2.0 - 1.0;
         normal = mul(normal, TBN);
         normal = normalize(normal);
@@ -135,7 +135,7 @@ PixelOutputType main(PixelInputType input)
    
     output.normal = float4(normal, 1.0f);
     
-    output.albeldo = g_diffuseMap.Sample(g_sampler, texCoord);
+    output.albeldo = g_diffuseMap.Sample(g_WrapSampler, texCoord);
     clip(output.albeldo.a - 0.1f);
     output.position = input.wPosition;
     output.vPos = input.vPosition;
@@ -145,7 +145,7 @@ PixelOutputType main(PixelInputType input)
     output.vNormal = float4(normalize(input.vNormal), 1.0f);
 
    
-    output.specular.rgb = g_specularMap.SampleLevel(g_sampler, texCoord, 1);
+    output.specular.rgb = g_specularMap.SampleLevel(g_WrapSampler, texCoord, 1);
     output.specular.a = 1.0f;
     
     
@@ -153,7 +153,7 @@ PixelOutputType main(PixelInputType input)
     [branch]
     if(g_hasEmissive)
     {
-        output.emissive.xyz = g_emissiveMap.Sample(g_sampler, texCoord);
+        output.emissive.xyz = g_emissiveMap.Sample(g_WrapSampler, texCoord);
     }
     
     return output;

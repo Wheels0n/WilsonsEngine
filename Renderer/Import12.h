@@ -1,5 +1,5 @@
 #pragma once 
-
+#include <DirectXTex.h>
 #include <Windows.h>
 #include <fbxsdk.h>
 #include <fstream>
@@ -28,6 +28,7 @@ namespace wilson {
 		Importer12(D3D12*);
 		~Importer12();
 	private:
+		void GetExtension(char* dst, const char* src);
 		std::streampos GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName);
 
 		void LoadSubFbx(FbxMesh* pMesh, FbxVector4* pVertices,

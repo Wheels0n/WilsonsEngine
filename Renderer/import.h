@@ -26,8 +26,8 @@ namespace wilson {
 		Importer(ID3D11Device* pDevice);
 		~Importer();
 	private:
+		void GetExtension(char* dst, const char* src);
 		std::streampos GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName);
-
 		void LoadSubFbx(FbxMesh* pMesh, FbxVector4* pVertices,
 			std::vector<UINT>& vertexDataPos, std::vector<UINT>& indicesPos, std::vector<UINT>& submeshStride, std::vector<std::string>& matNames, std::string& str,
 			FbxAMatrix& wMat);

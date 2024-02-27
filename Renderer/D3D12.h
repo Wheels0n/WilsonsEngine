@@ -130,7 +130,7 @@ namespace wilson
 		void RemoveLight(int i, Light12* pLight);
 		void UpdateScene();
 		void GenUploadBuffer(ID3D12Resource** ppUploadCB, const UINT64 uploadPitch, const UINT64 uploadSize);
-		void UploadTexThroughCB(const D3D12_RESOURCE_DESC& texDesc, const UINT bytesPerPixel, 
+		void UploadTexThroughCB(D3D12_RESOURCE_DESC texDesc, const UINT rowPitch,
 			const UINT8* pData, ID3D12Resource* pDst, ID3D12Resource** ppUploadCB, ID3D12GraphicsCommandList* pCommandList);
 		void DrawScene();
 		D3D12() = default;

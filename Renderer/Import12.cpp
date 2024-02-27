@@ -1,6 +1,7 @@
-
+#pragma once
 #include <cwchar>
 #include <filesystem>
+#include <d3d12.h>
 #include <DirectXTex.h>
 #include "D3D12.h"
 #include "Import12.h"
@@ -67,7 +68,26 @@ namespace wilson
 		m_pImporterCommandList->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pImporterCommandList") - 1, "D3D12::m_pImporterCommandList");
 	}
+	void Importer12::GetExtension(char* dst, const char* src)
+	{
+		int i = 0;
+		while (true)
+		{
+			++i;
+			if (src[i] == '.')
+			{
+				++i;
+				break;
+			}
+		}
 
+		for (int j = 0; j < 3; ++j, ++i)
+		{
+			dst[j] = src[i];
+		}
+		dst[3] = '\0';
+		return;
+	}
 	std::streampos Importer12::GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName)
 	{
 		std::string line;
@@ -686,30 +706,69 @@ namespace wilson
 					std::string relativePath(texture->GetRelativeFileName());
 					std::string path = texturesPath + relativePath;
 					std::string name = std::string(texture->GetName());
-
+					char extension[4];
+					GetExtension(extension, path.c_str());
 					if (m_texHash.find(name) == m_texHash.end())
 					{
 						std::wstring wPath = std::wstring(path.begin(), path.end());
-						ID3D12Resource* pTex;
-						//Gen Tex
+						DirectX::ScratchImage image;
+						DirectX::ScratchImage decompressdImage;
+						DirectX::ScratchImage resizedImage;
+						DirectX::ScratchImage dstImage;
+						DirectX::TexMetadata metadata;
+						ID3D12Resource* pTex=nullptr;
+						UINT8* pData=nullptr;
+						if (strcmp(extension, "dds") == 0)
+						{ 
+
+							hr = DirectX::LoadFromDDSFile(wPath.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
+							metadata = image.GetMetadata();
+							pData = image.GetPixels();
+							if (DirectX::IsCompressed(metadata.format) &&
+								(metadata.width < 4 || metadata.height < 4))
+							{
+								//Decompress
+								
+								hr = DirectX::Decompress(image.GetImages(), image.GetImageCount(), metadata, DXGI_FORMAT_UNKNOWN, decompressdImage);
+								metadata = decompressdImage.GetMetadata();
+								//Resize
+								
+								hr = DirectX::Resize(decompressdImage.GetImages(), decompressdImage.GetImageCount(), metadata,
+									4, 4, DirectX::TEX_FILTER_DEFAULT, resizedImage);
+								metadata = resizedImage.GetMetadata();
+								//Compress
+								
+								hr = DirectX::Compress(resizedImage.GetImages(), resizedImage.GetImageCount(), metadata, image.GetMetadata().format,
+									DirectX::TEX_COMPRESS_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, dstImage);
+								metadata = dstImage.GetMetadata();
+								pData = dstImage.GetPixels();
+							
+							}
+
+						}
+						else
 						{
-							//Gen IconTexFromFile 
-
-							DirectX::ScratchImage image;
 							hr = DirectX::LoadFromWICFile(wPath.c_str(), DirectX::WIC_FLAGS_NONE, nullptr, image);
-							UINT8* pData = image.GetPixels();
-							UINT bytePerPixel = image.GetPixelsSize() / (image.GetMetadata().width * image.GetMetadata().height);
+							pData = image.GetPixels();
+							metadata = image.GetMetadata();
+						}
 
+						{//
+							size_t rowPitch;
+							size_t slidePitch;
+							ComputePitch(metadata.format, metadata.width, metadata.height, rowPitch, slidePitch);
+							
 							D3D12_RESOURCE_DESC	texDesc = {};
-							texDesc.Width = image.GetMetadata().width;
-							texDesc.Height = image.GetMetadata().height;
+							//4byte배수 제한
+							texDesc.Width =metadata.width;
+							texDesc.Height = metadata.height;
 							texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 							texDesc.Alignment = 0;
 							texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-							texDesc.Format = image.GetMetadata().format;
+							texDesc.Format = metadata.format;
 							texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 							texDesc.DepthOrArraySize = 1;
-							texDesc.MipLevels = 1;
+							texDesc.MipLevels = metadata.mipLevels;
 							texDesc.SampleDesc.Count = 1;
 							texDesc.SampleDesc.Quality = 0;
 
@@ -728,16 +787,21 @@ namespace wilson
 							}
 							pTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 								sizeof("Importer12:: pTex") - 1, "Importer12:: pTex");
-
+							if (metadata.width == 16)
+							{
+								OutputDebugStringA("Importer12:: spcular");
+							}
 							ID3D12Resource* pUploadCB = nullptr;
-							m_pD3D12->UploadTexThroughCB(texDesc, bytePerPixel, pData, pTex, &pUploadCB, m_pImporterCommandList);
-
+							m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, pTex, &pUploadCB, m_pImporterCommandList);
+							
 							D3D12_RESOURCE_BARRIER copyDstToSrv = {};
 							copyDstToSrv.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 							copyDstToSrv.Transition.pResource = pTex;
 							copyDstToSrv.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 							copyDstToSrv.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
 							copyDstToSrv.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+							
+
 							m_pImporterCommandList->ResourceBarrier(1, &copyDstToSrv);
 							m_pImporterCommandList->Close();
 							m_pD3D12->ExecuteCommandLists(&m_pImporterCommandList, 1);
