@@ -52,11 +52,7 @@ namespace wilson
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         DirectX::XMMATRIX* pMatrix;
         HRESULT hr = pContext->Map(m_pMatricesBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-        if (FAILED(hr))
-        {   
-            OutputDebugStringA("PointlLight::m_pMatriceBuffer::MapFailed");
-            return;
-        }
+        assert(SUCCEEDED(hr));
 
         pMatrix = reinterpret_cast<DirectX::XMMATRIX*> (mappedResource.pData);
         for (int i = 0; i < 6; ++i)
@@ -72,11 +68,7 @@ namespace wilson
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         DirectX::XMVECTOR* pV;
         HRESULT hr = pContext->Map(m_pPosBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-        if (FAILED(hr))
-        {   
-            OutputDebugStringA("PointlLight::m_pPosBuffer::MapFailed");
-            return;
-        }
+        assert(SUCCEEDED(hr));
 
         pV = reinterpret_cast<DirectX::XMVECTOR*> (mappedResource.pData);
         *pV = DirectX::XMVectorSet(m_position.x, m_position.y, m_position.z, g_far);

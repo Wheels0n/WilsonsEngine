@@ -31,19 +31,13 @@ namespace wilson {
 		DirectX::ScratchImage image;
 		hr = DirectX::LoadFromWICFile(L"./Assets/Icons/folderIcon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), &m_pDirIconSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("ContentBrowser::m_pDirIconSRV::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pDirIconSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("ContentBrowser::m_pDirIconSRV") - 1, "ContentBrowser::m_pDirIconSRV");
 
 		hr = DirectX::LoadFromWICFile(L"./Assets/Icons/fileIcon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), &m_pFileIconSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("ContentBrowser::m_pFilIconSRV::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pFileIconSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("ContentBrowser::m_pFileIconSRV") - 1, "ContentBrowser::m_pFileIconSRV");
 	}

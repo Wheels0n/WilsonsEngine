@@ -109,10 +109,7 @@ namespace wilson
 
                 hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
                     &cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pLight12Buffer));
-                if (FAILED(hr))
-                {
-                    OutputDebugStringA("PointlLight::m_pLight12Buffer::CreateBufferFailed");
-                }
+                assert(SUCCEEDED(hr));
                 m_pLight12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
                     sizeof("PointlLight::m_pLight12Buffer") - 1, "PointlLight::m_pLight12Buffer");
 
@@ -137,19 +134,13 @@ namespace wilson
 
                 hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
                     &cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pMatrices12Buffer));
-                if (FAILED(hr))
-                {
-                    OutputDebugStringA("PointlLight::m_pMatrices12Buffer::CreateBufferFailed");
-                }
+                assert(SUCCEEDED(hr));
                 m_pMatrices12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
                     sizeof("PointlLight::m_pMatrices12Buffer") - 1, "PointlLight::m_pMatrices12Buffer");
                 
                 D3D12_RANGE readRange = { 0, };
                 hr = m_pMatrices12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pMatricesCbBegin));
-                if (FAILED(hr))
-                {
-                    OutputDebugStringA("PointLight::m_pMatrices12Buffer::Map()Failed");
-                }
+                assert(SUCCEEDED(hr));
 
 
                 UINT constantBufferSize = sizeof(DirectX::XMMATRIX) * 7;
@@ -170,19 +161,13 @@ namespace wilson
 
                 hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
                     &cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pPosCb));
-                if (FAILED(hr))
-                {
-                    OutputDebugStringA("PointlLight::m_pPosCb::CreateBufferFailed");
-                }
+                assert(SUCCEEDED(hr));
                 m_pPosCb->SetPrivateData(WKPDID_D3DDebugObjectName,
                     sizeof("PointlLight::m_pPosCb") - 1, "PointlLight::m_pPosCb");
 
                 D3D12_RANGE readRange = { 0, };
                 hr = m_pPosCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pPosCbBegin));
-                if (FAILED(hr))
-                {
-                    OutputDebugStringA("PointlLight::m_pPosCb::Map()Failed");
-                }
+                assert(SUCCEEDED(hr));
 
 
                 UINT constantBufferSize = cbufferDesc.Width;

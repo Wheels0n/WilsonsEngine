@@ -28,19 +28,13 @@ namespace wilson
 		cbufferDesc.MiscFlags = 0;
 		cbufferDesc.StructureByteStride = 0;
 		hr = pDevice->CreateBuffer(&cbufferDesc, 0, &m_pMatBuffer);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("MatrixBuffer::m_pMatBuffer::CreateBufferFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pMatBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("MatrixBuffer::m_pMatBuffer") - 1, "MatrixBuffer::m_pMatBuffer");
 
 		cbufferDesc.ByteWidth = sizeof(XMMATRIX);
 		hr = pDevice->CreateBuffer(&cbufferDesc, 0, &m_pProjMatBuffer);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("MatrixBuffer::m_pProjMatBuffer::CreateBufferFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pProjMatBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("MatrixBuffer::m_pProjMatBuffer") - 1, "MatrixBuffer::m_pProjMatBuffer");
 
@@ -72,11 +66,7 @@ namespace wilson
 		//ROW-MAJOR(CPU) TO COL-MAJOR(GPU)
 		//write CPU data into GPU mem;
 		hr = pContext->Map(m_pMatBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("m_pMatBuffer::MapFailed");
-			return;
-		}
+		assert(SUCCEEDED(hr));
 		pMatrices = reinterpret_cast<MatrixBuffer*>(mappedResource.pData);
 		pMatrices->m_worldMat = m_worldMat;
 		pMatrices->m_viewMat = m_viewMat;
@@ -94,11 +84,7 @@ namespace wilson
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		XMMATRIX* pMatrix;
 		hr = pContext->Map(m_pProjMatBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("m_pProjMatBuffer::MapFailed");
-			return;
-		}
+		assert(SUCCEEDED(hr));
 		pMatrix = reinterpret_cast<XMMATRIX*>(mappedResource.pData);
 		*pMatrix = m_projMat;
 

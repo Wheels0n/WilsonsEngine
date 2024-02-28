@@ -37,19 +37,13 @@ namespace wilson {
 			cbufferDesc.MiscFlags = 0;
 			cbufferDesc.StructureByteStride = 0;
 			HRESULT hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pCamPosBuffer);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Camera::m_pCamPosBuffer::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pCamPosBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Camera::m_pCamPosBuffer") - 1, "Camera::m_pCamPosBuffer");
 
 			cbufferDesc.ByteWidth = sizeof(DirectX::XMVECTOR) * 5;
 			hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pCascadeLevelBuffer);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Camera::m_pCascadeLevelBuffer::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pCascadeLevelBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Camera::m_pCascadeLevelBuffer") - 1, "Camera::m_pCascadeLevelBuffer");
 		}
@@ -140,11 +134,7 @@ namespace wilson {
 		DirectX::XMVECTOR* pFarZ;
 
 		hr = pContext->Map(m_pCascadeLevelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(hr))
-		{	
-			OutputDebugStringA("m_pCascadeLevelBuffer::MapFailed");
-			return false;
-		}
+		assert(SUCCEEDED(hr));
 		
 		pFarZ = reinterpret_cast<DirectX::XMVECTOR*>(mappedResource.pData);
 		for (int i = 0; i < m_shadowCascadeLevels.size(); ++i)
@@ -165,11 +155,7 @@ namespace wilson {
 		CamBuffer* pCamBuffer;
 
 		hr = pContext->Map(m_pCamPosBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(hr))
-		{	
-			OutputDebugStringA("m_pCamPosBuffer::MapFailed");
-			return false;
-		}
+		assert(SUCCEEDED(hr));
 
 		pCamBuffer = reinterpret_cast<CamBuffer*>(mappedResource.pData);
 		pCamBuffer->camPos = m_pos;

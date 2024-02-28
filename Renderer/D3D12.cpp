@@ -1,11 +1,12 @@
 #include <random>
+#include <process.h>
 #include "D3D12.h"
 #include "stb_image.h"
 #include "../ImGui/imgui_impl_dx12.h"
 
 namespace wilson
 {	
-	#ifdef _DEBUG
+#ifdef _DEBUG
 
 	#include <dxgidebug.h>
 	DEFINE_GUID(DXGI_DEBUG_D3D12, 0x4b99317b, 0xac39, 0x4aa6, 0xbb, 0xb, 0xba, 0xa0, 0x47, 0x84, 0x79, 0x8f);
@@ -28,7 +29,111 @@ namespace wilson
 
 		pDebug->Release();
 	}
-	#endif // _DEBUG
+#endif // _DEBUG
+	D3D12* D3D12::g_pD3D12 = nullptr;
+	void D3D12::WorkerThread(UINT threadIndex)
+	{	
+		bool bSpotShadowPass = false;
+		bool bGeoPass = false;
+		D3D12_RANGE readRange = { 0, };
+
+		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
+											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+
+		std::vector<DirectionalLight12*>& dirLights = m_pLightBuffer->GetDirLights();
+		std::vector<PointLight12*>& pointLights = m_pLightBuffer->GetPointLights();
+		std::vector<SpotLight12*>& spotLights = m_pLightBuffer->GetSpotLights();
+
+		while (true)
+		{
+			WaitForSingleObject(m_workerBeginFrame[threadIndex], INFINITE);
+			m_pWorkerCommandAllocator[threadIndex]->Reset();
+			m_pWokerCommandList[threadIndex]->Reset(m_pWorkerCommandAllocator[threadIndex], m_pCascadeDirShadowPso);
+			m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			
+			UINT litCounts[3] = { dirLights.size(), pointLights.size(), spotLights.size() };
+			UINT litCountSum = litCounts[0] + litCounts[1] + litCounts[2];
+			//Gen ShadowMap	
+			if (litCountSum)
+			{
+				//텍스쳐 rtv,dsv떄문에 에러
+
+				m_pWokerCommandList[threadIndex]->RSSetViewports(1, m_pShadowMap->GetViewport12());
+				m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
+				m_pWokerCommandList[threadIndex]->SetPipelineState(m_pCascadeDirShadowPso);
+				m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetCascadeDirShadowRootSingnature());
+				m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				for (int i = 0; i < dirLights.size(); ++i)
+				{
+					dirLights[i]->UpdateLightSpaceMatrices();
+					dirLights[i]->UploadShadowMatrices(m_pWokerCommandList[threadIndex]);
+					m_pShadowMap->BindDirDSV(m_pWokerCommandList[threadIndex], i);
+					DrawENTT(bGeoPass, bSpotShadowPass, threadIndex);
+				}
+
+				m_pWokerCommandList[threadIndex]->SetPipelineState(m_pSpotShadowPso);
+				m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetSpotShadowRootSingnature());
+				bSpotShadowPass = true;
+				for (int i = 0; i < spotLights.size(); ++i)
+				{
+					spotLights[i]->UpdateLitMat();
+					m_pLitMat = spotLights[i]->GetLightSpaceMat();
+					m_pShadowMap->BindSpotDSV(m_pWokerCommandList[threadIndex], i);
+					DrawENTT(bGeoPass, bSpotShadowPass, threadIndex);
+				}
+				bSpotShadowPass = false;
+
+
+				m_pWokerCommandList[threadIndex]->SetPipelineState(m_pOmniDirShadowPso);
+				m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetOmniDirShadowRootSingnature());
+				for (int i = 0; i <pointLights.size(); ++i)
+				{
+					m_pShadowMap->BindCubeDSV(m_pWokerCommandList[threadIndex], i);
+					pointLights[i]->UploadShadowMatrices(m_pWokerCommandList[threadIndex]);
+					pointLights[i]->UploadLightPos(m_pWokerCommandList[threadIndex]);
+					DrawENTT(bGeoPass, bSpotShadowPass, threadIndex);
+				}
+
+			}
+			m_pWokerCommandList[threadIndex]->Close();
+			SetEvent(m_workerFinshShadowPass[threadIndex]);
+
+			//PbrGeoPass
+			WaitForSingleObject(m_workerBeginDeferredGeoPass[threadIndex], INFINITE);
+
+			m_pWorkerCommandAllocator[threadIndex]->Reset();
+			m_pWokerCommandList[threadIndex]->Reset(m_pWorkerCommandAllocator[threadIndex], m_pDeferredGeoPso);
+
+			m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			m_pWokerCommandList[threadIndex]->SetPipelineState(m_pDeferredGeoPso);
+			m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetPBRDeferredGeoShaderRootSingnature());
+			m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_pWokerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
+			m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
+			{
+				memcpy(m_pHeightScaleCbBegin, &m_heightScale, sizeof(float));
+				m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsHeightScale, m_HeightScaleCBV);
+
+				memcpy(m_pHeightOnOffCbBegin, &m_bHeightOnOff, sizeof(BOOL));
+				m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsbHeight, m_HeightOnOffCBV);
+			}
+
+			m_pCam->SetCamPos(m_pWokerCommandList[threadIndex], !bGeoPass);
+			m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsSampler, m_WrapSSV);
+			m_pWokerCommandList[threadIndex]->OMSetRenderTargets(_GBUF_COUNT, m_GBufRTV, FALSE, &m_pSceneDSV);
+			DrawENTT(!bGeoPass, bSpotShadowPass, threadIndex);
+
+			m_pWokerCommandList[threadIndex]->Close();
+			SetEvent(m_workerEndFrame[threadIndex]);
+		}
+		return;
+	}
+	UINT __stdcall D3D12::WrapperThreadFun(LPVOID pParameter)
+	{	
+		UINT threadIndex = *(reinterpret_cast<UINT*>(pParameter));
+		g_pD3D12->WorkerThread(threadIndex);
+		return 0;
+	}
 
 	D3D12_RESOURCE_BARRIER D3D12::CreateResourceBarrier(ID3D12Resource* pResource, D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState)
 	{	
@@ -78,10 +183,7 @@ namespace wilson
 		{
 			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
 			hr = m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&m_pScreenTex[i]));
-			if (FAILED(hr))
-			{
-				OutputDebugStringW(L"D3D12::m_pScreenTex::GetBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pScreenTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pScreenTex") - 1, "D3D12::m_pScreenTex");
 
@@ -116,6 +218,15 @@ namespace wilson
 			CreatePrefileterMap();
 			CreateMipMap();
 			CreateBRDFMap();
+		}
+	}
+	void D3D12::WaitForGpu()
+	{
+		m_pCommandQueue->Signal(m_pFence, m_fenceValue);
+		if (m_pFence->GetCompletedValue() < m_fenceValue)
+		{
+			m_pFence->SetEventOnCompletion(m_fenceValue, m_fenceEvent);
+			WaitForSingleObject(m_fenceEvent, INFINITE);
 		}
 	}
 	bool D3D12::CreateRTVandSRV(UINT width, UINT height)
@@ -165,39 +276,27 @@ namespace wilson
 
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pViewportTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pViewportTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pViewportTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pViewportTex") - 1, "D3D12:::m_pViewportTex");
 
 
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pSceneTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pSceneTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSceneTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pSceneTex") - 1, "D3D12:::m_pSceneTex");
 
 
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pSSAOBlurDebugTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pSSAOBlurDebugTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAOBlurDebugTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pSSAOBlurDebugTex") - 1, "D3D12:::m_pSSAOBlurDebugTex");
 		
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pBrightTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pBrightTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pBrightTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pBrightTex") - 1, "D3D12:::m_pBrightTex");
 
@@ -206,10 +305,7 @@ namespace wilson
 		{	
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pPingPongTex[i]));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pPingPongTex[i]::CreateTexFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPingPongTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pPingPongTex[i]") - 1, "D3D12:::m_pPingPongTex[i]");
 		}
@@ -217,10 +313,7 @@ namespace wilson
 		{
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pGBufTex[i]));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pGBufTex[i]::CreateTexFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pGBufTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pGBufTex[i]") - 1, "D3D12:::m_pGBufTex[i]");
 		}
@@ -316,20 +409,14 @@ namespace wilson
 		clearVal.Format = texDesc.Format;
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pSSAOTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pSSAOTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAOTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pSSAOTex") - 1, "D3D12:::m_pSSAOTex");
 
 
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pSSAOBlurTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pSSAOBlurTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAOBlurTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pSSAOBlurTex") - 1, "D3D12:::m_pSSAOBlurTex");
 
@@ -369,10 +456,7 @@ namespace wilson
 		clearVal.Format = texDesc.Format;
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pBRDFTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pBRDFTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pBRDFTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pBRDFTex") - 1, "D3D12:::m_pBRDFTex");
 
@@ -380,10 +464,7 @@ namespace wilson
 		
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pSkyBoxTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pSkyBoxTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSkyBoxTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pSkyBoxTex") - 1, "D3D12:::m_pSkyBoxTex");
 
@@ -392,10 +473,7 @@ namespace wilson
 		texDesc.Height = _DIFFIRRAD_HEIGHT;
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pDiffIrradianceTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pDiffIrradianceTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pDiffIrradianceTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pDiffIrradianceTex") - 1, "D3D12:::m_pDiffIrradianceTex");
 
@@ -406,10 +484,7 @@ namespace wilson
 		texDesc.MipLevels = _PREFILTER_MIP_LEVELS;
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pPrefilterTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pPrefilterTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pPrefilterTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pPrefilterTex") - 1, "D3D12:::m_pPrefilterTex");
 
@@ -419,10 +494,7 @@ namespace wilson
 		texDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_UNORDERED_ACCESS, &clearVal, IID_PPV_ARGS(&m_pUAVTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pUAVTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pUAVTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pUAVTex") - 1, "D3D12:::m_pUAVTex");
 
@@ -523,19 +595,13 @@ namespace wilson
 
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearVal, IID_PPV_ARGS(&m_pScreenDepthTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pScreenDepthTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pScreenDepthTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pScreenDepthTex") - 1, "D3D12::m_pScreenDepthTex");
 		
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearVal, IID_PPV_ARGS(&m_pSceneDepthTex));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pSceneDepthTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSceneDepthTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pSceneDepthTex") - 1, "D3D12::m_pSceneDepthTex");
 		
@@ -702,11 +768,7 @@ namespace wilson
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, IID_PPV_ARGS(&m_pHDRTex));
 			assert(SUCCEEDED(hr));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pHDRTex::CreateTexFailed");
-				return false;
-			}
+			
 			m_pHDRTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pHDRTex") - 1, "D3D12::m_pHDRTex");
 
@@ -738,10 +800,7 @@ namespace wilson
 		UINT8* pEquirect2CubeCB;
 		D3D12_RANGE readRange = { 0, };
 		hr = m_pEquirect2CubeCB->Map(0, &readRange, reinterpret_cast<void**>(&pEquirect2CubeCB));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pEquirect2CubeCB::MapFailed");
-		}
+		assert(SUCCEEDED(hr));
 		UINT stride;
 		UINT offset = 0;
 
@@ -820,10 +879,7 @@ namespace wilson
 		UINT8* pRoughnessCB;
 		D3D12_RANGE readRange = { 0, };
 		hr = m_pRoughnessCB->Map(0, &readRange, reinterpret_cast<void**>(&pRoughnessCB));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::m_pRoughnessCB::MapFailed");
-		}
+		assert(SUCCEEDED(hr));
 		FLOAT r = 0;
 		memcpy(pRoughnessCB, &r, sizeof(FLOAT));
 		m_pRoughnessCB->Unmap(0, nullptr);
@@ -899,10 +955,7 @@ namespace wilson
 				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 
 				hr = m_pMipCB->Map(0, &readRange, reinterpret_cast<void**>(&pMipCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pMipCB::Map()Failed");
-				}
+				assert(SUCCEEDED(hr));
 				FLOAT texelSize[2] = { _PREFILTER_WIDTH >> i, _PREFILTER_HEIGHT >> i };
 
 				memcpy(pMipCB, texelSize, sizeof(texelSize));
@@ -1031,80 +1084,64 @@ namespace wilson
 
 	}
 
-	void D3D12::DrawENTT(bool bGeoPass, bool bSpotShadowPass) //드로우 패스를 ENUM으로 지정후 PSO 복원)
+	void D3D12::DrawENTT(bool bGeoPass, bool bSpotShadowPass, UINT threadIndex) 
 	{
-		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
-		HRESULT hr;
 		XMMATRIX worldMat, invWorldMat;
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		UINT stride = sizeof(XMFLOAT3);
-		UINT offset = 0;
 		UINT ENTTCnt = 0;
 		UINT ENTTDrawn = 0;
 		Plane* pPlanes = m_pFrustum->GetPlanes();
 
-		for (int i = 0; i < m_pModelGroups.size(); ++i)
+
+		for (int i = threadIndex; i < m_pTotalModels.size(); i+=_THREAD_COUNT)
 		{
-
-			std::vector<Model12*> pModels = m_pModelGroups[i]->GetModels();
+			ENTTCnt++;
+			worldMat = m_pTotalModels[i]->GetTransformMatrix(false);
+			invWorldMat = m_pTotalModels[i]->GetInverseWorldMatrix();
+			AABB* aabb = m_pTotalModels[i]->GetAABB();
+			if (aabb->IsOnFrustum(pPlanes, worldMat))
 			{
+				ENTTDrawn++;
+				MatBuffer12* pMatBuffer = m_pTotalModels[i]->GetMatBuffer();
+				pMatBuffer->SetWorldMatrix(&worldMat);
+				pMatBuffer->SetInvWorldMatrix(&invWorldMat);
+				pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
+				pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
+				if (bSpotShadowPass)
 				{
-					for (int j = 0; j < pModels.size(); ++j)
-					{
-						ENTTCnt++;
-						worldMat = pModels[j]->GetTransformMatrix(false);
-						invWorldMat = pModels[j]->GetInverseWorldMatrix();
-						AABB* aabb = pModels[j]->GetAABB();
-						if (aabb->IsOnFrustum(pPlanes, worldMat))
-						{
-							ENTTDrawn++;
-							MatBuffer12* pMatBuffer = pModels[j]->GetMatBuffer();
-							pMatBuffer->SetWorldMatrix(&worldMat);
-							pMatBuffer->SetInvWorldMatrix(&invWorldMat);
-							pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
-							pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-							if (bSpotShadowPass)
-							{
-								pMatBuffer->SetLightSpaceMatrix(m_pLitMat);
-								pMatBuffer->UpdateCombinedMat(bSpotShadowPass);
-								pMatBuffer->UploadCombinedMat(m_pCommandList, bSpotShadowPass);
-							}
-							else
-							{
-								pMatBuffer->UploadMatBuffer(m_pCommandList, bSpotShadowPass);
-							}
-
-							//PbrGeoPass의 깊이 버퍼에 Outline을 위한 Stencil값을 설정함
-							bool isSelected = (i == m_selectedModelGroup && j == m_selectedModel);
-							if (isSelected&&bGeoPass)
-							{
-								m_pCommandList->SetPipelineState(m_pOutlinerSetupPso);
-								m_pCommandList->OMSetStencilRef(1);
-							}
-
-
-							for (int k = 0; k < pModels[j]->GetMatCount(); ++k)
-							{
-								pModels[j]->UploadBuffers(m_pCommandList, k, bGeoPass);
-								m_pCommandList->DrawIndexedInstanced(pModels[j]->GetIndexCount(k),1,
-									0, 0, 0);
-							}
-
-							if (isSelected && bGeoPass)
-							{	
-								m_pCommandList->SetPipelineState(m_pDeferredGeoPso);
-								m_pCommandList->SetGraphicsRootSignature(m_pShader->GetDeferredGeoShaderRootSingnature());
-								m_pCommandList->OMSetStencilRef(0);
-							}
-						}
-					}
-
+					pMatBuffer->SetLightSpaceMatrix(m_pLitMat);
+					pMatBuffer->UpdateCombinedMat(bSpotShadowPass);
+					pMatBuffer->UploadCombinedMat(m_pWokerCommandList[threadIndex], bSpotShadowPass);
+				}
+				else
+				{
+					pMatBuffer->UploadMatBuffer(m_pWokerCommandList[threadIndex], bSpotShadowPass);
 				}
 
+				//PbrGeoPass의 깊이 버퍼에 Outline을 위한 Stencil값을 설정함
+			/*	bool isSelected = (i == m_selectedModelGroup && j == m_selectedModel);
+				if (isSelected&&bGeoPass)
+				{
+					m_pMainCommandList->SetPipelineState(m_pOutlinerSetupPso);
+					m_pMainCommandList->OMSetStencilRef(1);
+				}*/
 
+
+				for (int j = 0; j < m_pTotalModels[i]->GetMatCount(); ++j)
+				{
+					m_pTotalModels[i]->UploadBuffers(m_pWokerCommandList[threadIndex], j, bGeoPass);
+					m_pWokerCommandList[threadIndex]->DrawIndexedInstanced(m_pTotalModels[i]->GetIndexCount(j),1,
+						0, 0, 0);
+				}
+
+	/*			if (isSelected && bGeoPass)
+				{	
+					m_pMainCommandList->SetPipelineState(m_pDeferredGeoPso);
+					m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetDeferredGeoShaderRootSingnature());
+					m_pMainCommandList->OMSetStencilRef(0);
+				}*/
 			}
-
 		}
+
 		m_pFrustum->SetENTTsInFrustum(ENTTDrawn);
 		m_pFrustum->SetENTTsInTotal(ENTTCnt);
 	}
@@ -1191,9 +1228,6 @@ namespace wilson
 	{
 		HRESULT hr;
 		float color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		UINT texCnt = _GBUF_COUNT - 2;
-		UINT stride;
-		UINT offset = 0;
 		int drawed = 0;
 		bool bGeoPass = false;
 		bool bSpotShadowPass = false;
@@ -1202,8 +1236,8 @@ namespace wilson
 	
 		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
 											* (m_pDescriptorHeapManager->GetCbvSrvHeap()) };
-		m_pCommandList->SetDescriptorHeaps(sizeof(ppHeaps)/sizeof(ID3D12DescriptorHeap*), ppHeaps);
-		m_pCommandList->SetPipelineState(m_pCascadeDirShadowPso);
+		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps)/sizeof(ID3D12DescriptorHeap*), ppHeaps);
+		m_pMainCommandList->SetPipelineState(m_pCascadeDirShadowPso);
 
 	
 		ID3D12Resource* pTextures[] = { m_pScreenTex[m_curFrame], m_pViewportTex, m_pSceneTex, m_pSSAOTex, m_pSSAOBlurTex, m_pSSAOBlurDebugTex};
@@ -1221,196 +1255,225 @@ namespace wilson
 			barriers[i] = CreateResourceBarrier(m_pGBufTex[j], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		}
 
-		m_pCommandList->ResourceBarrier(textureCount, &barriers[0]);
+		m_pMainCommandList->ResourceBarrier(textureCount, &barriers[0]);
 		
-		m_pCommandList->ClearRenderTargetView(m_ScreenRTV[m_curFrame], color, 0, nullptr);
-		m_pCommandList->ClearRenderTargetView(m_ViewportRTV, color, 0, nullptr);
-		m_pCommandList->ClearRenderTargetView(m_SceneRTV, color, 0, nullptr);
-		m_pCommandList->ClearRenderTargetView(m_SSAORTV, color, 0, nullptr);
-		m_pCommandList->ClearRenderTargetView(m_SSAOBlurRTV, color, 0, nullptr);
-		m_pCommandList->ClearRenderTargetView(m_SSAOBlurDebugRTV, color, 0, nullptr);
+		m_pMainCommandList->ClearRenderTargetView(m_ScreenRTV[m_curFrame], color, 0, nullptr);
+		m_pMainCommandList->ClearRenderTargetView(m_ViewportRTV, color, 0, nullptr);
+		m_pMainCommandList->ClearRenderTargetView(m_SceneRTV, color, 0, nullptr);
+		m_pMainCommandList->ClearRenderTargetView(m_SSAORTV, color, 0, nullptr);
+		m_pMainCommandList->ClearRenderTargetView(m_SSAOBlurRTV, color, 0, nullptr);
+		m_pMainCommandList->ClearRenderTargetView(m_SSAOBlurDebugRTV, color, 0, nullptr);
 		
 		for (int i = 0; i < _GBUF_COUNT; ++i)
 		{	
-			m_pCommandList->ClearRenderTargetView(m_GBufRTV[i], color, 0, nullptr);
+			m_pMainCommandList->ClearRenderTargetView(m_GBufRTV[i], color, 0, nullptr);
 		}
 
+		m_pMainCommandList->ClearDepthStencilView(m_pScreenDSV, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
+		m_pMainCommandList->ClearDepthStencilView(m_pSceneDSV, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
+		UINT litCounts[] = { m_pLightBuffer->GetDirLightSize(), m_pLightBuffer->GetPointLightSize(), m_pLightBuffer->GetSpotLightSize() };
+		UINT litCountSum = litCounts[0] + litCounts[1] + litCounts[2];
+		//Clear ShadowMap	
+		if (litCountSum)
+		{	//ShadowMap 리소스 배리어 고치기
+			m_pShadowMap->SetResourceBarrier(m_pMainCommandList, litCounts,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+			m_pShadowMap->SetResourceBarrier(m_pMainCommandList, litCounts,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE, false);
 
-		m_pCommandList->ClearDepthStencilView(m_pScreenDSV, D3D12_CLEAR_FLAG_DEPTH| D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
-		m_pCommandList->ClearDepthStencilView(m_pSceneDSV, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
-		
-		m_pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_pShadowMap->ClearRTV(m_pMainCommandList, litCounts);
+			m_pShadowMap->ClearDSV(m_pMainCommandList, litCounts);
+		}
+		m_pMainCommandList->Close();
+
+		m_pCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pMainCommandList);
+		UINT fenceValue = m_fenceValue++;
+		m_pCommandQueue->Signal(m_pFence, fenceValue);
+		if (m_pFence->GetCompletedValue() < fenceValue)
+		{
+			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
+			WaitForSingleObject(m_fenceEvent, INFINITE);
+		}
+		m_pMainCommandAllocator->Reset();
+		m_pMainCommandList->Reset(m_pMainCommandAllocator, nullptr);
 
 		m_pCam->Update();
 
-
-		std::vector<DirectionalLight12*>& dirLights = m_pLightBuffer->GetDirLights();
-		std::vector<PointLight12*>& pointLights = m_pLightBuffer->GetPointLights();
-		std::vector<SpotLight12*>& spotLights = m_pLightBuffer->GetSpotLights();
-		UINT litCounts[3] = { dirLights.size(), pointLights.size(), spotLights.size() };
-		UINT litCountSum = litCounts[0] + litCounts[1] + litCounts[2];
-		//Gen ShadowMap	
-		if(litCountSum)
-		{	
-			//텍스쳐 rtv,dsv떄문에 에러
-			m_pShadowMap->SetResourceBarrier(m_pCommandList, litCounts, 
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-			m_pShadowMap->SetResourceBarrier(m_pCommandList, litCounts,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE, false);
-
-			m_pShadowMap->ClearRTV(m_pCommandList, litCounts);
-			m_pShadowMap->ClearDSV(m_pCommandList, litCounts);
-
-			m_pCommandList->RSSetViewports(1, m_pShadowMap->GetViewport12());
-			m_pCommandList->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
-			m_pCommandList->SetPipelineState(m_pCascadeDirShadowPso);
-			m_pCommandList->SetGraphicsRootSignature(m_pShader->GetCascadeDirShadowRootSingnature());
-			for (int i = 0; i < dirLights.size(); ++i)
+		{
+			UINT modelCnt = 0;
+			for (int i = 0; i < m_pModelGroups.size(); ++i)
 			{
-				dirLights[i]->UpdateLightSpaceMatrices();
-				dirLights[i]->UploadShadowMatrices(m_pCommandList);
-				m_pShadowMap->BindDirDSV(m_pCommandList, i);
-				DrawENTT(bGeoPass, bSpotShadowPass);
+				std::vector<Model12*> pModels = m_pModelGroups[i]->GetModels();
+				modelCnt += pModels.size();
 			}
-
-			m_pCommandList->SetPipelineState(m_pSpotShadowPso);
-			m_pCommandList->SetGraphicsRootSignature(m_pShader->GetSpotShadowRootSingnature());
-			bSpotShadowPass = true;
-			for (int i = 0; i < spotLights.size(); ++i)
+			std::vector<Model12*> drawLists;
+			drawLists.reserve(modelCnt);
+			for (int i = 0; i < m_pModelGroups.size(); ++i)
 			{
-				spotLights[i]->UpdateLitMat();
-				m_pLitMat = spotLights[i]->GetLightSpaceMat();
-				m_pShadowMap->BindSpotDSV(m_pCommandList, i);
-				DrawENTT(bGeoPass, bSpotShadowPass);
+				std::vector<Model12*> pModels = m_pModelGroups[i]->GetModels();
+				for (int j = 0; j < pModels.size(); ++j)
+				{
+					drawLists.push_back(pModels[j]);
+				}
 			}
-			bSpotShadowPass = false;
+			m_pTotalModels = drawLists;
+		}
+		
 
-
-			m_pCommandList->SetPipelineState(m_pOmniDirShadowPso);
-			m_pCommandList->SetGraphicsRootSignature(m_pShader->GetOmniDirShadowRootSingnature());
-			for (int i = 0; i < pointLights.size(); ++i)
-			{
-				m_pShadowMap->BindCubeDSV(m_pCommandList, i);
-				pointLights[i]->UploadShadowMatrices(m_pCommandList);
-				pointLights[i]->UploadLightPos(m_pCommandList);
-				DrawENTT(bGeoPass, bSpotShadowPass);
-			}
-			
-			m_pShadowMap->SetResourceBarrier(m_pCommandList, litCounts,
+		//Shadow Pass
+		for (int i = 0; i < _THREAD_COUNT; ++i)
+		{
+			SetEvent(m_workerBeginFrame[i]);
+		}
+		WaitForMultipleObjects(_THREAD_COUNT, m_workerFinshShadowPass, TRUE, INFINITE);
+		ID3D12CommandList* cmdLists[_THREAD_COUNT] = {};
+		for (int i = 0; i < _THREAD_COUNT; ++i)
+		{
+			cmdLists[i]=m_pWokerCommandList[i];
+		}
+		m_pCommandQueue->ExecuteCommandLists(_THREAD_COUNT, cmdLists);
+		fenceValue = m_fenceValue++;
+		m_pCommandQueue->Signal(m_pFence, fenceValue);
+		if (m_pFence->GetCompletedValue() < fenceValue)
+		{
+			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
+			WaitForSingleObject(m_fenceEvent, INFINITE);
+		}
+		if (litCountSum) 
+		{
+			m_pShadowMap->SetResourceBarrier(m_pMainCommandList, litCounts,
 				D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
-			m_pShadowMap->SetResourceBarrier(m_pCommandList, litCounts,
+			m_pShadowMap->SetResourceBarrier(m_pMainCommandList, litCounts,
 				D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, false);
 		}
+		
 
-		m_pCommandList->SetPipelineState(m_pSkyBoxPso);
-		m_pCommandList->SetGraphicsRootSignature(m_pShader->GetSkyBoxRootSingnature());
-		m_pCommandList->SetGraphicsRootDescriptorTable(eSkybox_ePsDiffuseMap, m_SkyBoxSRV);
-		m_pCommandList->SetGraphicsRootDescriptorTable(eSkybox_ePsSampler, m_WrapSSV);
-		m_pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_pCommandList->IASetVertexBuffers(0, 1, &m_SkyBoxVBV);
-		m_pCommandList->IASetIndexBuffer(&m_SkyBoxIBV);
-		m_pCommandList->RSSetViewports(1, &m_viewport);
-		m_pCommandList->RSSetScissorRects(1, &m_scissorRect);
-		m_pCommandList->OMSetRenderTargets(1, &m_GBufRTV[eGbuf_albedo], FALSE, &m_pSceneDSV);
+		//Draw SkyBox
+		m_pMainCommandList->SetPipelineState(m_pSkyBoxPso);
+		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+		m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetSkyBoxRootSingnature());
+		m_pMainCommandList->SetGraphicsRootDescriptorTable(eSkybox_ePsDiffuseMap, m_SkyBoxSRV);
+		m_pMainCommandList->SetGraphicsRootDescriptorTable(eSkybox_ePsSampler, m_WrapSSV);
+		m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_pMainCommandList->IASetVertexBuffers(0, 1, &m_SkyBoxVBV);
+		m_pMainCommandList->IASetIndexBuffer(&m_SkyBoxIBV);
+		m_pMainCommandList->RSSetViewports(1, &m_viewport);
+		m_pMainCommandList->RSSetScissorRects(1, &m_scissorRect);
+		m_pMainCommandList->OMSetRenderTargets(1, &m_GBufRTV[eGbuf_albedo], FALSE, &m_pSceneDSV);
 
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);
 		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
 		m_pMatBuffer->UpdateCombinedMat(bSpotShadowPass);
-		m_pMatBuffer->UploadCombinedMat(m_pCommandList, bSpotShadowPass);
-		m_pCommandList->DrawIndexedInstanced(_CUBE_IDX_COUNT, 1, 0, 0, 0);
+		m_pMatBuffer->UploadCombinedMat(m_pMainCommandList, bSpotShadowPass);
+		m_pMainCommandList->DrawIndexedInstanced(_CUBE_IDX_COUNT, 1, 0, 0, 0);
+		m_pMainCommandList->Close();
 
-		//Deferred Shading First Pass
+		m_pCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pMainCommandList);
+		fenceValue = m_fenceValue++;
+		m_pCommandQueue->Signal(m_pFence, fenceValue);
+		if (m_pFence->GetCompletedValue() < fenceValue)
+		{
+			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
+			WaitForSingleObject(m_fenceEvent, INFINITE);
+		}
+		m_pMainCommandAllocator->Reset();
+		m_pMainCommandList->Reset(m_pMainCommandAllocator, nullptr);
 
+
+		//Draw PbrGeo
+		for (int i = 0; i < _THREAD_COUNT; ++i)
+		{
+			SetEvent(m_workerBeginDeferredGeoPass[i]);
+		}
+		WaitForMultipleObjects(_THREAD_COUNT, m_workerEndFrame, TRUE, INFINITE);
+		m_pCommandQueue->ExecuteCommandLists(_THREAD_COUNT, cmdLists);
+
+		fenceValue = m_fenceValue++;
+		m_pCommandQueue->Signal(m_pFence, fenceValue);
+		if (m_pFence->GetCompletedValue() < fenceValue)
+		{
+			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
+			WaitForSingleObject(m_fenceEvent, INFINITE);
+		}
+
+		D3D12_RESOURCE_BARRIER gbuf_barriers[_GBUF_COUNT] = {};
+		for (int i = 0; i < _GBUF_COUNT; ++i)
+		{
+			gbuf_barriers[i] =
+				CreateResourceBarrier(m_pGBufTex[i], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		}
+
+		m_pMainCommandList->ResourceBarrier(_GBUF_COUNT, gbuf_barriers);
+	
+		//Upload HeightScale and bHeightOnOff
 		if (!m_pModelGroups.empty())
 		{	
-			m_pCommandList->SetPipelineState(m_pDeferredGeoPso);
-			m_pCommandList->SetGraphicsRootSignature(m_pShader->GetPBRDeferredGeoShaderRootSingnature());
-
-			m_pCam->SetCamPos(m_pCommandList, !bGeoPass);
-			//Upload HeightScale and bHeightOnOff
-			{
-				memcpy(m_pHeightScaleCbBegin, &m_heightScale, sizeof(float));
-				m_pCommandList->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsHeightScale, m_HeightScaleCBV);
-
-				memcpy(m_pHeightOnOffCbBegin, &m_bHeightOnOff, sizeof(BOOL));
-				m_pCommandList->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsbHeight, m_HeightOnOffCBV);
-			}
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsSampler, m_WrapSSV);
-			m_pCommandList->OMSetRenderTargets(_GBUF_COUNT, m_GBufRTV, FALSE, &m_pSceneDSV);
-			DrawENTT(!bGeoPass, bSpotShadowPass);
-			
-			D3D12_RESOURCE_BARRIER gbuf_barriers[_GBUF_COUNT] = {};
-			for (int i = 0; i < _GBUF_COUNT; ++i)
-			{
-				gbuf_barriers[i]=
-					CreateResourceBarrier(m_pGBufTex[i], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			}
-	
-			m_pCommandList->ResourceBarrier(_GBUF_COUNT, gbuf_barriers);
-		
-
 			//SSAO Pass
-			m_pCommandList->SetPipelineState(m_pSSAOPso);
-			m_pCommandList->SetGraphicsRootSignature(m_pShader->GetSSAOShaderRootSingnature());
-			m_pCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsVpos, m_GBufSRV[eGbuf_vPos]);
-			m_pCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsVnormal, m_GBufSRV[eGbuf_vNormal]);
-			m_pCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsNoise, m_NoiseSrv);
-			m_pCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsWrap, m_WrapSSV);
-			m_pCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsClamp, m_ClampSSV);
-			m_pCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsSamplePoints, m_SSAOKernelCBV);
-			m_pMatBuffer->UploadProjMat(m_pCommandList);
-			m_pCommandList->IASetVertexBuffers(0, 1, &m_QuadVBV);
-			m_pCommandList->IASetIndexBuffer(&m_QuadIBV);
-			m_pCommandList->OMSetRenderTargets(1, &m_SSAORTV, TRUE, nullptr);
-			m_pCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
+			m_pMainCommandList->SetPipelineState(m_pSSAOPso);
+			m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetSSAOShaderRootSingnature());
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsVpos, m_GBufSRV[eGbuf_vPos]);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsVnormal, m_GBufSRV[eGbuf_vNormal]);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsNoise, m_NoiseSrv);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsWrap, m_WrapSSV);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsClamp, m_ClampSSV);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(eSsao_ePsSamplePoints, m_SSAOKernelCBV);
+			m_pMatBuffer->UploadProjMat(m_pMainCommandList);
+			m_pMainCommandList->IASetVertexBuffers(0, 1, &m_QuadVBV);
+			m_pMainCommandList->IASetIndexBuffer(&m_QuadIBV);
+			m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_pMainCommandList->RSSetViewports(1, &m_viewport);
+			m_pMainCommandList->RSSetScissorRects(1, &m_scissorRect);
+			m_pMainCommandList->OMSetRenderTargets(1, &m_SSAORTV, TRUE, nullptr);
+			m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
 
 			//Blur SSAOTex
 			D3D12_CPU_DESCRIPTOR_HANDLE SsaoBlurRtvs[2] = { m_SSAOBlurRTV, m_SSAOBlurDebugRTV };
 			D3D12_RESOURCE_BARRIER rtvToSrv = 
 				CreateResourceBarrier(m_pSSAOTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			m_pCommandList->ResourceBarrier(1, &rtvToSrv);
+			m_pMainCommandList->ResourceBarrier(1, &rtvToSrv);
 
-			m_pCommandList->SetPipelineState(m_pSSAOBlurPso);
-			m_pCommandList->SetGraphicsRootSignature(m_pShader->GetSSAOBlurShaderRootSingnature());
-			m_pCommandList->SetGraphicsRootDescriptorTable(eSsaoBlur_ePsSsao, m_SSAOSRV);
-			m_pCommandList->SetGraphicsRootDescriptorTable(eSsaoBlur_ePsWrap, m_WrapSSV);
-			m_pCommandList->OMSetRenderTargets(2, SsaoBlurRtvs, FALSE, nullptr);
-			m_pCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
+			m_pMainCommandList->SetPipelineState(m_pSSAOBlurPso);
+			m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetSSAOBlurShaderRootSingnature());
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(eSsaoBlur_ePsSsao, m_SSAOSRV);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(eSsaoBlur_ePsWrap, m_WrapSSV);
+			m_pMainCommandList->OMSetRenderTargets(2, SsaoBlurRtvs, FALSE, nullptr);
+			m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
 
 			//Lighting Pass
 			D3D12_RESOURCE_BARRIER ssaoBarriers[] = {
 				CreateResourceBarrier(m_pSSAOBlurTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
 				CreateResourceBarrier(m_pSSAOBlurDebugTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 			};
-			m_pCommandList->ResourceBarrier(2, ssaoBarriers);
+			m_pMainCommandList->ResourceBarrier(2, ssaoBarriers);
 			
-			m_pCommandList->SetPipelineState(m_pLightingPso);
-			m_pCommandList->SetGraphicsRootSignature(m_pShader->GetPBRDeferredLightingShaderRootSingnature());
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsPos, m_GBufSRV[eGbuf_pos]);
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsNormal, m_GBufSRV[eGbuf_normal]);
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsAlbedo, m_GBufSRV[eGbuf_albedo]);
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsSpecular, m_GBufSRV[eGbuf_specular]);
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsEmissive, m_GBufSRV[eGbuf_emissive]);
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsVpos, m_GBufSRV[eGbuf_vPos]);
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsAO, m_SSAOBlurSRV);
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsIrradiance, m_DiffIrradianceSRV);
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsPrefilter, m_PrefilterSRV);
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsBrdf, m_BRDFSRV);
-			m_pShadowMap->BindDirSRV(m_pCommandList);
-			m_pShadowMap->BindSpotSRV(m_pCommandList);
-			m_pShadowMap->BindCubeSRV(m_pCommandList);
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsWrap, m_WrapSSV);
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsCubeShadowSampler, m_pShadowMap->GetCubeShadowSamplerView());
-			m_pCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsShadowSampler, m_pShadowMap->GetDirShadowSamplerView());
-			m_pCam->SetCamPos(m_pCommandList, bGeoPass);
-			m_pCam->SetCascadeLevels(m_pCommandList);
-			m_pLightBuffer->UpdateLightBuffer(m_pCommandList);
-			m_pLightBuffer->UpdateDirLightMatrices(m_pCommandList);
-			m_pLightBuffer->UpdateSpotLightMatrices(m_pCommandList);
+			m_pMainCommandList->SetPipelineState(m_pLightingPso);
+			m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetPBRDeferredLightingShaderRootSingnature());
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsPos, m_GBufSRV[eGbuf_pos]);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsNormal, m_GBufSRV[eGbuf_normal]);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsAlbedo, m_GBufSRV[eGbuf_albedo]);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsSpecular, m_GBufSRV[eGbuf_specular]);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsEmissive, m_GBufSRV[eGbuf_emissive]);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsVpos, m_GBufSRV[eGbuf_vPos]);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsAO, m_SSAOBlurSRV);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsIrradiance, m_DiffIrradianceSRV);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsPrefilter, m_PrefilterSRV);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsBrdf, m_BRDFSRV);
+			m_pShadowMap->BindDirSRV(m_pMainCommandList);
+			m_pShadowMap->BindSpotSRV(m_pMainCommandList);
+			m_pShadowMap->BindCubeSRV(m_pMainCommandList);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsWrap, m_WrapSSV);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsCubeShadowSampler, m_pShadowMap->GetCubeShadowSamplerView());
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsShadowSampler, m_pShadowMap->GetDirShadowSamplerView());
+			m_pCam->SetCamPos(m_pMainCommandList, bGeoPass);
+			m_pCam->SetCascadeLevels(m_pMainCommandList);
+			m_pLightBuffer->UpdateLightBuffer(m_pMainCommandList);
+			m_pLightBuffer->UpdateDirLightMatrices(m_pMainCommandList);
+			m_pLightBuffer->UpdateSpotLightMatrices(m_pMainCommandList);
 			
-			m_pCommandList->OMSetRenderTargets(1, &m_SceneRTV, TRUE, nullptr);
-			m_pCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
+			m_pMainCommandList->OMSetRenderTargets(1, &m_SceneRTV, TRUE, nullptr);
+			m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
 		}
 		else
 		{
@@ -1421,24 +1484,22 @@ namespace wilson
 			}
 
 			//3 = SSAOTex, SSAOBlurTex, SSAOBlurDebugTex
-			D3D12_RESOURCE_BARRIER barriers[_GBUF_COUNT+3] = {
+			D3D12_RESOURCE_BARRIER barriers[3] = {
 				CreateResourceBarrier(m_pSSAOTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
 				CreateResourceBarrier(m_pSSAOBlurTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
 				CreateResourceBarrier(m_pSSAOBlurDebugTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 			};
-			for (int i = 0; i < _GBUF_COUNT; ++i)
-			{
-				barriers[i+3] = CreateResourceBarrier(m_pGBufTex[i], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			}
-			m_pCommandList->ResourceBarrier(_GBUF_COUNT + 3, barriers);
+		
+			m_pMainCommandList->ResourceBarrier(3, barriers);
 		}
 		
-		m_pCommandList->SetPipelineState(m_pOutlinerTestPso);
-		m_pCommandList->SetGraphicsRootSignature(m_pShader->GetOutlinerTestShaderRootSingnature());
-		m_pCommandList->SetGraphicsRootDescriptorTable(eOutlinerRP::eOutliner_ePsWrap, m_WrapSSV);
-		m_pCommandList->SetGraphicsRootDescriptorTable(eOutlinerRP::eOutliner_ePsAlbedo, m_GBufSRV[eGbuf_albedo]);
-		m_pCommandList->OMSetRenderTargets(1, &m_SceneRTV, FALSE, &m_pSceneDSV);
-		m_pCommandList->OMSetStencilRef(1);
+		/*
+		m_pMainCommandList->SetPipelineState(m_pOutlinerTestPso);
+		m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetOutlinerTestShaderRootSingnature());
+		m_pMainCommandList->SetGraphicsRootDescriptorTable(eOutlinerRP::eOutliner_ePsWrap, m_WrapSSV);
+		m_pMainCommandList->SetGraphicsRootDescriptorTable(eOutlinerRP::eOutliner_ePsAlbedo, m_GBufSRV[eGbuf_albedo]);
+		m_pMainCommandList->OMSetRenderTargets(1, &m_SceneRTV, FALSE, &m_pSceneDSV);
+		m_pMainCommandList->OMSetStencilRef(1);
 		if (m_selectedModelGroup != -1)
 		{
 			std::vector<Model12*> pModels = m_pModelGroups[m_selectedModelGroup]->GetModels();
@@ -1447,43 +1508,46 @@ namespace wilson
 			m_pOutlinerMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 			m_pOutlinerMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
 			m_pOutlinerMatBuffer->UpdateCombinedMat(bSpotShadowPass);
-			m_pOutlinerMatBuffer->UploadCombinedMat(m_pCommandList, bSpotShadowPass);
+			m_pOutlinerMatBuffer->UploadCombinedMat(m_pMainCommandList, bSpotShadowPass);
 
 			for (int k = 0; k < pModels[m_selectedModel]->GetMatCount(); ++k)
 			{
-				pModels[m_selectedModel]->UploadBuffers(m_pCommandList, k, bGeoPass);
-				m_pCommandList->DrawIndexedInstanced(pModels[m_selectedModel]->GetIndexCount(k), 1, 
+				pModels[m_selectedModel]->UploadBuffers(m_pMainCommandList, k, bGeoPass);
+				m_pMainCommandList->DrawIndexedInstanced(pModels[m_selectedModel]->GetIndexCount(k), 1, 
 					pModels[m_selectedModel]->GetIndexOffset(k), 0, 0);
 			}
-		}
-		m_pCommandList->OMSetStencilRef(0);
+		}*/
+		m_pMainCommandList->OMSetStencilRef(0);
 
 		//Submit Result
-		m_pCommandList->SetPipelineState(m_pFinalPso);
-		m_pCommandList->SetGraphicsRootSignature(m_pShader->GetFinalShaderRootSingnature());
-		m_pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_pCommandList->IASetVertexBuffers(0, 1, &m_QuadVBV);
-		m_pCommandList->IASetIndexBuffer(&m_QuadIBV);
+		m_pMainCommandList->SetPipelineState(m_pFinalPso);
+		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+		m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetFinalShaderRootSingnature());
+		m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_pMainCommandList->IASetVertexBuffers(0, 1, &m_QuadVBV);
+		m_pMainCommandList->IASetIndexBuffer(&m_QuadIBV);
+		m_pMainCommandList->RSSetViewports(1, &m_viewport);
+		m_pMainCommandList->RSSetScissorRects(1, &m_scissorRect);
 		
 		//Exporsure CBV 바인딩
 		{
 			memcpy(m_pExposureCbBegin, &m_exposure, sizeof(float));
-			m_pCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsCb, m_ExposureCBV);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsCb, m_ExposureCBV);
 		}
 
 		D3D12_RESOURCE_BARRIER rtvToSrv = CreateResourceBarrier(m_pSceneTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		m_pCommandList->ResourceBarrier(1, &rtvToSrv);
+		m_pMainCommandList->ResourceBarrier(1, &rtvToSrv);
 
-		m_pCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsTex,
+		m_pMainCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsTex,
 			m_pModelGroups.empty() || !m_pFrustum->GetENTTsInFrustum() ? m_GBufSRV[eGbuf_albedo] : m_SceneSRV);
-		m_pCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsSampler, m_WrapSSV);
-		m_pCommandList->OMSetRenderTargets(1, &m_ViewportRTV, FALSE, &m_pSceneDSV);
-		m_pCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
+		m_pMainCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsSampler, m_WrapSSV);
+		m_pMainCommandList->OMSetRenderTargets(1, &m_ViewportRTV, FALSE, &m_pSceneDSV);
+		m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
 
 		//DrawUI
 		rtvToSrv.Transition.pResource = m_pViewportTex;
-		m_pCommandList->ResourceBarrier(1, &rtvToSrv);
-		m_pCommandList->OMSetRenderTargets(1, &m_ScreenRTV[m_curFrame], FALSE, &m_pScreenDSV);
+		m_pMainCommandList->ResourceBarrier(1, &rtvToSrv);
+		m_pMainCommandList->OMSetRenderTargets(1, &m_ScreenRTV[m_curFrame], FALSE, &m_pScreenDSV);
 		return;
 }
 
@@ -1515,10 +1579,7 @@ namespace wilson
 	hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &uploadCbDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(ppUploadCB));
 	assert(SUCCEEDED(hr));
-	if (FAILED(hr))
-	{
-		OutputDebugStringA("D3D12::pUploadCb::CreateBufferFailed");
-	}
+	
 }
 
 	void D3D12::UploadTexThroughCB(D3D12_RESOURCE_DESC texDesc, const UINT rp,
@@ -1588,24 +1649,24 @@ namespace wilson
 
 	void D3D12::DrawScene()
 	{	
-		ID3D12CommandList* ppCommandList[] = { m_pPbrSetupCommandList, m_pCommandList };
+		ID3D12CommandList* ppCommandList[] = { m_pPbrSetupCommandList, m_pMainCommandList };
 		ImGuiIO& io = ImGui::GetIO();
 		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
 											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
 
 		ImGui::Render();
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_pCommandList);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_pMainCommandList);
 		D3D12_RESOURCE_BARRIER rtvToPresent = 
 			CreateResourceBarrier(m_pScreenTex[m_curFrame], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-		m_pCommandList->ResourceBarrier(1, &rtvToPresent);
-		m_pCommandList->Close();
+		m_pMainCommandList->ResourceBarrier(1, &rtvToPresent);
+		m_pMainCommandList->Close();
 		m_pPbrSetupCommandList->Close();
 		m_pCommandQueue->ExecuteCommandLists(sizeof(ppCommandList) / sizeof(ID3D12CommandList*), ppCommandList);
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
 			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault(nullptr, (void*)m_pCommandList);
+			ImGui::RenderPlatformWindowsDefault(nullptr, (void*)m_pMainCommandList);
 		}
 
 		UINT fenceValue = m_fenceValue++;
@@ -1616,8 +1677,8 @@ namespace wilson
 			WaitForSingleObject(m_fenceEvent, INFINITE);
 		}
 
-		m_pCommandAllocator->Reset();
-		m_pCommandList->Reset(m_pCommandAllocator, nullptr);
+		m_pMainCommandAllocator->Reset();
+		m_pMainCommandList->Reset(m_pMainCommandAllocator, nullptr);
 
 		m_pPbrSetupCommandAllocator->Reset();
 		m_pPbrSetupCommandList->Reset(m_pPbrSetupCommandAllocator, nullptr);
@@ -1636,6 +1697,8 @@ namespace wilson
 	D3D12::D3D12(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
 		float fScreenFar, float fScreenNear) :m_selectedModelGroup(-1), m_exposure(1.0f)
 	{  
+		g_pD3D12 = this;
+
 		m_pDebugController = nullptr;
 		m_pDevice = nullptr;
 		m_pCommandQueue = nullptr;
@@ -1646,8 +1709,13 @@ namespace wilson
 			m_pScreenTex[i] = nullptr;
 		}
 
-		m_pCommandAllocator = nullptr;
-		m_pCommandList = nullptr;
+		for (int i = 0; i < _THREAD_COUNT; ++i)
+		{
+			m_pWorkerCommandAllocator[i] = nullptr;
+			m_pWokerCommandList[i] = nullptr;
+		}
+		m_pMainCommandAllocator = nullptr;
+		m_pMainCommandList = nullptr;
 		m_pPbrSetupCommandAllocator = nullptr;
 		m_pPbrSetupCommandList = nullptr;
 		m_pUiCommandAllocator = nullptr;
@@ -1734,83 +1802,48 @@ namespace wilson
 		bool result;
 		
 		hr = D3D12GetDebugInterface(IID_PPV_ARGS(&m_pDebugController));
-		if (SUCCEEDED(hr))
-		{
-			m_pDebugController->EnableDebugLayer();
-		}
-		
+		assert(SUCCEEDED(hr));
+		m_pDebugController->EnableDebugLayer();
 		
 		IDXGIFactory* pFactory;
 		hr = CreateDXGIFactory(IID_PPV_ARGS(&pFactory));
-		if(FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::pDXGIFactory::Failed To Creaete DXGIFactory");
-			throw std::exception();
-		}
+		assert(SUCCEEDED(hr));
 		pFactory->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::pFactory") - 1, "D3D12::pFactory");
 
 		IDXGIAdapter* pAdapter;
 		hr = pFactory->EnumAdapters(0, &pAdapter);
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::pAdaptor::EnumAdapters1()Failed");
-			throw std::exception();
-		}
+		assert(SUCCEEDED(hr));
 		pAdapter->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::pAdapter") - 1, "D3D12::pAdaper");
 
 		DXGI_ADAPTER_DESC adapterDesc = {};
 		hr = pAdapter->GetDesc(&adapterDesc);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D12::pAdapter::GetDescFailed");
-			throw std::exception();
-		}
+		assert(SUCCEEDED(hr));
 
 		IDXGIOutput* pAdapterOutput;
 		hr = pAdapter->EnumOutputs(0, &pAdapterOutput);
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::pAdapterOutput::EnumOutputs()Failed");
-			throw std::exception();
-		}
+		assert(SUCCEEDED(hr));
 		pAdapterOutput->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::pAdapterOutput") - 1, "D3D12::pAdapterOutput");
 
 		
 		UINT numModes = {};
 		hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, nullptr);
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::pAdapterOutput::GetNumOfDisplayModeListFailed");
-			throw std::exception();
-		}
+		assert(SUCCEEDED(hr));
 
 		DXGI_MODE_DESC* pDisplayModeList = new DXGI_MODE_DESC[numModes];
-		if (pDisplayModeList == nullptr)
-		{
-			OutputDebugStringW(L"D3D12::CreateDXGI_MODE_DESC Failed");
-			throw std::exception();
-		}
+		assert(SUCCEEDED(hr));
 
 		hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, pDisplayModeList);
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::pAdapterOutput::GetDisplayModeListFailed");
-			throw std::exception();
-		}
+		assert(SUCCEEDED(hr));
 
 		m_clientWidth = screenWidth;
 		m_clientHeight = screenHeight;
 
 
 		hr = D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_pDevice));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::m_pDevice::D3D12CreateDeviceFailed");
-			throw std::exception();
-		}
+		assert(SUCCEEDED(hr));
 		m_pDevice->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pDevice") - 1, "D3D12::m_pDevice");
 		
@@ -1820,11 +1853,7 @@ namespace wilson
 		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
 		hr = m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pCommandQueue));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::m_pCommandQueue::CreateCommandQueueFailed");
-			throw std::exception();
-		}
+		assert(SUCCEEDED(hr));
 		m_pCommandQueue->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pCommandQueue") - 1, "D3D12::m_pCommandQueue");
 
@@ -1862,10 +1891,7 @@ namespace wilson
 		swapChainDesc.Flags = 0;
 
 		hr = pFactory->CreateSwapChain(m_pCommandQueue, &swapChainDesc, &m_pSwapChain);
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::m_pSwapChain::CreateSwapChainFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSwapChain->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pSwapChain") - 1, "D3D12::m_pSwapChain");
 
@@ -1896,10 +1922,7 @@ namespace wilson
 			{
 				D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
 				hr = m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&m_pScreenTex[i]));
-				if (FAILED(hr))
-				{
-					OutputDebugStringW(L"D3D12::m_pScreenTex::GetBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pDevice->CreateRenderTargetView(m_pScreenTex[i], nullptr, rtvHandle);
 				m_ScreenRTV[i] = rtvHandle;
 				m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
@@ -1914,53 +1937,56 @@ namespace wilson
 		
 
 		hr = m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-			IID_PPV_ARGS(&m_pCommandAllocator));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::m_pCommandAllocator::CreateCommandAllocator()Failed");
-		}
-		m_pCommandAllocator->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D12::m_pCommandAllocator") - 1, "D3D12::m_pCommandAllocator");
+			IID_PPV_ARGS(&m_pMainCommandAllocator));
+		assert(SUCCEEDED(hr));
+		m_pMainCommandAllocator->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D12::m_pMainCommandAllocator") - 1, "D3D12::m_pMainCommandAllocator");
 
 		hr = m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
 			IID_PPV_ARGS(&m_pPbrSetupCommandAllocator));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::m_pPbrSetupCommandAllocator::CreateCommandAllocator()Failed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pPbrSetupCommandAllocator->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pPbrSetupCommandAllocator") - 1, "D3D12::m_pPbrSetupCommandAllocator");
 
 
-		hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pCommandAllocator, nullptr, IID_PPV_ARGS(&m_pCommandList));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::m_pCommandList::CreateCommandList()Failed");
-		}
-		m_pCommandList->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D12::m_pCommandList") - 1, "D3D12::m_pCommandList");
+		hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pMainCommandAllocator, nullptr, IID_PPV_ARGS(&m_pMainCommandList));
+		assert(SUCCEEDED(hr));
+		m_pMainCommandList->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D12::m_pMainCommandList") - 1, "D3D12::m_pMainCommandList");
 
 		hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pPbrSetupCommandAllocator, nullptr, IID_PPV_ARGS(&m_pPbrSetupCommandList));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::m_pPbrSetupCommandList::CreateCommandList()Failed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pPbrSetupCommandList->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pPbrSetupCommandList") - 1, "D3D12::m_pPbrSetupCommandList");
+
+		for (int i = 0; i < _THREAD_COUNT; ++i)
+		{
+			hr = m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_pWorkerCommandAllocator[i]));
+			assert(SUCCEEDED(hr));
+			m_pWorkerCommandAllocator[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12::m_pWorkerCommandAllocator[i]") - 1, "D3D12::m_pWorkerCommandAllocator[i]");
+
+			hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pWorkerCommandAllocator[i], nullptr, IID_PPV_ARGS(&m_pWokerCommandList[i]));
+			assert(SUCCEEDED(hr));
+			m_pWokerCommandList[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12::m_pWokerCommandList[i]") - 1, "D3D12::m_pWokerCommandList[i]");
+
+			m_pWokerCommandList[i]->Close();
+		}
 
 		//Gen User-Defined Class
 		{
 			m_pShader = new Shader12(m_pDevice);
-			m_pCam = new Camera12(m_pDevice, m_pCommandList, m_pDescriptorHeapManager, screenWidth, screenHeight, fScreenFar, fScreenNear);
+			m_pCam = new Camera12(m_pDevice, m_pMainCommandList, m_pDescriptorHeapManager, screenWidth, screenHeight, fScreenFar, fScreenNear);
 			XMMATRIX* m_projMat = m_pCam->GetProjectionMatrix();
 			XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
 			m_pFrustum = new Frustum12(m_pCam);
-			m_pMatBuffer = new MatBuffer12(m_pDevice, m_pCommandList, m_pDescriptorHeapManager, m_viewMat, m_projMat);
-			m_pOutlinerMatBuffer = new MatBuffer12(m_pDevice, m_pCommandList, m_pDescriptorHeapManager, m_viewMat, m_projMat);
+			m_pMatBuffer = new MatBuffer12(m_pDevice, m_pMainCommandList, m_pDescriptorHeapManager, m_viewMat, m_projMat);
+			m_pOutlinerMatBuffer = new MatBuffer12(m_pDevice, m_pMainCommandList, m_pDescriptorHeapManager, m_viewMat, m_projMat);
 
-			m_pLightBuffer = new LightBuffer12(m_pDevice, m_pCommandList, m_pDescriptorHeapManager);
+			m_pLightBuffer = new LightBuffer12(m_pDevice, m_pMainCommandList, m_pDescriptorHeapManager);
 
-			m_pShadowMap = new ShadowMap12(m_pDevice, m_pCommandList,
+			m_pShadowMap = new ShadowMap12(m_pDevice, m_pMainCommandList,
 				m_pDescriptorHeapManager,
 				_SHADOWMAP_SIZE, _SHADOWMAP_SIZE, m_pCam->GetCascadeLevels().size(),
 				m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
@@ -2248,19 +2274,13 @@ namespace wilson
 		//Gen Fence
 		{
 			hr = m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence));
-			if (FAILED(hr))
-			{
-				OutputDebugStringW(L"D3D12::m_pFence::CreateFence()Failed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pFence->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pFence") - 1, "D3D12::m_pFence");
 			m_fenceValue = 1;
 
 			m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-			if (m_fenceEvent == nullptr)
-			{
-				OutputDebugStringW(L"D3D12::m_pFence::CreateEvent()Failed");
-			}
+			assert(m_fenceEvent!=nullptr);
 		}
 
 		//Gen Samplers
@@ -2328,10 +2348,7 @@ namespace wilson
 				UINT constantBufferSize = sizeof(BOOL) * 4;
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pBoolCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pBoolCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pBoolCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pBoolCB") - 1, "D3D12::m_pBoolCB");
 
@@ -2351,18 +2368,12 @@ namespace wilson
 
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pHeightOnOffCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pHeightOnOffCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pHeightOnOffCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pHeightOnOffCB") - 1, "D3D12::m_pHeightOnOffCB");
 
 				hr = m_pHeightOnOffCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pHeightOnOffCbBegin));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pHeightOnOffCB::Map()Failed");
-				}
+				assert(SUCCEEDED(hr));
 
 				UINT constantBufferSize = sizeof(BOOL) * 4;
 				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -2382,10 +2393,7 @@ namespace wilson
 				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMVECTOR)); 
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pColorCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pColorCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pColorCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pColorCB") - 1, "D3D12::m_pColorCB");
 
@@ -2407,10 +2415,7 @@ namespace wilson
 				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMVECTOR));
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pRoughnessCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pRoughnessCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pRoughnessCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pRoughnessCB") - 1, "D3D12::m_pRoughnessCB");
 
@@ -2432,10 +2437,7 @@ namespace wilson
 				cbufferDesc.Width = _64KB_ALIGN(sizeof(SamplePoints));
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pSSAOKernelCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pSSAOKernelCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pSSAOKernelCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pSSAOKernelCB") - 1, "D3D12::m_pSSAOKernelCB");
 
@@ -2458,18 +2460,12 @@ namespace wilson
 				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMFLOAT4));
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pExposureCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pExposureCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pExposureCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pExposureCB") - 1, "D3D12::m_pExposureCB");
 
 				hr = m_pExposureCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pExposureCbBegin));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pExposureCB::Map()Failed");
-				}
+				assert(SUCCEEDED(hr));
 
 
 				UINT constantBufferSize = sizeof(XMFLOAT4);
@@ -2490,19 +2486,12 @@ namespace wilson
 				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMFLOAT4)); 
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pHeightScaleCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pHeightScaleCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pHeightScaleCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pHeightScaleCB") - 1, "D3D12::m_pHeightScaleCB");
 
 				hr = m_pHeightScaleCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pHeightScaleCbBegin));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pHeightScaleCB::Map()Failed");
-				}
-
+				assert(SUCCEEDED(hr));
 				UINT constantBufferSize = sizeof(XMFLOAT4);
 				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
@@ -2520,10 +2509,7 @@ namespace wilson
 				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMMATRIX) * 6); 
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pEquirect2CubeCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pEquirect2CubeCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pEquirect2CubeCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pEquirect2CubeCB") - 1, "D3D12::m_pEquirect2CubeCB");
 
@@ -2545,10 +2531,7 @@ namespace wilson
 				cbufferDesc.Width = 64 * 1024;
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pMipCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D12::m_pMipCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pMipCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pMipCB") - 1, "D3D12::m_pMipCB");
 
@@ -2601,10 +2584,7 @@ namespace wilson
 			UINT8* pKernelCB;
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pSSAOKernelCB->Map(0, &readRange, reinterpret_cast<void**>(&pKernelCB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pSSAOKernelCB::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 
 			memcpy(pKernelCB, &kernels, sizeof(kernels));
 			m_pSSAOKernelCB->Unmap(0, nullptr);
@@ -2636,19 +2616,16 @@ namespace wilson
 
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, 
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, IID_PPV_ARGS(&m_pNoiseTex));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pNoiseTex::CreateTexFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pNoiseTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pNoiseTex") - 1, "D3D12:::m_pNoiseTex");
 
 			//Gen Cbuffer for Upload
-			UploadTexThroughCB(texDesc, sizeof(XMVECTOR)*_NOISE_TEX_SIZE, (UINT8*)noiseVecs, m_pNoiseTex, &m_pNoiseUploadCB, m_pCommandList);
+			UploadTexThroughCB(texDesc, sizeof(XMVECTOR)*_NOISE_TEX_SIZE, (UINT8*)noiseVecs, m_pNoiseTex, &m_pNoiseUploadCB, m_pMainCommandList);
 				
 			D3D12_RESOURCE_BARRIER copyDstToSrvBarrier =
 				CreateResourceBarrier(m_pNoiseTex, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			m_pCommandList->ResourceBarrier(1, &copyDstToSrvBarrier);
+			m_pMainCommandList->ResourceBarrier(1, &copyDstToSrvBarrier);
 
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -2711,10 +2688,7 @@ namespace wilson
 
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &quadDesc,
 				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pQuadVB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pQuadVB::CreateVBFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pQuadVB->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pQuadVB") - 1, "D3D12::m_pQuadVB");
 
@@ -2722,10 +2696,7 @@ namespace wilson
 			UINT8* pQuadVB;
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pQuadVB->Map(0, &readRange, reinterpret_cast<void**>(&pQuadVB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_QuadVB::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 			memcpy(pQuadVB, quads, quadsVBSize);
 			m_pQuadVB->Unmap(0, nullptr);
 
@@ -2742,20 +2713,14 @@ namespace wilson
 
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &quadDesc,
 				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pQuadIB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pQuadIB::CreateIBFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pQuadIB->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pQuadIB") - 1, "D3D12::m_pQuadIB");
 
 
 			UINT8* pQuadIB;
 			hr = m_pQuadIB->Map(0, &readRange, reinterpret_cast<void**>(&pQuadIB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_QuadIB::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 			memcpy(pQuadIB, indices, quadsIBSize);
 			m_pQuadIB->Unmap(0, nullptr);
 
@@ -2803,10 +2768,7 @@ namespace wilson
 
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &skyDesc,
 				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pSkyBoxVB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pSkyBoxVB::CreateVBFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pSkyBoxVB->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pSkyBoxVB") - 1, "D3D12::m_pSkyBoxVB");
 
@@ -2814,10 +2776,7 @@ namespace wilson
 			UINT8* pSkyBoxVB;
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pSkyBoxVB->Map(0, &readRange, reinterpret_cast<void**>(&pSkyBoxVB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_QuadVB::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 			memcpy(pSkyBoxVB, vertices, skyVBSize);
 			m_pSkyBoxVB->Unmap(0, nullptr);
 
@@ -2852,20 +2811,14 @@ namespace wilson
 
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &skyDesc,
 				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pSkyBoxIB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pSkyBoxIB::CreateIBFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pSkyBoxIB->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pSkyBoxIB") - 1, "D3D12::m_pSkyBoxIB");
 
 
 			UINT8* pSkyBoxIB;
 			hr = m_pSkyBoxIB->Map(0, &readRange, reinterpret_cast<void**>(&pSkyBoxIB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_QuadIB::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 			memcpy(pSkyBoxIB, indices, skyIBSize);
 			m_pSkyBoxIB->Unmap(0, nullptr);
 
@@ -2899,10 +2852,7 @@ namespace wilson
 
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &AABBDesc,
 				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pAABBVB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pAABBVB::CreateVBFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pAABBVB->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pAABBVB") - 1, "D3D12::m_pAABBVB");
 
@@ -2922,10 +2872,7 @@ namespace wilson
 
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &AABBDesc,
 				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pAABBIB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::m_pAABBIB::CreateIBFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pAABBIB->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pAABBIB") - 1, "D3D12::m_pAABBIB");
 
@@ -2934,10 +2881,7 @@ namespace wilson
 			D3D12_RANGE readRange = { 0, };
 
 			hr = m_pAABBIB->Map(0, &readRange, reinterpret_cast<void**>(&pAABBIB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D12::pAABBIB::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 			memcpy(pAABBIB, cubeIndices, AABBIBSize);
 			m_pAABBIB->Unmap(0, nullptr);
 
@@ -2970,18 +2914,47 @@ namespace wilson
 			}
 
 		}
+
+		for (int i = 0; i < _THREAD_COUNT; ++i)
+		{
+			m_workerBeginFrame[i] = CreateEvent(
+				NULL,
+				FALSE,
+				FALSE,
+				NULL);
+
+			m_workerFinshShadowPass[i] = CreateEvent(
+				NULL,
+				FALSE,
+				FALSE,
+				NULL);
+
+			m_workerBeginDeferredGeoPass[i] = CreateEvent(
+				NULL,
+				FALSE,
+				FALSE,
+				NULL);
+
+			m_workerEndFrame[i] = CreateEvent(
+				NULL,
+				FALSE,
+				FALSE,
+				NULL);
+		
+			m_workerThreadIdx[i] = i;
+			m_threadHandles[i] = reinterpret_cast<HANDLE>(_beginthreadex(
+				nullptr,
+				0,
+				&WrapperThreadFun,		 //생성시 호출함수
+				reinterpret_cast<LPVOID>(&m_workerThreadIdx[i]),//전달 인자
+				0,							//즉시 실행
+				nullptr ));
+		}
 		
 	}
 	D3D12::~D3D12()
 	{	
-		UINT fenceValue = m_fenceValue;
-		m_pCommandQueue->Signal(m_pFence, fenceValue);
-		if (m_pFence->GetCompletedValue() < fenceValue)
-		{
-			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
-			WaitForSingleObject(m_fenceEvent, INFINITE);
-		}
-
+		WaitForGpu();
 		ImGui_ImplDX12_Shutdown();
 		DestroyHDR();
 		DestroyTexture();
@@ -3017,10 +2990,10 @@ namespace wilson
 			m_pFence = nullptr;
 		}
 
-		if (m_pCommandAllocator != nullptr)
+		if (m_pMainCommandAllocator != nullptr)
 		{
-			m_pCommandAllocator->Release();
-			m_pCommandAllocator = nullptr;
+			m_pMainCommandAllocator->Release();
+			m_pMainCommandAllocator = nullptr;
 		}
 
 		if (m_pPbrSetupCommandAllocator != nullptr)
@@ -3233,16 +3206,31 @@ namespace wilson
 			m_pNoiseTex = nullptr;
 		}
 
-		if (m_pCommandList != nullptr)
+		if (m_pMainCommandList != nullptr)
 		{
-			m_pCommandList->Release();
-			m_pCommandList = nullptr;
+			m_pMainCommandList->Release();
+			m_pMainCommandList = nullptr;
 		}
 
 		if (m_pPbrSetupCommandList != nullptr)
 		{
 			m_pPbrSetupCommandList->Release();
-			m_pCommandList = nullptr;
+			m_pPbrSetupCommandList = nullptr;
+		}
+
+		for (int i = 0; i < _THREAD_COUNT; ++i)
+		{
+			if (m_pWokerCommandList[i] != nullptr)
+			{
+				m_pWokerCommandList[i]->Release();
+				m_pWokerCommandList[i] = nullptr;
+			}
+
+			if (m_pWorkerCommandAllocator[i] != nullptr)
+			{
+				m_pWorkerCommandAllocator[i]->Release();
+				m_pWorkerCommandAllocator[i] = nullptr;
+			}
 		}
 		
 		for (int i = 0; i < m_pModelGroups.size(); ++i)

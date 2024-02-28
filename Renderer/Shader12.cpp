@@ -85,255 +85,115 @@ namespace wilson
 			HRESULT hr;
 			ID3DBlob* pErrorBlob;
 			hr = D3DCompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_p12VS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &m_p12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"PosOnlyVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pPosOnly12VS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"CascadeVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pCascadeDir12VS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"CascadeGS.hlsl", nullptr, nullptr, "main", "gs_5_0", 0, 0, &m_pCascadeDir12GS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"CascadePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pCascadeDir12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"Equirectangular2CubeMapGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, &m_pEquirect2Cube12GS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"Equirectangular2CubeMapPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pEquirect2Cube12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"DiffuseIrradiancePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDiffuseIrradiance12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"PrefilterPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPrefilter12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"BRDFPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pBRDF12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"SkyBoxVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSkyBox12VS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"SkyBoxPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSkyBox12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"ShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pShadow12VS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"ShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pShadow12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"OmniDirShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pOmniDirShadow12VS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"OmniDirShadowGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, &m_pOmniDirShadow12GS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"OmniDirShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pOmniDirShadow12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 
 			hr = D3DCompileFromFile(L"TexVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pTex12VS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 
 			hr = D3DCompileFromFile(L"GeometryVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pGeometry12VS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"GeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pGeometry12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"SSAOPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAO12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"SSAOBlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAOBlur12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"DeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDeferred12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"PBRGeometryVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometry12VS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"PBRGeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometry12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"PBRDeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRDeferred12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 
 			hr = D3DCompileFromFile(L"MatrixTransformVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pMatrixTransformVS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"ConstantPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pConstantPS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"AABBVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pAABB12VS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"AABBPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pAABB12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 
 
 			hr = D3DCompileFromFile(L"OutlinerPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pOutlinerTest12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"BlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pBlur12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 
 			hr = D3DCompileFromFile(L"FinPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pFin12PS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"GenMipCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pGenMipCS, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			if (pErrorBlob != nullptr)
 			{
@@ -779,11 +639,7 @@ namespace wilson
 
 
 			hr=D3D12SerializeVersionedRootSignature(&PbrGeometryRootSignatureDesc, &signature, &error);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)error->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 
 			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPBRGeoRootSignature));
 			m_pPBRGeoRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,

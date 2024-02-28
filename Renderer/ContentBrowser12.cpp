@@ -81,10 +81,7 @@ namespace wilson {
 			heapProps.VisibleNodeMask = 1;
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				nullptr, IID_PPV_ARGS(&m_pDirIcon12Tex));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("ContentBrowser12::m_pDirIcon12Tex::CreateSRVFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pDirIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ContentBrowser12::m_pDirIcon12Tex") - 1, "ContentBrowser12::m_pDirIcon12Tex");
 			
@@ -142,10 +139,7 @@ namespace wilson {
 			heapProps.VisibleNodeMask = 1;
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				nullptr, IID_PPV_ARGS(&m_pFileIcon12Tex));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("ContentBrowser12::m_pFileIcon12Tex::CreateTexailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pFileIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ContentBrowser12::m_pFileIcon12Tex") - 1, "ContentBrowser12::m_pFileIcon12Tex");
 

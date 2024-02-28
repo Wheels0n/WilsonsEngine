@@ -63,10 +63,7 @@ namespace wilson
 				heapProps.VisibleNodeMask = 1;
 				hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 					nullptr, IID_PPV_ARGS(&m_pDirLitIcon12Tex));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("Settings12::m_pDirLitIcon12Tex::CreateSRVFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pDirLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pDirLitIcon12Tex") - 1, "Settings12::m_pDirLitIcon12Tex");
 				
@@ -122,10 +119,7 @@ namespace wilson
 				heapProps.VisibleNodeMask = 1;
 				hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 					nullptr, IID_PPV_ARGS(&m_pPntLitIcon12Tex));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("Settings12::m_pPntLitIcon12Tex::CreateTexFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pPntLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pPntLitIcon12Tex") - 1, "Settings12::m_pPntLitIcon12Tex");
 
@@ -181,10 +175,7 @@ namespace wilson
 				heapProps.VisibleNodeMask = 1;
 				hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 					nullptr, IID_PPV_ARGS(&m_pSpotLitIcon12Tex));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("Settings12::m_pSpotLitIcon12Tex::CreateTexFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pSpotLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pSpotLitIcon12Tex") - 1, "Settings12::m_pSpotLitIcon12Tex");
 

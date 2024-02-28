@@ -22,22 +22,16 @@ namespace wilson
             cbufferDesc.MiscFlags = 0;
             cbufferDesc.StructureByteStride = 0;
 
-            HRESULT result = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pLightBuffer);
-            if (FAILED(result))
-            {
-                OutputDebugStringA("DirectionalLight::m_pLightBuffer::CreateBufferFailed");
-            }
+            HRESULT hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pLightBuffer);
+            assert(SUCCEEDED(hr));
             m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
                 sizeof("DirectionalLight::m_pLightBuffer") - 1, "DirectionalLight::m_pLightBuffer");
 
 
 
             cbufferDesc.ByteWidth = sizeof(DirectX::XMMATRIX) * m_pCam->GetCascadeLevels().size();
-            result = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pMatriceBuffer);
-            if (FAILED(result))
-            {
-                OutputDebugStringA("DirectionalLight::m_pMatriceBuffer::CreateBufferFailed");
-            }
+            hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pMatriceBuffer);
+            assert(SUCCEEDED(hr));
             m_pMatriceBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
                 sizeof("DirectionalLight::m_pMatriceBuffer") - 1, "DirectionalLight::m_pMatriceBuffer");
 
@@ -68,11 +62,7 @@ namespace wilson
         DirectX::XMMATRIX* pMatrix;
         HRESULT hr;
         hr = pContext->Map(m_pMatriceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-        if (FAILED(hr))
-        {   
-            OutputDebugStringA("DirectionalLight::m_pMatriceBuffer::MapFailed");
-            return;
-        }
+        assert(SUCCEEDED(hr));
         pMatrix = (DirectX::XMMATRIX*)mappedResource.pData;
         for (int i = 0; i < m_lightSpaceMat.size(); ++i)
         {

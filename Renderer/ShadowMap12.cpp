@@ -103,10 +103,7 @@ namespace wilson
 
 					hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 						D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal , IID_PPV_ARGS(&m_dir12Tex[i]));
-					if (FAILED(hr))
-					{
-						OutputDebugStringA("ShadowMap:::m_dir12Tex[i]::CreateTexFailed");
-					}
+					assert(SUCCEEDED(hr));
 					m_dir12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 						sizeof("ShadowMap:::m_dir12Tex[i]") - 1, "ShadowMap:::m_dir12Tex[i]");
 
@@ -131,10 +128,7 @@ namespace wilson
 
 						hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 							D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_cube12Tex[i]));
-						if (FAILED(hr))
-						{
-							OutputDebugStringA("ShadowMap:::m_cube12Tex[i]::CreateTexFailed");
-						}
+						assert(SUCCEEDED(hr));
 						m_cube12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 							sizeof("ShadowMap:::m_cube12Tex[i]") - 1, "ShadowMap:::m_cube12Tex[i]");
 
@@ -162,10 +156,7 @@ namespace wilson
 
 						hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 							D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_spot12Tex[i]));
-						if (FAILED(hr))
-						{
-							OutputDebugStringA("ShadowMap:::m_spot12Tex[i]::CreateTexFailed");
-						}
+						assert(SUCCEEDED(hr));
 						m_spot12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 							sizeof("ShadowMap:::m_spot12Tex[i]") - 1, "ShadowMap:::m_spot12Tex[i]");
 
@@ -237,10 +228,7 @@ namespace wilson
 
 					hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 						D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_dirDebug12Tex[i]));
-					if (FAILED(hr))
-					{
-						OutputDebugStringA("ShadowMap:::m_dirDebug12Tex[i]::CreateTexFailed");
-					}
+					assert(SUCCEEDED(hr));
 					m_dirDebug12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 						sizeof("ShadowMap:::m_dirDebug12Tex[i]") - 1, "ShadowMap:::m_dirDebug12Tex[i]");
 
@@ -264,10 +252,7 @@ namespace wilson
 
 						hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 							D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_cubeDebug12Tex[i]));
-						if (FAILED(hr))
-						{
-							OutputDebugStringA("ShadowMap:::m_cubeDebug12Tex[i]::CreateTexFailed");
-						}
+						assert(SUCCEEDED(hr));
 						m_cubeDebug12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 							sizeof("ShadowMap:::m_cubeDebug12Tex[i]") - 1, "ShadowMap:::m_cubeDebug12Tex[i]");
 
@@ -296,10 +281,7 @@ namespace wilson
 
 						hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 							D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_spotDebug12Tex[i]));
-						if (FAILED(hr))
-						{
-							OutputDebugStringA("ShadowMap:::m_spotDebug12Tex[i]::CreateTexFailed");
-						}
+						assert(SUCCEEDED(hr));
 						m_spotDebug12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 							sizeof("ShadowMap:::m_spotDebug12Tex[i]") - 1, "ShadowMap:::m_spotDebug12Tex[i]");
 
@@ -323,10 +305,7 @@ namespace wilson
 
 						hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 							D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_debug12Tex[i]));
-						if (FAILED(hr))
-						{
-							OutputDebugStringA("ShadowMap:::m_debug12Tex[i]::CreateTexFailed");
-						}
+						assert(SUCCEEDED(hr));
 						m_debug12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 							sizeof("ShadowMap:::m_debug12Tex[i]") - 1, "ShadowMap:::m_debug12Tex[i]");
 

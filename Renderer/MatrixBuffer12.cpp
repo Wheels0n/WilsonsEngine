@@ -50,20 +50,13 @@ namespace wilson
 		{
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pMat12Cb));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("MatBuffer::m_pMat12Cb::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("MatBuffer::m_pMat12Cb") - 1, "MatBuffer::m_pMat12Cb");
 
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&m_pMatricesCbBegin));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("MatBuffer::m_pMat12Cb::Map()Failed");
-			}
-
+			assert(SUCCEEDED(hr));
 			UINT constantBufferSize = sizeof(MatrixBuffer);
 
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -81,19 +74,13 @@ namespace wilson
 
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pProjMat12Cb));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("MatBuffer::m_pProjMat12Cb::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pProjMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("MatBuffer::m_pProjMat12Cb") - 1, "MatBuffer::m_pProjMat12Cb");
 
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pProjMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&m_pProjMatCbBegin));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("MatBuffer::m_pProjMat12Cb::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 
 			UINT constantBufferSize = sizeof(DirectX::XMMATRIX);
 
@@ -112,19 +99,13 @@ namespace wilson
 
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pCombinedMat12Cb));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("MatBuffer::m_pCombinedMat12Cb::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pCombinedMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("MatBuffer::m_pCombinedMat12Cb") - 1, "MatBuffer::m_pCombinedMat12Cb");
 
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pCombinedMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&m_pCombinedMatCbBegin));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("MatBuffer:: m_pCombinedMat12Cb::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 
 			UINT constantBufferSize = sizeof(DirectX::XMMATRIX);
 

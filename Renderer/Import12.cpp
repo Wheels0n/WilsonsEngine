@@ -53,18 +53,12 @@ namespace wilson
 
 		
 		HRESULT hr = m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_pImporterCommandAllocator));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"Importer12::m_pImporterCommandAllocator::CreateCommandAllocator()Failed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pImporterCommandAllocator->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("Importer12::m_pImporterCommandAllocator") - 1, "Importer12::m_pImporterCommandAllocator");
 
 		hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pImporterCommandAllocator, nullptr, IID_PPV_ARGS(&m_pImporterCommandList));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"D3D12::m_pImporterCommandList::CreateCommandList()Failed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pImporterCommandList->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pImporterCommandList") - 1, "D3D12::m_pImporterCommandList");
 	}
@@ -781,16 +775,10 @@ namespace wilson
 
 							hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 								nullptr, IID_PPV_ARGS(&pTex));
-							if (FAILED(hr))
-							{
-								OutputDebugStringA("Importer12:: pTex::CreateSRVFailed");
-							}
+							assert(SUCCEEDED(hr));
 							pTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 								sizeof("Importer12:: pTex") - 1, "Importer12:: pTex");
-							if (metadata.width == 16)
-							{
-								OutputDebugStringA("Importer12:: spcular");
-							}
+							
 							ID3D12Resource* pUploadCB = nullptr;
 							m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, pTex, &pUploadCB, m_pImporterCommandList);
 							
@@ -906,10 +894,7 @@ namespace wilson
 
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_GENERIC_READ,
 				nullptr, IID_PPV_ARGS(&pTex));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Importer12:: pTex::CreateSRVFailed");
-			}
+			assert(SUCCEEDED(hr));
 			pTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Importer12:: pTex") - 1, "Importer12:: pTex");
 		}

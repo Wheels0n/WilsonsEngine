@@ -21,29 +21,20 @@ namespace wilson
 		DirectX::ScratchImage image;
 		hr = DirectX::LoadFromWICFile(L"./Assets/Icons/sun-color-icon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), &m_icons[0]);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("Settings::SunIcon::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_icons[0]->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("Settings::SunIcon") - 1, "Settings::SunIcon");
 
 
 		hr = DirectX::LoadFromWICFile(L"./Assets/Icons/light-bulb-color-icon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), &m_icons[1]);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("Settings::LightBulbIcon::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_icons[1]->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("Settings::LightBulbIcon") - 1, "Settings::LightBulbIcon");
 
 		hr = DirectX::LoadFromWICFile(L"./Assets/Icons/flashlight-icon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), &m_icons[2]);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("Settings::FlashBulbIcon::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_icons[2]->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("Settings::FlashLightIcon") - 1, "Settings::FlashLightIcon");
 	}

@@ -83,10 +83,7 @@ namespace wilson {
 			vertexBD.StructureByteStride = 0;
 
 			hr = pDevice->CreateBuffer(&vertexBD, &vertexData, &m_pVertexBuffer);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Model::m_pVertexBuffer::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pVertexBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Model::m_pVertexBuffer") - 1, "Model::m_pVertexBuffer");
 
@@ -102,10 +99,7 @@ namespace wilson {
 			indexBD.StructureByteStride = 0;
 
 			hr = pDevice->CreateBuffer(&indexBD, &indexData, &m_pIndexBuffer);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Model::m_pIndexBuffer::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pIndexBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Model::m_pIndexBuffer") - 1, "Model::m_pIndexBuffer");
 
@@ -118,10 +112,7 @@ namespace wilson {
 			materialBD.StructureByteStride = 0;
 
 			hr = pDevice->CreateBuffer(&materialBD, 0, &m_pMaterialBuffer);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Model::m_pMaterialBuffer::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pMaterialBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Model::m_pMaterialBuffer") - 1, "Model::m_pMaterialBuffer");
 
@@ -135,10 +126,7 @@ namespace wilson {
 			perModelBD.StructureByteStride = 0;
 
 			hr = pDevice->CreateBuffer(&perModelBD, 0, &m_pPerModelBuffer);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Model::m_pPerModelBuffer::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPerModelBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Model::m_pPerModelBuffer") - 1, "Model::m_pPerModelBuffer");
 
@@ -372,11 +360,7 @@ namespace wilson {
 
 
 			hr = pContext->Map(m_pMaterialBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-			if (FAILED(hr))
-			{	
-				OutputDebugStringA("Model::m_pMaterialBuffer::MapFailed");
-				return;
-			}
+			assert(SUCCEEDED(hr));
 
 			pMaterial = reinterpret_cast<Material*>(mappedResource.pData);
 			pMaterial->ambient = matInfo.material.ambient;
@@ -388,11 +372,7 @@ namespace wilson {
 
 
 			hr = pContext->Map(m_pPerModelBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-			if (FAILED(hr))
-			{	
-				OutputDebugStringA("Model::m_pPerModelBuffer::MapFailed");
-				return;
-			}
+			assert(SUCCEEDED(hr));
 
 			pPerModel = reinterpret_cast<PerModel*>(mappedResource.pData);
 			pPerModel->hasSpecular = m_perModels[i].hasSpecular;

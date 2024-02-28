@@ -115,10 +115,7 @@ namespace wilson
 
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vbDesc,
 				D3D12_RESOURCE_STATE_GENERIC_READ| D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pVB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Model12::m_pVB::CreateVBFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pVB->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Model12::m_pVB") - 1, "Model12::m_pVB");
 
@@ -126,10 +123,7 @@ namespace wilson
 			UINT8* pVB;
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pVB->Map(0, &readRange, reinterpret_cast<void**>(&pVB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Model12::m_pVB::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 			memcpy(pVB, m_pVertexData, vbSize);
 			m_pVB->Unmap(0, 0);
 
@@ -165,10 +159,7 @@ namespace wilson
 
 			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &ibDesc,
 				D3D12_RESOURCE_STATE_GENERIC_READ| D3D12_RESOURCE_STATE_INDEX_BUFFER, nullptr, IID_PPV_ARGS(&m_pIB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Model12::m_pIB::CreateIBFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pIB->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Model12::m_pIB") - 1, "Model12::m_pIB");
 
@@ -176,10 +167,7 @@ namespace wilson
 			UINT8* pIB;
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pIB->Map(0, &readRange, reinterpret_cast<void**>(&pIB));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Model12::m_pIB::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 			memcpy(pIB, m_pIndices, ibSize);
 			m_pIB->Unmap(0, 0);
 
@@ -221,19 +209,12 @@ namespace wilson
 				UINT constantBufferSize = sizeof(Material);
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ| D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pMaterialCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("Model12::m_pMaterialCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pMaterialCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Model12::m_pMaterialCB") - 1, "Model12::m_pMaterialCB");
 
 				hr = m_pMaterialCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pMaterial));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("Model12::m_pMaterialCB::Map()Failed");
-				}
-
+				assert(SUCCEEDED(hr));
 
 				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
 				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
@@ -287,10 +268,7 @@ namespace wilson
 				UINT constantBufferSize = sizeof(DirectX::XMMATRIX) * _MAX_INSTANCES;
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ| D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pInstancePosCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("Model12::m_pInstancePosCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pInstancePosCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Model12::m_pInstancePosCB") - 1, "Model12::m_pInstancePosCB");
 
@@ -332,18 +310,12 @@ namespace wilson
 				UINT constantBufferSize = sizeof(PerModel);
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ| D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pPerModelCB));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("Model12::m_pPerModelCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pPerModelCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Model12::m_pPerModelCB") - 1, "Model12::m_pPerModelCB");
 				
 				hr = m_pPerModelCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pPerModel));
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("Model12::m_pPerModelCB::Map()Failed");
-				}
+				assert(SUCCEEDED(hr));
 
 				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
 				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();

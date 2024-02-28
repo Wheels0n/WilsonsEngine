@@ -325,6 +325,7 @@ namespace wilson
 	constexpr UINT _VIEWPORT_HEIGHT = 720;
 
 	//DirectX
+	constexpr UINT _THREAD_COUNT= 4;
 	constexpr float _REFRESH_RATE = 75.f;
 	constexpr UINT  _BUFFER_COUNT = 2;
 	constexpr UINT _SHADOWMAP_SIZE = 1024;

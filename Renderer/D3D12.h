@@ -28,20 +28,23 @@ namespace wilson
 	class D3D12 
 	{
 	private:
+		void WaitForGpu();
 		bool CreateRTVandSRV(UINT, UINT);
 		bool CreateDSV(UINT, UINT);
-		void DestroyTexture();
-		void DestroySceneDepthTex();
 		bool CreateEquirentangularMap(const char* pPath);
 		void ConvertEquirectagular2Cube();
 		void CreateDiffuseIrradianceMap();
 		void CreatePrefileterMap();
 		void CreateMipMap();
 		void CreateBRDFMap();
+		void DestroyTexture();
+		void DestroySceneDepthTex();
 		void DestroyHDR();
 		void DestroyBackBuffer();
-		void DrawENTT(bool bGeoPass, bool bSpotShadowPass);
+		void DrawENTT(bool bGeoPass, bool bSpotShadowPass, UINT threadIndex);
 		void D3DMemoryLeakCheck();
+		void WorkerThread(UINT threadIndex);
+		static UINT WINAPI WrapperThreadFun(LPVOID pParameter);
 	public:
 		static D3D12_RESOURCE_BARRIER CreateResourceBarrier(ID3D12Resource* pResource,
 			D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState);
@@ -53,7 +56,7 @@ namespace wilson
 		};
 		inline ID3D12GraphicsCommandList* GetCommandList() const
 		{
-			return m_pCommandList;
+			return m_pMainCommandList;
 		};
 		inline DescriptorHeapManager* GetDescriptorHeapManager()
 		{
@@ -138,6 +141,13 @@ namespace wilson
 		D3D12(const D3D12&) = delete;
 		~D3D12();
 	private:
+		HANDLE m_threadHandles[_THREAD_COUNT];
+		HANDLE m_workerBeginFrame[_THREAD_COUNT];
+		HANDLE m_workerFinshShadowPass[_THREAD_COUNT];
+		HANDLE m_workerBeginDeferredGeoPass[_THREAD_COUNT];
+		HANDLE m_workerEndFrame[_THREAD_COUNT];
+		UINT m_workerThreadIdx[_THREAD_COUNT];
+
 		UINT m_clientWidth; 
 		UINT m_clientHeight;
 		bool m_bVsyncOn;
@@ -148,11 +158,13 @@ namespace wilson
 		IDXGISwapChain* m_pSwapChain;
 		ID3D12Resource* m_pScreenTex[_BUFFER_COUNT];
 
-		ID3D12GraphicsCommandList* m_pCommandList;
+		ID3D12GraphicsCommandList* m_pMainCommandList;
 		ID3D12GraphicsCommandList* m_pPbrSetupCommandList;
 		ID3D12GraphicsCommandList* m_pUiCommandList;
 		ID3D12GraphicsCommandList* m_pImporterCommandList;
-		ID3D12CommandAllocator* m_pCommandAllocator;
+		ID3D12GraphicsCommandList* m_pWokerCommandList[_THREAD_COUNT];
+		ID3D12CommandAllocator* m_pWorkerCommandAllocator[_THREAD_COUNT];
+		ID3D12CommandAllocator* m_pMainCommandAllocator;
 		ID3D12CommandAllocator* m_pPbrSetupCommandAllocator;
 		ID3D12CommandAllocator* m_pImporterCommandAllocator;
 		ID3D12CommandAllocator* m_pUiCommandAllocator;
@@ -271,6 +283,8 @@ namespace wilson
 		D3D12_RECT m_diffIrradRect;
 		D3D12_RECT m_prefilterRect;
 
+		static D3D12* g_pD3D12;
+		std::vector<Model12*>m_pTotalModels;
 		std::vector<ModelGroup12*> m_pModelGroups;
 		DescriptorHeapManager* m_pDescriptorHeapManager;
 		Camera12* m_pCam;

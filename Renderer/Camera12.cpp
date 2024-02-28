@@ -59,19 +59,13 @@ namespace wilson {
 
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pCamCb));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Camera::m_pCamCb::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pCamCb->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Camera::m_pCamCb") - 1, "Camera::m_pCamCb");
 
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pCamCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pCamPosCbBegin));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Camera::m_pCamCb::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 
 			UINT constantBufferSize = sizeof(CamBuffer);
 			m_pCascadeLevelCbBegin = m_pCamPosCbBegin + (_CBV_ALIGN(constantBufferSize));

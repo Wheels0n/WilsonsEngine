@@ -36,10 +36,7 @@ namespace wilson
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		hr = pDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_pRtvHeap));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"DescriptorHeapManager::m_pRtvHeap::CreateDescriptorHeap()Failed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pRtvHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("DescriptorHeapManager::m_pRtvHeap") - 1, "DescriptorHeapManager::m_pRtvHeap");
 
@@ -49,10 +46,7 @@ namespace wilson
 		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		hr = pDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_pDsvHeap));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"DescriptorHeapManager::m_pDsvHeap::CreateDescriptorHeap()Failed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pDsvHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("DescriptorHeapManager::m_pDsvHeap") - 1, "DescriptorHeapManager::m_pDsvHeap");
 
@@ -61,10 +55,7 @@ namespace wilson
 		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		cbvSrvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		hr = pDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(&m_pCbvSrvHeap));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"DescriptorHeapManager::m_pCbvSrvHeap::CreateDescriptorHeap()Failed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pCbvSrvHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("DescriptorHeapManager::m_pCbvSrvHeap") - 1, "DescriptorHeapManager::m_pCbvSrvHeap");
 
@@ -73,10 +64,7 @@ namespace wilson
 		samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		hr = pDevice->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_pSamplerHeap));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"DescriptorHeapManager::m_pSamplerHeap::CreateDescriptorHeap()Failed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSamplerHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("DescriptorHeapManager::m_pSamplerHeap") - 1, "DescriptorHeapManager::m_pSamplerHeap");
 
@@ -85,10 +73,7 @@ namespace wilson
 		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		cbvSrvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		hr = pDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(&m_pDstCbvSrvHeap));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"DescriptorHeapManager::m_pDstCbvSrvHeap::CreateDescriptorHeap()Failed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pDstCbvSrvHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("DescriptorHeapManager::m_pDstCbvSrvHeap") - 1, "DescriptorHeapManager::m_pDstCbvSrvHeap");
 
@@ -97,10 +82,7 @@ namespace wilson
 		samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		hr = pDevice->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_pDstSamplerHeap));
-		if (FAILED(hr))
-		{
-			OutputDebugStringW(L"DescriptorHeapManager::m_pDstSamplerHeap::CreateDescriptorHeap()Failed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pDstSamplerHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("DescriptorHeapManager::m_pDstSamplerHeap") - 1, "DescriptorHeapManager::m_pDstSamplerHeap");
 

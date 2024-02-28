@@ -7,10 +7,7 @@ namespace wilson
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		DirLightMatrices* pMatrices;
 		HRESULT hr = pContext->Map(m_pDirLitMatricesBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(hr))
-		{
-			return;
-		}
+		assert(SUCCEEDED(hr));
 		pMatrices = reinterpret_cast<DirLightMatrices*>(mappedResource.pData);
 		pMatrices->dirCnt = m_pDirLights.size();
 		for (int i = 0; i < m_pDirLights.size(); ++i)
@@ -31,10 +28,7 @@ namespace wilson
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		SpotLightMatrices* pMatrices;
 		HRESULT hr = pContext->Map(m_pSpotLitMatricesBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(hr))
-		{
-			return;
-		}
+		assert(SUCCEEDED(hr));
 		pMatrices = reinterpret_cast<SpotLightMatrices*>(mappedResource.pData);
 		pMatrices->spotCnt = m_pSpotLights.size();
 		for (int i = 0; i < m_pSpotLights.size(); ++i)
@@ -50,10 +44,7 @@ namespace wilson
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		LightBufferProperty* plbProperty;
 		HRESULT hr = pContext->Map(m_pLightPropertyBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(hr))
-		{
-			return;
-		}
+		assert(SUCCEEDED(hr));
 		plbProperty = reinterpret_cast<LightBufferProperty*>(mappedResource.pData);
 		plbProperty->dirCnt = m_pDirLights.size();
 		for (int i = 0; i < m_pDirLights.size(); ++i)

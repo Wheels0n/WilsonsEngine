@@ -778,10 +778,7 @@ namespace wilson
 		DirectX::ScratchImage image;
 		hr = DirectX::LoadFromWICFile(fileName, DirectX::WIC_FLAGS_NONE, nullptr, image);
 		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), &m_pSRV);
-		if (FAILED(hr))
-		{
-			//return false;
-		}
+		assert(SUCCEEDED(hr));
 		m_pSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("Importer::m_pSRV") - 1, "Importer::m_pSRV");
 		m_pTexSrvs.push_back(m_pSRV);

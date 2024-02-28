@@ -42,23 +42,15 @@ namespace wilson
 			HRESULT hr;
 
 			hr = pFactory->EnumAdapters1(0, &pAdapter);
-			if (FAILED(hr))
-			{
-				OutputDebugStringW(L"Renderer11::pAdaptor::Failed To Creaete DXGIFactory");
-				throw std::exception();
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = D3D12CreateDevice(pAdapter, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr);
 
 			pFactory->Release();
-			if (FAILED(hr))
-			{
-				return false;
-			}
-			else
-			{
+			assert(SUCCEEDED(hr));
+			
 				return true;
-			}
+			
 		}
 
 	}

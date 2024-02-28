@@ -34,10 +34,7 @@ namespace wilson
 
         hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
             &cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ| D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pLight12Buffer));
-        if (FAILED(hr))
-        {
-            OutputDebugStringA("SpotLight::m_pLight12Buffer::CreateBufferFailed");
-        }
+        assert(SUCCEEDED(hr));
         m_pLight12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
             sizeof("SpotLight::m_pLight12Buffer") - 1, "SpotLight::m_pLight12Buffer");
 

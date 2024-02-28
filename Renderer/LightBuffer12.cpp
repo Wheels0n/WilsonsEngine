@@ -148,19 +148,13 @@ namespace wilson
 
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pLightProperty12Buffer));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("LightBuffer::m_pLightPropertyBuffer::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pLightProperty12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("LightBuffer::m_pLightPropertyBuffer") - 1, "LightBuffer::m_pLightPropertyBuffer");
 
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pLightProperty12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pLightPropertyCbBegin));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("LightBuffer::m_pLightProperty12Buffer::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 
 			UINT constantBufferSize = sizeof(LightBufferProperty);
 
@@ -182,19 +176,13 @@ namespace wilson
 
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pDirLitMatrices12Buffer));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("LightBuffer::m_pDirLitMatrices12Buffer::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pDirLitMatrices12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("LightBuffer::m_pDirLitMatrices12Buffer") - 1, "LightBuffer::m_pDirLitMatrices12Buffer");
 
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pDirLitMatrices12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pDirLitMatricesCbBegin));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("LightBuffer::m_pDirLitMatrices12Buffer::Map()Failed");
-			}
+			assert(SUCCEEDED(hr));
 
 			UINT constantBufferSize = sizeof(DirLightMatrices);
 
@@ -215,20 +203,13 @@ namespace wilson
 
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pSpotLitMatrices12Buffer));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("LightBuffer::m_pSpotLitMatrices12Buffer::CreateBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pSpotLitMatrices12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("LightBuffer::m_pSpotLitMatrices12Buffer") - 1, "LightBuffer::m_pSpotLitMatrices12Buffer");
 
 			D3D12_RANGE readRange = { 0, };
 			hr = m_pSpotLitMatrices12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pSpotLitMatricesCbBegin));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("LightBuffer::m_pSpotLitMatrices12Buffer::Map()Failed");
-			}
-
+			assert(SUCCEEDED(hr));
 
 			UINT constantBufferSize = sizeof(SpotLightMatrices);
 

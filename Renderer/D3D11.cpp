@@ -175,54 +175,33 @@ namespace wilson
 			m_bVsyncOn = bVsync;
 
 			hr = CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&pFactory));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::pFactory::CreateDXGIFactoryFailed");
-			}
+			assert(SUCCEEDED(hr));
 			pFactory->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::pFactory") - 1, "D3D11::pFactory");
 
 			//Enumerates video cards
 			hr = pFactory->EnumAdapters(0, &pAdapter);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::pAdapter::EnumAdaptersFailed");
-			}
+			assert(SUCCEEDED(hr));
 			pAdapter->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::pAdapter") - 1, "D3D11::pAdapter");
 
 			//Enumerates outputs(ex:monitor)
 			hr = pAdapter->EnumOutputs(0, &pAdapterOutput);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::pAdapter::EnumOutputsFailed");
-			}
+			assert(SUCCEEDED(hr));
 
 			//Each monitor has a set of display modes it supports. A display mode refers to the following data in DXGI_MODE_DESC
 			hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, nullptr);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::pAdapterOutput::GetNumOfDisplayModeListFailed");
-			}
+			assert(SUCCEEDED(hr));
 
 			//Fixing a display mode format, we can get a list of all supported display modes an output supports in that format with the following code :
 			pDisplayModeList = new DXGI_MODE_DESC[numModes];
-			if (pDisplayModeList == nullptr)
-			{
-				OutputDebugStringA("D3D11::CreateDXGI_MODE_DESC Failed");
-			}
+			assert(pDisplayModeList!=nullptr);
 
 			hr = pAdapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, pDisplayModeList);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::pAdapterOutput::GetDisplayModeListFailed");
-			}
+			assert(SUCCEEDED(hr));
 
 			hr = pAdapter->GetDesc(&adapterDesc);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::pAdapter::GetDescFailed");
-			}
+			assert(SUCCEEDED(hr));
 
 
 			delete[] pDisplayModeList;
@@ -274,10 +253,7 @@ namespace wilson
 
 			hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_DEBUG, &featureLevel, 1,
 				D3D11_SDK_VERSION, &swapChainDesc, &m_pSwapChain, &m_pDevice, nullptr, &m_pContext);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::Create Device, Context, and SwapChain Failed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pDevice->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pDevice") - 1, "D3D11::m_pDevice");
 			m_pContext->SetPrivateData(WKPDID_D3DDebugObjectName,
@@ -289,18 +265,12 @@ namespace wilson
 
 
 			hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackbuffer));
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::pBackbuffer::CreateBackBufferFailed");
-			}
+			assert(SUCCEEDED(hr));
 			pBackbuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::pBackbuffer") - 1, "D3D11::pBackbuffer");
 
 			hr = m_pDevice->CreateRenderTargetView(pBackbuffer, nullptr, &m_pScreenRTTV);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pScreenRTTV::CreateRTVFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pScreenRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pScreenRTTV") - 1, "D3D11::m_pScreenRTTV");
 
@@ -340,10 +310,7 @@ namespace wilson
 
 
 				hr = m_pDevice->CreateBuffer(&quadBDSC, &quadData, &m_pQuadVB);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pQuadVB::CreateVBFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pQuadVB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pQuadVB") - 1, "D3D11::m_pQuadVB");
 
@@ -360,10 +327,7 @@ namespace wilson
 				indexBD.BindFlags = D3D11_BIND_INDEX_BUFFER;
 
 				hr = m_pDevice->CreateBuffer(&indexBD, &indexData, &m_pQuadIB);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pQuadIB::CreateIBFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pQuadIB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pQuadIB") - 1, "D3D11::m_pQuadIB");
 
@@ -396,10 +360,7 @@ namespace wilson
 				skyBoxVertexBD.StructureByteStride = 0;
 
 				hr = m_pDevice->CreateBuffer(&skyBoxVertexBD, &skyBoxVertexData, &m_pCubeVertices);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pCubeVertices::CreateVBFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pCubeVertices->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pCubeVertices") - 1, "D3D11::m_pCubeVertices");
 
@@ -440,10 +401,7 @@ namespace wilson
 				skyBoxIndexBD.StructureByteStride = 0;
 
 				hr = m_pDevice->CreateBuffer(&skyBoxIndexBD, &skyBoxIndexData, &m_pCubeIndices);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pCubeIndices::CreateIBFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pCubeIndices->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pCubeIndices") - 1, "D3D11::m_pCubeIndices");
 
@@ -452,10 +410,7 @@ namespace wilson
 				ZeroMemory(&skyboxDSD, sizeof(D3D11_DEPTH_STENCIL_DESC));
 				skyboxDSD.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 				hr = m_pDevice->CreateDepthStencilState(&skyboxDSD, &m_pSkyBoxDSS);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pSkyBoxDSS::CreateDSSFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pSkyBoxDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pSkyBoxDSS") - 1, "D3D11::m_pSkyBoxDSS");
 
@@ -465,10 +420,7 @@ namespace wilson
 				skyboxRD.FillMode = D3D11_FILL_SOLID;
 				skyboxRD.CullMode = D3D11_CULL_BACK;
 				hr = m_pDevice->CreateRasterizerState(&skyboxRD, &m_pSkyBoxRS);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pSkyBoxRS::CreateRSFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pSkyBoxRS->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pSkyBoxRS") - 1, "D3D11::m_pSkyBoxRS");
 
@@ -482,10 +434,7 @@ namespace wilson
 				bds.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 				bds.ByteWidth = sizeof(DirectX::XMFLOAT3) * 8;
 				hr = m_pDevice->CreateBuffer(&bds, 0, &m_pAABBVB);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pAABBVB::CreateVBFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pAABBVB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pAABBVB") - 1, "D3D11::m_pAABBVB");
 
@@ -503,10 +452,7 @@ namespace wilson
 				bds.ByteWidth = sizeof(unsigned long) * 24;
 				bds.CPUAccessFlags = 0;
 				hr = m_pDevice->CreateBuffer(&bds, &cubeIndexData, &m_pAABBIB);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pAABBIB::CreateIBFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pAABBIB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pAABBIB") - 1, "D3D11::m_pAABBIB");
 			}
@@ -543,29 +489,20 @@ namespace wilson
 			rasterDesc.SlopeScaledDepthBias = 1.0f;
 
 			hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pGeoRS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pGeoRS::CreateRSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pGeoRS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pGeoRS") - 1, "D3D11::m_pGeoRS");
 
 			rasterDesc.FrontCounterClockwise = false;
 			hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pQuadRS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pQuadRS::CreateRSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pQuadRS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pQuadRS") - 1, "D3D11::m_pQuadRS");
 
 			rasterDesc.FrontCounterClockwise = false;
 			rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
 			hr = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pAABBRS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pAABBRS::CreateRSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pAABBRS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pAABBRS") - 1, "D3D11::m_pAABBRS");
 
@@ -591,10 +528,7 @@ namespace wilson
 			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 
 			hr = m_pDevice->CreateSamplerState(&samplerDesc, &m_pWrapSS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pWrapSS::CreateSSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pWrapSS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pWrapSS") - 1, "D3D11::m_pWrapSS");
 
@@ -602,10 +536,7 @@ namespace wilson
 			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 			hr = m_pDevice->CreateSamplerState(&samplerDesc, &m_pClampSS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pClampSS::CreateSSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pClampSS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pClampSS") - 1, "D3D11::m_pClampSS");
 
@@ -620,10 +551,7 @@ namespace wilson
 
 			D3D11_BLEND_DESC blendDSC = { FALSE, FALSE, rtBlendDSC };
 			hr = m_pDevice->CreateBlendState(&blendDSC, &m_pGBufferWriteBS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pGBufferWriteBS::CreateBSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pGBufferWriteBS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pGBufferWriteBS") - 1, "D3D11::m_pGBufferWriteBS");
 
@@ -631,10 +559,7 @@ namespace wilson
 			rtBlendDSC.SrcBlend = D3D11_BLEND_SRC_ALPHA;
 			blendDSC.RenderTarget[0] = rtBlendDSC;
 			hr = m_pDevice->CreateBlendState(&blendDSC, &m_pLightingPassBS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pLightingPassBS::CreateBSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pLightingPassBS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pLightingPassBS") - 1, "D3D11::m_pLightingPassBS");
 
@@ -662,65 +587,44 @@ namespace wilson
 				bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 				bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 				hr = m_pDevice->CreateBuffer(&bufferDesc, 0, &m_pBoolCB);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pBoolCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pBoolCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pBoolCB") - 1, "D3D11::m_pBoolCB");
 
 				hr = m_pDevice->CreateBuffer(&bufferDesc, 0, &m_pHeightOnOffCB);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pHeightOnOffCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pHeightOnOffCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pHeightOnOffCB") - 1, "D3D11::m_pHeightOnOffCB");
 
 
 				bufferDesc.ByteWidth = sizeof(XMVECTOR);
 				hr = m_pDevice->CreateBuffer(&bufferDesc, 0, &m_pColorCB);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pColorCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pColorCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pColorCB") - 1, "D3D11::m_pColorCB");
 
 				bufferDesc.ByteWidth = sizeof(SamplePoints);
 				hr = m_pDevice->CreateBuffer(&bufferDesc, 0, &m_pSSAOKernelCB);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pSSAOKernel::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pSSAOKernelCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pSSAOKernelCB") - 1, "D3D11::m_pSSAOKernelCB");
 
 				bufferDesc.ByteWidth = sizeof(XMFLOAT4);
 				hr = m_pDevice->CreateBuffer(&bufferDesc, 0, &m_pExposureCB);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pExposureCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pExposureCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pExposureCB") - 1, "D3D11::m_pExposureCB");
 
 
 				hr = m_pDevice->CreateBuffer(&bufferDesc, 0, &m_pHeightScaleCB);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pHeightScaleCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pHeightScaleCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pHeightScaleCB") - 1, "D3D11::m_pHeightScaleCB");
 
 
 				bufferDesc.ByteWidth = sizeof(XMMATRIX) * 6;
 				hr = m_pDevice->CreateBuffer(&bufferDesc, 0, &m_pEquirect2CubeCB);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pEquirect2CubeCB::CreateBufferFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pEquirect2CubeCB->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pEquirect2CubeCB") - 1, "D3D11::m_pEquirect2CubeCB");
 
@@ -735,10 +639,7 @@ namespace wilson
 				D3D11_MAPPED_SUBRESOURCE mappedResource;
 				SamplePoints* pSamplePoints;
 				hr = m_pContext->Map(m_pSSAOKernelCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pSSAOKernelCB::MapFailed");
-				}
+				assert(SUCCEEDED(hr));
 				pSamplePoints = (SamplePoints*)mappedResource.pData;
 
 				std::uniform_real_distribution<float> randomFloats(0.0, 1.0f);
@@ -784,10 +685,7 @@ namespace wilson
 				data.SysMemPitch = texDesc.Width * sizeof(XMFLOAT3);
 
 				hr = m_pDevice->CreateTexture2D(&texDesc, &data, &m_pNoiseTex);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pNoiseTex::CreateTexFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pNoiseTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pNoiseTex") - 1, "D3D11::m_pNoiseTex");
 
@@ -797,10 +695,7 @@ namespace wilson
 				srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
 				srvDesc.Texture2D.MostDetailedMip = 0;
 				hr = m_pDevice->CreateShaderResourceView(m_pNoiseTex, &srvDesc, &m_pNoiseSRV);
-				if (FAILED(hr))
-				{
-					OutputDebugStringA("D3D11::m_pNoiseSRV::CreateSRVFailed");
-				}
+				assert(SUCCEEDED(hr));
 				m_pNoiseSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D11::m_pNoiseSRV") - 1, "D3D11::m_pNoiseSRV");
 			}
@@ -1084,11 +979,7 @@ namespace wilson
 
 			hr = m_pDevice->CreateTexture2D(&texDesc, &subResource, &m_pHDRTex);
 			stbi_image_free(data);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pHDRTex::CreateTexFailed");
-				return false;
-			}
+			assert(SUCCEEDED(hr));
 			m_pHDRTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pHDRTex") - 1, "D3D11::m_pHDRTex");
 
@@ -1099,11 +990,7 @@ namespace wilson
 			srvDesc.Texture2D.MostDetailedMip = 0;
 			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 			hr = m_pDevice->CreateShaderResourceView(m_pHDRTex, &srvDesc, &m_pHDRSRV);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pHDRSRV::CreateSRVFailed");
-				return false;
-			}
+			assert(SUCCEEDED(hr));
 			m_pHDRSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pHDRSRV") - 1, "D3D11::m_pHDRSRV");
 			return true;
@@ -1120,10 +1007,7 @@ namespace wilson
 		HRESULT hr;
 		D3D11_MAPPED_SUBRESOURCE mappedSubResource;
 		hr = m_pContext->Map(m_pEquirect2CubeCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubResource);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pEquirect2CubeCB::MapFailed");
-		}
+		assert(SUCCEEDED(hr));
 		UINT stride;
 		UINT offset = 0;
 
@@ -1219,17 +1103,11 @@ namespace wilson
 		HRESULT hr;
 		ID3D11Texture2D* pBackbuffer;
 		hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackbuffer));
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::pBackbuffer::CreateBackBufferFailed");
-		}
+		assert(SUCCEEDED(hr));
 		pBackbuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::pBackbuffer") - 1, "D3D11::pBackbuffer");
 		hr = m_pDevice->CreateRenderTargetView(pBackbuffer, nullptr, &m_pScreenRTTV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pScreenRTTV::CreateRTVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pScreenRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pScreenRTTV") - 1, "D3D11::m_pScreenRTTV");
 		pBackbuffer->Release();
@@ -1614,36 +1492,24 @@ namespace wilson
 		RTTDesc.MiscFlags = 0;
 
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pViewportTex);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pViewportTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pViewportTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pViewportTex") - 1, "D3D11::m_pViewportTex");
 
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSceneTex);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSceneTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSceneTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSceneTex") - 1, "D3D11::m_pSceneTex");
 
 
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSSAOBlurDebugTex);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSSAOBlurDebugTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAOBlurDebugTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurDebugTex") - 1, "D3D11::m_pSSAOBlurDebugTex");
 
 
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pBrightTex);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pBrightTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pBrightTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBrightTex") - 1, "D3D11::m_pBrightTex");
 
@@ -1651,20 +1517,14 @@ namespace wilson
 		for (int i = 0; i < 2; ++i)
 		{
 			hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pPingPongTex[i]);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pPingPongTex[modelGroupIdx]::CreateTexFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPingPongTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pPingPongTex[modelGroupIdx]") - 1, "D3D11::m_pPingPongTex[modelGroupIdx]");
 		}
 		for (int i = 0; i < _GBUF_COUNT; ++i)
 		{
 			hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pGbufferTex[i]);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pGbufferTex[modelGroupIdx]::CreateTexFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pGbufferTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pGbufferTex[modelGroupIdx]") - 1, "D3D11::m_pGbufferTex[modelGroupIdx]");
 		}
@@ -1675,36 +1535,24 @@ namespace wilson
 		RTTVDesc.Texture2D.MipSlice = 0;
 
 		hr = m_pDevice->CreateRenderTargetView(m_pViewportTex, &RTTVDesc, &m_pViewportRTTV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pViewportRTTV::CreateRTVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pViewportRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pViewportRTTV") - 1, "D3D11::m_pViewportRTTV");
 
 
 		hr = m_pDevice->CreateRenderTargetView(m_pSceneTex, &RTTVDesc, &m_pSceneRTTV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSceneRTTV::CreateRTVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSceneRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSceneRTTV") - 1, "D3D11::m_pSceneRTTV");
 
 
 		hr = m_pDevice->CreateRenderTargetView(m_pSSAOBlurDebugTex, &RTTVDesc, &m_pSSAOBlurDebugRTTV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSSAOBlurDebugRTTV::CreateRTVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAOBlurDebugRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurDebugRTTV") - 1, "D3D11::m_pSSAOBlurDebugRTTV");
 
 		hr = m_pDevice->CreateRenderTargetView(m_pBrightTex, &RTTVDesc, &m_pBrightRTTV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pBrightRTTV::CreateRTVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pBrightRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBrightRTTV") - 1, "D3D11::m_pBrightRTTV");
 
@@ -1712,20 +1560,14 @@ namespace wilson
 		for (int i = 0; i < 2; ++i)
 		{
 			hr = m_pDevice->CreateRenderTargetView(m_pPingPongTex[i], &RTTVDesc, &m_pPingPongRTTV[i]);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pPingPongRTTV[modelGroupIdx]::CreateRTVFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPingPongRTTV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pPingPongRTTV[modelGroupIdx]") - 1, "D3D11::m_pPingPongRTTV[modelGroupIdx]");
 		}
 		for (int i = 0; i < _GBUF_COUNT; ++i)
 		{
 			hr = m_pDevice->CreateRenderTargetView(m_pGbufferTex[i], &RTTVDesc, &m_pGbufferRTTV[i]);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pGbufferRTTV[modelGroupIdx]::CreateRTVFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pGbufferRTTV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pGbufferRTTV[modelGroupIdx]") - 1, "D3D11::m_pGbufferRTTV[modelGroupIdx]");
 		}
@@ -1737,37 +1579,25 @@ namespace wilson
 		SRVDesc.Texture2D.MipLevels = 1;
 
 		hr = m_pDevice->CreateShaderResourceView(m_pViewportTex, &SRVDesc, &m_pViewportSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pViewportSRV[modelGroupIdx]::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pViewportSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pViewportSRV") - 1, "D3D11::m_pViewportSRV");
 
 
 		hr = m_pDevice->CreateShaderResourceView(m_pSceneTex, &SRVDesc, &m_pSceneSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSceneSRV::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSceneSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSceneSRV") - 1, "D3D11::m_pSceneSRV");
 
 
 		hr = m_pDevice->CreateShaderResourceView(m_pSSAOBlurDebugTex, &SRVDesc, &m_pSSAOBlurDebugSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSSAOBlurDebug::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAOBlurDebugSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurDebugSRV") - 1, "D3D11::m_pSSAOBlurDebugSRV");
 
 
 		hr = m_pDevice->CreateShaderResourceView(m_pBrightTex, &SRVDesc, &m_pBrightSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pBrightSRV::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pBrightSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBrightSRV") - 1, "D3D11::m_pBrightSRV");
 
@@ -1775,75 +1605,51 @@ namespace wilson
 		for (int i = 0; i < 2; ++i)
 		{
 			hr = m_pDevice->CreateShaderResourceView(m_pPingPongTex[i], &SRVDesc, &m_pPingPongSRV[i]);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pPingPongSRV[modelGroupIdx]::CreateSRVFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPingPongSRV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pPingPongSRV[modelGroupIdx]") - 1, "D3D11::m_pPingPongSRV[modelGroupIdx]");
 		}
 		for (int i = 0; i < _GBUF_COUNT; ++i)
 		{
 			hr = m_pDevice->CreateShaderResourceView(m_pGbufferTex[i], &SRVDesc, &m_pGbufferSRV[i]);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("D3D11::m_pGbufferSRV[modelGroupIdx]::CreateSRVFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pGbufferSRV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pGbufferSRV[modelGroupIdx]") - 1, "D3D11::m_pGbufferSRV[modelGroupIdx]");
 		}
 
 		RTTDesc.Format = DXGI_FORMAT_R32_FLOAT;
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSSAOTex);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSSAOTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAOTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOTex") - 1, "D3D11::m_pSSAOTex");
 
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSSAOBlurTex);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSSAOBlurTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAOBlurTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurTex") - 1, "D3D11::m_pSSAOBlurTex");
 
 
 		RTTVDesc.Format = RTTDesc.Format;
 		hr = m_pDevice->CreateRenderTargetView(m_pSSAOTex, &RTTVDesc, &m_pSSAORTTV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSSAORTTV::CreateRTVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAORTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAORTTV") - 1, "D3D11::m_pSSAORTTV");
 
 
 		hr = m_pDevice->CreateRenderTargetView(m_pSSAOBlurTex, &RTTVDesc, &m_pSSAOBlurRTTV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSSAOBlurRTTV::CreateRTVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAOBlurRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurRTTV") - 1, "D3D11::m_pSSAOBlurRTTV");
 
 
 		SRVDesc.Format = RTTVDesc.Format;
 		hr = m_pDevice->CreateShaderResourceView(m_pSSAOTex, &SRVDesc, &m_pSSAOSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSSAOSRV::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAOSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOSRV") - 1, "D3D11::m_pSSAOSRV");
 
 		hr = m_pDevice->CreateShaderResourceView(m_pSSAOBlurTex, &SRVDesc, &m_pSSAOBlurSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSSAOBlurSRV::CreateSRVVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSSAOBlurSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSSAOBlurSRV") - 1, "D3D11::m_pSSAOBlurSRV");
 
@@ -1853,10 +1659,7 @@ namespace wilson
 		RTTDesc.Height = _SHADOWMAP_SIZE;
 		RTTDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pBRDFTex);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pBRDFTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pBRDFTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBRDFTex") - 1, "D3D11::m_pBRDFTex");
 
@@ -1865,10 +1668,7 @@ namespace wilson
 		RTTDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 		RTTDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pSkyBoxTex);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSkyBoxTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSkyBoxTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSkyBoxTex") - 1, "D3D11::m_pSkyBoxTex");
 
@@ -1876,10 +1676,7 @@ namespace wilson
 		RTTDesc.Width = 32;
 		RTTDesc.Height = RTTDesc.Width;
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pDiffIrradianceTex);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pDiffIrradianceTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pDiffIrradianceTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pDiffIrradianceTex") - 1, "D3D11::m_pDiffIrradianceTex");
 
@@ -1889,20 +1686,14 @@ namespace wilson
 		RTTDesc.Height = RTTDesc.Width;
 		RTTDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
 		hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pPrefilterTex);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pPrefilterTex::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pPrefilterTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pPrefilterTex") - 1, "D3D11::m_pPrefilterTex");
 
 
 		RTTVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
 		hr = m_pDevice->CreateRenderTargetView(m_pBRDFTex, &RTTVDesc, &m_pBRDFRTTV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pBRDFRTTV::CreateRTVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pBRDFRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBRDFRTTV") - 1, "D3D11::m_pBRDFRTTV");
 
@@ -1913,28 +1704,19 @@ namespace wilson
 		RTTVDesc.Texture2DArray.MipSlice = 0;
 		RTTVDesc.Texture2DArray.FirstArraySlice = 0;
 		hr = m_pDevice->CreateRenderTargetView(m_pSkyBoxTex, &RTTVDesc, &m_pSkyBoxRTV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSkyBoxRTV::CreateRTVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSkyBoxRTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSkyBoxRTV") - 1, "D3D11::m_pSkyBoxRTV");
 
 
 		hr = m_pDevice->CreateRenderTargetView(m_pDiffIrradianceTex, &RTTVDesc, &m_pDiffIrradianceRTTV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pDiffIrradianceRTTV::CreateRTVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pDiffIrradianceRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pDiffIrradianceRTTV") - 1, "D3D11::m_pDiffIrradianceRTTV");
 
 
 		hr = m_pDevice->CreateRenderTargetView(m_pPrefilterTex, &RTTVDesc, &m_pPrefilterRTTV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pPrefilterRTTV::CreateRTVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pPrefilterRTTV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pPrefilterRTTV") - 1, "D3D11::m_pPrefilterRTTV");
 
@@ -1942,10 +1724,7 @@ namespace wilson
 
 		SRVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
 		hr = m_pDevice->CreateShaderResourceView(m_pBRDFTex, &SRVDesc, &m_pBRDFSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pBRDFSRV::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pBRDFSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pBRDFSRV") - 1, "D3D11::m_pBRDFSRV");
 
@@ -1955,29 +1734,20 @@ namespace wilson
 		SRVDesc.TextureCube.MipLevels = 1;
 		SRVDesc.TextureCube.MostDetailedMip = 0;
 		hr = m_pDevice->CreateShaderResourceView(m_pSkyBoxTex, &SRVDesc, &m_pSkyBoxSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pSkyBoxSRV::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pSkyBoxSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pSkyBoxSRV") - 1, "D3D11::m_pSkyBoxSRV");
 
 
 		hr = m_pDevice->CreateShaderResourceView(m_pDiffIrradianceTex, &SRVDesc, &m_pDiffIrradianceSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pDiffIrradianceSRV::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pDiffIrradianceSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pDiffIrradianceSRV") - 1, "D3D11::m_pDiffIrradianceSRV");
 
 
 		SRVDesc.TextureCube.MipLevels = 5;
 		hr = m_pDevice->CreateShaderResourceView(m_pPrefilterTex, &SRVDesc, &m_pPrefilterSRV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pPrefilterSRV::CreateSRVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pPrefilterSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pPrefilterSRV") - 1, "D3D11::m_pPrefilterSRV");
 
@@ -2007,10 +1777,7 @@ namespace wilson
 		depthBufferDesc.MiscFlags = 0;
 
 		hr = m_pDevice->CreateTexture2D(&depthBufferDesc, nullptr, DepthRTT);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::D3D11::DepthRTT::CreateTexFailed");
-		}
+		assert(SUCCEEDED(hr));
 		(*DepthRTT)->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::DepthRTT") - 1, "D3D11::DepthRTT");
 
@@ -2023,10 +1790,7 @@ namespace wilson
 
 
 		hr = m_pDevice->CreateDepthStencilView(*DepthRTT, &depthStencilViewDesc, DepthDSV);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::D3D11::DepthDSV::CreateDSVFailed");
-		}
+		assert(SUCCEEDED(hr));
 		(*DepthDSV)->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::DepthDSV") - 1, "D3D11::DepthDSV");
 
@@ -2057,10 +1821,7 @@ namespace wilson
 		depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
 		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pOutlinerSetupDSS);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pOutlinerSetupDSS::CreateDSSFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pOutlinerSetupDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pOutlinerSetupDSS") - 1, "D3D11::m_pOutlinerSetupDSS");
 
@@ -2072,10 +1833,7 @@ namespace wilson
 		depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL;
 
 		hr = m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pOutlinerTestDSS);
-		if (FAILED(hr))
-		{
-			OutputDebugStringA("D3D11::m_pOutlinerTestDSS::CreateDSSFailed");
-		}
+		assert(SUCCEEDED(hr));
 		m_pOutlinerTestDSS->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D11::m_pOutlinerTestDSS") - 1, "D3D11::m_pOutlinerTestDSS");
 

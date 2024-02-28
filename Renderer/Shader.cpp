@@ -68,29 +68,16 @@ namespace wilson
 			ID3DBlob* pErrorBlob = nullptr;
 
 			hr = D3DCompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pVSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pVS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pVS::CreateVSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pVS") - 1, "Shader::m_pVS");
 
 			hr = D3DCompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_DEBUG | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION | D3D10_SHADER_SKIP_OPTIMIZATION, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pPS") - 1, "Shader::m_pPS");
 
@@ -137,69 +124,38 @@ namespace wilson
 									D3D11_INPUT_PER_INSTANCE_DATA, 1 };
 
 			hr = pDevice->CreateInputLayout(vertexIED, sizeof(vertexIED) / sizeof(vertexIED[0]), pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pInputLayout);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pInputLayout::CreateInputLayoutFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pInputLayout->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pInputLayout") - 1, "Shader::m_pInputLayout");
 
 			hr = D3DCompileFromFile(L"PosOnlyVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pVSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pPosOnlyVS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pPosOnlyVS::CreateVSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPosOnlyVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pPosOnlyVS") - 1, "Shader::m_pPosOnlyVS");
 
 
 			hr = D3DCompileFromFile(L"CascadeVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pVSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pCascadeDirVS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pCascadeDirVS::CreateVSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pCascadeDirVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pCascadeDirVS") - 1, "Shader::m_pCascadeDirVS");
 
 
 
 			hr = D3DCompileFromFile(L"CascadeGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pGSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &m_pCascadeDirGS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pCascadeDirGS::CreateGSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pCascadeDirGS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pCascadeDirGS") - 1, "Shader::m_pCascadeDirGS");
 
 			hr = D3DCompileFromFile(L"CascadePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pCascadeDirPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pCascadeDirPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pCascadeDirPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pCascadeDirPS") - 1, "Shader::m_pCascadeDirPS");
 
@@ -208,73 +164,39 @@ namespace wilson
 
 
 			hr = D3DCompileFromFile(L"Equirectangular2CubeMapGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pGSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &m_pEquirect2CubeGS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pEquirect2CubeGS::CreateGSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pEquirect2CubeGS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pEquirect2CubeGS") - 1, "Shader::m_pEquirect2CubeGS");
 
 
 			hr = D3DCompileFromFile(L"Equirectangular2CubeMapPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pEquirect2CubePS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pEquirect2CubePS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pEquirect2CubePS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pEquirect2CubePS") - 1, "Shader::m_pEquirect2CubePS");
 
 			hr = D3DCompileFromFile(L"DiffuseIrradiancePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pDiffuseIrradiancePS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pDiffuseIrradiancePS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pDiffuseIrradiancePS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pDiffuseIrradiancePS") - 1, "Shader::m_pDiffuseIrradiancePS");
 
 			hr = D3DCompileFromFile(L"PrefilterPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,&pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pPrefilterPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader:::m_pPrefilterPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPrefilterPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pPrefilterPS") - 1, "Shader::m_pPrefilterPS");
 
 
 			hr = D3DCompileFromFile(L"BRDFPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pBRDFPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader:::m_pBRDFPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pBRDFPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pBRDFPS") - 1, "Shader::m_pBRDFPS");
 
@@ -283,288 +205,160 @@ namespace wilson
 
 
 			hr = D3DCompileFromFile(L"SkyBoxVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pVSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pSkyBoxVS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pSkyBoxVS::CreateVSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pSkyBoxVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pSkyBoxVS") - 1, "Shader::m_pSkyBoxVS");
 
 			hr = D3DCompileFromFile(L"SkyBoxPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSkyBoxPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pSkyBoxPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pSkyBoxPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pSkyBoxPS") - 1, "Shader::m_pSkyBoxPS");
 
 
 			posOnlyIED = vertexIED[0];
 			hr = pDevice->CreateInputLayout(&posOnlyIED, 1, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pPosOnlyInputLayout);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pPosOnlyInputLayout::CreateInputLayoutFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPosOnlyInputLayout->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pPosOnlyInputLayout") - 1, "Shader::m_pPosOnlyInputLayout");
 
 
 
 			hr = D3DCompileFromFile(L"ShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pVSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pShadowVS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pShadowVS::CreateVSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pShadowVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pShadowVS") - 1, "Shader::m_pShadowVS");
 
 			hr = D3DCompileFromFile(L"ShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pShadowPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pShadowPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pShadowPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pShadowPS") - 1, "Shader::m_pShadowPS");
 
 
 
 			hr = D3DCompileFromFile(L"OmniDirShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pVSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowVS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pOmniDirShadowVS::CreateVSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pOmniDirShadowVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pOmniDirShadowVS") - 1, "Shader::m_pOmniDirShadowVS");
 
 
 
 			hr = D3DCompileFromFile(L"OmniDirShadowGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pGSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowGS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pOmniDirShadowGS::CreateGSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pOmniDirShadowGS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pOmniDirShadowGS") - 1, "Shader::m_pOmniDirShadowGS");
 
 
 
 			hr = D3DCompileFromFile(L"OmniDirShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pOmniDirShadowPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pOmniDirShadowPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pOmniDirShadowPS") - 1, "Shader::m_pOmniDirShadowPS");
 
 
 
 			hr = D3DCompileFromFile(L"TexVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pVSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pTexVS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pTexVS::CreateVSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pTexVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pTexVS") - 1, "Shader::m_pTexVS");
 
 			hr = pDevice->CreateInputLayout(vertexIED, 2, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pTexInputLayout);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pTexInputLayout::CreateInputLayoutFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pTexInputLayout->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pTexInputLayout") - 1, "Shader::m_pTexInputLayout");
 
 
 			hr = D3DCompileFromFile(L"GeometryVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pVSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pGeometryVS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pGeometryVS::CreateVSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pGeometryVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pGeometryVS") - 1, "Shader::m_pGeometryVS");
 
 			hr = pDevice->CreateInputLayout(vertexIED, 4, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &m_pDeferredGeoLayout);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pDeferredGeoLayout::CreateInputLayoutFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pDeferredGeoLayout->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pDeferredGeoLayout") - 1, "Shader::m_pDeferredGeoLayout");
 
 
 			hr = D3DCompileFromFile(L"GeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pGeometryPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pGeometryPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pGeometryPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pGeometryPS") - 1, "Shader::m_pGeometryPS");
 
 
 			hr = D3DCompileFromFile(L"SSAOPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSSAOPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pSSAOPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pSSAOPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pSSAOPS") - 1, "Shader::m_pSSAOPS");
 
 
 			hr = D3DCompileFromFile(L"SSAOBlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pSSAOBlurPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pSSAOBlurPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pSSAOBlurPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pSSAOBlurPS") - 1, "Shader::m_pSSAOBlurPS");
 
 
 			hr = D3DCompileFromFile(L"DeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pDeferredPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pDeferredPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pDeferredPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pDeferredPS") - 1, "Shader::m_pDeferredPS");
 
 
 
 			hr = D3DCompileFromFile(L"PBRGeometryVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pVSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pPBRGeometryVS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pPBRGeometryVS::CreateVSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPBRGeometryVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pPBRGeometryVS") - 1, "Shader::m_pPBRGeometryVS");
 
 
 
 			hr = D3DCompileFromFile(L"PBRGeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pPBRGeometryPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pPBRGeometryPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPBRGeometryPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pPBRGeometryPS") - 1, "Shader::m_pPBRGeometryPS");
 
 
 			hr = D3DCompileFromFile(L"PBRDeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pPBRDeferredPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pPBRDeferredPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pPBRDeferredPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pPBRDeferredPS") - 1, "Shader::m_pPBRDeferredPS");
 
 
 
 			hr = D3DCompileFromFile(L"MatrixTransformVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pVSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pMatrixTransformVS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pMatrixTransformVS::CreateVSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pMatrixTransformVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pMatrixTransformVS") - 1, "Shader::m_pMatrixTransformVS");
 
@@ -572,93 +366,51 @@ namespace wilson
 
 
 			hr = D3DCompileFromFile(L"ConstantPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pConstantPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pConstantPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pConstantPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pConstantPS") - 1, "Shader::m_pConstantPS");
 
 
 			hr = D3DCompileFromFile(L"AABBVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pVSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pAABBVS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pAABBVS::CreateVSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pAABBVS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pAABBVS") - 1, "Shader::m_pAABBVS");
 
 
 			hr = D3DCompileFromFile(L"AABBPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pAABBPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pAABBPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pAABBPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pAABBPS") - 1, "Shader::m_pAABBPS");
 
 
 			hr = D3DCompileFromFile(L"OutlinerPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pOutlinerPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pOutlinerPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pOutlinerPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pOutlinerPS") - 1, "Shader::m_pOutlinerPS");
 
 
 
 			hr = D3DCompileFromFile(L"BlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pBlurPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pBlurPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pBlurPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pBlurPS") - 1, "Shader::m_pBlurPS");
 
 
 
 			hr = D3DCompileFromFile(L"FinPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
-
-			}
+			assert(SUCCEEDED(hr));
 			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pFinPS);
-			if (FAILED(hr))
-			{
-				OutputDebugStringA("Shader::m_pFinPS::CreatePSFailed");
-			}
+			assert(SUCCEEDED(hr));
 			m_pFinPS->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader::m_pFinPS") - 1, "Shader::m_pFinPS");
 

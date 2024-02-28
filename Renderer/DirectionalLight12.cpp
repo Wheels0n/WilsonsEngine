@@ -45,10 +45,7 @@ namespace wilson
 
                 hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
                     &cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pLight12Buffer));
-                if (FAILED(hr))
-                {
-                    OutputDebugStringA("DirectionalLight::m_pLight12Buffer::CreateBufferFailed");
-                }
+                assert(SUCCEEDED(hr));
                 m_pLight12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
                     sizeof("DirectionalLight::m_pLight12Buffer") - 1, "DirectionalLight::m_pLight12Buffer");
 
@@ -73,19 +70,13 @@ namespace wilson
 
                 hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
                     &cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pMatrice12Buffer));
-                if (FAILED(hr))
-                {
-                    OutputDebugStringA("DirectionalLight::m_pMatrices12Buffer::CreateBufferFailed");
-                }
+                assert(SUCCEEDED(hr));
                 m_pMatrice12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
                     sizeof("DirectionalLight::m_pMatrices12Buffer") - 1, "DirectionalLight::m_pMatrices12Buffer");
 
                 D3D12_RANGE readRange = { 0, };
                 hr = m_pMatrice12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pMatricesCbBegin));
-                if (FAILED(hr))
-                {
-                    OutputDebugStringA("DirectionalLight::m_pMatrices12Buffer::Map()Failed");
-                }
+                assert(SUCCEEDED(hr));
 
 
                 UINT constantBufferSize = sizeof(DirectX::XMMATRIX) * _CASCADE_LEVELS;
