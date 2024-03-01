@@ -49,9 +49,7 @@ namespace wilson
 			m_instancedData = nullptr;
 			m_isInstanced = false;
 			m_pInstancePosCB = nullptr;
-			m_pPerModelCB = nullptr;
 			m_pMatBuffer = nullptr;
-			m_pPerModel = nullptr;
 			m_pMaterial = nullptr;
 		}
 
@@ -283,49 +281,6 @@ namespace wilson
 				pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 			}
 
-			//Gen perModelCB
-			{
-
-				D3D12_HEAP_PROPERTIES heapProps = {};
-				heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-				heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-				heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-				heapProps.CreationNodeMask = 1;
-				heapProps.VisibleNodeMask = 1;
-
-				D3D12_RESOURCE_DESC cbufferDesc = {};
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(PerModel));
-				cbufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-				cbufferDesc.Alignment = 0;
-				cbufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-				cbufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-				cbufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-				cbufferDesc.Height = 1;
-				cbufferDesc.DepthOrArraySize = 1;
-				cbufferDesc.MipLevels = 1;
-				cbufferDesc.SampleDesc.Count = 1;
-				cbufferDesc.SampleDesc.Quality = 0;
-
-
-				UINT constantBufferSize = sizeof(PerModel);
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ| D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pPerModelCB));
-				assert(SUCCEEDED(hr));
-				m_pPerModelCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("Model12::m_pPerModelCB") - 1, "Model12::m_pPerModelCB");
-				
-				hr = m_pPerModelCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pPerModel));
-				assert(SUCCEEDED(hr));
-
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);;
-				cbvDesc.BufferLocation = m_pPerModelCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-				m_perModelCBV = cbvSrvGpuHandle;
-				pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-			}
 
 		}
 
@@ -398,12 +353,6 @@ namespace wilson
 		{
 			m_pInstancePosCB->Release();
 			m_pInstancePosCB = nullptr;
-		}
-
-		if (m_pPerModelCB != nullptr)
-		{
-			m_pPerModelCB->Release();
-			m_pPerModelCB = nullptr;
 		}
 
 		if (m_instancedData != nullptr)
@@ -491,14 +440,6 @@ namespace wilson
 			{
 				memcpy(m_pMaterial, &matInfo.material, sizeof(Material));
 				pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsMaterial, m_materialCBV);
-			}
-
-			//Upload perModelCB
-			{
-				
-				memcpy(m_pPerModel, &m_perModels[i], sizeof(PerModel));
-				pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_eVsPerModel, m_perModelCBV);
-				pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsPerModel, m_perModelCBV);
 			}
 
 			//Set SRV

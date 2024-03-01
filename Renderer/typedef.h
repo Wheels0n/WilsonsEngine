@@ -193,7 +193,6 @@ namespace wilson
 	enum ePbrGeoRP
 	{
 		ePbrGeo_eVsMat,
-		ePbrGeo_eVsPerModel,
 		ePbrGeo_ePsDiffuse,
 		ePbrGeo_ePsNormal,
 		ePbrGeo_ePsSpecular,
@@ -201,10 +200,8 @@ namespace wilson
 		ePbrGeo_ePsAlpha,
 		ePbrGeo_ePsSampler,
 		ePbrGeo_ePsCamPos,
-		ePbrGeo_ePsPerModel,
 		ePbrGeo_ePsMaterial,
 		ePbrGeo_ePsHeightScale,
-		ePbrGeo_ePsbHeight,
 		ePbrGeo_eCnt
 	};
 

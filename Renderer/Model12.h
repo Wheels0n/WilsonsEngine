@@ -65,6 +65,10 @@ namespace wilson {
 		{
 			return &m_angleVec;
 		}
+		inline PerModel* GetPerModel(UINT i)
+		{
+			return &m_perModels[i];
+		}
 		inline UINT GetIndexCount(UINT i)
 		{
 
@@ -129,13 +133,11 @@ namespace wilson {
 		ID3D12Resource* m_pIB;
 		ID3D12Resource* m_pMaterialCB;
 		ID3D12Resource* m_pInstancePosCB;
-		ID3D12Resource* m_pPerModelCB;
-
+		
 		D3D12_VERTEX_BUFFER_VIEW m_vbV;
 		std::vector<D3D12_INDEX_BUFFER_VIEW> m_ibVs;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_materialCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_instancePosCBV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_perModelCBV;
 
 		std::string m_Name;
 		std::vector<std::string>m_matNames;
@@ -172,7 +174,6 @@ namespace wilson {
 		AABB* m_pAABB;
 		MatBuffer12* m_pMatBuffer;
 
-		UINT* m_pPerModel;
 		UINT* m_pMaterial;
 	};
 }

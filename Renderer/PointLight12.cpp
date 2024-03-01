@@ -90,7 +90,6 @@ namespace wilson
             heapProps.VisibleNodeMask = 1;
 
             D3D12_RESOURCE_DESC cbufferDesc = {};
-            cbufferDesc.Width = _64KB_ALIGN(sizeof(PointLightProperty));
             cbufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
             cbufferDesc.Alignment = 0;
             cbufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -101,28 +100,6 @@ namespace wilson
             cbufferDesc.MipLevels = 1;
             cbufferDesc.SampleDesc.Count = 1;
             cbufferDesc.SampleDesc.Quality = 0;
-
-
-            {
-                D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-                D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-                hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-                    &cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pLight12Buffer));
-                assert(SUCCEEDED(hr));
-                m_pLight12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-                    sizeof("PointlLight::m_pLight12Buffer") - 1, "PointlLight::m_pLight12Buffer");
-
-                UINT constantBufferSize = sizeof(PointLightProperty);
-
-                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-                cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-                cbvDesc.BufferLocation = m_pLight12Buffer->GetGPUVirtualAddress();
-                pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-                m_lightCBV = cbvSrvGpuHandle;
-                pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-            }
-          
 
             {
 

@@ -102,25 +102,19 @@ namespace wilson
 			WaitForSingleObject(m_workerBeginDeferredGeoPass[threadIndex], INFINITE);
 
 			m_pWorkerCommandAllocator[threadIndex]->Reset();
-			m_pWokerCommandList[threadIndex]->Reset(m_pWorkerCommandAllocator[threadIndex], m_pDeferredGeoPso);
-
+			m_pWokerCommandList[threadIndex]->Reset(m_pWorkerCommandAllocator[threadIndex], nullptr);
+	
 			m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-			m_pWokerCommandList[threadIndex]->SetPipelineState(m_pDeferredGeoPso);
 			m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetPBRDeferredGeoShaderRootSingnature());
 			m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			m_pWokerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
 			m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
-			{
-				memcpy(m_pHeightScaleCbBegin, &m_heightScale, sizeof(float));
-				m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsHeightScale, m_HeightScaleCBV);
-
-				memcpy(m_pHeightOnOffCbBegin, &m_bHeightOnOff, sizeof(BOOL));
-				m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsbHeight, m_HeightOnOffCBV);
-			}
 
 			m_pCam->SetCamPos(m_pWokerCommandList[threadIndex], !bGeoPass);
 			m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsSampler, m_WrapSSV);
 			m_pWokerCommandList[threadIndex]->OMSetRenderTargets(_GBUF_COUNT, m_GBufRTV, FALSE, &m_pSceneDSV);
+			memcpy(m_pHeightScaleCbBegin, &m_heightScale, sizeof(float));
+			m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsHeightScale, m_HeightScaleCBV);
 			DrawENTT(!bGeoPass, bSpotShadowPass, threadIndex);
 
 			m_pWokerCommandList[threadIndex]->Close();
@@ -222,7 +216,7 @@ namespace wilson
 	}
 	void D3D12::WaitForGpu()
 	{
-		m_pCommandQueue->Signal(m_pFence, m_fenceValue);
+		
 		if (m_pFence->GetCompletedValue() < m_fenceValue)
 		{
 			m_pFence->SetEventOnCompletion(m_fenceValue, m_fenceEvent);
@@ -1091,7 +1085,6 @@ namespace wilson
 		UINT ENTTDrawn = 0;
 		Plane* pPlanes = m_pFrustum->GetPlanes();
 
-
 		for (int i = threadIndex; i < m_pTotalModels.size(); i+=_THREAD_COUNT)
 		{
 			ENTTCnt++;
@@ -1100,6 +1093,7 @@ namespace wilson
 			AABB* aabb = m_pTotalModels[i]->GetAABB();
 			if (aabb->IsOnFrustum(pPlanes, worldMat))
 			{
+
 				ENTTDrawn++;
 				MatBuffer12* pMatBuffer = m_pTotalModels[i]->GetMatBuffer();
 				pMatBuffer->SetWorldMatrix(&worldMat);
@@ -1117,28 +1111,44 @@ namespace wilson
 					pMatBuffer->UploadMatBuffer(m_pWokerCommandList[threadIndex], bSpotShadowPass);
 				}
 
-				//PbrGeoPass의 깊이 버퍼에 Outline을 위한 Stencil값을 설정함
-			/*	bool isSelected = (i == m_selectedModelGroup && j == m_selectedModel);
-				if (isSelected&&bGeoPass)
-				{
-					m_pMainCommandList->SetPipelineState(m_pOutlinerSetupPso);
-					m_pMainCommandList->OMSetStencilRef(1);
-				}*/
-
-
 				for (int j = 0; j < m_pTotalModels[i]->GetMatCount(); ++j)
 				{
+					if (bGeoPass)
+					{
+						PerModel perModel = *(m_pTotalModels[i]->GetPerModel(j));
+						if (perModel.hasNormal)
+						{
+							if (m_bHeightOnOff)
+							{
+								if (perModel.hasEmissive)
+								{
+									m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightEmissivePso);
+								}
+								else
+								{
+									m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightPso);
+								}
+							}
+							else
+							{
+								m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalPso);
+							}
+						}
+						else if (perModel.hasEmissive)
+						{
+							m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoEmissivePso);
+						}
+						else
+						{
+							m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoPso);
+						}
+					}
+
 					m_pTotalModels[i]->UploadBuffers(m_pWokerCommandList[threadIndex], j, bGeoPass);
 					m_pWokerCommandList[threadIndex]->DrawIndexedInstanced(m_pTotalModels[i]->GetIndexCount(j),1,
 						0, 0, 0);
 				}
 
-	/*			if (isSelected && bGeoPass)
-				{	
-					m_pMainCommandList->SetPipelineState(m_pDeferredGeoPso);
-					m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetDeferredGeoShaderRootSingnature());
-					m_pMainCommandList->OMSetStencilRef(0);
-				}*/
 			}
 		}
 
@@ -1226,6 +1236,7 @@ namespace wilson
 
 	void D3D12::UpdateScene()
 	{
+		//WaitForGpu();
 		HRESULT hr;
 		float color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		int drawed = 0;
@@ -1275,7 +1286,7 @@ namespace wilson
 		UINT litCountSum = litCounts[0] + litCounts[1] + litCounts[2];
 		//Clear ShadowMap	
 		if (litCountSum)
-		{	//ShadowMap 리소스 배리어 고치기
+		{	
 			m_pShadowMap->SetResourceBarrier(m_pMainCommandList, litCounts,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
 			m_pShadowMap->SetResourceBarrier(m_pMainCommandList, litCounts,
@@ -1347,39 +1358,6 @@ namespace wilson
 				D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, false);
 		}
 		
-
-		//Draw SkyBox
-		m_pMainCommandList->SetPipelineState(m_pSkyBoxPso);
-		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-		m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetSkyBoxRootSingnature());
-		m_pMainCommandList->SetGraphicsRootDescriptorTable(eSkybox_ePsDiffuseMap, m_SkyBoxSRV);
-		m_pMainCommandList->SetGraphicsRootDescriptorTable(eSkybox_ePsSampler, m_WrapSSV);
-		m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_pMainCommandList->IASetVertexBuffers(0, 1, &m_SkyBoxVBV);
-		m_pMainCommandList->IASetIndexBuffer(&m_SkyBoxIBV);
-		m_pMainCommandList->RSSetViewports(1, &m_viewport);
-		m_pMainCommandList->RSSetScissorRects(1, &m_scissorRect);
-		m_pMainCommandList->OMSetRenderTargets(1, &m_GBufRTV[eGbuf_albedo], FALSE, &m_pSceneDSV);
-
-		m_pMatBuffer->SetWorldMatrix(&m_idMat);
-		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
-		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-		m_pMatBuffer->UpdateCombinedMat(bSpotShadowPass);
-		m_pMatBuffer->UploadCombinedMat(m_pMainCommandList, bSpotShadowPass);
-		m_pMainCommandList->DrawIndexedInstanced(_CUBE_IDX_COUNT, 1, 0, 0, 0);
-		m_pMainCommandList->Close();
-
-		m_pCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pMainCommandList);
-		fenceValue = m_fenceValue++;
-		m_pCommandQueue->Signal(m_pFence, fenceValue);
-		if (m_pFence->GetCompletedValue() < fenceValue)
-		{
-			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
-			WaitForSingleObject(m_fenceEvent, INFINITE);
-		}
-		m_pMainCommandAllocator->Reset();
-		m_pMainCommandList->Reset(m_pMainCommandAllocator, nullptr);
-
 
 		//Draw PbrGeo
 		for (int i = 0; i < _THREAD_COUNT; ++i)
@@ -1493,32 +1471,29 @@ namespace wilson
 			m_pMainCommandList->ResourceBarrier(3, barriers);
 		}
 		
-		/*
-		m_pMainCommandList->SetPipelineState(m_pOutlinerTestPso);
-		m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetOutlinerTestShaderRootSingnature());
-		m_pMainCommandList->SetGraphicsRootDescriptorTable(eOutlinerRP::eOutliner_ePsWrap, m_WrapSSV);
-		m_pMainCommandList->SetGraphicsRootDescriptorTable(eOutlinerRP::eOutliner_ePsAlbedo, m_GBufSRV[eGbuf_albedo]);
-		m_pMainCommandList->OMSetRenderTargets(1, &m_SceneRTV, FALSE, &m_pSceneDSV);
-		m_pMainCommandList->OMSetStencilRef(1);
-		if (m_selectedModelGroup != -1)
-		{
-			std::vector<Model12*> pModels = m_pModelGroups[m_selectedModelGroup]->GetModels();
-			XMMATRIX worldMat = pModels[m_selectedModel]->GetTransformMatrix(true);
-			m_pOutlinerMatBuffer->SetWorldMatrix(&worldMat);
-			m_pOutlinerMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
-			m_pOutlinerMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-			m_pOutlinerMatBuffer->UpdateCombinedMat(bSpotShadowPass);
-			m_pOutlinerMatBuffer->UploadCombinedMat(m_pMainCommandList, bSpotShadowPass);
 
-			for (int k = 0; k < pModels[m_selectedModel]->GetMatCount(); ++k)
-			{
-				pModels[m_selectedModel]->UploadBuffers(m_pMainCommandList, k, bGeoPass);
-				m_pMainCommandList->DrawIndexedInstanced(pModels[m_selectedModel]->GetIndexCount(k), 1, 
-					pModels[m_selectedModel]->GetIndexOffset(k), 0, 0);
-			}
-		}*/
 		m_pMainCommandList->OMSetStencilRef(0);
 
+		//Draw SkyBox
+		m_pMainCommandList->SetPipelineState(m_pSkyBoxPso);
+		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+		m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetSkyBoxRootSingnature());
+		m_pMainCommandList->SetGraphicsRootDescriptorTable(eSkybox_ePsDiffuseMap, m_SkyBoxSRV);
+		m_pMainCommandList->SetGraphicsRootDescriptorTable(eSkybox_ePsSampler, m_WrapSSV);
+		m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_pMainCommandList->IASetVertexBuffers(0, 1, &m_SkyBoxVBV);
+		m_pMainCommandList->IASetIndexBuffer(&m_SkyBoxIBV);
+		m_pMainCommandList->RSSetViewports(1, &m_viewport);
+		m_pMainCommandList->RSSetScissorRects(1, &m_scissorRect);
+		m_pMainCommandList->OMSetRenderTargets(1, &m_SceneRTV, TRUE, &m_pSceneDSV);
+
+		m_pMatBuffer->SetWorldMatrix(&m_idMat);
+		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
+		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
+		m_pMatBuffer->UpdateCombinedMat(bSpotShadowPass);
+		m_pMatBuffer->UploadCombinedMat(m_pMainCommandList, bSpotShadowPass);
+		m_pMainCommandList->DrawIndexedInstanced(_CUBE_IDX_COUNT, 1, 0, 0, 0);
+	
 		//Submit Result
 		m_pMainCommandList->SetPipelineState(m_pFinalPso);
 		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
@@ -1538,8 +1513,7 @@ namespace wilson
 		D3D12_RESOURCE_BARRIER rtvToSrv = CreateResourceBarrier(m_pSceneTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		m_pMainCommandList->ResourceBarrier(1, &rtvToSrv);
 
-		m_pMainCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsTex,
-			m_pModelGroups.empty() || !m_pFrustum->GetENTTsInFrustum() ? m_GBufSRV[eGbuf_albedo] : m_SceneSRV);
+		m_pMainCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsTex, m_SceneSRV);
 		m_pMainCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsSampler, m_WrapSSV);
 		m_pMainCommandList->OMSetRenderTargets(1, &m_ViewportRTV, FALSE, &m_pSceneDSV);
 		m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
@@ -1691,7 +1665,8 @@ namespace wilson
 		{
 			m_pSwapChain->Present(0, 0);
 		}
-		m_curFrame = ++m_curFrame % _BUFFER_COUNT;
+		
+		m_curFrame = m_pSwapChain->GetCurrentBackBufferIndex();
 	}
 
 	D3D12::D3D12(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
@@ -1726,7 +1701,12 @@ namespace wilson
 		m_pSpotShadowPso = nullptr;
 		m_pOmniDirShadowPso = nullptr;
 		m_pSkyBoxPso = nullptr;
-		m_pDeferredGeoPso = nullptr;
+		m_pPbrDeferredGeoPso = nullptr;
+		m_pPbrDeferredGeoEmissivePso = nullptr;
+		m_pPbrDeferredGeoNormalPso = nullptr;
+		m_pPbrDeferredGeoNormalHeightPso = nullptr;
+		m_pPbrDeferredGeoNormalHeightEmissivePso = nullptr;
+
 		m_pOutlinerSetupPso = nullptr;
 		m_pOutlinerTestPso = nullptr;
 		m_pSSAOPso = nullptr;
@@ -1751,7 +1731,6 @@ namespace wilson
 		m_pSSAOKernelCB = nullptr;
 		m_pExposureCB = nullptr;
 		m_pHeightScaleCB = nullptr;
-		m_pHeightOnOffCB = nullptr;
 		m_pEquirect2CubeCB = nullptr;
 		m_pMipCB = nullptr;
 		m_pHdrUploadCB = nullptr;
@@ -1791,7 +1770,6 @@ namespace wilson
 		m_pShader = nullptr;
 		m_pShadowMap = nullptr;
 
-		m_pHeightOnOffCbBegin = nullptr;
 		m_pHeightScaleCbBegin = nullptr;
 		m_pExposureCbBegin = nullptr;
 
@@ -1800,12 +1778,12 @@ namespace wilson
 		
 		HRESULT hr;
 		bool result;
-		
+#ifdef _DEBUG
 		hr = D3D12GetDebugInterface(IID_PPV_ARGS(&m_pDebugController));
 		assert(SUCCEEDED(hr));
 		m_pDebugController->EnableDebugLayer();
-		
-		IDXGIFactory* pFactory;
+#endif
+		IDXGIFactory3* pFactory;
 		hr = CreateDXGIFactory(IID_PPV_ARGS(&pFactory));
 		assert(SUCCEEDED(hr));
 		pFactory->SetPrivateData(WKPDID_D3DDebugObjectName,
@@ -1858,42 +1836,46 @@ namespace wilson
 			sizeof("D3D12::m_pCommandQueue") - 1, "D3D12::m_pCommandQueue");
 
 
-		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+		DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 		D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
 		swapChainDesc = {};
-		swapChainDesc.BufferCount = _BUFFER_COUNT;
-		swapChainDesc.BufferDesc.Width = m_clientWidth;
-		swapChainDesc.BufferDesc.Height = m_clientHeight;
-		swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-
-		if (m_bVsyncOn)
-		{
-			swapChainDesc.BufferDesc.RefreshRate.Numerator = _REFRESH_RATE;
-			swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
-		}
-		else
-		{
-			swapChainDesc.BufferDesc.RefreshRate.Numerator = 0;
-			swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
-		}
-
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-		swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-		swapChainDesc.OutputWindow = hWnd;
-
+		swapChainDesc.BufferCount = _BUFFER_COUNT;
+		swapChainDesc.Width = m_clientWidth;
+		swapChainDesc.Height = m_clientHeight;
+		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		swapChainDesc.SampleDesc.Count = 1;
 		swapChainDesc.SampleDesc.Quality = 0;
-
-		swapChainDesc.Windowed = bFullscreen ? FALSE : TRUE;
-
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.Flags = 0;
 
-		hr = pFactory->CreateSwapChain(m_pCommandQueue, &swapChainDesc, &m_pSwapChain);
+		DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullScreenDesc = {};
+		if (m_bVsyncOn)
+		{
+			fullScreenDesc.RefreshRate.Numerator = _REFRESH_RATE;
+			fullScreenDesc.RefreshRate.Denominator = 1;
+		}
+		else
+		{
+			fullScreenDesc.RefreshRate.Numerator = 0;
+			fullScreenDesc.RefreshRate.Denominator = 1;
+		}
+
+		fullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+		fullScreenDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+		fullScreenDesc.Windowed = bFullscreen ? FALSE : TRUE;
+		
+		IDXGISwapChain1* pSwapChain;
+		hr = pFactory->CreateSwapChainForHwnd(m_pCommandQueue, hWnd, 
+			&swapChainDesc, &fullScreenDesc, 
+			nullptr, 
+			&pSwapChain);
 		assert(SUCCEEDED(hr));
+
+		pSwapChain->QueryInterface(IID_PPV_ARGS(&m_pSwapChain));
 		m_pSwapChain->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pSwapChain") - 1, "D3D12::m_pSwapChain");
+		m_curFrame = m_pSwapChain->GetCurrentBackBufferIndex();
 
 		delete[] pDisplayModeList;
 		pDisplayModeList = nullptr;
@@ -2103,6 +2085,7 @@ namespace wilson
 			defaultDss.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
 			defaultDss.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
 
+			skyboxDSD.DepthEnable= TRUE;
 			skyboxDSD.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 			//pso에 설정, com 개체가 아님.
 
@@ -2158,12 +2141,12 @@ namespace wilson
 			hr=m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pOmniDirShadowPso));
 
 			psoDesc.pRootSignature = m_pShader->GetSkyBoxRootSingnature();
+			psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;//고정
 			psoDesc.DepthStencilState = skyboxDSD;
 			m_pShader->SetSkyBoxShader(&psoDesc);
 			hr=m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pSkyBoxPso));
 
 
-			psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;//고정
 			for (int i = 0; i < _GBUF_COUNT; ++i)
 			{
 				psoDesc.RTVFormats[i] = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -2175,8 +2158,26 @@ namespace wilson
 			psoDesc.NumRenderTargets = _GBUF_COUNT;
 			m_pShader->SetDeferredGeoLayout(&psoDesc);
 			m_pShader->SetPBRDeferredGeoShader(&psoDesc);
-			m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pDeferredGeoPso));
+			m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPbrDeferredGeoPso));
+			m_pPbrDeferredGeoPso->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12:::m_pPbrDeferredGeoPso") - 1, "D3D12:::m_pPbrDeferredGeoPso");
+			m_pShader->SetPBRDeferredGeoEmissiveShader(&psoDesc);
+			m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPbrDeferredGeoEmissivePso));
+			m_pPbrDeferredGeoEmissivePso->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12:::m_pPbrDeferredGeoEmissivePso") - 1, "D3D12:::m_pPbrDeferredGeoEmissivePso");
+			m_pShader->SetPBRDeferredGeoNormalShader(&psoDesc);
+			m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPbrDeferredGeoNormalPso));
+			m_pPbrDeferredGeoNormalPso->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12:::m_pPbrDeferredGeoNormalPso") - 1, "D3D12:::m_pPbrDeferredGeoNormalPso");
 
+			m_pShader->SetPBRDeferredGeoNormalHeightShader(&psoDesc);
+			m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPbrDeferredGeoNormalHeightPso));
+			m_pPbrDeferredGeoNormalHeightPso->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12:::m_pPbrDeferredGeoNormalHeightPso") - 1, "D3D12:::m_pPbrDeferredGeoNormalHeightPso");
+			m_pShader->SetPBRDeferredGeoNormalHeightEmissiveShader(&psoDesc);
+			hr =m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPbrDeferredGeoNormalHeightEmissivePso));
+			m_pPbrDeferredGeoNormalHeightEmissivePso->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12:::m_pPbrDeferredGeoNormalHeightEmissivePso") - 1, "D3D12:::m_pPbrDeferredGeoNormalHeightEmissivePso");
 			//GeoPass에서 picking 한 모델만  Stencil값을 처리해주기 떄문에 pso에서 DSS만 바꿔줌. 
 			psoDesc.DepthStencilState = outlinerSetupDss;
 			m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pOutlinerSetupPso));
@@ -2362,29 +2363,6 @@ namespace wilson
 
 			}
 			
-			{
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pHeightOnOffCB));
-				assert(SUCCEEDED(hr));
-				m_pHeightOnOffCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pHeightOnOffCB") - 1, "D3D12::m_pHeightOnOffCB");
-
-				hr = m_pHeightOnOffCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pHeightOnOffCbBegin));
-				assert(SUCCEEDED(hr));
-
-				UINT constantBufferSize = sizeof(BOOL) * 4;
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pHeightOnOffCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_HeightOnOffCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			}
 			
 			{
 				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
@@ -3026,12 +3004,31 @@ namespace wilson
 			m_pSkyBoxPso = nullptr;
 		}
 		
-		if (m_pDeferredGeoPso != nullptr)
+		if (m_pPbrDeferredGeoPso != nullptr)
 		{
-			m_pDeferredGeoPso->Release();
-			m_pDeferredGeoPso = nullptr;
+			m_pPbrDeferredGeoPso->Release();
+			m_pPbrDeferredGeoPso = nullptr;
 		}
-		
+		if (m_pPbrDeferredGeoEmissivePso != nullptr)
+		{
+			m_pPbrDeferredGeoEmissivePso->Release();
+			m_pPbrDeferredGeoEmissivePso = nullptr;
+		}
+		if (m_pPbrDeferredGeoNormalPso != nullptr)
+		{
+			m_pPbrDeferredGeoNormalPso->Release();
+			m_pPbrDeferredGeoNormalPso = nullptr;
+		}
+		if (m_pPbrDeferredGeoNormalHeightPso != nullptr)
+		{
+			m_pPbrDeferredGeoNormalHeightPso->Release();
+			m_pPbrDeferredGeoNormalHeightPso = nullptr;
+		}
+		if (m_pPbrDeferredGeoNormalHeightEmissivePso != nullptr)
+		{
+			m_pPbrDeferredGeoNormalHeightEmissivePso->Release();
+			m_pPbrDeferredGeoNormalHeightEmissivePso = nullptr;
+		}
 		if (m_pOutlinerSetupPso != nullptr)
 		{
 			m_pOutlinerSetupPso->Release();
@@ -3164,11 +3161,6 @@ namespace wilson
 			m_pHeightScaleCB = nullptr;
 		}
 
-		if (m_pHeightOnOffCB != nullptr)
-		{	
-			m_pHeightOnOffCB->Release();
-			m_pHeightOnOffCB = nullptr;
-		}
 
 		if (m_pRoughnessCB != nullptr)
 		{

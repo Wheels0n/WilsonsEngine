@@ -43,7 +43,12 @@ namespace wilson
 			m_pDeferred12PS = nullptr;
 
 			m_pPBRGeometry12VS = nullptr;
+			m_pPBRGeometryNormal12VS = nullptr;
 			m_pPBRGeometry12PS = nullptr;
+			m_pPBRGeometryEmissive12PS = nullptr;
+			m_pPBRGeometryNormal12PS = nullptr;
+			m_pPBRGeometryNormalHeight12PS = nullptr;
+			m_pPBRGeometryNormalHeightEmissive12PS = nullptr;
 			m_pPBRDeferred12PS = nullptr;
 
 			m_pMatrixTransformVS = nullptr;
@@ -158,12 +163,27 @@ namespace wilson
 			hr = D3DCompileFromFile(L"DeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDeferred12PS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometry12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryVS.hlsli", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometry12VS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometry12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryVS_Normal.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryNormal12VS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
+			hr = D3DCompileFromFile(L"PBRGeometryPS.hlsli", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometry12PS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+		
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Emissive.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryEmissive12PS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Normal.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryNormal12PS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Height.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryNormalHeight12PS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+			
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Height_Emissive.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryNormalHeightEmissive12PS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+			
 			hr = D3DCompileFromFile(L"PBRDeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRDeferred12PS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
@@ -1287,10 +1307,35 @@ namespace wilson
 				m_pPBRGeometry12VS->Release();
 				m_pPBRGeometry12VS = nullptr;
 			}
+			if (m_pPBRGeometryNormal12VS != nullptr)
+			{
+				m_pPBRGeometryNormal12VS->Release();
+				m_pPBRGeometryNormal12VS = nullptr;
+			}
 			if (m_pPBRGeometry12PS != nullptr)
 			{
 				m_pPBRGeometry12PS->Release();
 				m_pPBRGeometry12PS = nullptr;
+			}
+			if (m_pPBRGeometryEmissive12PS != nullptr)
+			{
+				m_pPBRGeometryEmissive12PS->Release();
+				m_pPBRGeometryEmissive12PS = nullptr;
+			}
+			if (m_pPBRGeometryNormal12PS != nullptr)
+			{
+				m_pPBRGeometryNormal12PS->Release();
+				m_pPBRGeometryNormal12PS = nullptr;
+			}
+			if (m_pPBRGeometryNormalHeight12PS != nullptr)
+			{
+				m_pPBRGeometryNormalHeight12PS->Release();
+				m_pPBRGeometryNormalHeight12PS = nullptr;
+			}
+			if (m_pPBRGeometryNormalHeightEmissive12PS != nullptr)
+			{
+				m_pPBRGeometryNormalHeightEmissive12PS->Release();
+				m_pPBRGeometryNormalHeightEmissive12PS = nullptr;
 			}
 			if (m_pPBRDeferred12PS != nullptr)
 			{

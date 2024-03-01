@@ -496,10 +496,7 @@
     <FxCompile Include="PBRDeferredPS.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
-    <FxCompile Include="PBRGeometryVS.hlsl">
-      <Filter>Resource Files</Filter>
-    </FxCompile>
-    <FxCompile Include="PBRGeometryPS.hlsl">
+    <FxCompile Include="PBRGeometryVS.hlsli">
       <Filter>Resource Files</Filter>
     </FxCompile>
     <FxCompile Include="Equirectangular2CubeMapPS.hlsl">
@@ -538,5 +535,25 @@
     <FxCompile Include="GenMipCS.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
+    <FxCompile Include="PBRGeometryVS_Normal.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="PBRGeometryPS_Normal.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="PBRGeometryPS_Nomral_Height.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="PBRGeometryPS_Nomral_Height_Emissive.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="PBRGeometryPS_Emissive.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="PBRGeometryPS.hlsli">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

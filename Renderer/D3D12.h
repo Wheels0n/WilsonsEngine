@@ -3,7 +3,7 @@
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "DirectXTex.lib")
 
-#include <dxgi.h>
+#include <dxgi1_4.h>
 #include <d3dcommon.h>
 #include <d3d12.h>
 #include <DirectXMath.h>
@@ -155,7 +155,7 @@ namespace wilson
 		ID3D12Debug* m_pDebugController;
 		ID3D12Device1* m_pDevice;
 		ID3D12CommandQueue* m_pCommandQueue;
-		IDXGISwapChain* m_pSwapChain;
+		IDXGISwapChain3* m_pSwapChain;
 		ID3D12Resource* m_pScreenTex[_BUFFER_COUNT];
 
 		ID3D12GraphicsCommandList* m_pMainCommandList;
@@ -175,7 +175,11 @@ namespace wilson
 		ID3D12PipelineState* m_pSpotShadowPso;
 		ID3D12PipelineState* m_pOmniDirShadowPso;
 		ID3D12PipelineState* m_pSkyBoxPso;
-		ID3D12PipelineState* m_pDeferredGeoPso;
+		ID3D12PipelineState* m_pPbrDeferredGeoPso;
+		ID3D12PipelineState* m_pPbrDeferredGeoEmissivePso;
+		ID3D12PipelineState* m_pPbrDeferredGeoNormalPso;
+		ID3D12PipelineState* m_pPbrDeferredGeoNormalHeightPso;
+		ID3D12PipelineState* m_pPbrDeferredGeoNormalHeightEmissivePso;
 		ID3D12PipelineState* m_pOutlinerSetupPso;
 		ID3D12PipelineState* m_pOutlinerTestPso;
 		ID3D12PipelineState* m_pSSAOPso;
@@ -200,7 +204,6 @@ namespace wilson
 		ID3D12Resource* m_pSSAOKernelCB;
 		ID3D12Resource* m_pExposureCB;
 		ID3D12Resource* m_pHeightScaleCB;
-		ID3D12Resource* m_pHeightOnOffCB;
 		ID3D12Resource* m_pEquirect2CubeCB;
 		ID3D12Resource* m_pMipCB;
 		ID3D12Resource* m_pHdrUploadCB;
@@ -267,7 +270,6 @@ namespace wilson
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SSAOKernelCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_ExposureCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_HeightScaleCBV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_HeightOnOffCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_Equirect2CubeCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_MipCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_RoughnessCBV;
@@ -301,7 +303,6 @@ namespace wilson
 		BOOL m_bHeightOnOff;
 		float m_exposure;
 		float m_heightScale;
-		UINT* m_pHeightOnOffCbBegin;
 		UINT* m_pHeightScaleCbBegin;
 		UINT* m_pExposureCbBegin;
 		UINT m_selectedModelGroup;

@@ -366,12 +366,7 @@ PixelOutput main(PixelInput input)
     float3 viewDir = normalize(g_camPos.xyz - wPos.xyz);
     float3 reflection = reflect(-viewDir, normal.xyz);
     bool isCubeMap = length(normal.xyz) ? false : true;
-    [branch]
-    if (isCubeMap)
-    {
-        output.mainColor = albedo;
-        return output;
-    }
+
 
     float4 lightVal = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float shadowFactor = 1.0f;
@@ -439,7 +434,7 @@ PixelOutput main(PixelInput input)
     float2 brdfUV = float2(max(dot(normal.xyz, viewDir), 0.0f),1.0f-roughness);
     float2 brdf = g_brdfLUT.Sample(g_WrapSampler, brdfUV).rg;
     float3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
-    
+    //마지막 후처리에서 계산
     float3 ambient = (kD * diffuse+specular)*0.4f * ao;
    
     output.mainColor.xyz = lightVal.xyz + ambient +emissive.xyz;

@@ -4,9 +4,6 @@ namespace wilson
 {
 	Light12::Light12(UINT idx)
 	{
-		m_pLight12Buffer = nullptr;
-		m_pLightCbBegin = nullptr;
-
 		m_ambient = m_ambient = DirectX::XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
 		m_diffuse = m_ambient;
 		m_specular = m_ambient;
@@ -17,13 +14,6 @@ namespace wilson
 	}
 	Light12::~Light12()
 	{
-
-		if (m_pLight12Buffer != nullptr)
-		{
-			m_pLight12Buffer->Release();
-			m_pLight12Buffer = nullptr;
-		}
-
 
 	}
 

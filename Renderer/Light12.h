@@ -44,16 +44,12 @@ namespace wilson
 		virtual ~Light12();
 	protected:
 
-		ID3D12Resource* m_pLight12Buffer;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_lightCBV;
-
 		DirectX::XMVECTOR m_ambient;
 		DirectX::XMVECTOR m_diffuse;
 		DirectX::XMVECTOR m_specular;
 		DirectX::XMFLOAT3 m_position;
 		DirectX::XMFLOAT3 m_direction;
 
-		UINT* m_pLightCbBegin;
 		UINT m_entityIdx;
 	};
 }

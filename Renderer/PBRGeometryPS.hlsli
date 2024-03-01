@@ -34,33 +34,22 @@ struct Material
     float4 reflect;
 };
 
-cbuffer CamBuffer :register(b0)
+cbuffer CamBuffer : register(b0)
 {
     float4 g_camPos;
 };
-cbuffer PerModel : register(b1)
-{
-    bool g_hasNormal;
-    bool g_hasSpecular;
-    bool g_hasEmissive;
-    bool g_hasAlpha;
-};
-cbuffer cbMaterial : register(b2)
+
+cbuffer cbMaterial : register(b1)
 {
     Material g_Material;
 };
 
-cbuffer heightScale : register(b3)
+cbuffer heightScale : register(b2)
 {
     float g_heightScale;
     float3 pad;
 };
 
-cbuffer heightOnOff : register(b4)
-{
-    bool g_heightOnOff;
-    bool3 padding;
-};
 static const float g_minLayers = 8;
 static const float g_maxLayers = 128;
 
@@ -76,8 +65,8 @@ float2 ParallaxOcclusionMapping(float2 texCoord, float3 viewDir)
     float2 curTexCoord = texCoord;
     float curDepthMapVal = g_normalMap.Sample(g_WrapSampler, texCoord).a - 1.0f;
     
-    for (int i = 0; i < g_maxLayers;++i)
-    {       
+    for (int i = 0; i < g_maxLayers; ++i)
+    {
         if (curLayerDepth < curDepthMapVal)
         {
             break;
@@ -89,7 +78,7 @@ float2 ParallaxOcclusionMapping(float2 texCoord, float3 viewDir)
     }
     float2 prevTexCoord = curTexCoord + dTexCoord;
     
-    float afterDepth = curDepthMapVal - curLayerDepth; //¾ç   //À½
+    float afterDepth = curDepthMapVal - curLayerDepth; //¨úc   //A¨ö
     float beforeDepth = (g_normalMap.Sample(g_WrapSampler, prevTexCoord).a - 1.0f) - (curLayerDepth + layerDepth);
     
     float weight = afterDepth / (afterDepth - beforeDepth);
@@ -99,23 +88,21 @@ float2 ParallaxOcclusionMapping(float2 texCoord, float3 viewDir)
     
 }
 PixelOutputType main(PixelInputType input)
-{   
+{
     PixelOutputType output;
     float3 normal = normalize(input.normal);
-    float2 texCoord = input.tex;   
-    [branch]
-    if (g_hasNormal)
+    float2 texCoord = input.tex;
+#ifdef HAS_NORMAL 
     {
     
         float3 tangent = normalize(input.tangent);
         float3 binormal = normalize(input.binormal);
         float3x3 TBN = (float3x3(tangent, binormal, normal));
         
-        float3 viewDir = normalize(g_camPos-input.wPosition);
+        float3 viewDir = normalize(g_camPos - input.wPosition);
         viewDir = mul(viewDir, TBN);
         viewDir = normalize(viewDir);
-        [branch]
-        if(g_heightOnOff)
+#ifdef HAS_HEIGHT 
         {
         
             texCoord = ParallaxOcclusionMapping(input.tex, viewDir);
@@ -125,14 +112,14 @@ PixelOutputType main(PixelInputType input)
                 clip(-1);
             }
         }
-        
+#endif         
         normal = g_normalMap.Sample(g_WrapSampler, texCoord);
         normal = normal * 2.0 - 1.0;
         normal = mul(normal, TBN);
         normal = normalize(normal);
      
     }
-   
+#endif   
     output.normal = float4(normal, 1.0f);
     
     output.albeldo = g_diffuseMap.Sample(g_WrapSampler, texCoord);
@@ -148,13 +135,10 @@ PixelOutputType main(PixelInputType input)
     output.specular.rgb = g_specularMap.SampleLevel(g_WrapSampler, texCoord, 1);
     output.specular.a = 1.0f;
     
-    
+#ifdef HAS_EMSSIVE
+     output.emissive.xyz = g_emissiveMap.Sample(g_WrapSampler, texCoord);
+#else
     output.emissive = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    [branch]
-    if(g_hasEmissive)
-    {
-        output.emissive.xyz = g_emissiveMap.Sample(g_WrapSampler, texCoord);
-    }
-    
+#endif
     return output;
 }

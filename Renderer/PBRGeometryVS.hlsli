@@ -1,3 +1,6 @@
+
+#define NOT_NORMAL 0
+
 struct VertexInputType
 {
     float3 position : POSITION;
@@ -25,14 +28,7 @@ cbuffer MatrixBuffer
     matrix g_projectionMatrix;
     matrix g_invWorldMat;
 };
-
-cbuffer PerModel
-{
-    bool g_hasNormal;
-    bool g_hasSpecular;
-    bool g_hasEmssive;
-    bool g_hasAlpha;
-};
+//PerModel Á¦°ÅÇÔ
 
 PixelInputType main(VertexInputType input)
 {
@@ -51,16 +47,14 @@ PixelInputType main(VertexInputType input)
     output.normal = normalize(output.normal);
     output.vNormal = mul(output.normal, (float3x3) g_viewMatrix);
     output.vNormal = normalize(output.vNormal);
-    
+#ifdef HAS_NORMAL 
+   output.tangent = mul(input.tangent, (float3x3) transpose(g_invWorldMat));
+   output.tangent = normalize(output.tangent);
+   output.binormal = cross(output.normal, output.tangent);
+   output.binormal = normalize(output.binormal);
+#elif NOT_NORMAL  
     output.tangent = float3(0.0f, 0.0f, 0.0f);
     output.binormal = output.tangent;
-    [branch]
-    if (g_hasNormal)
-    {
-        output.tangent = mul(input.tangent, (float3x3) transpose(g_invWorldMat));
-        output.tangent = normalize(output.tangent);
-        output.binormal = cross(output.normal, output.tangent);
-        output.binormal = normalize(output.binormal);
-    }
+#endif
     return output;
 }

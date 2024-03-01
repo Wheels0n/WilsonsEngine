@@ -187,6 +187,50 @@ namespace wilson
 			pPSODesc->PS = psBytecode;
 
 		}
+		void SetPBRDeferredGeoEmissiveShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		{
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pPBRGeometry12VS->GetBufferPointer(),m_pPBRGeometry12VS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
+			D3D12_SHADER_BYTECODE psBytecode = { m_pPBRGeometryEmissive12PS->GetBufferPointer(),m_pPBRGeometryEmissive12PS->GetBufferSize() };
+
+			pPSODesc->VS = vsBytecode;
+			pPSODesc->GS = gsBytecode;
+			pPSODesc->PS = psBytecode;
+
+		}
+		void SetPBRDeferredGeoNormalShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		{
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pPBRGeometryNormal12VS->GetBufferPointer(),m_pPBRGeometryNormal12VS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
+			D3D12_SHADER_BYTECODE psBytecode = { m_pPBRGeometryNormal12PS->GetBufferPointer(),m_pPBRGeometryNormal12PS->GetBufferSize() };
+
+			pPSODesc->VS = vsBytecode;
+			pPSODesc->GS = gsBytecode;
+			pPSODesc->PS = psBytecode;
+
+		}
+		void SetPBRDeferredGeoNormalHeightShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		{
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pPBRGeometryNormal12VS->GetBufferPointer(),m_pPBRGeometryNormal12VS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
+			D3D12_SHADER_BYTECODE psBytecode = { m_pPBRGeometryNormalHeight12PS->GetBufferPointer(),m_pPBRGeometryNormalHeight12PS->GetBufferSize() };
+
+			pPSODesc->VS = vsBytecode;
+			pPSODesc->GS = gsBytecode;
+			pPSODesc->PS = psBytecode;
+
+		}
+		void SetPBRDeferredGeoNormalHeightEmissiveShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		{
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pPBRGeometryNormal12VS->GetBufferPointer(),m_pPBRGeometryNormal12VS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
+			D3D12_SHADER_BYTECODE psBytecode = { m_pPBRGeometryNormalHeightEmissive12PS->GetBufferPointer(),m_pPBRGeometryNormalHeightEmissive12PS->GetBufferSize() };
+
+			pPSODesc->VS = vsBytecode;
+			pPSODesc->GS = gsBytecode;
+			pPSODesc->PS = psBytecode;
+
+		}
 		inline ID3D12RootSignature* GetPBRDeferredGeoShaderRootSingnature()
 		{
 			return m_pPBRGeoRootSignature;
@@ -356,6 +400,7 @@ namespace wilson
 		ID3DBlob* m_pTex12VS;
 		ID3DBlob* m_pGeometry12VS;
 		ID3DBlob* m_pPBRGeometry12VS;
+		ID3DBlob* m_pPBRGeometryNormal12VS;
 		ID3DBlob* m_pMatrixTransformVS;
 		ID3DBlob* m_pPosOnly12VS;
 		ID3DBlob* m_pAABB12VS;
@@ -372,6 +417,10 @@ namespace wilson
 		ID3DBlob* m_pOmniDirShadow12PS;
 		ID3DBlob* m_pGeometry12PS;
 		ID3DBlob* m_pPBRGeometry12PS;
+		ID3DBlob* m_pPBRGeometryEmissive12PS;
+		ID3DBlob* m_pPBRGeometryNormal12PS;
+		ID3DBlob* m_pPBRGeometryNormalHeight12PS;
+		ID3DBlob* m_pPBRGeometryNormalHeightEmissive12PS;
 		ID3DBlob* m_pEquirect2Cube12PS;
 		ID3DBlob* m_pDiffuseIrradiance12PS;
 		ID3DBlob* m_pPrefilter12PS;
