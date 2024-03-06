@@ -54,6 +54,7 @@ namespace wilson {
 			//Gen IconTexFromFile 
 			DirectX::ScratchImage image;
 			hr = DirectX::LoadFromWICFile(L"./Assets/Icons/folderIcon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
+			assert(SUCCEEDED(hr));
 			UINT8* pData = image.GetPixels();
 			size_t rowPitch;
 			size_t slidePitch;
@@ -110,6 +111,7 @@ namespace wilson {
 			//Gen IconTexFromFile 
 			DirectX::ScratchImage image;
 			hr = DirectX::LoadFromWICFile(L"./Assets/Icons/fileIcon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
+			assert(SUCCEEDED(hr));
 			UINT8* pData = image.GetPixels();
 			
 			size_t rowPitch;

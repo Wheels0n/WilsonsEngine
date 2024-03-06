@@ -4,8 +4,8 @@
 namespace wilson {
 	Camera::Camera(ID3D11Device* pDevice, const UINT screenWidth, const UINT screenHeight, float screenFar, float screenNear)
 	{
-		m_fScreenNear = screenNear;
-		m_fScreenFar = screenFar;
+		m_nearZ = screenNear;
+		m_farZ = screenFar;
 		m_fFOV = static_cast<float>(3.1459) / 4.0f;
 		m_fScreenRatio = screenWidth / static_cast<float>(screenHeight);
 		m_trSpeed = 0.1f;
@@ -18,7 +18,7 @@ namespace wilson {
 		m_up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 		m_worldUp = m_up;
 
-		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
+		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_nearZ, m_farZ);
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
 		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
 		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
@@ -31,7 +31,7 @@ namespace wilson {
 		{
 			D3D11_BUFFER_DESC cbufferDesc = {};
 			cbufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-			cbufferDesc.ByteWidth = sizeof(CamBuffer);
+			cbufferDesc.ByteWidth = sizeof(DirectX::XMVECTOR);
 			cbufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 			cbufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 			cbufferDesc.MiscFlags = 0;
@@ -41,7 +41,7 @@ namespace wilson {
 			m_pCamPosBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Camera::m_pCamPosBuffer") - 1, "Camera::m_pCamPosBuffer");
 
-			cbufferDesc.ByteWidth = sizeof(DirectX::XMVECTOR) * 5;
+			cbufferDesc.ByteWidth = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;
 			hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pCascadeLevelBuffer);
 			assert(SUCCEEDED(hr));
 			m_pCascadeLevelBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
@@ -72,7 +72,7 @@ namespace wilson {
 
 	void Camera::UpdateCascadeLevels()
 	{
-		m_shadowCascadeLevels = std::vector({ m_fScreenFar / 100.0f,  m_fScreenFar / 50.0f,  m_fScreenFar / 25.0f,  m_fScreenFar / 5.0f , m_fScreenFar});
+		m_shadowCascadeLevels = std::vector({ m_farZ / 100.0f,  m_farZ / 50.0f,  m_farZ / 25.0f,  m_farZ / 5.0f , m_farZ});
 	}
 
 
@@ -122,12 +122,12 @@ namespace wilson {
 
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
 		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
-		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
+		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_nearZ, m_farZ);
 		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
 		UpdateCascadeLevels();
 	}
 
-	bool Camera::SetCascadeLevels(ID3D11DeviceContext* pContext)
+	bool Camera::UploadCascadeLevels(ID3D11DeviceContext* pContext)
 	{	
 		HRESULT hr;
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -148,17 +148,17 @@ namespace wilson {
 		return true;
 	}
 
-	bool Camera::SetCamPos(ID3D11DeviceContext* pContext)
+	bool Camera::UploadCamPos(ID3D11DeviceContext* pContext)
 	{
 		HRESULT hr;
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		CamBuffer* pCamBuffer;
+		DirectX::XMVECTOR* pCamPos;
 
 		hr = pContext->Map(m_pCamPosBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		assert(SUCCEEDED(hr));
 
-		pCamBuffer = reinterpret_cast<CamBuffer*>(mappedResource.pData);
-		pCamBuffer->camPos = m_pos;
+		pCamPos = reinterpret_cast<DirectX::XMVECTOR*>(mappedResource.pData);
+		*pCamPos= m_pos;
 		pContext->Unmap(m_pCamPosBuffer, 0);
 		pContext->PSSetConstantBuffers(0, 1, &m_pCamPosBuffer);
 

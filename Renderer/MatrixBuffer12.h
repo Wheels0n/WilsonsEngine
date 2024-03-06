@@ -14,7 +14,7 @@ namespace wilson
 	{
 	public:
 		void UploadMatBuffer(ID3D12GraphicsCommandList* pCommandlist, bool bSpotShadowPass);
-		void UploadProjMat(ID3D12GraphicsCommandList* pCommandlist);
+		void UploadProjMat(ID3D12GraphicsCommandList* pCommandlist, bool bSSAO);
 		void UploadCombinedMat(ID3D12GraphicsCommandList* pCommandlist, bool bSpotShadowPass);
 		void UpdateCombinedMat(bool bSpotShadowPass);
 

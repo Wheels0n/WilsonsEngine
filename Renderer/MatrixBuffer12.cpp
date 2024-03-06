@@ -144,8 +144,7 @@ namespace wilson
 	{
 		MatrixBuffer matBuffer;
 		matBuffer.m_worldMat = m_worldMat;
-		matBuffer.m_viewMat = m_viewMat;
-		matBuffer.m_projMat = m_projMat;
+		matBuffer.m_wvpMat = m_wvpMat;
 		matBuffer.m_extraMat = bSpotShadowPass ? m_lightSpaceMat : m_invWorldMat;
 
 		memcpy(m_pMatricesCbBegin, &matBuffer, sizeof(matBuffer));
@@ -153,17 +152,17 @@ namespace wilson
 		return;
 	}
 
-	void MatBuffer12::UploadProjMat(ID3D12GraphicsCommandList* pCommandlist)
+	void MatBuffer12::UploadProjMat(ID3D12GraphicsCommandList* pCommandlist, bool bSSAO)
 	{
 		memcpy(m_pProjMatCbBegin, &m_projMat, sizeof(XMMATRIX));
-		pCommandlist->SetGraphicsRootDescriptorTable(eSsaoRP::eSsao_ePsProj, m_projMatCBV);
+		pCommandlist->SetGraphicsRootDescriptorTable(bSSAO? eSsaoRP::eSsao_ePsProj: ePbrLight_ePsProjMat, m_projMatCBV);
 		return;
 	}
 	void MatBuffer12::UploadCombinedMat(ID3D12GraphicsCommandList* pCommandlist, bool bSpotShadowPass)
 	{
 		const void* pSrc = bSpotShadowPass ? &m_wvpLitMat : &m_wvpMat;
 		memcpy(m_pCombinedMatCbBegin, pSrc, sizeof(XMMATRIX));
-		//Skybox, SpotShadow, OutlinerTest Pass¿¡ ÀÌ¿ëµÊ 
+		//Zpass, Skybox, SpotShadow, OutlinerTest Pass¿¡ ÀÌ¿ëµÊ 
 		pCommandlist->SetGraphicsRootDescriptorTable(0, m_combinedMatCBV);
 		return;
 	}
@@ -171,11 +170,11 @@ namespace wilson
 	{
 		if (bSpotShadowPass)
 		{
-			m_wvpLitMat = XMMatrixMultiplyTranspose(m_worldMat, XMMatrixTranspose(m_lightSpaceMat));
+			m_wvpLitMat = XMMatrixMultiplyTranspose(XMMatrixTranspose(m_worldMat), XMMatrixTranspose(m_lightSpaceMat));
 		}
 		else
 		{
-			XMMATRIX wv = XMMatrixMultiply(m_worldMat, XMMatrixTranspose(m_viewMat));
+			XMMATRIX wv = XMMatrixMultiply(XMMatrixTranspose(m_worldMat), XMMatrixTranspose(m_viewMat));
 			m_wvpMat = XMMatrixMultiplyTranspose(wv, XMMatrixTranspose(m_projMat));
 		}
 		

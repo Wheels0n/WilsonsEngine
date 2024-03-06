@@ -423,7 +423,7 @@ namespace wilson
 
 	}
 
-	void Model12::UploadBuffers(ID3D12GraphicsCommandList* pCommandlist, int i, bool bGeoPass)
+	void Model12::UploadBuffers(ID3D12GraphicsCommandList* pCommandlist, int i, ePass curPass)
 	{	
 		HRESULT hr;
 
@@ -433,7 +433,7 @@ namespace wilson
 		
 
 		//Upload CBV
-		if(bGeoPass)
+		if(curPass==eGeoPass)
 		{
 			MaterialInfo matInfo = m_matInfos[i];
 			//Upload materialCB
@@ -451,49 +451,48 @@ namespace wilson
 				//SetDiffuseMap //GPU핸들이 필요하다
 				pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsDiffuse, m_texSrvs[idx]);
 
-				if (bGeoPass)
+				
+				if (m_perModels[i].hasNormal)
 				{
-					if (m_perModels[i].hasNormal)
-					{
-						idx = m_texHash[matInfo.normalMap];
-						pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsNormal, m_texSrvs[idx]);
-					}
-					else
-					{
-						pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsNormal, m_nullSrvs[nIdx++]);
-					}
+					idx = m_texHash[matInfo.normalMap];
+					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsNormal, m_texSrvs[idx]);
+				}
+				else
+				{
+					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsNormal, m_nullSrvs[nIdx++]);
+				}
 
-					if (m_perModels[i].hasSpecular)
-					{
-						idx = m_texHash[matInfo.specularMap];
-						pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsSpecular, m_texSrvs[idx]);
-					}
-					else
-					{
-						pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsSpecular, m_nullSrvs[nIdx++]);
-					}
+				if (m_perModels[i].hasSpecular)
+				{
+					idx = m_texHash[matInfo.specularMap];
+					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsSpecular, m_texSrvs[idx]);
+				}
+				else
+				{
+					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsSpecular, m_nullSrvs[nIdx++]);
+				}
 
-					if (m_perModels[i].hasEmissive)
-					{
-						idx = m_texHash[matInfo.emissiveMap];
-						pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsEmissive, m_texSrvs[idx]);
-					}
-					else
-					{
-						pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsEmissive, m_nullSrvs[nIdx++]);
-					}
+				if (m_perModels[i].hasEmissive)
+				{
+					idx = m_texHash[matInfo.emissiveMap];
+					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsEmissive, m_texSrvs[idx]);
+				}
+				else
+				{
+					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsEmissive, m_nullSrvs[nIdx++]);
+				}
 					
 
-					if (m_perModels[i].hasAlpha)
-					{
-						idx = m_texHash[matInfo.alphaMap];
-						pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsAlpha, m_texSrvs[idx]);
-					}
-					else
-					{
-						pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsAlpha, m_nullSrvs[nIdx++]);
-					}
+				if (m_perModels[i].hasAlpha)
+				{
+					idx = m_texHash[matInfo.alphaMap];
+					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsAlpha, m_texSrvs[idx]);
 				}
+				else
+				{
+					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsAlpha, m_nullSrvs[nIdx++]);
+				}
+				
 			}
 		}
 

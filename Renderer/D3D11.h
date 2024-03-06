@@ -216,7 +216,7 @@ namespace wilson
 		ID3D11DepthStencilState* m_pSkyBoxDSS;
 
 		ID3D11DepthStencilView* m_pScreenDSV;
-		ID3D11DepthStencilView* m_pSceneDSV;
+		ID3D11DepthStencilView* m_SceneDSV;
 
 		ID3D11RasterizerState* m_pGeoRS;
 		ID3D11RasterizerState* m_pRasterStateCC;

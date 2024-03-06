@@ -49,7 +49,7 @@ Texture2D g_normalTex : register(t1);
 Texture2D g_abeldoTex : register(t2);
 Texture2D g_specualrTex : register(t3); //R:AO, G:Roughness, B:Metalness
 Texture2D g_emissiveTex : register(t4);
-Texture2D g_vPosTex : register(t5);
+Texture2D g_depthTex : register(t5);
 Texture2D g_AOTex : register(t6);
 TextureCube g_irradianceMap : register(t7);
 TextureCube g_prefilterMap : register(t8);
@@ -61,13 +61,17 @@ SamplerState g_WrapSampler : register(s0);
 SamplerState g_cubeShadowSampler : register(s1);
 SamplerComparisonState g_shadowSampler : register(s2);
 
-cbuffer CamBuffer : register(b0)
+cbuffer CamBuffer
 {
     float4 g_camPos;
 };
-cbuffer CascadeLevels : register(b1)
+cbuffer CascadeLevels 
 {
     float4 g_farZ[5];
+};
+cbuffer ProjMat
+{
+    matrix g_projMat;
 };
 cbuffer Light
 {
@@ -345,6 +349,15 @@ out float3 L0)
     L0 += (kD * albedo / _PI + specular) * radiance * NdotL;
 }
 
+float CalViewZ(float2 tex)
+{
+    float viewZ = 0.0f;
+    float ndcZ = g_depthTex.Sample(g_WrapSampler, tex);
+    viewZ = g_projMat[3][3] / (ndcZ - g_projMat[2][3]);
+    
+    return viewZ;
+}
+
 PixelOutput main(PixelInput input)
 {
     PixelOutput output;
@@ -353,7 +366,7 @@ PixelOutput main(PixelInput input)
     float4 albedo = g_abeldoTex.Sample(g_WrapSampler, input.tex);
     float4 spec = g_specualrTex.Sample(g_WrapSampler, input.tex);
     float4 emissive = g_emissiveTex.Sample(g_WrapSampler, input.tex);
-    float4 vPos = g_vPosTex.Sample(g_WrapSampler, input.tex);
+    float vPosZ = CalViewZ(input.tex);
  
     
     float ao = g_AOTex.Sample(g_WrapSampler, input.tex).r;
@@ -389,7 +402,7 @@ PixelOutput main(PixelInput input)
     }
     
     
-    uint level = CalCascadeLevel(vPos.z);
+    uint level = CalCascadeLevel(vPosZ);
     float3 L;
     [unroll]
     for (uint i = 0; i < g_dirCnt; ++i)

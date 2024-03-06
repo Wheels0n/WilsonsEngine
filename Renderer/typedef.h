@@ -4,17 +4,13 @@
 #include <Windows.h>
 
 #define _64KB 64*1024
+#define _CBV_READ_SIZE 256;
 #define _CBV_ALIGN(LEN) (LEN+D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT-1u)&~(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT-1u)
 #define _64KB_ALIGN(LEN) (LEN+_64KB-1u)&~(_64KB-1u)
 namespace wilson
 {	 
 	//Cam
 	constexpr float _RAD = 6.28319;
-
-	struct CamBuffer
-	{
-		DirectX::XMVECTOR camPos;
-	};
 
 	//Frustum
 	struct Plane
@@ -104,8 +100,7 @@ namespace wilson
 	struct MatrixBuffer
 	{
 		DirectX::XMMATRIX m_worldMat;
-		DirectX::XMMATRIX m_viewMat;
-		DirectX::XMMATRIX m_projMat;
+		DirectX::XMMATRIX m_wvpMat;
 		DirectX::XMMATRIX m_extraMat;
 	};
 
@@ -207,8 +202,8 @@ namespace wilson
 
 	enum eSsaoRP
 	{
-		eSsao_ePsVpos,
-		eSsao_ePsVnormal,
+		eSsao_eVsFrustumInfo,
+		eSsao_ePsDepth,
 		eSsao_ePsNoise,
 		eSsao_ePsWrap,
 		eSsao_ePsClamp,
@@ -231,7 +226,7 @@ namespace wilson
 		ePbrLight_ePsAlbedo,
 		ePbrLight_ePsSpecular,
 		ePbrLight_ePsEmissive,
-		ePbrLight_ePsVpos,
+		ePbrLight_ePsDepth,
 		ePbrLight_ePsAO,
 		ePbrLight_ePsIrradiance,
 		ePbrLight_ePsPrefilter,
@@ -244,6 +239,7 @@ namespace wilson
 		ePbrLight_ePsShadowSampler,
 		ePbrLight_ePsCamPos,
 		ePbrLight_ePsCasCadeLevels,
+		ePbrLight_ePsProjMat,
 		ePbrLight_ePsLight,
 		ePbrLight_ePsDirLitMat,
 		ePbrLight_ePsSpotLitMat,
@@ -322,12 +318,12 @@ namespace wilson
 	constexpr UINT _VIEWPORT_HEIGHT = 720;
 
 	//DirectX
-	constexpr UINT _THREAD_COUNT= 4;
+	constexpr UINT _WORKER_THREAD_COUNT= 4;
 	constexpr float _REFRESH_RATE = 75.f;
 	constexpr UINT  _BUFFER_COUNT = 2;
 	constexpr UINT _SHADOWMAP_SIZE = 1024;
 	constexpr float CUBE_SIZE = 0.25;
-	constexpr UINT _GBUF_COUNT = 8;
+	constexpr UINT _GBUF_COUNT = 5;
 	constexpr UINT  _KERNEL_COUNT = 64;
 	constexpr UINT  _NOISE_VEC_COUNT = 16;
 	constexpr UINT  _NOISE_TEX_SIZE = 4;
@@ -341,6 +337,15 @@ namespace wilson
 	constexpr UINT  _DIFFIRRAD_HEIGHT = 32;
 	constexpr UINT  _QUAD_IDX_COUNT = 6;
 	constexpr UINT  _CUBE_IDX_COUNT = 36;
+
+	enum ePass
+	{
+		eZpass,
+		eSpotShadowPass,
+		eGeoPass,
+		eDefault
+	};
+
 	enum eGbuf
 	{
 		eGbuf_pos,
@@ -348,9 +353,6 @@ namespace wilson
 		eGbuf_albedo,
 		eGbuf_specular,
 		eGbuf_emissive,
-		eGbuf_vPos,
-		eGbuf_vNormal,
-		eGbuf_depth,
 		eGbuf_cnt
 	};
 

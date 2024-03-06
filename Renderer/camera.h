@@ -14,8 +14,8 @@ namespace wilson {
 	public:
 
 		void Update();
-		bool SetCascadeLevels(ID3D11DeviceContext* pContext);
-		bool SetCamPos(ID3D11DeviceContext* pContext);
+		bool UploadCascadeLevels(ID3D11DeviceContext* pContext);
+		bool UploadCamPos(ID3D11DeviceContext* pContext);
 		void ResetTranslation();
 		void UpdateCascadeLevels();
 
@@ -68,11 +68,11 @@ namespace wilson {
 		}
 		inline float* GetNearZ()
 		{
-			return &m_fScreenNear;
+			return &m_nearZ;
 		}
 		inline float* GetFarZ()
 		{
-			return &m_fScreenFar;
+			return &m_farZ;
 		}
 		inline float* GetFovY()
 		{
@@ -108,8 +108,8 @@ namespace wilson {
 
 		float m_fFOV;
 		float m_fScreenRatio;
-		float m_fScreenNear;
-		float m_fScreenFar;
+		float m_nearZ;
+		float m_farZ;
 
 		float m_trSpeed;
 		float m_rtSpeed;

@@ -12,8 +12,6 @@ struct PixelInputType
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
     float4 wPosition : POSITION0;
-    float4 vPosition : POSITION1;
-    float3 vNormal : vNORMAL;
 };
 struct PixelOutputType
 {
@@ -22,9 +20,6 @@ struct PixelOutputType
     float4 albeldo : SV_Target2;
     float4 specular : SV_Target3;
     float4 emissive : SV_Target4;
-    float4 vPos : SV_Target5;
-    float4 vNormal : SV_Target6;
-    float4 depth : SV_Target7;
 };
 struct Material
 {
@@ -87,6 +82,7 @@ float2 ParallaxOcclusionMapping(float2 texCoord, float3 viewDir)
     
     
 }
+[earlydepthstencil]
 PixelOutputType main(PixelInputType input)
 {
     PixelOutputType output;
@@ -125,13 +121,7 @@ PixelOutputType main(PixelInputType input)
     output.albeldo = g_diffuseMap.Sample(g_WrapSampler, texCoord);
     clip(output.albeldo.a - 0.1f);
     output.position = input.wPosition;
-    output.vPos = input.vPosition;
     
-    float depth = output.vPos.z / 100.0f;
-    output.depth = float4(depth, depth, depth, 1.0f);
-    output.vNormal = float4(normalize(input.vNormal), 1.0f);
-
-   
     output.specular.rgb = g_specularMap.SampleLevel(g_WrapSampler, texCoord, 1);
     output.specular.a = 1.0f;
     

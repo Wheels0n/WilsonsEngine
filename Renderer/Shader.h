@@ -28,7 +28,7 @@ namespace wilson
 
 
 
-		inline void SetShader(ID3D11DeviceContext* pContext)
+		inline void SetForwardShader(ID3D11DeviceContext* pContext)
 		{
 			pContext->VSSetShader(m_pVS, nullptr, 0);
 			pContext->GSSetShader(nullptr, nullptr, 0);

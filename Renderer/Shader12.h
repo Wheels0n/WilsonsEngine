@@ -29,17 +29,34 @@ namespace wilson
 		}
 
 		//D3D12 Shader Setter
-		void SetShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		void SetForwardShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
 		{
-			D3D12_SHADER_BYTECODE vsBytecode = { m_p12VS->GetBufferPointer(),m_p12VS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pForwardVS->GetBufferPointer(),m_pForwardVS->GetBufferSize() };
 			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
-			D3D12_SHADER_BYTECODE psBytecode = { m_p12PS->GetBufferPointer(),m_p12PS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE psBytecode = { m_pForwardPS->GetBufferPointer(),m_pForwardPS->GetBufferSize() };
 
 			pPSODesc->VS = vsBytecode;
 			pPSODesc->GS = gsBytecode;
 			pPSODesc->PS = psBytecode;
 
 		}
+		
+		void SetZpassShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		{
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pMatrixTransformVS->GetBufferPointer(),m_pMatrixTransformVS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
+			D3D12_SHADER_BYTECODE psBytecode = { nullptr, 0 };
+
+			pPSODesc->VS = vsBytecode;
+			pPSODesc->GS = gsBytecode;
+			pPSODesc->PS = psBytecode;
+		}
+
+		inline ID3D12RootSignature* GetZpassRootSignature()
+		{
+			return m_pZpassRootSignature;
+		}
+
 		void SetEquirect2CubeShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
 		{
 			D3D12_SHADER_BYTECODE vsBytecode = { m_pPosOnly12VS->GetBufferPointer(),m_pPosOnly12VS->GetBufferSize() };
@@ -238,7 +255,7 @@ namespace wilson
 
 		void SetSSAOShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
 		{
-			D3D12_SHADER_BYTECODE vsBytecode = { m_pTex12VS->GetBufferPointer(), m_pTex12VS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pSSAO12VS->GetBufferPointer(), m_pSSAO12VS->GetBufferSize() };
 			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
 			D3D12_SHADER_BYTECODE psBytecode = { m_pSSAO12PS->GetBufferPointer(),m_pSSAO12PS->GetBufferSize() };
 
@@ -393,7 +410,8 @@ namespace wilson
 	private:
 		//D3D12
 
-		ID3DBlob* m_p12VS;
+		ID3DBlob* m_pForwardVS;
+		ID3DBlob* m_pSSAO12VS;
 		ID3DBlob* m_pSkyBox12VS;
 		ID3DBlob* m_pShadow12VS;
 		ID3DBlob* m_pOmniDirShadow12VS;
@@ -410,7 +428,7 @@ namespace wilson
 		ID3DBlob* m_pOmniDirShadow12GS;
 		ID3DBlob* m_pEquirect2Cube12GS;
 
-		ID3DBlob* m_p12PS;
+		ID3DBlob* m_pForwardPS;
 		ID3DBlob* m_pCascadeDir12PS;
 		ID3DBlob* m_pSkyBox12PS;
 		ID3DBlob* m_pShadow12PS;
@@ -436,6 +454,7 @@ namespace wilson
 		ID3DBlob* m_pAABB12PS;
 		ID3DBlob* m_pGenMipCS;
 
+		ID3D12RootSignature* m_pZpassRootSignature;
 		ID3D12RootSignature* m_pCasacadePassRootSignature;
 		ID3D12RootSignature* m_pSpotShadowRootSignature;
 		ID3D12RootSignature* m_pCubeShadowRootSignature;

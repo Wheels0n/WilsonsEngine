@@ -17,36 +17,26 @@ struct PixelInputType
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
     float4 wPosition : POSITION0;
-    float4 vPosition : POSITION1;
-    float3 vNormal : vNORMAL;
 };
 
 cbuffer MatrixBuffer
 {
     matrix g_worldMatrix;
-    matrix g_viewMatrix;
-    matrix g_projectionMatrix;
+    matrix g_wvpMatrix;
     matrix g_invWorldMat;
 };
-//PerModel Á¦°ÅÇÔ
 
 PixelInputType main(VertexInputType input)
 {
     PixelInputType output;
     output.position = float4(input.position, 1.0f);
-    output.position = mul(output.position, g_worldMatrix);
-    output.wPosition = output.position;
-   
-    output.position = mul(output.position, g_viewMatrix);
-    output.vPosition = output.position;
-    output.position = mul(output.position, g_projectionMatrix);
+    output.wPosition = mul(output.position, g_worldMatrix);
+    output.position = mul(output.position, g_wvpMatrix);
     
     output.tex = input.tex;
     
     output.normal = mul(input.normal, (float3x3) transpose(g_invWorldMat));
     output.normal = normalize(output.normal);
-    output.vNormal = mul(output.normal, (float3x3) g_viewMatrix);
-    output.vNormal = normalize(output.vNormal);
 #ifdef HAS_NORMAL 
    output.tangent = mul(input.tangent, (float3x3) transpose(g_invWorldMat));
    output.tangent = normalize(output.tangent);

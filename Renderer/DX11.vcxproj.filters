@@ -50,12 +50,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Renderer11.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D11.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Import.cpp">
       <Filter>Source Files\Editor</Filter>
     </ClCompile>
@@ -134,9 +128,6 @@
     <ClCompile Include="AABB.cpp">
       <Filter>Source Files\Component\Cam</Filter>
     </ClCompile>
-    <ClCompile Include="D3D12.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ContentBrowser12.cpp">
       <Filter>Source Files\Editor</Filter>
     </ClCompile>
@@ -160,9 +151,6 @@
     </ClCompile>
     <ClCompile Include="Editor12.cpp">
       <Filter>Source Files\Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer12.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Camera12.cpp">
       <Filter>Source Files\Component\Cam</Filter>
@@ -221,25 +209,31 @@
     <ClCompile Include="..\ImGui\imgui.cpp">
       <Filter>Source Files\External\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="Renderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Editor.cpp">
       <Filter>Source Files\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="D3D11.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
     <ClCompile Include="DescriptorHeapManager.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer11.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer12.cpp">
+      <Filter>Source Files\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Import.h">
       <Filter>Source Files\Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D11.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer11.h">
-      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Source Files</Filter>
@@ -316,9 +310,6 @@
     <ClInclude Include="AABB.h">
       <Filter>Source Files\Component\Cam</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="ContentBrowser12.h">
       <Filter>Source Files\Editor</Filter>
     </ClInclude>
@@ -340,14 +331,8 @@
     <ClInclude Include="Scene12.h">
       <Filter>Source Files\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="typedef.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Editor12.h">
       <Filter>Source Files\Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer12.h">
-      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Camera12.h">
       <Filter>Source Files\Component\Cam</Filter>
@@ -409,14 +394,29 @@
     <ClInclude Include="..\ImGui\imconfig.h">
       <Filter>Source Files\External\ImGui</Filter>
     </ClInclude>
-    <ClInclude Include="Renderer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Editor.h">
       <Filter>Source Files\Editor</Filter>
     </ClInclude>
+    <ClInclude Include="D3D11.h">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12.h">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
     <ClInclude Include="DescriptorHeapManager.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer11.h">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer12.h">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="typedef.h">
+      <Filter>Source Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -548,6 +548,9 @@
       <Filter>Resource Files</Filter>
     </FxCompile>
     <FxCompile Include="PBRGeometryPS_Emissive.hlsl">
+      <Filter>Resource Files</Filter>
+    </FxCompile>
+    <FxCompile Include="SSAOVS.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
   </ItemGroup>

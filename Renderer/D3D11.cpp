@@ -100,7 +100,7 @@ namespace wilson
 		m_pBRDFSRV = nullptr;
 
 		m_pScreenDSV = nullptr;
-		m_pSceneDSV = nullptr;
+		m_SceneDSV = nullptr;
 		for (int i = 0; i < 2; ++i)
 		{
 			m_pPingPongTex[i]  = nullptr;
@@ -472,7 +472,7 @@ namespace wilson
 				OutputDebugStringA("D3D11::CreateDSV()onScreenFailed");
 			}
 
-			if (!CreateDSV(m_clientWidth, m_clientHeight, &m_pSceneDepthTex, &m_pSceneDSV))
+			if (!CreateDSV(m_clientWidth, m_clientHeight, &m_pSceneDepthTex, &m_SceneDSV))
 			{
 				OutputDebugStringA("D3D11::CreateDSV()onSceneFailed");
 			}
@@ -566,7 +566,7 @@ namespace wilson
 
 			//Set projectionMatrix, viewMatrix;
 			m_pCam = new Camera(m_pDevice, screenWidth, screenHeight, fScreenFar, fScreenNear);
-			m_pCam->SetCamPos(m_pContext);
+			m_pCam->UploadCamPos(m_pContext);
 			XMMATRIX* m_projMat = m_pCam->GetProjectionMatrix();
 			XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
 			m_pFrustum = new Frustum(m_pCam);
@@ -1123,7 +1123,7 @@ namespace wilson
 			OutputDebugStringA("D3D11::CreateDSV()onScreenFailed");
 		}
 
-		if (!CreateDSV(m_clientWidth, m_clientHeight, &m_pSceneDepthTex, &m_pSceneDSV))
+		if (!CreateDSV(m_clientWidth, m_clientHeight, &m_pSceneDepthTex, &m_SceneDSV))
 		{
 			OutputDebugStringA("D3D11::CreateDSV()onSceneFailed");
 		}
@@ -1170,7 +1170,7 @@ namespace wilson
 		}
 
 		m_pContext->ClearDepthStencilView(m_pScreenDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		m_pContext->ClearDepthStencilView(m_pSceneDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		m_pContext->ClearDepthStencilView(m_SceneDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
 		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pCam->Update();
@@ -1231,19 +1231,19 @@ namespace wilson
 		m_pContext->PSSetShaderResources(1, 1, &m_pHDRSRV);
 		m_pContext->RSSetViewports(1, &m_viewport);
 		m_pContext->OMSetDepthStencilState(m_pSkyBoxDSS, 0);
-		m_pContext->OMSetRenderTargets(1, &m_pGbufferRTTV[2], m_pSceneDSV);
+		m_pContext->OMSetRenderTargets(1, &m_pGbufferRTTV[2], m_SceneDSV);
 		m_pContext->DrawIndexed(36, 0, 0);
 	
 		//Deferred Shading First Pass
 		if (!m_pModelGroups.empty())
 		{	
-			m_pCam->SetCamPos(m_pContext);
+			m_pCam->UploadCamPos(m_pContext);
 			m_pShader->SetDeferredGeoLayout(m_pContext);
 			m_pShader->SetPBRDeferredGeoShader(m_pContext);
 			m_pContext->RSSetState(m_pQuadRS);
 			m_pContext->OMSetDepthStencilState(0, 0);
 			m_pContext->OMSetBlendState(m_pGBufferWriteBS, color, 0xffffffff);
-			m_pContext->OMSetRenderTargets(_GBUF_COUNT, m_pGbufferRTTV, m_pSceneDSV);
+			m_pContext->OMSetRenderTargets(_GBUF_COUNT, m_pGbufferRTTV, m_SceneDSV);
 
 
 			//Upload HeightScale and bHeightOnOff
@@ -1295,8 +1295,8 @@ namespace wilson
 			m_pLightBuffer->UpdateDirLightMatrices(m_pContext);
 			m_pLightBuffer->UpdateSpotLightMatrices(m_pContext);
 			m_pLightBuffer->UpdateLightBuffer(m_pContext);
-			m_pCam->SetCamPos(m_pContext);
-			m_pCam->SetCascadeLevels(m_pContext);
+			m_pCam->UploadCamPos(m_pContext);
+			m_pCam->UploadCascadeLevels(m_pContext);
 	
 			m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, nullptr);
 			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
@@ -1333,7 +1333,7 @@ namespace wilson
 		m_pShader->SetTexInputlayout(m_pContext);
 		m_pShader->SetOutlinerTestShader(m_pContext);
 		m_pContext->OMSetDepthStencilState(m_pOutlinerTestDSS, 1);
-		m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, m_pSceneDSV);
+		m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, m_SceneDSV);
 		if (m_selectedModelGroup != -1)
 		{
 			std::vector<Model*> pModels = m_pModelGroups[m_selectedModelGroup]->GetModels();
@@ -2166,10 +2166,10 @@ namespace wilson
 			m_pSceneDepthTex = nullptr;
 		}
 
-		if (m_pSceneDSV != nullptr)
+		if (m_SceneDSV != nullptr)
 		{
-			m_pSceneDSV->Release();
-			m_pSceneDSV = nullptr;
+			m_SceneDSV->Release();
+			m_SceneDSV = nullptr;
 		}
 	}
 

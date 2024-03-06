@@ -69,8 +69,8 @@ namespace wilson
 		assert(SUCCEEDED(hr));
 		pMatrices = reinterpret_cast<MatrixBuffer*>(mappedResource.pData);
 		pMatrices->m_worldMat = m_worldMat;
-		pMatrices->m_viewMat = m_viewMat;
-		pMatrices->m_projMat = m_projMat;
+		//pMatrices->m_viewMat = m_viewMat;
+		//pMatrices->m_projMat = m_projMat;
 		pMatrices->m_extraMat = bSpotShadowPass ? m_lightSpaceMat : m_invWorldMat;
 		pContext->Unmap(m_pMatBuffer, 0);
 

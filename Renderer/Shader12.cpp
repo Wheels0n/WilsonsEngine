@@ -11,8 +11,8 @@ namespace wilson
 		//Init D3D12Resource
 		{
 
-			m_p12VS = nullptr;
-			m_p12PS = nullptr;
+			m_pForwardVS = nullptr;
+			m_pForwardPS = nullptr;
 
 			m_pPosOnly12VS = nullptr;
 			m_pCascadeDir12VS = nullptr;
@@ -38,6 +38,7 @@ namespace wilson
 
 			m_pGeometry12VS = nullptr;
 			m_pGeometry12PS = nullptr;
+			m_pSSAO12VS = nullptr;
 			m_pSSAO12PS = nullptr;
 			m_pSSAOBlur12PS = nullptr;
 			m_pDeferred12PS = nullptr;
@@ -63,6 +64,7 @@ namespace wilson
 
 			m_pGenMipCS = nullptr;
 
+			m_pZpassRootSignature = nullptr;
 			m_pCasacadePassRootSignature = nullptr;
 			m_pSpotShadowRootSignature = nullptr;
 			m_pCubeShadowRootSignature = nullptr;
@@ -89,10 +91,10 @@ namespace wilson
 		{
 			HRESULT hr;
 			ID3DBlob* pErrorBlob;
-			hr = D3DCompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_p12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pForwardVS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &m_p12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &m_pForwardPS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"PosOnlyVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pPosOnly12VS, &pErrorBlob);
@@ -152,6 +154,9 @@ namespace wilson
 			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"GeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pGeometry12PS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
+			hr = D3DCompileFromFile(L"SSAOVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAO12VS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"SSAOPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAO12PS, &pErrorBlob);
@@ -363,6 +368,39 @@ namespace wilson
 			{
 				featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 			}
+			//Zpass
+			D3D12_DESCRIPTOR_RANGE1 zPassRanges[1] = {};
+			zPassRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+			zPassRanges[0].NumDescriptors = 1;
+			zPassRanges[0].BaseShaderRegister = 0;
+			zPassRanges[0].RegisterSpace = 0;
+			zPassRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			D3D12_ROOT_PARAMETER1 zPassRootParameter[1] = {};
+
+			zPassRootParameter[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			zPassRootParameter[0].DescriptorTable.NumDescriptorRanges = 1;
+			zPassRootParameter[0].DescriptorTable.pDescriptorRanges = &zPassRanges[0];
+			zPassRootParameter[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+			D3D12_VERSIONED_ROOT_SIGNATURE_DESC zPassRootSignatureDesc;
+			zPassRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+			zPassRootSignatureDesc.Desc_1_1.NumParameters = 1;
+			zPassRootSignatureDesc.Desc_1_1.pParameters = zPassRootParameter;
+			zPassRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+			zPassRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+			zPassRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+
+			ID3DBlob* signature;
+			ID3DBlob* error;
+			hr = D3D12SerializeVersionedRootSignature(&zPassRootSignatureDesc, &signature, &error);
+			assert(SUCCEEDED(hr));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pZpassRootSignature));
+			assert(SUCCEEDED(hr));
+			m_pZpassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Shader12::m_pZpassRootSignature") - 1, "Shader12::m_pZpassRootSignature");
+
 
 			//CascadeShadow Pass 
 			D3D12_DESCRIPTOR_RANGE1 cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eCnt] = {};
@@ -399,11 +437,10 @@ namespace wilson
 			cascadedShadowRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
 			cascadedShadowRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-
-			ID3DBlob* signature;
-			ID3DBlob* error;
 			hr = D3D12SerializeVersionedRootSignature(&cascadedShadowRootSignatureDesc, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pCasacadePassRootSignature));
+			assert(SUCCEEDED(hr));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pCasacadePassRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pCasacadePassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pCasacadePassRootSignature") - 1, "Shader12::m_pCasacadePassRootSignature");
 
@@ -457,7 +494,9 @@ namespace wilson
 
 
 			hr=D3D12SerializeVersionedRootSignature(&spotShadowRootSignatureDesc, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSpotShadowRootSignature));
+			assert(SUCCEEDED(hr));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSpotShadowRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pSpotShadowRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pSpotShadowRootSignature") - 1, "Shader12::m_pSpotShadowRootSignature");
 
@@ -533,7 +572,9 @@ namespace wilson
 
 
 			hr = D3D12SerializeVersionedRootSignature(&cubeShadowRootSignatureDesc, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pCubeShadowRootSignature));
+			assert(SUCCEEDED(hr));
+			hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pCubeShadowRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pCubeShadowRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pCubeShadowRootSignature") - 1, "Shader12::m_pCubeShadowRootSignature");
 
@@ -588,7 +629,9 @@ namespace wilson
 
 
 			hr=D3D12SerializeVersionedRootSignature(&skyboxRootSignature, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSkyboxRootSignature));
+			assert(SUCCEEDED(hr));
+			hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSkyboxRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pSkyboxRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pSkyboxRootSignature") - 1, "Shader12::m_pSkyboxRootSignature");
 
@@ -661,7 +704,8 @@ namespace wilson
 			hr=D3D12SerializeVersionedRootSignature(&PbrGeometryRootSignatureDesc, &signature, &error);
 			assert(SUCCEEDED(hr));
 
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPBRGeoRootSignature));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPBRGeoRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pPBRGeoRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pPBRGeoRootSignature") - 1, "Shader12::m_pPBRGeoRootSignature");
 
@@ -669,11 +713,17 @@ namespace wilson
 			//SSAO 
 			
 			D3D12_DESCRIPTOR_RANGE1 SSAORanges[eSsaoRP::eSsao_eCnt] = {};
-			for (int i = eSsao_ePsVpos; i < eSsao_ePsWrap; ++i)
+
+			SSAORanges[eSsao_eVsFrustumInfo].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+			SSAORanges[eSsao_eVsFrustumInfo].NumDescriptors = 1;
+			SSAORanges[eSsao_eVsFrustumInfo].BaseShaderRegister = 0;
+			SSAORanges[eSsao_eVsFrustumInfo].RegisterSpace = 0;
+			SSAORanges[eSsao_eVsFrustumInfo].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			for (int i = eSsao_ePsDepth; i < eSsao_ePsWrap; ++i)
 			{
 				SSAORanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 				SSAORanges[i].NumDescriptors = 1;
-				SSAORanges[i].BaseShaderRegister = i;
+				SSAORanges[i].BaseShaderRegister = i-1;
 				SSAORanges[i].RegisterSpace = 0;
 				SSAORanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
@@ -699,7 +749,11 @@ namespace wilson
 
 
 			D3D12_ROOT_PARAMETER1 SSAORootParameter[eSsaoRP::eSsao_eCnt] = {};
-			for (int i = eSsao_ePsVpos; i < eSsao_eCnt; ++i)
+			SSAORootParameter[eSsao_eVsFrustumInfo].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			SSAORootParameter[eSsao_eVsFrustumInfo].DescriptorTable.NumDescriptorRanges = 1;
+			SSAORootParameter[eSsao_eVsFrustumInfo].DescriptorTable.pDescriptorRanges = &SSAORanges[eSsao_eVsFrustumInfo];
+			SSAORootParameter[eSsao_eVsFrustumInfo].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+			for (int i = eSsao_ePsDepth; i < eSsao_eCnt; ++i)
 			{
 				SSAORootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 				SSAORootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
@@ -718,7 +772,9 @@ namespace wilson
 
 
 			hr=D3D12SerializeVersionedRootSignature(&SSAORootSignatureDesc, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSSAORootSignature));
+			assert(SUCCEEDED(hr));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSSAORootSignature));
+			assert(SUCCEEDED(hr));
 			m_pSSAORootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pSSAORootSignature") - 1, "Shader12::m_pSSAORootSignature");
 
@@ -762,7 +818,9 @@ namespace wilson
 
 
 			hr=D3D12SerializeVersionedRootSignature(&SSAOBlurRootSignatureDesc, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSSAOBlurRootSignature));
+			assert(SUCCEEDED(hr));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSSAOBlurRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pSSAOBlurRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pSSAOBlurRootSignature") - 1, "Shader12::m_pSSAOBlurRootSignature");
 
@@ -816,7 +874,9 @@ namespace wilson
 
 
 			hr=D3D12SerializeVersionedRootSignature(&PbrLightRootSignatureDesc, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPBRLightRootSignature));
+			assert(SUCCEEDED(hr));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPBRLightRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pPBRLightRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pPBRLightRootSignature") - 1, "Shader12::m_pPBRLightRootSignature");
 
@@ -867,7 +927,9 @@ namespace wilson
 
 
 			hr=D3D12SerializeVersionedRootSignature(&outlinerTestRootSignatureDesc, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pOutlinerTestRootSignature));
+			assert(SUCCEEDED(hr));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pOutlinerTestRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pOutlinerTestRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pOutlinerTestRootSignature") - 1, "Shader12::m_pOutlinerTestRootSignature");
 
@@ -924,7 +986,9 @@ namespace wilson
 
 
 			hr=D3D12SerializeVersionedRootSignature(&finalRootSignatureDesc, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pFinalRootSignature));
+			assert(SUCCEEDED(hr));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pFinalRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pFinalRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pFinalRootSignature") - 1, "Shader12::m_pFinalRootSignature");
 
@@ -933,8 +997,10 @@ namespace wilson
 			emptyRootSignatureDesc.Version= D3D_ROOT_SIGNATURE_VERSION_1_1;
 			emptyRootSignatureDesc.Desc_1_1.NumParameters = 0;
 			emptyRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-			D3D12SerializeVersionedRootSignature(&emptyRootSignatureDesc, &signature, &error);
+			hr=D3D12SerializeVersionedRootSignature(&emptyRootSignatureDesc, &signature, &error);
+			assert(SUCCEEDED(hr));
 			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pBrdfRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pBrdfRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pBrdfRootSignature") - 1, "Shader12::m_pBrdfRootSignature");
 
@@ -987,7 +1053,9 @@ namespace wilson
 
 
 			hr=D3D12SerializeVersionedRootSignature(&diffuseIrradianceRootSignature, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pDiffuseIrradianceRootSignature));
+			assert(SUCCEEDED(hr));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pDiffuseIrradianceRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pDiffuseIrradianceRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pDiffuseIrradianceRootSignature") - 1, "Shader12::m_pDiffuseIrradianceRootSignature");
 
@@ -1051,7 +1119,9 @@ namespace wilson
 
 
 			hr=D3D12SerializeVersionedRootSignature(&prefilterRootSignatureDesc, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPrefilterRootSignature));
+			assert(SUCCEEDED(hr));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPrefilterRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pPrefilterRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pPrefilterRootSignature") - 1, "Shader12::m_pPrefilterRootSignature");
 
@@ -1102,7 +1172,9 @@ namespace wilson
 			equirect2CubeRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
 			hr=D3D12SerializeVersionedRootSignature(&equirect2CubeRootSignatureDesc, &signature, &error);
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pEquirect2cubeRootSignature));
+			assert(SUCCEEDED(hr));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pEquirect2cubeRootSignature));
+			assert(SUCCEEDED(hr));
 			m_pEquirect2cubeRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pEquirect2cubeRootSignature") - 1, "Shader12::m_pEquirect2cubeRootSignature");
 
@@ -1152,7 +1224,8 @@ namespace wilson
 
 			hr = D3D12SerializeVersionedRootSignature(&genMipRootSignatureDesc, &signature, &error);
 			assert(SUCCEEDED(hr));
-			pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pGenMipMapRootsignature));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pGenMipMapRootsignature));
+			assert(SUCCEEDED(hr));
 			m_pGenMipMapRootsignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12:m_pGenMipMapRootsignature") - 1, "Shader12::m_pGenMipMapRootsignature");
 
@@ -1164,16 +1237,16 @@ namespace wilson
 
 		//Delete D3D12Resources
 		{
-			if (m_p12VS != nullptr)
+			if (m_pForwardVS != nullptr)
 			{
-				m_p12VS->Release();
-				m_p12VS = nullptr;
+				m_pForwardVS->Release();
+				m_pForwardVS = nullptr;
 			}
 
-			if (m_p12PS != nullptr)
+			if (m_pForwardPS != nullptr)
 			{
-				m_p12PS->Release();
-				m_p12PS = nullptr;
+				m_pForwardPS->Release();
+				m_pForwardPS = nullptr;
 			}
 
 			if (m_pSkyBox12VS != nullptr)
@@ -1285,6 +1358,13 @@ namespace wilson
 				m_pGeometry12PS->Release();
 				m_pGeometry12PS = nullptr;
 			}
+
+			if (m_pSSAO12VS != nullptr)
+			{
+				m_pSSAO12VS->Release();
+				m_pSSAO12VS = nullptr;
+			}
+
 			if (m_pSSAO12PS != nullptr)
 			{
 				m_pSSAO12PS->Release();
@@ -1389,6 +1469,12 @@ namespace wilson
 			{
 				m_pGenMipCS->Release();
 				m_pGenMipCS = nullptr;
+			}
+
+			if (m_pZpassRootSignature != nullptr)
+			{
+				m_pZpassRootSignature->Release();
+				m_pZpassRootSignature = nullptr;
 			}
 
 			if (m_pCasacadePassRootSignature != nullptr)

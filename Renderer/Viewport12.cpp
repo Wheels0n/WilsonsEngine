@@ -32,6 +32,7 @@ namespace wilson
 	void Viewport12::Draw()
 	{
 		m_pFinalSRV = m_pD3D12->GetFinalSRV();
+		m_pSceneDepthSRV = m_pD3D12->GetDepthSRV();
 		m_pSSAOBlurredSRV = m_pD3D12->GetSSAOBlurredSRV();
 		m_pGbufferSRVs = m_pD3D12->GetGbufferSRV();
 		m_GbufferCount = m_pD3D12->GetGbufferCount();
@@ -122,6 +123,7 @@ namespace wilson
 				ImGui::Image((ImTextureID)m_pGbufferSRVs[i].ptr, ImVec2(m_width, m_height));
 			}
 			ImGui::Image((ImTextureID)m_pSSAOBlurredSRV->ptr, ImVec2(m_width, m_height));
+			ImGui::Image((ImTextureID)m_pSceneDepthSRV->ptr, ImVec2(m_width, m_height));
 
 		}
 		ImGui::End();

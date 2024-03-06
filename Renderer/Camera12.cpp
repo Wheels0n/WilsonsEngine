@@ -6,8 +6,9 @@ namespace wilson {
 	Camera12::Camera12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager,
 		const UINT screenWidth, const UINT screenHeight, float screenFar, float screenNear)
 	{
-		m_fScreenNear = screenNear;
-		m_fScreenFar = screenFar;
+		m_nearZ = screenNear;
+		m_farZ = screenFar;
+		//radian 
 		m_fFOV = static_cast<float>(3.1459) / 4.0f;
 		m_fScreenRatio = screenWidth / static_cast<float>(screenHeight);
 		m_trSpeed = 0.1f;
@@ -20,14 +21,15 @@ namespace wilson {
 		m_up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 		m_worldUp = m_up;
 
-		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
+		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_nearZ, m_farZ);
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
 		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
 		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
 
 		m_pCamCb = nullptr;
 		m_pCamPosCbBegin = nullptr;
-		m_pCascadeLevelCbBegin = nullptr;
+		m_pCascadeLevelCbBegin = nullptr; 
+		m_pFrustumInfoCbBegin = nullptr;
 
 		HRESULT hr;
 
@@ -40,7 +42,7 @@ namespace wilson {
 		heapProps.VisibleNodeMask = 1;
 
 		D3D12_RESOURCE_DESC cbufferDesc = {};
-		cbufferDesc.Width = _64KB_ALIGN(sizeof(CamBuffer));
+		cbufferDesc.Width = _64KB_ALIGN(sizeof(DirectX::XMVECTOR));
 		cbufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 		cbufferDesc.Alignment = 0;
 		cbufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -67,8 +69,9 @@ namespace wilson {
 			hr = m_pCamCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pCamPosCbBegin));
 			assert(SUCCEEDED(hr));
 
-			UINT constantBufferSize = sizeof(CamBuffer);
+			UINT constantBufferSize = sizeof(DirectX::XMVECTOR);
 			m_pCascadeLevelCbBegin = m_pCamPosCbBegin + (_CBV_ALIGN(constantBufferSize));
+
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);//255aligned
 			cbvDesc.BufferLocation = m_pCamCb->GetGPUVirtualAddress();
@@ -84,15 +87,29 @@ namespace wilson {
 			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
 
 			UINT constantBufferSize = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;
+			m_pFrustumInfoCbBegin = m_pCascadeLevelCbBegin + (_CBV_ALIGN(constantBufferSize));
+
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-			cbvDesc.BufferLocation = m_pCamCb->GetGPUVirtualAddress()+256;
+			cbvDesc.BufferLocation = m_pCamCb->GetGPUVirtualAddress()+_CBV_READ_SIZE;
 			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
 			m_cascadeLevelCBV = cbvSrvGpuHandle;
 			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 		}
 		
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
 
+			UINT constantBufferSize = sizeof(DirectX::XMVECTOR);
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
+			cbvDesc.BufferLocation = m_pCamCb->GetGPUVirtualAddress() + _CBV_READ_SIZE;
+			cbvDesc.BufferLocation +=(_CBV_ALIGN(sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS));
+			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
+			m_frustumInfoCBV = cbvSrvGpuHandle;
+			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+		}
 	}
 
 	Camera12::~Camera12()
@@ -114,7 +131,7 @@ namespace wilson {
 
 	void Camera12::UpdateCascadeLevels()
 	{
-		m_shadowCascadeLevels = std::vector({ m_fScreenFar / 100.0f,  m_fScreenFar / 50.0f,  m_fScreenFar / 25.0f,  m_fScreenFar / 5.0f , m_fScreenFar });
+		m_shadowCascadeLevels = std::vector({ m_farZ / 100.0f,  m_farZ / 50.0f,  m_farZ / 25.0f,  m_farZ / 5.0f , m_farZ });
 	}
 
 
@@ -164,12 +181,20 @@ namespace wilson {
 
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
 		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
-		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_fScreenNear, m_fScreenFar);
+		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_nearZ, m_farZ);
 		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
 		UpdateCascadeLevels();
 	}
 
-	bool Camera12::SetCascadeLevels(ID3D12GraphicsCommandList* pCommandlist)
+	bool Camera12::UploadFrustumInfo(ID3D12GraphicsCommandList* pCommandlist)
+	{
+		float frustumInfo[] = { m_fScreenRatio, (float)tan(m_fFOV/2.f) };
+		memcpy(m_pFrustumInfoCbBegin, &frustumInfo[0], sizeof(float)*2);
+		pCommandlist->SetGraphicsRootDescriptorTable(eSsao_eVsFrustumInfo, m_frustumInfoCBV);
+		return true;
+	}
+
+	bool Camera12::UploadCascadeLevels(ID3D12GraphicsCommandList* pCommandlist)
 	{
 		std::vector<DirectX::XMVECTOR> FarZs(_CASCADE_LEVELS);
 		for (int i = 0; i < _CASCADE_LEVELS; ++i)
@@ -183,9 +208,10 @@ namespace wilson {
 	}
 
 
-	bool Camera12::SetCamPos(ID3D12GraphicsCommandList* pCommandlist, bool bGeoPass)
+	bool Camera12::UploadCamPos(ID3D12GraphicsCommandList* pCommandlist, bool bGeoPass)
 	{
-		memcpy(m_pCamPosCbBegin, &m_pos, sizeof(CamBuffer));
+		
+		memcpy(m_pCamPosCbBegin, &m_pos, sizeof(DirectX::XMVECTOR));
 		pCommandlist->SetGraphicsRootDescriptorTable(bGeoPass?ePbrGeoRP::ePbrGeo_ePsCamPos: ePbrLightRP::ePbrLight_ePsCamPos,
 			m_camPosCBV);
 		return true;

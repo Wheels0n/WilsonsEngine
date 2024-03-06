@@ -14,8 +14,9 @@ namespace wilson {
 	public:
 
 		void Update();
-		bool SetCascadeLevels(ID3D12GraphicsCommandList* pCommandlist);
-		bool SetCamPos(ID3D12GraphicsCommandList* pCommandlist, bool bGeoPass);
+		bool UploadFrustumInfo(ID3D12GraphicsCommandList* pCommandlist);
+		bool UploadCascadeLevels(ID3D12GraphicsCommandList* pCommandlist);
+		bool UploadCamPos(ID3D12GraphicsCommandList* pCommandlist, bool bGeoPass);
 		void ResetTranslation();
 		void UpdateCascadeLevels();
 
@@ -23,7 +24,10 @@ namespace wilson {
 		{
 			m_rotation = DirectX::XMVectorZero();
 		}
-
+		inline void SetPosition(DirectX::XMVECTOR pos)
+		{
+			m_pos = pos;
+		}
 		inline DirectX::XMVECTOR* GetPosition()
 		{
 			return &m_pos;
@@ -44,6 +48,10 @@ namespace wilson {
 		{
 			return m_dir;
 		}
+		inline void SetRotation(DirectX::XMVECTOR rot)
+		{
+			m_rotation = rot;
+		}
 		inline DirectX::XMVECTOR* GetRotation()
 		{
 			return &m_rotation;
@@ -61,18 +69,29 @@ namespace wilson {
 			return m_shadowCascadeLevels;
 		}
 
-
+		inline void SetTRSpeed(float speed)
+		{
+			m_trSpeed = speed;
+		}
 		inline float* GetTRSpeed()
 		{
 			return &m_trSpeed;
 		}
+		inline void SetNearZ(float z)
+		{
+			m_nearZ = z;
+		}
 		inline float* GetNearZ()
 		{
-			return &m_fScreenNear;
+			return &m_nearZ;
+		}
+		inline void SetFarZ(float z)
+		{
+			m_farZ = z;
 		}
 		inline float* GetFarZ()
 		{
-			return &m_fScreenFar;
+			return &m_farZ;
 		}
 		inline float* GetFovY()
 		{
@@ -105,14 +124,16 @@ namespace wilson {
 		ID3D12Resource* m_pCamCb;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_camPosCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_cascadeLevelCBV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_frustumInfoCBV;
 
 		std::vector<float> m_shadowCascadeLevels;
 		UINT8* m_pCamPosCbBegin;
 		UINT8* m_pCascadeLevelCbBegin;
+		UINT8* m_pFrustumInfoCbBegin;
 		float m_fFOV;
 		float m_fScreenRatio;
-		float m_fScreenNear;
-		float m_fScreenFar;
+		float m_nearZ;
+		float m_farZ;
 
 		float m_trSpeed;
 		float m_rtSpeed;

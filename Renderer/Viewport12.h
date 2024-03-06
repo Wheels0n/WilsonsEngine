@@ -57,6 +57,7 @@ namespace wilson
 		Importer12* m_pImporter12;
 
 		D3D12_GPU_DESCRIPTOR_HANDLE* m_pFinalSRV;
+		D3D12_GPU_DESCRIPTOR_HANDLE* m_pSceneDepthSRV;
 		D3D12_GPU_DESCRIPTOR_HANDLE* m_pSSAOBlurredSRV;
 		D3D12_GPU_DESCRIPTOR_HANDLE* m_pGbufferSRVs;
 
