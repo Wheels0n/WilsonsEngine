@@ -369,3 +369,6 @@ FodyWeavers.xsd
 /Renderer/Assets
 *.rdc
 /DX11
+*.filters
+*.vcxproj
+*.rc

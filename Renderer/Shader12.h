@@ -371,19 +371,15 @@ namespace wilson
 			return m_pOutlinerTestRootSignature;
 		}
 
-		void SetFinalShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		void SetPostProcessShader(D3D12_COMPUTE_PIPELINE_STATE_DESC* pPSODesc)
 		{
-			D3D12_SHADER_BYTECODE vsBytecode = { m_pTex12VS->GetBufferPointer(), m_pTex12VS->GetBufferSize() };
-			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
-			D3D12_SHADER_BYTECODE psBytecode = { m_pFin12PS->GetBufferPointer(), m_pFin12PS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE csBytecode = { m_pPostProcessCS->GetBufferPointer(), m_pPostProcessCS->GetBufferSize() };
 
-			pPSODesc->VS = vsBytecode;
-			pPSODesc->GS = gsBytecode;
-			pPSODesc->PS = psBytecode;
+			pPSODesc->CS = csBytecode;
 		}
-		inline ID3D12RootSignature* GetFinalShaderRootSingnature()
+		inline ID3D12RootSignature* GetPostProcessShaderRootSingnature()
 		{
-			return m_pFinalRootSignature;
+			return m_pPostProcessRootSignature;
 		}
 
 		void SetGenMipShader(D3D12_COMPUTE_PIPELINE_STATE_DESC* pPSODesc)
@@ -443,11 +439,13 @@ namespace wilson
 		ID3DBlob* m_pBlur12PS;
 		ID3DBlob* m_pConstantPS;
 		ID3DBlob* m_pOutlinerTest12PS;
-		ID3DBlob* m_pFin12PS;
+		ID3DBlob* m_pPostProcess12PS;
 		ID3DBlob* m_pAABB12PS;
+
 		ID3DBlob* m_pGenMipCS;
 		ID3DBlob* m_pSSAOCS;
 		ID3DBlob* m_pSSAOBlurCS;
+		ID3DBlob* m_pPostProcessCS;
 
 		ID3D12RootSignature* m_pZpassRootSignature;
 		ID3D12RootSignature* m_pCasacadePassRootSignature;
@@ -459,7 +457,7 @@ namespace wilson
 		ID3D12RootSignature* m_pSSAOBlurRootSignature;
 		ID3D12RootSignature* m_pPBRLightRootSignature;
 		ID3D12RootSignature* m_pOutlinerTestRootSignature;
-		ID3D12RootSignature* m_pFinalRootSignature;
+		ID3D12RootSignature* m_pPostProcessRootSignature;
 		//
 		ID3D12RootSignature* m_pPrefilterRootSignature;
 		ID3D12RootSignature* m_pBrdfRootSignature;

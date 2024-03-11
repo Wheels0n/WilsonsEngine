@@ -144,7 +144,7 @@ namespace wilson
 			pContext->GSSetShader(nullptr, nullptr, 0);
 			pContext->PSSetShader(m_pOutlinerPS, nullptr, 0);
 		}
-		inline void SetFinalShader(ID3D11DeviceContext* pContext)
+		inline void SetPostProcessShader(ID3D11DeviceContext* pContext)
 		{
 			pContext->VSSetShader(m_pTexVS, nullptr, 0);
 			pContext->GSSetShader(nullptr, nullptr, 0);

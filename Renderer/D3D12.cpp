@@ -365,13 +365,6 @@ namespace wilson
 		clearVal.Color[3] = 1.0f;
 
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pViewportTex));
-		assert(SUCCEEDED(hr));
-		m_pViewportTex->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D12:::m_pViewportTex") - 1, "D3D12:::m_pViewportTex");
-
-
-		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pSceneTex));
 		assert(SUCCEEDED(hr));
 		m_pSceneTex->SetPrivateData(WKPDID_D3DDebugObjectName,
@@ -404,11 +397,6 @@ namespace wilson
 
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
-		m_pDevice->CreateRenderTargetView(m_pViewportTex, &rtvDesc, rtvCpuHandle);
-		m_ViewportRTV = rtvCpuHandle;
-		m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
-
-		rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
 		m_pDevice->CreateRenderTargetView(m_pSceneTex, &rtvDesc, rtvCpuHandle);
 		m_SceneRTV = rtvCpuHandle;
 		m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
@@ -439,7 +427,7 @@ namespace wilson
 		D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
 		D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
 		m_pDevice->CreateShaderResourceView(m_pViewportTex, &srvDesc, cbvSrvCpuHandle);
-		m_viewportSRV = cbvSrvGpuHandle;
+		m_ViewportSRV = cbvSrvGpuHandle;
 		m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 
 		cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
@@ -479,7 +467,7 @@ namespace wilson
 		}
 
 
-		//SSAO
+		//SSAO & Post process
 		{
 
 
@@ -504,7 +492,11 @@ namespace wilson
 			m_pSSAOBlurDebugTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pSSAOBlurDebugTex") - 1, "D3D12:::m_pSSAOBlurDebugTex");
 
-
+			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, IID_PPV_ARGS(&m_pViewportTex));
+			assert(SUCCEEDED(hr));
+			m_pViewportTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12:::m_pViewportTex") - 1, "D3D12:::m_pViewportTex");
 
 			srvDesc.Format = texDesc.Format;
 
@@ -524,6 +516,12 @@ namespace wilson
 			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
 			m_pDevice->CreateShaderResourceView(m_pSSAOBlurDebugTex, &srvDesc, cbvSrvCpuHandle);
 			m_SSAOBlurDebugSRV = cbvSrvGpuHandle;
+			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+
+			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+			m_pDevice->CreateShaderResourceView(m_pViewportTex, &srvDesc, cbvSrvCpuHandle);
+			m_ViewportSRV = cbvSrvGpuHandle;
 			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 
 			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -548,7 +546,14 @@ namespace wilson
 			m_pDevice->CreateUnorderedAccessView(m_pSSAOBlurDebugTex, nullptr, &uavDesc, cbvSrvCpuHandle);
 			m_SSAOBlurDebugUAV = cbvSrvGpuHandle;
 			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+
+			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+			m_pDevice->CreateUnorderedAccessView(m_pViewportTex, nullptr, &uavDesc, cbvSrvCpuHandle);
+			m_ViewportUAV = cbvSrvGpuHandle;
+			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 		}
+
 
 		//PBR
 		{
@@ -1412,7 +1417,7 @@ namespace wilson
 		UINT textureCount = sizeof(pTextures) / sizeof(ID3D12Resource*) + eGbuf_cnt;
 		std::vector<D3D12_RESOURCE_BARRIER> barriers(textureCount);
 		barriers[0] = CreateResourceBarrier(m_pScreenTex[m_curFrame], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		barriers[1] = CreateResourceBarrier(m_pViewportTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		barriers[1] = CreateResourceBarrier(m_pViewportTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		barriers[2] = CreateResourceBarrier(m_pSceneTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		barriers[3] = CreateResourceBarrier(m_pSSAOTex, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		barriers[4] = CreateResourceBarrier(m_pSSAOBlurTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -1426,7 +1431,6 @@ namespace wilson
 		m_pMainCommandList->ResourceBarrier(textureCount, &barriers[0]);
 
 		m_pMainCommandList->ClearRenderTargetView(m_ScreenRTV[m_curFrame], color, 0, nullptr);
-		m_pMainCommandList->ClearRenderTargetView(m_ViewportRTV, color, 0, nullptr);
 		m_pMainCommandList->ClearRenderTargetView(m_SceneRTV, color, 0, nullptr);
 
 		for (int i = 0; i < eGbuf_cnt; ++i)
@@ -1614,33 +1618,35 @@ namespace wilson
 		m_pMatBuffer->UploadCombinedMat(m_pMainCommandList, false);
 		m_pMainCommandList->DrawIndexedInstanced(_CUBE_IDX_COUNT, 1, 0, 0, 0);
 	
-		//Submit Result
-		m_pMainCommandList->SetPipelineState(m_pFinalPso);
+
+		D3D12_RESOURCE_BARRIER postProcessPassBarriers[] = {
+			CreateResourceBarrier(m_pSceneTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
+		};
+		m_pMainCommandList->ResourceBarrier(1, postProcessPassBarriers);
+		//PostProcess
+		m_pMainCommandList->SetPipelineState(m_pPostProcessPso);
 		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-		m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetFinalShaderRootSingnature());
-		m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_pMainCommandList->IASetVertexBuffers(0, 1, &m_QuadVBV);
-		m_pMainCommandList->IASetIndexBuffer(&m_QuadIBV);
-		m_pMainCommandList->RSSetViewports(1, &m_viewport);
-		m_pMainCommandList->RSSetScissorRects(1, &m_scissorRect);
+		m_pMainCommandList->SetComputeRootSignature(m_pShader->GetPostProcessShaderRootSingnature());
 		
 		//Exporsure CBV ¹ÙÀÎµù
 		{
 			memcpy(m_pExposureCbBegin, &m_exposure, sizeof(float));
-			m_pMainCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsCb, m_ExposureCBV);
+			m_pMainCommandList->SetComputeRootDescriptorTable(ePostProcessRP::ePostProcess_eCsExposure, m_ExposureCBV);
 		}
 
-		D3D12_RESOURCE_BARRIER rtvToSrv = CreateResourceBarrier(m_pSceneTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		m_pMainCommandList->ResourceBarrier(1, &rtvToSrv);
-
-		m_pMainCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsTex, m_SceneSRV);
-		m_pMainCommandList->SetGraphicsRootDescriptorTable(eFinalRP::eFinal_ePsSampler, m_WrapSSV);
-		m_pMainCommandList->OMSetRenderTargets(1, &m_ViewportRTV, FALSE, nullptr);
-		m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
+		m_pMainCommandList->SetComputeRootDescriptorTable(ePostProcessRP::ePostProcess_eCsTex, m_SceneSRV);
+		m_pMainCommandList->SetComputeRootDescriptorTable(ePostProcess_eCsUav, m_ViewportUAV);
+		m_pMainCommandList->SetComputeRootDescriptorTable(ePostProcessRP::ePostProcess_eCsSampler, m_WrapSSV);
+		m_pMainCommandList->Dispatch(ceil(m_clientWidth / (float)8), ceil(m_clientHeight / (float)8), 1);
 
 		//DrawUI
-		rtvToSrv.Transition.pResource = m_pViewportTex;
-		m_pMainCommandList->ResourceBarrier(1, &rtvToSrv);
+		
+		D3D12_RESOURCE_BARRIER uiPassBarriers[] = {
+				CreateResourceBarrier(m_pSceneTex,  D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
+				CreateResourceBarrier(m_pViewportTex, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+		};
+
+		m_pMainCommandList->ResourceBarrier(2, uiPassBarriers);
 		m_pMainCommandList->OMSetRenderTargets(1, &m_ScreenRTV[m_curFrame], FALSE, &m_pScreenDSV);
 		return;
 }
@@ -1840,7 +1846,7 @@ namespace wilson
 		m_pSSAOPso = nullptr;
 		m_pSSAOBlurPso = nullptr;
 		m_pPbrDeferredLightingPso = nullptr;
-		m_pFinalPso = nullptr;
+		m_pPostProcessPso = nullptr;
 		m_pBRDFPso = nullptr;
 		m_pPrefilterPso = nullptr;
 		m_pDiffuseIrradiancePso = nullptr;
@@ -2378,15 +2384,8 @@ namespace wilson
 			hr=m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pOutlinerTestPso));
 			assert(SUCCEEDED(hr));
 
-			//Final
-			psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
-			psoDesc.DepthStencilState = offDss;
-			psoDesc.pRootSignature = m_pShader->GetFinalShaderRootSingnature();
-			m_pShader->SetFinalShader(&psoDesc);
-			hr=m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pFinalPso));
-			assert(SUCCEEDED(hr));
-
 			//BRDF
+			psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 			psoDesc.BlendState = defaultBS;
 			psoDesc.DepthStencilState = offDss;
 			psoDesc.RasterizerState = quadRDesc;
@@ -2437,6 +2436,11 @@ namespace wilson
 			computePsoDesc.pRootSignature = m_pShader->GetSSAOBlurShaderRootSingnature();
 			m_pShader->SetSSAOBlurShader(&computePsoDesc);
 			hr = m_pDevice->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_pSSAOBlurPso));
+			assert(SUCCEEDED(hr));
+
+			computePsoDesc.pRootSignature = m_pShader->GetPostProcessShaderRootSingnature();
+			m_pShader->SetPostProcessShader(&computePsoDesc);
+			hr = m_pDevice->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_pPostProcessPso));
 			assert(SUCCEEDED(hr));
 		}
 		//Gen Fence
@@ -3338,10 +3342,10 @@ namespace wilson
 			m_pPbrDeferredLightingPso = nullptr;
 		}
 		
-		if (m_pFinalPso != nullptr)
+		if (m_pPostProcessPso != nullptr)
 		{
-			m_pFinalPso->Release();
-			m_pFinalPso = nullptr;
+			m_pPostProcessPso->Release();
+			m_pPostProcessPso = nullptr;
 		}
 		
 		if (m_pBRDFPso != nullptr)

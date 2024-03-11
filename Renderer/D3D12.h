@@ -108,7 +108,7 @@ namespace wilson
 		}
 		inline D3D12_GPU_DESCRIPTOR_HANDLE* GetFinalSRV() 
 		{
-			return &m_viewportSRV;
+			return &m_ViewportSRV;
 		};
 		inline D3D12_GPU_DESCRIPTOR_HANDLE* GetSSAOBlurredSRV() 
 		{
@@ -203,7 +203,7 @@ namespace wilson
 		ID3D12PipelineState* m_pSSAOPso;
 		ID3D12PipelineState* m_pSSAOBlurPso;
 		ID3D12PipelineState* m_pPbrDeferredLightingPso;
-		ID3D12PipelineState* m_pFinalPso;
+		ID3D12PipelineState* m_pPostProcessPso;
 		ID3D12PipelineState* m_pBRDFPso;
 		ID3D12PipelineState* m_pPrefilterPso;
 		ID3D12PipelineState* m_pDiffuseIrradiancePso;
@@ -246,7 +246,6 @@ namespace wilson
 		ID3D12Resource* m_pSceneDepthTex;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE m_ScreenRTV[_BUFFER_COUNT];
-		D3D12_CPU_DESCRIPTOR_HANDLE m_ViewportRTV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_SceneRTV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_BrightRTV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_PingPongRTV[2];
@@ -259,7 +258,8 @@ namespace wilson
 		D3D12_CPU_DESCRIPTOR_HANDLE m_pScreenDSV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_SceneDSV;
 		
-		D3D12_GPU_DESCRIPTOR_HANDLE m_viewportSRV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_ViewportSRV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_ViewportUAV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SceneSRV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SceneDepthSRV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_BrightSRV;

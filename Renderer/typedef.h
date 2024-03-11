@@ -260,12 +260,13 @@ namespace wilson
 		eOutliner_eCnt
 	};
 
-	enum eFinalRP
+	enum ePostProcessRP
 	{
-		eFinal_ePsTex,
-		eFinal_ePsSampler,
-		eFinal_ePsCb,
-		eFinal_eCnt
+		ePostProcess_eCsTex,
+		ePostProcess_eCsUav,
+		ePostProcess_eCsSampler,
+		ePostProcess_eCsExposure,
+		ePostProcess_eCnt
 	};
 
 	enum eDiffuseIrraidianceRP

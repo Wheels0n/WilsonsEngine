@@ -1352,7 +1352,7 @@ namespace wilson
 		m_pContext->IASetVertexBuffers(0, 1, &m_pQuadVB, &stride, &offset);
 		m_pContext->IASetIndexBuffer(m_pQuadIB, DXGI_FORMAT_R32_UINT, 0);
 		m_pShader->SetTexInputlayout(m_pContext);
-		m_pShader->SetFinalShader(m_pContext);
+		m_pShader->SetPostProcessShader(m_pContext);
 		m_pContext->RSSetState(m_pQuadRS);
 		m_pContext->OMSetRenderTargets(0, nullptr, nullptr);
 		{	

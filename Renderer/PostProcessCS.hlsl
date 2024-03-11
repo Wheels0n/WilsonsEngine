@@ -1,4 +1,5 @@
 Texture2D g_sceneTex;
+RWTexture2D<float4> g_dst;
 SamplerState g_WrapSampler;
 
 cbuffer Exporsure
@@ -7,19 +8,17 @@ cbuffer Exporsure
     float3 pad;
 };
 
-struct PixelInputType
-{
-    float4 position : SV_POSITION;
-    float2 tex : TEXTURE;
-};
-
 static const float _GAMMA = 2.2f;
 
-float4 main(PixelInputType input) : SV_Target
+[numthreads(8, 8, 1)]
+void main( uint3 DTid : SV_DispatchThreadID )
 {   
-    float3 hdrColor = g_sceneTex.Sample(g_WrapSampler, input.tex).rgb;
+    float2 size;
+    g_sceneTex.GetDimensions(size.x, size.y);
     
+    float3 hdrColor = g_sceneTex.SampleLevel(g_WrapSampler, (DTid.xy + 0.5) / (size - 1), 0).rgb;
     hdrColor = float3(1.0f, 1.0f, 1.0f) - exp(-hdrColor * g_exposure);
     hdrColor = pow(hdrColor, float3(1.0f / _GAMMA, 1.0f / _GAMMA, 1.0f / _GAMMA));
-    return float4(hdrColor, 1.0f);
+    
+    g_dst[DTid.xy] = float4(hdrColor, 1.0f);
 }

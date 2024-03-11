@@ -60,11 +60,12 @@ namespace wilson
 
 			m_pOutlinerTest12PS = nullptr;
 			m_pBlur12PS = nullptr;
-			m_pFin12PS = nullptr;
+			m_pPostProcess12PS = nullptr;
 
 			m_pGenMipCS = nullptr;
 			m_pSSAOCS = nullptr;
 			m_pSSAOBlurCS = nullptr;
+			m_pPostProcessCS = nullptr;
 
 			m_pZpassRootSignature = nullptr;
 			m_pCasacadePassRootSignature = nullptr;
@@ -76,7 +77,7 @@ namespace wilson
 			m_pSSAOBlurRootSignature = nullptr;
 			m_pPBRLightRootSignature = nullptr;
 			m_pOutlinerTestRootSignature = nullptr;
-			m_pFinalRootSignature = nullptr;
+			m_pPostProcessRootSignature = nullptr;
 			m_pPrefilterRootSignature = nullptr;
 			m_pBrdfRootSignature = nullptr;
 			m_pDiffuseIrradianceRootSignature = nullptr;
@@ -222,7 +223,10 @@ namespace wilson
 			assert(SUCCEEDED(hr));
 
 
-			hr = D3DCompileFromFile(L"FinPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pFin12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"FinPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPostProcess12PS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
+			hr = D3DCompileFromFile(L"PostProcessCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPostProcessCS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"GenMipCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pGenMipCS, &pErrorBlob);
@@ -946,62 +950,60 @@ namespace wilson
 
 			//Final
 		
-			D3D12_DESCRIPTOR_RANGE1 finalRanges[eFinalRP::eFinal_eCnt] = {};
+			D3D12_DESCRIPTOR_RANGE1 PostProcessRanges[ePostProcessRP::ePostProcess_eCnt] = {};
 
-			finalRanges[eFinalRP::eFinal_ePsTex].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			finalRanges[eFinalRP::eFinal_ePsTex].NumDescriptors = 1;
-			finalRanges[eFinalRP::eFinal_ePsTex].BaseShaderRegister = 0;
-			finalRanges[eFinalRP::eFinal_ePsTex].RegisterSpace = 0;
-			finalRanges[eFinalRP::eFinal_ePsTex].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsTex].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsTex].NumDescriptors = 1;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsTex].BaseShaderRegister = 0;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsTex].RegisterSpace = 0;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsTex].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			finalRanges[eFinalRP::eFinal_ePsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			finalRanges[eFinalRP::eFinal_ePsSampler].NumDescriptors = 1;
-			finalRanges[eFinalRP::eFinal_ePsSampler].BaseShaderRegister = 0;
-			finalRanges[eFinalRP::eFinal_ePsSampler].RegisterSpace = 0;
-			finalRanges[eFinalRP::eFinal_ePsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsUav].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsUav].NumDescriptors = 1;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsUav].BaseShaderRegister = 0;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsUav].RegisterSpace = 0;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsUav].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			finalRanges[eFinalRP::eFinal_ePsCb].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			finalRanges[eFinalRP::eFinal_ePsCb].NumDescriptors = 1;
-			finalRanges[eFinalRP::eFinal_ePsCb].BaseShaderRegister = 0;
-			finalRanges[eFinalRP::eFinal_ePsCb].RegisterSpace = 0;
-			finalRanges[eFinalRP::eFinal_ePsCb].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsSampler].NumDescriptors = 1;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsSampler].BaseShaderRegister = 0;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsSampler].RegisterSpace = 0;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-
-
-			D3D12_ROOT_PARAMETER1 finalRootParameter[eFinalRP::eFinal_eCnt] = {};
-
-			finalRootParameter[eFinalRP::eFinal_ePsTex].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			finalRootParameter[eFinalRP::eFinal_ePsTex].DescriptorTable.NumDescriptorRanges = 1;
-			finalRootParameter[eFinalRP::eFinal_ePsTex].DescriptorTable.pDescriptorRanges = &finalRanges[eFinalRP::eFinal_ePsTex];
-			finalRootParameter[eFinalRP::eFinal_ePsTex].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			finalRootParameter[eFinalRP::eFinal_ePsSampler].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			finalRootParameter[eFinalRP::eFinal_ePsSampler].DescriptorTable.NumDescriptorRanges = 1;
-			finalRootParameter[eFinalRP::eFinal_ePsSampler].DescriptorTable.pDescriptorRanges = &finalRanges[eFinalRP::eFinal_ePsSampler];
-			finalRootParameter[eFinalRP::eFinal_ePsSampler].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			finalRootParameter[eFinalRP::eFinal_ePsCb].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			finalRootParameter[eFinalRP::eFinal_ePsCb].DescriptorTable.NumDescriptorRanges = 1;
-			finalRootParameter[eFinalRP::eFinal_ePsCb].DescriptorTable.pDescriptorRanges = &finalRanges[eFinalRP::eFinal_ePsCb];
-			finalRootParameter[eFinalRP::eFinal_ePsCb].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsExposure].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsExposure].NumDescriptors = 1;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsExposure].BaseShaderRegister = 0;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsExposure].RegisterSpace = 0;
+			PostProcessRanges[ePostProcessRP::ePostProcess_eCsExposure].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 
 
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC finalRootSignatureDesc = {};
-			finalRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			finalRootSignatureDesc.Desc_1_1.NumParameters = eFinalRP::eFinal_eCnt;
-			finalRootSignatureDesc.Desc_1_1.pParameters = finalRootParameter;
-			finalRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			finalRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			finalRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+			D3D12_ROOT_PARAMETER1 PostProcessRootParameter[ePostProcessRP::ePostProcess_eCnt] = {};
+
+			for (int i = 0; i < ePostProcess_eCnt; ++i)
+			{
+				PostProcessRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				PostProcessRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+				PostProcessRootParameter[i].DescriptorTable.pDescriptorRanges = &PostProcessRanges[i];
+				PostProcessRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+			}
+			
+
+			D3D12_VERSIONED_ROOT_SIGNATURE_DESC PostProcessRootSignatureDesc = {};
+			PostProcessRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+			PostProcessRootSignatureDesc.Desc_1_1.NumParameters = ePostProcessRP::ePostProcess_eCnt;
+			PostProcessRootSignatureDesc.Desc_1_1.pParameters = PostProcessRootParameter;
+			PostProcessRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+			PostProcessRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+			PostProcessRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
 
-			hr=D3D12SerializeVersionedRootSignature(&finalRootSignatureDesc, &signature, &error);
+			hr=D3D12SerializeVersionedRootSignature(&PostProcessRootSignatureDesc, &signature, &error);
 			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pFinalRootSignature));
+			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPostProcessRootSignature));
 			assert(SUCCEEDED(hr));
-			m_pFinalRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pFinalRootSignature") - 1, "Shader12::m_pFinalRootSignature");
+			m_pPostProcessRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Shader12::m_pPostProcessRootSignature") - 1, "Shader12::m_pPostProcessRootSignature");
 
 			//BRDF empty
 			D3D12_VERSIONED_ROOT_SIGNATURE_DESC emptyRootSignatureDesc = {};
@@ -1460,10 +1462,10 @@ namespace wilson
 				m_pBlur12PS = nullptr;
 			}
 
-			if (m_pFin12PS != nullptr)
+			if (m_pPostProcess12PS != nullptr)
 			{
-				m_pFin12PS->Release();
-				m_pFin12PS = nullptr;
+				m_pPostProcess12PS->Release();
+				m_pPostProcess12PS = nullptr;
 			}
 			if (m_pAABB12VS != nullptr)
 			{
@@ -1492,6 +1494,12 @@ namespace wilson
 			{
 				m_pSSAOBlurCS->Release();
 				m_pSSAOBlurCS = nullptr;
+			}
+
+			if (m_pPostProcessCS != nullptr)
+			{
+				m_pPostProcessCS->Release();
+				m_pPostProcessCS = nullptr;
 			}
 
 			if (m_pZpassRootSignature != nullptr)
@@ -1545,10 +1553,10 @@ namespace wilson
 				m_pOutlinerTestRootSignature->Release();
 				m_pOutlinerTestRootSignature = nullptr;
 			}
-			if (m_pFinalRootSignature != nullptr)
+			if (m_pPostProcessRootSignature != nullptr)
 			{
-				m_pFinalRootSignature->Release();
-				m_pFinalRootSignature = nullptr;
+				m_pPostProcessRootSignature->Release();
+				m_pPostProcessRootSignature = nullptr;
 			}
 
 			if (m_pPrefilterRootSignature != nullptr)
