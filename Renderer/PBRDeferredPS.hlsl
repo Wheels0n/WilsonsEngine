@@ -49,11 +49,10 @@ Texture2D g_normalTex : register(t1);
 Texture2D g_abeldoTex : register(t2);
 Texture2D g_specualrTex : register(t3); //R:AO, G:Roughness, B:Metalness
 Texture2D g_emissiveTex : register(t4);
-Texture2D g_depthTex : register(t5);
-Texture2D g_AOTex : register(t6);
-TextureCube g_irradianceMap : register(t7);
-TextureCube g_prefilterMap : register(t8);
-Texture2D g_brdfLUT : register(t9);
+Texture2D g_AOTex : register(t5);
+TextureCube g_irradianceMap : register(t6);
+TextureCube g_prefilterMap : register(t7);
+Texture2D g_brdfLUT : register(t8);
 Texture2DArray g_dirShadowMaps[1];
 Texture2D spotShadowMaps[1];
 TextureCube omniDirShadowMaps[1];
@@ -61,19 +60,23 @@ SamplerState g_WrapSampler : register(s0);
 SamplerState g_cubeShadowSampler : register(s1);
 SamplerComparisonState g_shadowSampler : register(s2);
 
-cbuffer CamBuffer
+cbuffer CamBuffer : register(b0)
 {
     float4 g_camPos;
 };
-cbuffer CascadeLevels 
+cbuffer CascadeLevels : register(b1)
 {
     float4 g_farZ[5];
 };
-cbuffer ProjMat
+cbuffer ProjMat : register(b2)
 {
     matrix g_projMat;
 };
-cbuffer Light
+cbuffer ViewMat : register(b3)
+{
+    matrix g_viewjMat;
+};
+cbuffer Light : register(b4)
 {
     DirectionalLight g_DirLight[5];
     uint g_dirCnt;
@@ -98,7 +101,7 @@ cbuffer SpotLightMatrices
 static const float _SMAP_SIZE = 1024.0f;
 static const float _SMAP_DX = 1.0f / _SMAP_SIZE;
 static const float _PI = 3.14159265359;
-static const float _PNT_FARZ = 150.0f;
+static const float _PNT_FARZ = 3000.0f;
 float DistributionGGX(float3 normal, float3 h, float roughness)
 {
     float a = roughness * roughness;
@@ -349,15 +352,6 @@ out float3 L0)
     L0 += (kD * albedo / _PI + specular) * radiance * NdotL;
 }
 
-float CalViewZ(float2 tex)
-{
-    float viewZ = 0.0f;
-    float ndcZ = g_depthTex.Sample(g_WrapSampler, tex);
-    viewZ = g_projMat[3][3] / (ndcZ - g_projMat[2][3]);
-    
-    return viewZ;
-}
-
 PixelOutput main(PixelInput input)
 {
     PixelOutput output;
@@ -366,7 +360,7 @@ PixelOutput main(PixelInput input)
     float4 albedo = g_abeldoTex.Sample(g_WrapSampler, input.tex);
     float4 spec = g_specualrTex.Sample(g_WrapSampler, input.tex);
     float4 emissive = g_emissiveTex.Sample(g_WrapSampler, input.tex);
-    float vPosZ = CalViewZ(input.tex);
+    float4 vPos = mul(wPos, g_viewjMat);
  
     
     float ao = g_AOTex.Sample(g_WrapSampler, input.tex).r;
@@ -402,7 +396,7 @@ PixelOutput main(PixelInput input)
     }
     
     
-    uint level = CalCascadeLevel(vPosZ);
+    uint level = CalCascadeLevel(vPos.z);
     float3 L;
     [unroll]
     for (uint i = 0; i < g_dirCnt; ++i)

@@ -14,7 +14,6 @@ namespace wilson {
 	public:
 
 		void Update();
-		bool UploadFrustumInfo(ID3D12GraphicsCommandList* pCommandlist);
 		bool UploadCascadeLevels(ID3D12GraphicsCommandList* pCommandlist);
 		bool UploadCamPos(ID3D12GraphicsCommandList* pCommandlist, bool bGeoPass);
 		void ResetTranslation();
@@ -129,7 +128,6 @@ namespace wilson {
 		std::vector<float> m_shadowCascadeLevels;
 		UINT8* m_pCamPosCbBegin;
 		UINT8* m_pCascadeLevelCbBegin;
-		UINT8* m_pFrustumInfoCbBegin;
 		float m_fFOV;
 		float m_fScreenRatio;
 		float m_nearZ;

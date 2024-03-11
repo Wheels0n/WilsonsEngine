@@ -2,16 +2,17 @@
 #include "DescriptorHeapManager.h"
 namespace wilson
 {
-
 	MatBuffer12::MatBuffer12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager,
 		XMMATRIX* pViewMat, XMMATRIX* pProjMat)
 	{
 		m_pMat12Cb = nullptr;
 		m_pProjMat12Cb = nullptr;
+		m_pViewMat12Cb = nullptr;
 		m_pCombinedMat12Cb = nullptr;
 
 		m_pMatricesCbBegin = nullptr;
 		m_pProjMatCbBegin = nullptr;
+		m_pViewMatCbBegin = nullptr;
 		m_pCombinedMatCbBegin = nullptr;
 
 		m_worldMat = XMMatrixIdentity();
@@ -98,6 +99,31 @@ namespace wilson
 			cbufferDesc.Width = _64KB_ALIGN(sizeof(DirectX::XMMATRIX));
 
 			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pViewMat12Cb));
+			assert(SUCCEEDED(hr));
+			m_pViewMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("MatBuffer::m_pViewMat12Cb") - 1, "MatBuffer::m_pViewMat12Cb");
+
+			D3D12_RANGE readRange = { 0, };
+			hr = m_pViewMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&m_pViewMatCbBegin));
+			assert(SUCCEEDED(hr));
+
+			UINT constantBufferSize = sizeof(DirectX::XMMATRIX);
+
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
+			cbvDesc.BufferLocation = m_pViewMat12Cb->GetGPUVirtualAddress();
+			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
+			m_viewMatCBV = cbvSrvGpuHandle;
+			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+		}
+
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+			cbufferDesc.Width = _64KB_ALIGN(sizeof(DirectX::XMMATRIX));
+
+			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pCombinedMat12Cb));
 			assert(SUCCEEDED(hr));
 			m_pCombinedMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
@@ -133,6 +159,12 @@ namespace wilson
 			m_pProjMat12Cb = nullptr;
 		}
 
+		if (m_pViewMat12Cb != nullptr)
+		{
+			m_pViewMat12Cb->Release();
+			m_pViewMat12Cb = nullptr;
+		}
+
 		if (m_pCombinedMat12Cb != nullptr)
 		{
 			m_pCombinedMat12Cb->Release();
@@ -140,12 +172,19 @@ namespace wilson
 		}
 	}
 
-	void MatBuffer12::UploadMatBuffer(ID3D12GraphicsCommandList* pCommandlist, bool bSpotShadowPass)
+	void MatBuffer12::UploadMatBuffer(ID3D12GraphicsCommandList* pCommandlist)
 	{
+		XMMATRIX invWVMat = XMMatrixMultiply(XMMatrixTranspose(m_worldMat), XMMatrixTranspose(m_viewMat));
+		invWVMat = XMMatrixInverse(nullptr, invWVMat);
+		invWVMat = XMMatrixTranspose(invWVMat);
+
 		MatrixBuffer matBuffer;
 		matBuffer.m_worldMat = m_worldMat;
+		matBuffer.m_viewMat = m_viewMat;
+		matBuffer.m_invWorldMat = m_invWorldMat;
+		matBuffer.m_invWVMat = invWVMat;
 		matBuffer.m_wvpMat = m_wvpMat;
-		matBuffer.m_extraMat = bSpotShadowPass ? m_lightSpaceMat : m_invWorldMat;
+
 
 		memcpy(m_pMatricesCbBegin, &matBuffer, sizeof(matBuffer));
 		pCommandlist->SetGraphicsRootDescriptorTable(0, m_matCBV);
@@ -153,10 +192,23 @@ namespace wilson
 	}
 
 	void MatBuffer12::UploadProjMat(ID3D12GraphicsCommandList* pCommandlist, bool bSSAO)
-	{
+	{	
 		memcpy(m_pProjMatCbBegin, &m_projMat, sizeof(XMMATRIX));
-		pCommandlist->SetGraphicsRootDescriptorTable(bSSAO? eSsaoRP::eSsao_ePsProj: ePbrLight_ePsProjMat, m_projMatCBV);
+		if (bSSAO)
+		{
+			pCommandlist->SetComputeRootDescriptorTable(eSsao_eCsProj,  m_projMatCBV);
+		}
+		else
+		{
+			pCommandlist->SetGraphicsRootDescriptorTable( ePbrLight_ePsProjMat, m_projMatCBV);
+		}
 		return;
+	}
+	void MatBuffer12::UploadViewMat(ID3D12GraphicsCommandList* pCommandlist)
+	{
+		memcpy(m_pViewMatCbBegin, &m_viewMat, sizeof(XMMATRIX));
+		pCommandlist->SetGraphicsRootDescriptorTable(ePbrLight_ePsViewMat, m_viewMatCBV);
+		
 	}
 	void MatBuffer12::UploadCombinedMat(ID3D12GraphicsCommandList* pCommandlist, bool bSpotShadowPass)
 	{

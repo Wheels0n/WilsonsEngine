@@ -71,7 +71,7 @@ namespace wilson
 		pMatrices->m_worldMat = m_worldMat;
 		//pMatrices->m_viewMat = m_viewMat;
 		//pMatrices->m_projMat = m_projMat;
-		pMatrices->m_extraMat = bSpotShadowPass ? m_lightSpaceMat : m_invWorldMat;
+		//pMatrices->m_extraMat = bSpotShadowPass ? m_lightSpaceMat : m_invWorldMat;
 		pContext->Unmap(m_pMatBuffer, 0);
 
 		pContext->VSSetConstantBuffers(0, 1, &m_pMatBuffer);

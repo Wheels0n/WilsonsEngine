@@ -29,7 +29,6 @@ namespace wilson {
 		m_pCamCb = nullptr;
 		m_pCamPosCbBegin = nullptr;
 		m_pCascadeLevelCbBegin = nullptr; 
-		m_pFrustumInfoCbBegin = nullptr;
 
 		HRESULT hr;
 
@@ -87,8 +86,6 @@ namespace wilson {
 			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
 
 			UINT constantBufferSize = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;
-			m_pFrustumInfoCbBegin = m_pCascadeLevelCbBegin + (_CBV_ALIGN(constantBufferSize));
-
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
 			cbvDesc.BufferLocation = m_pCamCb->GetGPUVirtualAddress()+_CBV_READ_SIZE;
@@ -96,20 +93,7 @@ namespace wilson {
 			m_cascadeLevelCBV = cbvSrvGpuHandle;
 			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 		}
-		
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-			UINT constantBufferSize = sizeof(DirectX::XMVECTOR);
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-			cbvDesc.BufferLocation = m_pCamCb->GetGPUVirtualAddress() + _CBV_READ_SIZE;
-			cbvDesc.BufferLocation +=(_CBV_ALIGN(sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS));
-			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-			m_frustumInfoCBV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-		}
+	
 	}
 
 	Camera12::~Camera12()
@@ -184,14 +168,6 @@ namespace wilson {
 		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_nearZ, m_farZ);
 		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
 		UpdateCascadeLevels();
-	}
-
-	bool Camera12::UploadFrustumInfo(ID3D12GraphicsCommandList* pCommandlist)
-	{
-		float frustumInfo[] = { m_fScreenRatio, (float)tan(m_fFOV/2.f) };
-		memcpy(m_pFrustumInfoCbBegin, &frustumInfo[0], sizeof(float)*2);
-		pCommandlist->SetGraphicsRootDescriptorTable(eSsao_eVsFrustumInfo, m_frustumInfoCBV);
-		return true;
 	}
 
 	bool Camera12::UploadCascadeLevels(ID3D12GraphicsCommandList* pCommandlist)

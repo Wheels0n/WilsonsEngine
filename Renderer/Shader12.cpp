@@ -63,6 +63,8 @@ namespace wilson
 			m_pFin12PS = nullptr;
 
 			m_pGenMipCS = nullptr;
+			m_pSSAOCS = nullptr;
+			m_pSSAOBlurCS = nullptr;
 
 			m_pZpassRootSignature = nullptr;
 			m_pCasacadePassRootSignature = nullptr;
@@ -162,7 +164,13 @@ namespace wilson
 			hr = D3DCompileFromFile(L"SSAOPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAO12PS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
+			hr = D3DCompileFromFile(L"SSAOCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAOCS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
 			hr = D3DCompileFromFile(L"SSAOBlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAOBlur12PS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
+			hr = D3DCompileFromFile(L"SSAOBlurCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAOBlurCS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"DeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDeferred12PS, &pErrorBlob);
@@ -714,51 +722,47 @@ namespace wilson
 			
 			D3D12_DESCRIPTOR_RANGE1 SSAORanges[eSsaoRP::eSsao_eCnt] = {};
 
-			SSAORanges[eSsao_eVsFrustumInfo].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			SSAORanges[eSsao_eVsFrustumInfo].NumDescriptors = 1;
-			SSAORanges[eSsao_eVsFrustumInfo].BaseShaderRegister = 0;
-			SSAORanges[eSsao_eVsFrustumInfo].RegisterSpace = 0;
-			SSAORanges[eSsao_eVsFrustumInfo].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-			for (int i = eSsao_ePsDepth; i < eSsao_ePsWrap; ++i)
+			for (int i = eSsao_eCsNoise; i < eSsao_eCsUAV; ++i)
 			{
 				SSAORanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 				SSAORanges[i].NumDescriptors = 1;
-				SSAORanges[i].BaseShaderRegister = i-1;
+				SSAORanges[i].BaseShaderRegister = i;
 				SSAORanges[i].RegisterSpace = 0;
 				SSAORanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 			}
+
+			SSAORanges[eSsao_eCsUAV].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+			SSAORanges[eSsao_eCsUAV].NumDescriptors = 1;
+			SSAORanges[eSsao_eCsUAV].BaseShaderRegister = 0;
+			SSAORanges[eSsao_eCsUAV].RegisterSpace = 0;
+			SSAORanges[eSsao_eCsUAV].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 			
-			for (int i = eSsao_ePsWrap; i < eSsao_ePsSamplePoints; ++i)
+			for (int i = eSsao_eCsWrap; i < eSsao_eCsSamplePoints; ++i)
 			{
 				SSAORanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
 				SSAORanges[i].NumDescriptors = 1;
-				SSAORanges[i].BaseShaderRegister = i- eSsao_ePsWrap;
+				SSAORanges[i].BaseShaderRegister = i- eSsao_eCsWrap;
 				SSAORanges[i].RegisterSpace = 0;
 				SSAORanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 			}
 			
-			for (int i = eSsao_ePsSamplePoints; i < eSsao_eCnt; ++i)
+			for (int i = eSsao_eCsSamplePoints; i < eSsao_eCnt; ++i)
 			{
 				SSAORanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 				SSAORanges[i].NumDescriptors = 1;
-				SSAORanges[i].BaseShaderRegister = i- eSsao_ePsSamplePoints;
+				SSAORanges[i].BaseShaderRegister = i- eSsao_eCsSamplePoints;
 				SSAORanges[i].RegisterSpace = 0;
 				SSAORanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 			}
 
-
-			D3D12_ROOT_PARAMETER1 SSAORootParameter[eSsaoRP::eSsao_eCnt] = {};
-			SSAORootParameter[eSsao_eVsFrustumInfo].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			SSAORootParameter[eSsao_eVsFrustumInfo].DescriptorTable.NumDescriptorRanges = 1;
-			SSAORootParameter[eSsao_eVsFrustumInfo].DescriptorTable.pDescriptorRanges = &SSAORanges[eSsao_eVsFrustumInfo];
-			SSAORootParameter[eSsao_eVsFrustumInfo].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-			for (int i = eSsao_ePsDepth; i < eSsao_eCnt; ++i)
+			D3D12_ROOT_PARAMETER1 SSAORootParameter[eSsao_eCnt] = {};
+			for (int i = eSsao_eCsNoise; i < eSsao_eCnt; ++i)
 			{
 				SSAORootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 				SSAORootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
 				SSAORootParameter[i].DescriptorTable.pDescriptorRanges = &SSAORanges[i];
-				SSAORootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				SSAORootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 			}
 
 
@@ -768,7 +772,7 @@ namespace wilson
 			SSAORootSignatureDesc.Desc_1_1.pParameters = SSAORootParameter;
 			SSAORootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
 			SSAORootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			SSAORootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+			SSAORootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
 
 			hr=D3D12SerializeVersionedRootSignature(&SSAORootSignatureDesc, &signature, &error);
@@ -781,31 +785,38 @@ namespace wilson
 			//SSAOBlur
 
 			D3D12_DESCRIPTOR_RANGE1 SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCnt] = {};
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsSsao].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsSsao].NumDescriptors = 1;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsSsao].BaseShaderRegister = 0;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsSsao].RegisterSpace = 0;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsSsao].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsWrap].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsWrap].NumDescriptors = 1;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsWrap].BaseShaderRegister = 0;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsWrap].RegisterSpace = 0;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsWrap].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			for (int i = 0; i < eSsaoBlur_eCsSsao; ++i)
+			{
+				SSAOBlurRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+				SSAOBlurRanges[i].NumDescriptors = 1;
+				SSAOBlurRanges[i].BaseShaderRegister = i;
+				SSAOBlurRanges[i].RegisterSpace = 0;
+				SSAOBlurRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			}
+
+			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsSsao].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsSsao].NumDescriptors = 1;
+			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsSsao].BaseShaderRegister = 0;
+			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsSsao].RegisterSpace = 0;
+			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsSsao].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsWrap].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsWrap].NumDescriptors = 1;
+			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsWrap].BaseShaderRegister = 0;
+			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsWrap].RegisterSpace = 0;
+			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsWrap].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 
 			D3D12_ROOT_PARAMETER1 SSAOBlurRootParameter[eSsaoBlurRP::eSsaoBlur_eCnt] = {};
 
-			SSAOBlurRootParameter[eSsaoBlurRP::eSsaoBlur_ePsSsao].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			SSAOBlurRootParameter[eSsaoBlurRP::eSsaoBlur_ePsSsao].DescriptorTable.NumDescriptorRanges = 1;
-			SSAOBlurRootParameter[eSsaoBlurRP::eSsaoBlur_ePsSsao].DescriptorTable.pDescriptorRanges = &SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsSsao];
-			SSAOBlurRootParameter[eSsaoBlurRP::eSsaoBlur_ePsSsao].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			SSAOBlurRootParameter[eSsaoBlurRP::eSsaoBlur_ePsWrap].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			SSAOBlurRootParameter[eSsaoBlurRP::eSsaoBlur_ePsWrap].DescriptorTable.NumDescriptorRanges = 1;
-			SSAOBlurRootParameter[eSsaoBlurRP::eSsaoBlur_ePsWrap].DescriptorTable.pDescriptorRanges = &SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_ePsWrap];
-			SSAOBlurRootParameter[eSsaoBlurRP::eSsaoBlur_ePsWrap].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
+			for (int i = 0; i < eSsaoBlur_eCnt; ++i)
+			{
+				SSAOBlurRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				SSAOBlurRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+				SSAOBlurRootParameter[i].DescriptorTable.pDescriptorRanges = &SSAOBlurRanges[i];
+				SSAOBlurRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+			}
 
 
 			D3D12_VERSIONED_ROOT_SIGNATURE_DESC SSAOBlurRootSignatureDesc = {};
@@ -814,7 +825,7 @@ namespace wilson
 			SSAOBlurRootSignatureDesc.Desc_1_1.pParameters = SSAOBlurRootParameter;
 			SSAOBlurRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
 			SSAOBlurRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			SSAOBlurRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+			SSAOBlurRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 
 
 			hr=D3D12SerializeVersionedRootSignature(&SSAOBlurRootSignatureDesc, &signature, &error);
@@ -1469,6 +1480,18 @@ namespace wilson
 			{
 				m_pGenMipCS->Release();
 				m_pGenMipCS = nullptr;
+			}
+
+			if (m_pSSAOCS != nullptr)
+			{
+				m_pSSAOCS->Release();
+				m_pSSAOCS = nullptr;
+			}
+
+			if (m_pSSAOBlurCS != nullptr)
+			{
+				m_pSSAOBlurCS->Release();
+				m_pSSAOBlurCS = nullptr;
 			}
 
 			if (m_pZpassRootSignature != nullptr)

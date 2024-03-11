@@ -12,6 +12,8 @@ struct PixelInputType
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
     float4 wPosition : POSITION0;
+    float4 vPosition : POSITION1;
+    float3 vNormal : POSITION2;
 };
 struct PixelOutputType
 {
@@ -20,6 +22,8 @@ struct PixelOutputType
     float4 albeldo : SV_Target2;
     float4 specular : SV_Target3;
     float4 emissive : SV_Target4;
+    float4 vPosition : SV_Target5;
+    float4 vNormal : SV_Target6;
 };
 struct Material
 {
@@ -117,10 +121,12 @@ PixelOutputType main(PixelInputType input)
     }
 #endif   
     output.normal = float4(normal, 1.0f);
+    output.vNormal = float4(normalize(input.vNormal), 1.0f);
     
     output.albeldo = g_diffuseMap.Sample(g_WrapSampler, texCoord);
     clip(output.albeldo.a - 0.1f);
     output.position = input.wPosition;
+    output.vPosition = input.vPosition;
     
     output.specular.rgb = g_specularMap.SampleLevel(g_WrapSampler, texCoord, 1);
     output.specular.a = 1.0f;

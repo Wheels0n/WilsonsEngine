@@ -124,7 +124,7 @@ namespace wilson
 		};
 		inline UINT GetGbufferCount() const
 		{
-			return _GBUF_COUNT;
+			return eGbuf_cnt;
 		}
 		inline UINT GetModelGroupSize() const
 		{
@@ -167,7 +167,7 @@ namespace wilson
 		ID3D12Debug* m_pDebugController;
 		ID3D12Device1* m_pDevice;
 		ID3D12CommandQueue* m_pMainCommandQueue;
-		ID3D12CommandQueue* m_pSSAOCommandQueue;
+		ID3D12CommandQueue* m_pComputeCommandQueue;
 		IDXGISwapChain* m_pSwapChain;
 		ID3D12Resource* m_pScreenTex[_BUFFER_COUNT];
 
@@ -202,7 +202,7 @@ namespace wilson
 		ID3D12PipelineState* m_pOutlinerTestPso;
 		ID3D12PipelineState* m_pSSAOPso;
 		ID3D12PipelineState* m_pSSAOBlurPso;
-		ID3D12PipelineState* m_pLightingPso;
+		ID3D12PipelineState* m_pPbrDeferredLightingPso;
 		ID3D12PipelineState* m_pFinalPso;
 		ID3D12PipelineState* m_pBRDFPso;
 		ID3D12PipelineState* m_pPrefilterPso;
@@ -233,7 +233,7 @@ namespace wilson
 		ID3D12Resource* m_pSSAOBlurDebugTex;
 		ID3D12Resource* m_pBrightTex;
 		ID3D12Resource* m_pPingPongTex[2];
-		ID3D12Resource* m_pGBufTex[_GBUF_COUNT];
+		ID3D12Resource* m_pGBufTex[eGbuf_cnt];
 		ID3D12Resource* m_pSSAOTex;
 		ID3D12Resource* m_pSSAOBlurTex;
 		ID3D12Resource* m_pBRDFTex;
@@ -244,17 +244,13 @@ namespace wilson
 		ID3D12Resource* m_pHDRTex;
 		ID3D12Resource* m_pScreenDepthTex;
 		ID3D12Resource* m_pSceneDepthTex;
-		ID3D12Resource* m_pSceneCopyDepthTex;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE m_ScreenRTV[_BUFFER_COUNT];
 		D3D12_CPU_DESCRIPTOR_HANDLE m_ViewportRTV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_SceneRTV;
-		D3D12_CPU_DESCRIPTOR_HANDLE m_SSAOBlurDebugRTV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_BrightRTV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_PingPongRTV[2];
-		D3D12_CPU_DESCRIPTOR_HANDLE m_GBufRTV[_GBUF_COUNT];
-		D3D12_CPU_DESCRIPTOR_HANDLE m_SSAORTV;
-		D3D12_CPU_DESCRIPTOR_HANDLE m_SSAOBlurRTV;
+		D3D12_CPU_DESCRIPTOR_HANDLE m_GBufRTV[eGbuf_cnt];
 		D3D12_CPU_DESCRIPTOR_HANDLE m_BRDFRTV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_SkyBoxRTV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_DiffIrradianceRTV;
@@ -266,13 +262,16 @@ namespace wilson
 		D3D12_GPU_DESCRIPTOR_HANDLE m_viewportSRV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SceneSRV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SceneDepthSRV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_SSAOBlurDebugSRV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_BrightSRV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_PingPongSRV[2];
-		D3D12_GPU_DESCRIPTOR_HANDLE m_GBufSRV[_GBUF_COUNT];
+		D3D12_GPU_DESCRIPTOR_HANDLE m_GBufSRV[eGbuf_cnt];
 		D3D12_GPU_DESCRIPTOR_HANDLE m_NoiseSrv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SSAOSRV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_SSAOUAV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SSAOBlurSRV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_SSAOBlurUAV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_SSAOBlurDebugSRV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_SSAOBlurDebugUAV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_BRDFSRV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SkyBoxSRV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_DiffIrradianceSRV;

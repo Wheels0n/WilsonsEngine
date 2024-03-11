@@ -7,6 +7,7 @@
 #define _CBV_READ_SIZE 256;
 #define _CBV_ALIGN(LEN) (LEN+D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT-1u)&~(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT-1u)
 #define _64KB_ALIGN(LEN) (LEN+_64KB-1u)&~(_64KB-1u)
+#define _ALIGN
 namespace wilson
 {	 
 	//Cam
@@ -100,8 +101,10 @@ namespace wilson
 	struct MatrixBuffer
 	{
 		DirectX::XMMATRIX m_worldMat;
+		DirectX::XMMATRIX m_viewMat;
+		DirectX::XMMATRIX m_invWorldMat;
+		DirectX::XMMATRIX m_invWVMat;
 		DirectX::XMMATRIX m_wvpMat;
-		DirectX::XMMATRIX m_extraMat;
 	};
 
 	//Model
@@ -202,20 +205,23 @@ namespace wilson
 
 	enum eSsaoRP
 	{
-		eSsao_eVsFrustumInfo,
-		eSsao_ePsDepth,
-		eSsao_ePsNoise,
-		eSsao_ePsWrap,
-		eSsao_ePsClamp,
-		eSsao_ePsSamplePoints,
-		eSsao_ePsProj,
+		eSsao_eCsNoise,
+		eSsao_eCsVpos,
+		eSsao_eCsVnomral,
+		eSsao_eCsUAV,
+		eSsao_eCsWrap,
+		eSsao_eCsClamp,
+		eSsao_eCsSamplePoints,
+		eSsao_eCsProj,
 		eSsao_eCnt
 	};
 
 	enum eSsaoBlurRP
 	{
-		eSsaoBlur_ePsSsao,
-		eSsaoBlur_ePsWrap,
+		eSsaoBlur_eCsDst,
+		eSsaoBlur_eCsDebug,
+		eSsaoBlur_eCsSsao,
+		eSsaoBlur_eCsWrap,
 		eSsaoBlur_eCnt
 	};
 
@@ -226,7 +232,6 @@ namespace wilson
 		ePbrLight_ePsAlbedo,
 		ePbrLight_ePsSpecular,
 		ePbrLight_ePsEmissive,
-		ePbrLight_ePsDepth,
 		ePbrLight_ePsAO,
 		ePbrLight_ePsIrradiance,
 		ePbrLight_ePsPrefilter,
@@ -240,6 +245,7 @@ namespace wilson
 		ePbrLight_ePsCamPos,
 		ePbrLight_ePsCasCadeLevels,
 		ePbrLight_ePsProjMat,
+		ePbrLight_ePsViewMat,
 		ePbrLight_ePsLight,
 		ePbrLight_ePsDirLitMat,
 		ePbrLight_ePsSpotLitMat,
@@ -323,7 +329,6 @@ namespace wilson
 	constexpr UINT  _BUFFER_COUNT = 2;
 	constexpr UINT _SHADOWMAP_SIZE = 1024;
 	constexpr float CUBE_SIZE = 0.25;
-	constexpr UINT _GBUF_COUNT = 5;
 	constexpr UINT  _KERNEL_COUNT = 64;
 	constexpr UINT  _NOISE_VEC_COUNT = 16;
 	constexpr UINT  _NOISE_TEX_SIZE = 4;
@@ -353,6 +358,8 @@ namespace wilson
 		eGbuf_albedo,
 		eGbuf_specular,
 		eGbuf_emissive,
+		eGbuf_vPos,
+		eGbuf_vNormal,
 		eGbuf_cnt
 	};
 

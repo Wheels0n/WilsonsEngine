@@ -13,8 +13,9 @@ namespace wilson
 	class MatBuffer12
 	{
 	public:
-		void UploadMatBuffer(ID3D12GraphicsCommandList* pCommandlist, bool bSpotShadowPass);
+		void UploadMatBuffer(ID3D12GraphicsCommandList* pCommandlist);
 		void UploadProjMat(ID3D12GraphicsCommandList* pCommandlist, bool bSSAO);
+		void UploadViewMat(ID3D12GraphicsCommandList* pCommandlist);
 		void UploadCombinedMat(ID3D12GraphicsCommandList* pCommandlist, bool bSpotShadowPass);
 		void UpdateCombinedMat(bool bSpotShadowPass);
 
@@ -50,19 +51,24 @@ namespace wilson
 		XMMATRIX m_viewMat;
 		XMMATRIX m_lightSpaceMat;
 		XMMATRIX m_invWorldMat;
+		XMMATRIX m_invWVMat;
 		XMMATRIX m_extraMat;
+		XMMATRIX m_wvMat;
 		XMMATRIX m_wvpMat;
 		XMMATRIX m_wvpLitMat;
 
 		ID3D12Resource* m_pMat12Cb;
 		ID3D12Resource* m_pProjMat12Cb;
+		ID3D12Resource* m_pViewMat12Cb;
 		ID3D12Resource* m_pCombinedMat12Cb;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_matCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_projMatCBV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_viewMatCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_combinedMatCBV;
 
 		UINT8* m_pMatricesCbBegin;
 		UINT8* m_pProjMatCbBegin;
+		UINT8* m_pViewMatCbBegin;
 		UINT8* m_pCombinedMatCbBegin;
 	};
 }

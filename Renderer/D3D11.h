@@ -112,7 +112,7 @@ namespace wilson
 		}
 		inline UINT GetGbufferCount() const
 		{
-			return _GBUF_COUNT;
+			return  eGbuf_cnt;
 		}
 		UINT GetLightSize(eLIGHT_TYPE);
 		
@@ -174,7 +174,7 @@ namespace wilson
 		ID3D11Texture2D* m_pBrightTex;
 		ID3D11Texture2D* m_pViewportTex;
 		ID3D11Texture2D* m_pPingPongTex[2];
-		ID3D11Texture2D* m_pGbufferTex[_GBUF_COUNT];
+		ID3D11Texture2D* m_pGbufferTex[eGbuf_cnt];
 		ID3D11Texture2D* m_pNoiseTex;
 		ID3D11Texture2D* m_pHDRTex;
 		ID3D11Texture2D* m_pSkyBoxTex;
@@ -190,7 +190,7 @@ namespace wilson
 		ID3D11RenderTargetView* m_pBrightRTTV; 
 		ID3D11RenderTargetView* m_pViewportRTTV;
 		ID3D11RenderTargetView* m_pPingPongRTTV[2];
-		ID3D11RenderTargetView* m_pGbufferRTTV[_GBUF_COUNT];//0:pos, 1:normal, 2:albedo, 3:specular, 4:emissive, 5: vPos, 6:vNormal, 7:depth;
+		ID3D11RenderTargetView* m_pGbufferRTTV[eGbuf_cnt];//0:pos, 1:normal, 2:albedo, 3:specular, 4:emissive, 5: vPos, 6:vNormal, 7:depth;
 		ID3D11RenderTargetView* m_pSkyBoxRTV;
 		ID3D11RenderTargetView* m_pDiffIrradianceRTTV;
 		ID3D11RenderTargetView* m_pPrefilterRTTV;
@@ -204,7 +204,7 @@ namespace wilson
 		ID3D11ShaderResourceView* m_pBrightSRV;
 		ID3D11ShaderResourceView* m_pViewportSRV;
 		ID3D11ShaderResourceView* m_pPingPongSRV[2];
-		ID3D11ShaderResourceView* m_pGbufferSRV[_GBUF_COUNT];
+		ID3D11ShaderResourceView* m_pGbufferSRV[eGbuf_cnt];
 		ID3D11ShaderResourceView* m_pHDRSRV; 
 		ID3D11ShaderResourceView* m_pSkyBoxSRV; 
 		ID3D11ShaderResourceView* m_pDiffIrradianceSRV;

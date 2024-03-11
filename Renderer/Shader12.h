@@ -253,30 +253,23 @@ namespace wilson
 			return m_pPBRGeoRootSignature;
 		}
 
-		void SetSSAOShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		void SetSSAOShader(D3D12_COMPUTE_PIPELINE_STATE_DESC* pPSODesc)
 		{
-			D3D12_SHADER_BYTECODE vsBytecode = { m_pSSAO12VS->GetBufferPointer(), m_pSSAO12VS->GetBufferSize() };
-			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
-			D3D12_SHADER_BYTECODE psBytecode = { m_pSSAO12PS->GetBufferPointer(),m_pSSAO12PS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE csBytecode = { m_pSSAOCS->GetBufferPointer(), m_pSSAOCS->GetBufferSize() };
 
-			pPSODesc->VS = vsBytecode;
-			pPSODesc->GS = gsBytecode;
-			pPSODesc->PS = psBytecode;
+			pPSODesc->CS = csBytecode;
+			
 		}
 		inline ID3D12RootSignature* GetSSAOShaderRootSingnature()
 		{
 			return m_pSSAORootSignature;
 		}
 
-		void SetSSAOBlurShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		void SetSSAOBlurShader(D3D12_COMPUTE_PIPELINE_STATE_DESC* pPSODesc)
 		{
-			D3D12_SHADER_BYTECODE vsBytecode = { m_pTex12VS->GetBufferPointer(), m_pTex12VS->GetBufferSize() };
-			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
-			D3D12_SHADER_BYTECODE psBytecode = { m_pSSAOBlur12PS->GetBufferPointer(),m_pSSAOBlur12PS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE csBytecode = { m_pSSAOBlurCS->GetBufferPointer(), m_pSSAOBlurCS->GetBufferSize() };
 
-			pPSODesc->VS = vsBytecode;
-			pPSODesc->GS = gsBytecode;
-			pPSODesc->PS = psBytecode;
+			pPSODesc->CS = csBytecode;
 
 		}
 		inline ID3D12RootSignature* GetSSAOBlurShaderRootSingnature()
@@ -453,6 +446,8 @@ namespace wilson
 		ID3DBlob* m_pFin12PS;
 		ID3DBlob* m_pAABB12PS;
 		ID3DBlob* m_pGenMipCS;
+		ID3DBlob* m_pSSAOCS;
+		ID3DBlob* m_pSSAOBlurCS;
 
 		ID3D12RootSignature* m_pZpassRootSignature;
 		ID3D12RootSignature* m_pCasacadePassRootSignature;

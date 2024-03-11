@@ -107,7 +107,7 @@ namespace wilson
 			m_pPingPongRTTV[i] = nullptr;
 			m_pPingPongSRV[i] =  nullptr;
 		}
-		for (int i = 0; i < _GBUF_COUNT; ++i)
+		for (int i = 0; i < eGbuf_cnt; ++i)
 		{
 			m_pGbufferTex[i] = nullptr;
 			m_pGbufferRTTV[i] = nullptr;
@@ -1147,7 +1147,7 @@ namespace wilson
 		//clear views
 		HRESULT hr;
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
-		UINT texCnt = _GBUF_COUNT -2;
+		UINT texCnt = eGbuf_cnt -2;
 		UINT stride;
 		UINT offset = 0;
 		int drawed = 0;
@@ -1155,7 +1155,7 @@ namespace wilson
 		bool bSpotShadowPass = false;
 
 
-		ID3D11RenderTargetView* nullRTV[_GBUF_COUNT] = { nullptr, };
+		ID3D11RenderTargetView* nullRTV[eGbuf_cnt] = { nullptr, };
 		ID3D11RenderTargetView* pSSAORTVs[2] = {m_pSSAOBlurRTTV, m_pSSAOBlurDebugRTTV};
 
 		m_pContext->ClearRenderTargetView(m_pScreenRTTV, color);
@@ -1164,7 +1164,7 @@ namespace wilson
 		m_pContext->ClearRenderTargetView(m_pSSAORTTV, color);
 		m_pContext->ClearRenderTargetView(m_pSSAOBlurRTTV, color);
 		m_pContext->ClearRenderTargetView(m_pSSAOBlurDebugRTTV, color);
-		for (int i = 0; i < _GBUF_COUNT; ++i)
+		for (int i = 0; i < eGbuf_cnt; ++i)
 		{
 			m_pContext->ClearRenderTargetView(m_pGbufferRTTV[i], color);
 		}
@@ -1243,7 +1243,7 @@ namespace wilson
 			m_pContext->RSSetState(m_pQuadRS);
 			m_pContext->OMSetDepthStencilState(0, 0);
 			m_pContext->OMSetBlendState(m_pGBufferWriteBS, color, 0xffffffff);
-			m_pContext->OMSetRenderTargets(_GBUF_COUNT, m_pGbufferRTTV, m_SceneDSV);
+			m_pContext->OMSetRenderTargets(eGbuf_cnt, m_pGbufferRTTV, m_SceneDSV);
 
 
 			//Upload HeightScale and bHeightOnOff
@@ -1278,7 +1278,7 @@ namespace wilson
 			m_pContext->PSSetConstantBuffers(0, 1, &m_pSSAOKernelCB);
 			m_pMatBuffer->UploadProjMat(m_pContext);
 			m_pContext->OMSetRenderTargets(1, &m_pSSAORTTV, nullptr);
-			m_pContext->PSSetShaderResources(0, 2, &m_pGbufferSRV[_GBUF_COUNT -3]);
+			m_pContext->PSSetShaderResources(0, 2, &m_pGbufferSRV[eGbuf_cnt -3]);
 			m_pContext->PSSetShaderResources(2, 1, &m_pNoiseSRV);
 			m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
 			m_pContext->PSSetSamplers(1, 1, &m_pClampSS);
@@ -1300,7 +1300,7 @@ namespace wilson
 	
 			m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, nullptr);
 			m_pContext->OMSetBlendState(m_pLightingPassBS, color, 0xffffffff);
-			m_pContext->PSSetShaderResources(0, _GBUF_COUNT -2, m_pGbufferSRV);
+			m_pContext->PSSetShaderResources(0, eGbuf_cnt -2, m_pGbufferSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pSSAOBlurSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pDiffIrradianceSRV);
 			m_pContext->PSSetShaderResources(texCnt++, 1, &m_pPrefilterSRV);
@@ -1521,7 +1521,7 @@ namespace wilson
 			m_pPingPongTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pPingPongTex[modelGroupIdx]") - 1, "D3D11::m_pPingPongTex[modelGroupIdx]");
 		}
-		for (int i = 0; i < _GBUF_COUNT; ++i)
+		for (int i = 0; i < eGbuf_cnt; ++i)
 		{
 			hr = m_pDevice->CreateTexture2D(&RTTDesc, nullptr, &m_pGbufferTex[i]);
 			assert(SUCCEEDED(hr));
@@ -1564,7 +1564,7 @@ namespace wilson
 			m_pPingPongRTTV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pPingPongRTTV[modelGroupIdx]") - 1, "D3D11::m_pPingPongRTTV[modelGroupIdx]");
 		}
-		for (int i = 0; i < _GBUF_COUNT; ++i)
+		for (int i = 0; i < eGbuf_cnt; ++i)
 		{
 			hr = m_pDevice->CreateRenderTargetView(m_pGbufferTex[i], &RTTVDesc, &m_pGbufferRTTV[i]);
 			assert(SUCCEEDED(hr));
@@ -1609,7 +1609,7 @@ namespace wilson
 			m_pPingPongSRV[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D11::m_pPingPongSRV[modelGroupIdx]") - 1, "D3D11::m_pPingPongSRV[modelGroupIdx]");
 		}
-		for (int i = 0; i < _GBUF_COUNT; ++i)
+		for (int i = 0; i < eGbuf_cnt; ++i)
 		{
 			hr = m_pDevice->CreateShaderResourceView(m_pGbufferTex[i], &SRVDesc, &m_pGbufferSRV[i]);
 			assert(SUCCEEDED(hr));
@@ -2053,7 +2053,7 @@ namespace wilson
 				m_pPingPongSRV[i] = nullptr;
 			}
 		}
-		for (int i = 0; i < _GBUF_COUNT; ++i)
+		for (int i = 0; i < eGbuf_cnt; ++i)
 		{
 			if (m_pGbufferTex[i] != nullptr)
 			{
