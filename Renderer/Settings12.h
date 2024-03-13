@@ -20,7 +20,7 @@ namespace wilson
 	private:
 		//D3D12 
 		ID3D12Resource* m_pDirLitIcon12Tex;
-		ID3D12Resource* m_pPntLitIcon12Tex;
+		ID3D12Resource* m_pCubeLitIcon12Tex;
 		ID3D12Resource* m_pSpotLitIcon12Tex;
 		ID3D12Resource* m_pDirLitIcon12UploadCB;
 		ID3D12Resource* m_pPntLitIcon12UploadCB;

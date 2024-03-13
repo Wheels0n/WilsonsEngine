@@ -3,7 +3,7 @@ Texture2D specularMap;
 Texture2D normalMap;
 Texture2D alphaMap;
 Texture2D dirShadowMaps[1];
-TextureCube omniDirShadowMaps[1];
+TextureCube CubeShadowMaps[1];
 SamplerState SampleType : register(s0);
 SamplerState g_cubeShadowSampler : register(s1);
 SamplerComparisonState g_dirShadowSampler : register(s2);
@@ -32,7 +32,7 @@ struct DirectionalLight
     float3 position;
     float pad;
 };
-struct PointLight
+struct CubeLight
 {
     float4 ambient;
     float4 diffuse;
@@ -71,8 +71,8 @@ cbuffer cbLight
 {   
     DirectionalLight cbDirLight[10];
     uint dirCnt;
-    PointLight cbPointLight[48];
-    uint pntCnt;
+    CubeLight cbCubeLight[48];
+    uint CubeCnt;
     SpotLight cbSpotLight[20];
     uint sptCnt;
     uint padding;
@@ -121,7 +121,7 @@ float CalDirShadowFactor(SamplerComparisonState shadowSampler,
    
       return percentLit /= 9.0f;
 }
-float CalOmniDirShadowFactor(SamplerState shadowSampler,
+float CalCubeShadowFactor(SamplerState shadowSampler,
                         TextureCube shadowMap, float3 fragToLight)
 {  
     
@@ -173,7 +173,7 @@ void CalDirectionalLight(Material material, DirectionalLight L,
     }
  
 }
-void CalPointLight(Material material, PointLight L, float3 lightDir, float3 normal, float3 toEye, float4 specularIntensity,
+void CalCubeLight(Material material, CubeLight L, float3 lightDir, float3 normal, float3 toEye, float4 specularIntensity,
 out float4 ambient, out float4 diffuse, out float4 specular)
 {
     ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -300,11 +300,11 @@ PixelOuput main(PixelInputType input)
         diffuse += D * shadowFactor;
         specular += S * shadowFactor;
     }
-    for (int j = 0; j < pntCnt; ++j)
+    for (int j = 0; j < CubeCnt; ++j)
     {   
-       float3 lightDir = cbPointLight[j].position - input.wPosition.xyz;
-       CalPointLight(gMaterial, cbPointLight[j], lightDir, normal, input.viewDir, specularIntensity, A, D, S);
-       shadowFactor = CalOmniDirShadowFactor(g_cubeShadowSampler, omniDirShadowMaps[j], -lightDir);
+        float3 lightDir = cbCubeLight[j].position - input.wPosition.xyz;
+        CalCubeLight(gMaterial, cbCubeLight[j], lightDir, normal, input.viewDir, specularIntensity, A, D, S);
+        shadowFactor = CalCubeShadowFactor(g_cubeShadowSampler, CubeShadowMaps[j], -lightDir);
        ambient += A;
        diffuse += D * shadowFactor;
        specular += S * shadowFactor;

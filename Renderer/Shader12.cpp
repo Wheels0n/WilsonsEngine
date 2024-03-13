@@ -30,9 +30,9 @@ namespace wilson
 			m_pShadow12VS = nullptr;
 			m_pShadow12PS = nullptr;
 
-			m_pOmniDirShadow12VS = nullptr;
-			m_pOmniDirShadow12GS = nullptr;
-			m_pOmniDirShadow12PS = nullptr;
+			m_pCubeShadow12VS = nullptr;
+			m_pCubeShadow12GS = nullptr;
+			m_pCubeShadow12PS = nullptr;
 
 			m_pTex12VS = nullptr;
 
@@ -139,13 +139,13 @@ namespace wilson
 			hr = D3DCompileFromFile(L"ShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pShadow12PS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"OmniDirShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pOmniDirShadow12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadow12VS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"OmniDirShadowGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, &m_pOmniDirShadow12GS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadow12GS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"OmniDirShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pOmniDirShadow12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadow12PS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 
@@ -1337,22 +1337,22 @@ namespace wilson
 				m_pCascadeDir12PS = nullptr;
 			}
 
-			if (m_pOmniDirShadow12VS != nullptr)
+			if (m_pCubeShadow12VS != nullptr)
 			{
-				m_pOmniDirShadow12VS->Release();
-				m_pOmniDirShadow12VS = nullptr;
+				m_pCubeShadow12VS->Release();
+				m_pCubeShadow12VS = nullptr;
 			}
 
-			if (m_pOmniDirShadow12GS != nullptr)
+			if (m_pCubeShadow12GS != nullptr)
 			{
-				m_pOmniDirShadow12GS->Release();
-				m_pOmniDirShadow12GS = nullptr;
+				m_pCubeShadow12GS->Release();
+				m_pCubeShadow12GS = nullptr;
 			}
 
-			if (m_pOmniDirShadow12PS != nullptr)
+			if (m_pCubeShadow12PS != nullptr)
 			{
-				m_pOmniDirShadow12PS->Release();
-				m_pOmniDirShadow12PS = nullptr;
+				m_pCubeShadow12PS->Release();
+				m_pCubeShadow12PS = nullptr;
 			}
 
 			if (m_pTex12VS != nullptr)

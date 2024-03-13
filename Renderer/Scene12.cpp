@@ -310,8 +310,8 @@ namespace wilson
 					DrawLightControl(pLight);
 					switch (pLight->GetType())
 					{
-					case eLIGHT_TYPE::PNT:
-						DrawPointLightControl(pLight);
+					case eLIGHT_TYPE::CUBE:
+						DrawCubeLightControl(pLight);
 						break;
 					case eLIGHT_TYPE::SPT:
 						DrawSpotLightControl(pLight);
@@ -545,8 +545,8 @@ namespace wilson
 			{
 				switch (pLight->GetType())
 				{
-				case eLIGHT_TYPE::PNT:
-					((PointLight12*)pLight)->CreateShadowMatrices();
+				case eLIGHT_TYPE::CUBE:
+					((CubeLight12*)pLight)->CreateShadowMatrices();
 					break;
 				case eLIGHT_TYPE::SPT:
 					((SpotLight12*)pLight)->UpdateViewMat();
@@ -556,7 +556,7 @@ namespace wilson
 
 			switch (pLight->GetType())
 			{
-			case eLIGHT_TYPE::PNT:
+			case eLIGHT_TYPE::CUBE:
 				if (ImGui::Combo("ShadowMap", &mipLevel, " right\0 left\0 up\0 down\0 front\0 back\0"))
 				{
 					m_pShadowSrv = m_pShadow->GetCubeDebugSRV(pCommandlist, lightIdx, mipLevel);
@@ -602,22 +602,22 @@ namespace wilson
 
 
 	}
-	void Scene12::DrawPointLightControl(Light12* pLight)
+	void Scene12::DrawCubeLightControl(Light12* pLight)
 	{
-		PointLight12* pPointLight = (PointLight12*)pLight;
-		DirectX::XMFLOAT3 attenuation3 = *(pPointLight->GetAttenuation());
+		CubeLight12* pCubeLight = (CubeLight12*)pLight;
+		DirectX::XMFLOAT3 attenuation3 = *(pCubeLight->GetAttenuation());
 		float attenuation[3] = { attenuation3.x, attenuation3.y, attenuation3.z };
 		ImGui::DragFloat3("Attenuation", attenuation, 0.0f, 1.0f);
-		*(pPointLight->GetAttenuation()) = DirectX::XMFLOAT3(attenuation[0], attenuation[1], attenuation[2]);
+		*(pCubeLight->GetAttenuation()) = DirectX::XMFLOAT3(attenuation[0], attenuation[1], attenuation[2]);
 
-		float range = *(pPointLight->GetRange());
+		float range = *(pCubeLight->GetRange());
 		if (ImGui::Button("Range"))
 		{
 			range = 0.0f;
 		}
 		ImGui::SameLine();
 		ImGui::DragFloat("##Range", &range, 0.1f);
-		*(pPointLight->GetRange()) = range;
+		*(pCubeLight->GetRange()) = range;
 
 	};
 	void Scene12::DrawSpotLightControl(Light12* pLight)

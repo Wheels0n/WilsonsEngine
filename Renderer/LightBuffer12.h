@@ -3,7 +3,7 @@
 #include<vector>
 
 #include"DirectionalLight12.h"
-#include"PointLight12.h"
+#include"CubeLight12.h"
 #include"SpotLight12.h"
 #include"typedef.h"
 namespace wilson
@@ -16,9 +16,9 @@ namespace wilson
 		{
 			m_pDirLights.push_back(pDirLight);
 		}
-		inline void PushPointLight(PointLight12* pPointLight)
+		inline void PushCubeLight(CubeLight12* pCubeLight)
 		{
-			m_pPointLights.push_back(pPointLight);
+			m_pCubeLights.push_back(pCubeLight);
 		}
 		inline void PushSpotLight(SpotLight12* pSpotLight)
 		{
@@ -28,9 +28,9 @@ namespace wilson
 		{
 			return m_pDirLights;
 		}
-		inline std::vector<PointLight12*>& GetPointLights()
+		inline std::vector<CubeLight12*>& GetCubeLights()
 		{
-			return m_pPointLights;
+			return m_pCubeLights;
 		}
 		inline std::vector<SpotLight12*>& GetSpotLights()
 		{
@@ -40,9 +40,9 @@ namespace wilson
 		{
 			return m_pDirLights.size();
 		}
-		inline UINT GetPointLightSize() const
+		inline UINT GetCubeLightSize() const
 		{
-			return m_pPointLights.size();
+			return m_pCubeLights.size();
 		}
 		inline UINT GetSpotLightSize() const
 		{
@@ -52,7 +52,7 @@ namespace wilson
 		{
 			return _MAX_DIR_LIGHTS;
 		}
-		inline UINT GetPointLightCapacity() const
+		inline UINT GetCubeLightCapacity() const
 		{
 			return _MAX_PNT_LIGHTS;
 		}
@@ -77,7 +77,7 @@ namespace wilson
 		D3D12_GPU_DESCRIPTOR_HANDLE m_spotLitMatrices12BufferCBV;
 
 		std::vector<DirectionalLight12*> m_pDirLights;
-		std::vector<PointLight12*>m_pPointLights;
+		std::vector<CubeLight12*>m_pCubeLights;
 		std::vector<SpotLight12*>m_pSpotLights;
 
 		UINT8* m_pLightPropertyCbBegin;

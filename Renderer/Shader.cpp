@@ -26,9 +26,9 @@ namespace wilson
 			m_pShadowVS = nullptr;
 			m_pShadowPS = nullptr;
 
-			m_pOmniDirShadowVS = nullptr;
-			m_pOmniDirShadowGS = nullptr;
-			m_pOmniDirShadowPS = nullptr;
+			m_pCubeShadowVS = nullptr;
+			m_pCubeShadowGS = nullptr;
+			m_pCubeShadowPS = nullptr;
 
 			m_pTexVS = nullptr;
 
@@ -243,30 +243,30 @@ namespace wilson
 
 
 
-			hr = D3DCompileFromFile(L"OmniDirShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pVSBlob, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pVSBlob, &pErrorBlob);
 			assert(SUCCEEDED(hr));
-			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowVS);
+			hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &m_pCubeShadowVS);
 			assert(SUCCEEDED(hr));
-			m_pOmniDirShadowVS->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader::m_pOmniDirShadowVS") - 1, "Shader::m_pOmniDirShadowVS");
+			m_pCubeShadowVS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Shader::m_pCubeShadowVS") - 1, "Shader::m_pCubeShadowVS");
 
 
 
-			hr = D3DCompileFromFile(L"OmniDirShadowGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pGSBlob, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pGSBlob, &pErrorBlob);
 			assert(SUCCEEDED(hr));
-			hr = pDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowGS);
+			hr = pDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &m_pCubeShadowGS);
 			assert(SUCCEEDED(hr));
-			m_pOmniDirShadowGS->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader::m_pOmniDirShadowGS") - 1, "Shader::m_pOmniDirShadowGS");
+			m_pCubeShadowGS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Shader::m_pCubeShadowGS") - 1, "Shader::m_pCubeShadowGS");
 
 
 
-			hr = D3DCompileFromFile(L"OmniDirShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG, 0, &pPSBlob, &pErrorBlob);
 			assert(SUCCEEDED(hr));
-			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pOmniDirShadowPS);
+			hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &m_pCubeShadowPS);
 			assert(SUCCEEDED(hr));
-			m_pOmniDirShadowPS->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader::m_pOmniDirShadowPS") - 1, "Shader::m_pOmniDirShadowPS");
+			m_pCubeShadowPS->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Shader::m_pCubeShadowPS") - 1, "Shader::m_pCubeShadowPS");
 
 
 
@@ -526,22 +526,22 @@ namespace wilson
 				m_pCascadeDirPS = nullptr;
 			}
 
-			if (m_pOmniDirShadowVS != nullptr)
+			if (m_pCubeShadowVS != nullptr)
 			{
-				m_pOmniDirShadowVS->Release();
-				m_pOmniDirShadowVS = nullptr;
+				m_pCubeShadowVS->Release();
+				m_pCubeShadowVS = nullptr;
 			}
 
-			if (m_pOmniDirShadowGS != nullptr)
+			if (m_pCubeShadowGS != nullptr)
 			{
-				m_pOmniDirShadowGS->Release();
-				m_pOmniDirShadowGS = nullptr;
+				m_pCubeShadowGS->Release();
+				m_pCubeShadowGS = nullptr;
 			}
 
-			if (m_pOmniDirShadowPS != nullptr)
+			if (m_pCubeShadowPS != nullptr)
 			{
-				m_pOmniDirShadowPS->Release();
-				m_pOmniDirShadowPS = nullptr;
+				m_pCubeShadowPS->Release();
+				m_pCubeShadowPS = nullptr;
 			}
 
 			if (m_pTexVS != nullptr)

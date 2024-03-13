@@ -16,7 +16,7 @@ struct DirectionalLight
     float3 direction;
     float pad;
 };
-struct PointLight
+struct CubeLight
 {
     float4 ambient;
     float4 diffuse;
@@ -55,7 +55,7 @@ TextureCube g_prefilterMap : register(t7);
 Texture2D g_brdfLUT : register(t8);
 Texture2DArray g_dirShadowMaps[1];
 Texture2D spotShadowMaps[1];
-TextureCube omniDirShadowMaps[1];
+TextureCube CubeShadowMaps[1];
 SamplerState g_WrapSampler : register(s0);
 SamplerState g_cubeShadowSampler : register(s1);
 SamplerComparisonState g_shadowSampler : register(s2);
@@ -80,8 +80,8 @@ cbuffer Light : register(b4)
 {
     DirectionalLight g_DirLight[5];
     uint g_dirCnt;
-    PointLight g_PointLight[24];
-    uint g_pntCnt;
+    CubeLight g_CubeLight[24];
+    uint g_cubeCnt;
     SpotLight g_SpotLight[10];
     uint g_sptCnt;
     uint padding;
@@ -101,7 +101,7 @@ cbuffer SpotLightMatrices
 static const float _SMAP_SIZE = 1024.0f;
 static const float _SMAP_DX = 1.0f / _SMAP_SIZE;
 static const float _PI = 3.14159265359;
-static const float _PNT_FARZ = 3000.0f;
+static const float _PNT_FARZ = 150.0f;
 float DistributionGGX(float3 normal, float3 h, float roughness)
 {
     float a = roughness * roughness;
@@ -230,7 +230,7 @@ float CalSpotShadowFactor(SamplerComparisonState shadowSampler,
     percentLit /= 9.0f;
     return percentLit;
 }
-float CalOmniDirShadowFactor(SamplerState cubeShadowSampler,
+float CalCubeShadowFactor(SamplerState cubeShadowSampler,
                         TextureCube cubeShadowMap, float3 fragToLight)
 {
     
@@ -288,7 +288,7 @@ out float3 L0)
     float NdotL = max(dot(normal, lightDir), 0.0f);
     L0 += (kD * albedo / _PI + specular) * radiance * NdotL;
 }
-void CalPointLight(PointLight L, float3 lightDir, float3 normal, float3 viewDir,
+void CalCubeLight(CubeLight L, float3 lightDir, float3 normal, float3 viewDir,
 float3 albedo, float metalness, float roughness, float3 F0,
 out float3 L0)
 {
@@ -410,12 +410,12 @@ PixelOutput main(PixelInput input)
         
     }
     [unroll]
-    for (int j = 0; j < g_pntCnt; ++j)
+    for (int j = 0; j < g_cubeCnt; ++j)
     {   
-        float3 lightDir = g_PointLight[j].position - wPos.xyz;
-        CalPointLight(g_PointLight[j], lightDir, normal.xyz, viewDir, 
+        float3 lightDir = g_CubeLight[j].position - wPos.xyz;
+        CalCubeLight(g_CubeLight[j], lightDir, normal.xyz, viewDir,
         albedo.xyz, metalness, roughness, F0, L);
-        shadowFactor = CalOmniDirShadowFactor(g_cubeShadowSampler, omniDirShadowMaps[j], -lightDir);
+        shadowFactor = CalCubeShadowFactor(g_cubeShadowSampler, CubeShadowMaps[j], -lightDir);
     
         lightVal.xyz += shadowFactor * L;
     }
@@ -442,7 +442,7 @@ PixelOutput main(PixelInput input)
     float2 brdf = g_brdfLUT.Sample(g_WrapSampler, brdfUV).rg;
     float3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
     //마지막 후처리에서 계산
-    float3 ambient = (kD * diffuse+specular)*0.4f * ao;
+    float3 ambient = (kD * diffuse + specular) * 0.4f * ao;
    
     output.mainColor.xyz = lightVal.xyz + ambient +emissive.xyz;
     output.mainColor.a = 1.0f;

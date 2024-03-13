@@ -3,7 +3,7 @@
 #include<vector>
 
 #include"DirectionalLight.h"
-#include"PointLight.h"
+#include"CubeLight.h"
 #include"SpotLight.h"
 #include"typedef.h"
 namespace wilson
@@ -16,9 +16,9 @@ namespace wilson
 		{
 			m_pDirLights.push_back(pDirLight);
 		}
-		inline void PushPointLight(PointLight* pPointLight)
+		inline void PushCubeLight(CubeLight* pCubeLight)
 		{
-			m_pPointLights.push_back(pPointLight);
+			m_pCubeLights.push_back(pCubeLight);
 		}
 		inline void PushSpotLight(SpotLight* pSpotLight)
 		{
@@ -28,9 +28,9 @@ namespace wilson
 		{
 			return m_pDirLights;
 		}
-		inline std::vector<PointLight*>& GetPointLights()
+		inline std::vector<CubeLight*>& GetCubeLights()
 		{
-			return m_pPointLights;
+			return m_pCubeLights;
 		}
 		inline std::vector<SpotLight*>& GetSpotLights() 
 		{
@@ -40,9 +40,9 @@ namespace wilson
 		{
 			return m_pDirLights.size();
 		}
-		inline UINT GetPointLightSize() const
+		inline UINT GetCubeLightSize() const
 		{
-			return m_pPointLights.size();
+			return m_pCubeLights.size();
 		}
 		inline UINT GetSpotLightSize() const
 		{
@@ -52,7 +52,7 @@ namespace wilson
 		{
 			return _MAX_DIR_LIGHTS;
 		}
-		inline UINT GetPointLightCapacity() const
+		inline UINT GetCubeLightCapacity() const
 		{
 			return _MAX_PNT_LIGHTS;
 	    }
@@ -78,7 +78,7 @@ namespace wilson
 
 		std::vector<ID3D11ShaderResourceView*> m_pNullSRVs;
 		std::vector<DirectionalLight*> m_pDirLights;
-		std::vector<PointLight*>m_pPointLights;
+		std::vector<CubeLight*>m_pCubeLights;
 		std::vector<SpotLight*>m_pSpotLights;
 	};
 }

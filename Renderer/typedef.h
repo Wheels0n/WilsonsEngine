@@ -31,7 +31,7 @@ namespace wilson
 	};
 
 	//PntLight
-	struct PointLightProperty
+	struct CubeLightProperty
 	{
 		DirectX::XMVECTOR ambient;
 		DirectX::XMVECTOR diffuse;
@@ -66,7 +66,7 @@ namespace wilson
 	enum class eLIGHT_TYPE
 	{
 		DIR,
-		PNT,
+		CUBE,
 		SPT
 	};
 
@@ -90,7 +90,7 @@ namespace wilson
 	{
 		DirLightProperty dirLights[_MAX_DIR_LIGHTS];
 		UINT dirCnt;
-		PointLightProperty pntLights[_MAX_PNT_LIGHTS];
+		CubeLightProperty pntLights[_MAX_PNT_LIGHTS];
 		UINT pntCnt;
 		SpotLightProperty  sptLights[_MAX_SPT_LIGHTS];
 		UINT sptCnt;
@@ -326,6 +326,7 @@ namespace wilson
 
 	//DirectX
 	constexpr UINT _WORKER_THREAD_COUNT= 4;
+	constexpr UINT _OBJECT_PER_THREAD = 10;
 	constexpr float _REFRESH_RATE = 75.f;
 	constexpr UINT  _BUFFER_COUNT = 2;
 	constexpr UINT _SHADOWMAP_SIZE = 1024;
@@ -347,7 +348,9 @@ namespace wilson
 	enum ePass
 	{
 		eZpass,
+		eCascadeDirShadowPass,
 		eSpotShadowPass,
+		eCubeShadowPass,
 		eGeoPass,
 		eDefault
 	};

@@ -93,9 +93,9 @@ namespace wilson
 								type = "DirectionalLight";
 								break;
 							case 3:
-								lightIdx = m_pD3D11->GetLightSize(eLIGHT_TYPE::PNT);
-								pLight = new PointLight(pDevice, lightIdx);
-								type = "PointLight";
+								lightIdx = m_pD3D11->GetLightSize(eLIGHT_TYPE::CUBE);
+								pLight = new CubeLight(pDevice, lightIdx);
+								type = "CubeLight";
 								break;
 							case 4:
 								lightIdx = m_pD3D11->GetLightSize(eLIGHT_TYPE::SPT);

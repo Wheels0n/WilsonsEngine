@@ -10,6 +10,7 @@
 
 #include <Windows.h>
 #include <vector>
+#include <queue>
 
 #include "Camera12.h"
 #include "Frustum12.h"
@@ -42,7 +43,7 @@ namespace wilson
 		void DestroyHDR();
 		void DestroyBackBuffer();
 		void UpdateTotalModels();
-		void DrawENTT(ePass curPass, UINT threadIndex);
+		void DrawObject(ePass curPass, UINT threadIndex, UINT lightIdx);
 		void D3DMemoryLeakCheck();
 		void SSAOThread();
 		void WorkerThread(UINT threadIndex);
@@ -158,6 +159,7 @@ namespace wilson
 		HANDLE m_workerFinishShadowPass[_WORKER_THREAD_COUNT];
 		HANDLE m_workerBeginDeferredGeoPass[_WORKER_THREAD_COUNT];
 		HANDLE m_workerEndFrame[_WORKER_THREAD_COUNT];
+		HANDLE m_wokerMutex;
 		UINT m_workerThreadIdx[_WORKER_THREAD_COUNT];
 
 		UINT m_clientWidth; 
@@ -191,7 +193,7 @@ namespace wilson
 		ID3D12PipelineState* m_pZpassPso;
 		ID3D12PipelineState* m_pCascadeDirShadowPso;
 		ID3D12PipelineState* m_pSpotShadowPso;
-		ID3D12PipelineState* m_pOmniDirShadowPso;
+		ID3D12PipelineState* m_pCubeShadowPso;
 		ID3D12PipelineState* m_pSkyBoxPso;
 		ID3D12PipelineState* m_pPbrDeferredGeoPso;
 		ID3D12PipelineState* m_pPbrDeferredGeoEmissivePso;
@@ -307,6 +309,7 @@ namespace wilson
 
 		static D3D12* g_pD3D12;
 		std::vector<Model12*>m_pTotalModels;
+		std::queue<Model12*>m_pModelQueue;
 		std::vector<ModelGroup12*> m_pModelGroups;
 		DescriptorHeapManager* m_pDescriptorHeapManager;
 		Camera12* m_pCam;

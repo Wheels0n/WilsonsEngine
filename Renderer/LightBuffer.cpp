@@ -52,10 +52,10 @@ namespace wilson
 			plbProperty->dirLights[i] = *m_pDirLights[i]->GetProperty(); 
 		}
 		
-		plbProperty->pntCnt = m_pPointLights.size();
-		for (int i = 0; i < m_pPointLights.size(); ++i)
+		plbProperty->pntCnt = m_pCubeLights.size();
+		for (int i = 0; i < m_pCubeLights.size(); ++i)
 		{
-			plbProperty->pntLights[i] = * m_pPointLights[i]->GetProperty();
+			plbProperty->pntLights[i] = * m_pCubeLights[i]->GetProperty();
 		}
 		plbProperty->sptCnt = m_pSpotLights.size();
 		for (int i = 0; i < m_pSpotLights.size(); ++i)
@@ -97,7 +97,7 @@ namespace wilson
 			sizeof("LightBuffer::m_pSpotLitMatricesBuffer") - 1, "LightBuffer::m_pSpotLitMatricesBuffer");
 
 		m_pDirLights.reserve(_MAX_DIR_LIGHTS);
-		m_pPointLights.reserve(_MAX_PNT_LIGHTS);
+		m_pCubeLights.reserve(_MAX_PNT_LIGHTS);
 		m_pSpotLights.reserve(_MAX_SPT_LIGHTS);
 
 		m_pNullSRVs.resize(_MAX_DIR_LIGHTS + _MAX_PNT_LIGHTS + _MAX_SPT_LIGHTS+4, nullptr);
@@ -133,11 +133,11 @@ namespace wilson
 				delete m_pDirLights[i];
 			}
 		}
-		for (int i = 0; i < m_pPointLights.size(); ++i)
+		for (int i = 0; i < m_pCubeLights.size(); ++i)
 		{
-			if (m_pPointLights[i] != nullptr)
+			if (m_pCubeLights[i] != nullptr)
 			{
-				delete m_pPointLights[i];
+				delete m_pCubeLights[i];
 			}
 		}
 		for (int i = 0; i < m_pSpotLights.size(); ++i)

@@ -577,7 +577,7 @@ namespace wilson
 			m_pShader = new Shader(m_pDevice, m_pContext);
 
 			m_pShadowMap = new ShadowMap(m_pDevice, _SHADOWMAP_SIZE, _SHADOWMAP_SIZE, m_pCam->GetCascadeLevels().size(),
-				m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
+				m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetCubeLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
 
 			//Gen User-Defined Class
 			{
@@ -1176,11 +1176,11 @@ namespace wilson
 		m_pCam->Update();
 		//Update Light
 		std::vector<DirectionalLight*>& dirLights = m_pLightBuffer->GetDirLights();
-		std::vector<PointLight*>& pointLights = m_pLightBuffer->GetPointLights();
+		std::vector<CubeLight*>& CubeLights = m_pLightBuffer->GetCubeLights();
 		std::vector<SpotLight*>& spotLights = m_pLightBuffer->GetSpotLights();
 		//Draw ShadowMap
 		{	
-			m_pContext->PSSetShaderResources(0, 4 +dirLights.capacity()+ pointLights.capacity()+ spotLights.capacity(), m_pLightBuffer->GetNullSRVs());
+			m_pContext->PSSetShaderResources(0, 4 +dirLights.capacity()+ CubeLights.capacity()+ spotLights.capacity(), m_pLightBuffer->GetNullSRVs());
 			m_pContext->RSSetViewports(1, m_pShadowMap->GetViewport());
 			m_pContext->RSSetState(m_pQuadRS);
 			m_pContext->OMSetDepthStencilState(0, 0);
@@ -1193,7 +1193,7 @@ namespace wilson
 				dirLights[i]->UpdateLightSpaceMatrices();
 				dirLights[i]->UploadShadowMatrices(m_pContext);
 				m_pShadowMap->BindDirDSV(m_pContext,i);
-				DrawENTT(bGeoPass, bSpotShadowPass);
+				DrawObject(bGeoPass, bSpotShadowPass);
 			}
 
 			m_pShader->SetTexInputlayout(m_pContext);
@@ -1203,18 +1203,18 @@ namespace wilson
 			{
 				m_pMatBuffer->SetLightSpaceMatrix(spotLights[i]->GetLightSpaceMat());
 				m_pShadowMap->BindSpotDSV(m_pContext, i);
-				DrawENTT(bGeoPass, bSpotShadowPass);
+				DrawObject(bGeoPass, bSpotShadowPass);
 			}
 			bSpotShadowPass = false;
 
 			m_pContext->RSSetState(m_pSkyBoxRS);
-			m_pShader->SetOmniDirShadowShader(m_pContext);
-			for (int i = 0; i < pointLights.size(); ++i)
+			m_pShader->SetCubeShadowShader(m_pContext);
+			for (int i = 0; i < CubeLights.size(); ++i)
 			{
 				m_pShadowMap->BindCubeDSV(m_pContext, i);
-				pointLights[i]->UploadShadowMatrices(m_pContext);
-				pointLights[i]->UploadLightPos(m_pContext);
-				DrawENTT(bGeoPass, bSpotShadowPass);
+				CubeLights[i]->UploadShadowMatrices(m_pContext);
+				CubeLights[i]->UploadLightPos(m_pContext);
+				DrawObject(bGeoPass, bSpotShadowPass);
 			}
 			
 		}
@@ -1264,7 +1264,7 @@ namespace wilson
 				m_pContext->PSSetConstantBuffers(4, 1, &m_pHeightOnOffCB);
 
 			}
-			DrawENTT(!bGeoPass, bSpotShadowPass);
+			DrawObject(!bGeoPass, bSpotShadowPass);
 			
 
 			//SSAO Pass
@@ -1308,7 +1308,7 @@ namespace wilson
 			
 			m_pContext->PSSetShaderResources(texCnt, dirLights.capacity(), m_pShadowMap->GetDirSRV());
 			m_pContext->PSSetShaderResources(texCnt +dirLights.capacity(), spotLights.capacity(), m_pShadowMap->GetSpotSRV());
-			m_pContext->PSSetShaderResources(texCnt +dirLights.capacity() + spotLights.capacity(), pointLights.capacity(), m_pShadowMap->GetCubeSRV());
+			m_pContext->PSSetShaderResources(texCnt +dirLights.capacity() + spotLights.capacity(), CubeLights.capacity(), m_pShadowMap->GetCubeSRV());
 	
 
 			m_pContext->PSSetShaderResources(texCnt++, 1, m_pShadowMap->GetDirSRV());
@@ -1403,8 +1403,8 @@ namespace wilson
 		case eLIGHT_TYPE::DIR:
 			m_pLightBuffer->PushDirLight((DirectionalLight*)pLight);
 			break;
-		case eLIGHT_TYPE::PNT:
-			m_pLightBuffer->PushPointLight((PointLight*)pLight);
+		case eLIGHT_TYPE::CUBE:
+			m_pLightBuffer->PushCubeLight((CubeLight*)pLight);
 			break;
 		case eLIGHT_TYPE::SPT:
 			m_pLightBuffer->PushSpotLight((SpotLight*)pLight);
@@ -1422,7 +1422,7 @@ namespace wilson
 	void D3D11::RemoveLight(int i, Light* pLight)
 	{	
 		std::vector<DirectionalLight*>& pDirLights = m_pLightBuffer->GetDirLights();;
-		std::vector<PointLight*>& pPointLights= m_pLightBuffer->GetPointLights();
+		std::vector<CubeLight*>& pCubeLights= m_pLightBuffer->GetCubeLights();
 		std::vector<SpotLight*>& pSpotLights = m_pLightBuffer->GetSpotLights();
 		switch (pLight->GetType())
 		{
@@ -1430,9 +1430,9 @@ namespace wilson
 			delete pDirLights[i];
 			pDirLights.erase(pDirLights.begin() + i);
 			break;
-		case eLIGHT_TYPE::PNT:
-			delete pPointLights[i];
-			pPointLights.erase(pPointLights.begin() + i);
+		case eLIGHT_TYPE::CUBE:
+			delete pCubeLights[i];
+			pCubeLights.erase(pCubeLights.begin() + i);
 			break;
 		case eLIGHT_TYPE::SPT:
 			delete pSpotLights[i];
@@ -1460,8 +1460,8 @@ namespace wilson
 		case eLIGHT_TYPE::DIR:
 			size = m_pLightBuffer->GetDirLightSize();
 			break;
-		case eLIGHT_TYPE::PNT:
-			size = m_pLightBuffer->GetPointLightSize();
+		case eLIGHT_TYPE::CUBE:
+			size = m_pLightBuffer->GetCubeLightSize();
 			break;
 		case eLIGHT_TYPE::SPT:
 			size = m_pLightBuffer->GetSpotLightSize();
@@ -1840,7 +1840,7 @@ namespace wilson
 		return true;
 	}
 
-	void D3D11::DrawENTT(bool bGeoPass, bool bSpotShadowPass)
+	void D3D11::DrawObject(bool bGeoPass, bool bSpotShadowPass)
 	{	
 		float color[4] = { 0.0f, 0.0f,0.0f, 1.0f };
 		HRESULT hr;

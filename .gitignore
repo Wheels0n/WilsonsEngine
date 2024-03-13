@@ -372,3 +372,4 @@ FodyWeavers.xsd
 *.filters
 *.vcxproj
 *.rc
+*.wpix

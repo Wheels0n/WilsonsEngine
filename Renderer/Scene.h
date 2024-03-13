@@ -44,7 +44,7 @@ namespace wilson
 		~Scene();
 	private:
 		void DrawLightControl(Light*);
-		void DrawPointLightControl(Light*);
+		void DrawCubeLightControl(Light*);
 		void DrawSpotLightControl(Light*);
 		bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float, float*);
 		void RemoveSelectedModel(int,int);

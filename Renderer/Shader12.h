@@ -164,17 +164,17 @@ namespace wilson
 			return m_pSpotShadowRootSignature;
 		}
 
-		void SetOmniDirShadowShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		void SetCubeShadowShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
 		{
-			D3D12_SHADER_BYTECODE vsBytecode = { m_pOmniDirShadow12VS->GetBufferPointer(),m_pOmniDirShadow12VS->GetBufferSize() };
-			D3D12_SHADER_BYTECODE gsBytecode = { m_pOmniDirShadow12GS->GetBufferPointer(),m_pOmniDirShadow12GS->GetBufferSize() };
-			D3D12_SHADER_BYTECODE psBytecode = { m_pOmniDirShadow12PS->GetBufferPointer(),m_pOmniDirShadow12PS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pCubeShadow12VS->GetBufferPointer(),m_pCubeShadow12VS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE gsBytecode = { m_pCubeShadow12GS->GetBufferPointer(),m_pCubeShadow12GS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE psBytecode = { m_pCubeShadow12PS->GetBufferPointer(),m_pCubeShadow12PS->GetBufferSize() };
 
 			pPSODesc->VS = vsBytecode;
 			pPSODesc->GS = gsBytecode;
 			pPSODesc->PS = psBytecode;
 		}
-		inline ID3D12RootSignature* GetOmniDirShadowRootSingnature()
+		inline ID3D12RootSignature* GetCubeShadowRootSingnature()
 		{
 			return m_pCubeShadowRootSignature;
 		}
@@ -403,7 +403,7 @@ namespace wilson
 		ID3DBlob* m_pSSAO12VS;
 		ID3DBlob* m_pSkyBox12VS;
 		ID3DBlob* m_pShadow12VS;
-		ID3DBlob* m_pOmniDirShadow12VS;
+		ID3DBlob* m_pCubeShadow12VS;
 		ID3DBlob* m_pTex12VS;
 		ID3DBlob* m_pGeometry12VS;
 		ID3DBlob* m_pPBRGeometry12VS;
@@ -414,14 +414,14 @@ namespace wilson
 		ID3DBlob* m_pCascadeDir12VS;
 
 		ID3DBlob* m_pCascadeDir12GS;
-		ID3DBlob* m_pOmniDirShadow12GS;
+		ID3DBlob* m_pCubeShadow12GS;
 		ID3DBlob* m_pEquirect2Cube12GS;
 
 		ID3DBlob* m_pForwardPS;
 		ID3DBlob* m_pCascadeDir12PS;
 		ID3DBlob* m_pSkyBox12PS;
 		ID3DBlob* m_pShadow12PS;
-		ID3DBlob* m_pOmniDirShadow12PS;
+		ID3DBlob* m_pCubeShadow12PS;
 		ID3DBlob* m_pGeometry12PS;
 		ID3DBlob* m_pPBRGeometry12PS;
 		ID3DBlob* m_pPBRGeometryEmissive12PS;

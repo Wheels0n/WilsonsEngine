@@ -7,7 +7,7 @@
 namespace wilson
 {
 	class DescriptorHeapManager;
-	class PointLight12 :public Light12
+	class CubeLight12 :public Light12
 	{
 	public:
 		inline DirectX::XMFLOAT3* GetAttenuation()
@@ -18,24 +18,24 @@ namespace wilson
 		{
 			return &m_range;
 		}
-		inline PointLightProperty* GetProperty()
+		inline CubeLightProperty* GetProperty()
 		{
-			return &m_pointLightProperty;
+			return &m_CubeLightProperty;
 		}
 
 		void UpdateProperty();
 		void CreateShadowMatrices();
 		void UploadShadowMatrices(ID3D12GraphicsCommandList*);
 		void UploadLightPos(ID3D12GraphicsCommandList*);
-		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::PNT; };
+		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::CUBE; };
 
-		PointLight12() = default;
-		PointLight12(ID3D12Device*, ID3D12GraphicsCommandList*, DescriptorHeapManager*, UINT idx);
-		PointLight12(const PointLight12&) = default;
-		~PointLight12();
+		CubeLight12() = default;
+		CubeLight12(ID3D12Device*, ID3D12GraphicsCommandList*, DescriptorHeapManager*, UINT idx);
+		CubeLight12(const CubeLight12&) = default;
+		~CubeLight12();
 
 	private:
-		PointLightProperty m_pointLightProperty;
+		CubeLightProperty m_CubeLightProperty;
 
 		ID3D12Resource* m_pMatrices12Buffer;
 		ID3D12Resource* m_pPosCb;

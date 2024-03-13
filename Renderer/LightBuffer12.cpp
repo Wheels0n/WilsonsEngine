@@ -53,11 +53,11 @@ namespace wilson
 
 
 		UINT pntLightOffset = dirLightOffset;
-		len = sizeof(PointLightProperty);
-		numOfLights = m_pPointLights.size();
-		for (int i = 0; i < m_pPointLights.size(); ++i)
+		len = sizeof(CubeLightProperty);
+		numOfLights = m_pCubeLights.size();
+		for (int i = 0; i < m_pCubeLights.size(); ++i)
 		{
-			memcpy(m_pLightPropertyCbBegin + pntLightOffset, m_pPointLights[i]->GetProperty(), len);
+			memcpy(m_pLightPropertyCbBegin + pntLightOffset, m_pCubeLights[i]->GetProperty(), len);
 			pntLightOffset += len;
 		}
 		pntLightOffset = dirLightOffset+len * _MAX_PNT_LIGHTS;
@@ -95,7 +95,7 @@ namespace wilson
 		m_pSpotLitMatricesCbBegin = nullptr;
 
 		m_pDirLights.reserve(_MAX_DIR_LIGHTS);
-		m_pPointLights.reserve(_MAX_PNT_LIGHTS);
+		m_pCubeLights.reserve(_MAX_PNT_LIGHTS);
 		m_pSpotLights.reserve(_MAX_SPT_LIGHTS);
 
 
@@ -252,11 +252,11 @@ namespace wilson
 				delete m_pDirLights[i];
 			}
 		}
-		for (int i = 0; i < m_pPointLights.size(); ++i)
+		for (int i = 0; i < m_pCubeLights.size(); ++i)
 		{
-			if (m_pPointLights[i] != nullptr)
+			if (m_pCubeLights[i] != nullptr)
 			{
-				delete m_pPointLights[i];
+				delete m_pCubeLights[i];
 			}
 		}
 		for (int i = 0; i < m_pSpotLights.size(); ++i)

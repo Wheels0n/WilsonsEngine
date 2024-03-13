@@ -1,14 +1,14 @@
 #include<DirectXMath.h>
-#include "PointLight.h"
+#include "CubeLight.h"
 namespace wilson
 {   
     constexpr float g_near = 1.0f;
     constexpr float g_far =150.0f;
     constexpr float g_ratio = 1.0f;
     constexpr float g_FOV = DirectX::XMConvertToRadians(90.0f);
-    DirectX::XMMATRIX PointLight::g_perspectiveMat =
+    DirectX::XMMATRIX CubeLight::g_perspectiveMat =
         DirectX::XMMatrixPerspectiveFovLH(g_FOV, g_ratio, g_near, g_far);
-    std::vector<DirectX::XMVECTOR> PointLight::g_upVectors = {
+    std::vector<DirectX::XMVECTOR> CubeLight::g_upVectors = {
         DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
         DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
         DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f),
@@ -16,7 +16,7 @@ namespace wilson
         DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
         DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
     };
-    std::vector<DirectX::XMVECTOR> PointLight::g_dirVectors = {
+    std::vector<DirectX::XMVECTOR> CubeLight::g_dirVectors = {
         DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), 
         DirectX::XMVectorSet(-1.0f,0.0f, 0.0f, 0.0f),
         DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
@@ -26,16 +26,16 @@ namespace wilson
     };
 
   
-    void PointLight::UpdateProperty()
+    void CubeLight::UpdateProperty()
     {
-        m_pointLightProperty.ambient = m_ambient;
-        m_pointLightProperty.attenuation = m_attenuation;
-        m_pointLightProperty.diffuse = m_diffuse;
-        m_pointLightProperty.position = m_position;
-        m_pointLightProperty.range = m_range;
-        m_pointLightProperty.specular = m_specular;
+        m_CubeLightProperty.ambient = m_ambient;
+        m_CubeLightProperty.attenuation = m_attenuation;
+        m_CubeLightProperty.diffuse = m_diffuse;
+        m_CubeLightProperty.position = m_position;
+        m_CubeLightProperty.range = m_range;
+        m_CubeLightProperty.specular = m_specular;
     }
-    void PointLight::CreateShadowMatrices()
+    void CubeLight::CreateShadowMatrices()
     {   
         DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&m_position);
         
@@ -47,7 +47,7 @@ namespace wilson
             m_cubeMats[i] = DirectX::XMMatrixMultiplyTranspose(viewMat, g_perspectiveMat);
         }
     }
-    void PointLight::UploadShadowMatrices(ID3D11DeviceContext* pContext)
+    void CubeLight::UploadShadowMatrices(ID3D11DeviceContext* pContext)
     {
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         DirectX::XMMATRIX* pMatrix;
@@ -63,7 +63,7 @@ namespace wilson
         pContext->GSSetConstantBuffers(0, 1, &m_pMatricesBuffer);
         
     }
-    void PointLight::UploadLightPos(ID3D11DeviceContext* pContext)
+    void CubeLight::UploadLightPos(ID3D11DeviceContext* pContext)
     {
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         DirectX::XMVECTOR* pV;
@@ -78,7 +78,7 @@ namespace wilson
         pContext->PSSetConstantBuffers(0, 1, &m_pPosBuffer);
     }
 
-    PointLight::PointLight(ID3D11Device* pDevice, UINT idx)
+    CubeLight::CubeLight(ID3D11Device* pDevice, UINT idx)
         :Light(idx)
     {
         m_pMatricesBuffer = nullptr;
@@ -87,7 +87,7 @@ namespace wilson
         m_cubeMats.resize(6);
         D3D11_BUFFER_DESC cbufferDesc = {};
         cbufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-        cbufferDesc.ByteWidth = sizeof(PointLightProperty);
+        cbufferDesc.ByteWidth = sizeof(CubeLightProperty);
         cbufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         cbufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
         cbufferDesc.MiscFlags = 0;
@@ -96,19 +96,19 @@ namespace wilson
         HRESULT result = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pLightBuffer);
         if (FAILED(result))
         {   
-            OutputDebugStringA("PointLight::m_pLightBuffer::CreateBufferFailed");
+            OutputDebugStringA("CubeLight::m_pLightBuffer::CreateBufferFailed");
         }
         m_pLightBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-            sizeof("PointLight::m_pLightBuffer") - 1, "PointLight::m_pLightBuffer");
+            sizeof("CubeLight::m_pLightBuffer") - 1, "CubeLight::m_pLightBuffer");
 
         cbufferDesc.ByteWidth = sizeof(DirectX::XMVECTOR);
         result = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pPosBuffer);
         if (FAILED(result))
         {
-            OutputDebugStringA("PointLight::m_pPosBuffer::CreateBufferFailed");
+            OutputDebugStringA("CubeLight::m_pPosBuffer::CreateBufferFailed");
         }
         m_pPosBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-            sizeof("PointLight::m_pPosBuffer") - 1, "PointLight::m_pPosBuffer");
+            sizeof("CubeLight::m_pPosBuffer") - 1, "CubeLight::m_pPosBuffer");
 
        
         m_attenuation = DirectX::XMFLOAT3(0.0f, 0.1f, 0.0f);
@@ -118,15 +118,15 @@ namespace wilson
         result = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pMatricesBuffer);
         if (FAILED(result))
         {
-            OutputDebugStringA("PointLight::m_pMatricesBuffer::CreateBufferFailed");
+            OutputDebugStringA("CubeLight::m_pMatricesBuffer::CreateBufferFailed");
         }
         m_pMatricesBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-            sizeof("PointLight::m_pMatricesBuffer") - 1, "PointLight::m_pMatricesBuffer");
+            sizeof("CubeLight::m_pMatricesBuffer") - 1, "CubeLight::m_pMatricesBuffer");
         CreateShadowMatrices();
 
     }
 
-    PointLight::~PointLight()
+    CubeLight::~CubeLight()
     {
         if (m_pMatricesBuffer != nullptr)
         {

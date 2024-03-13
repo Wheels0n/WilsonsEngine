@@ -138,7 +138,7 @@ namespace wilson
 
 			ImGui::Image(m_icons[1], ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
-			ImGui::Text("PointLight");
+			ImGui::Text("CubeLight");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{
 				ImGui::SetDragDropPayload("pnt", nullptr, 0, ImGuiCond_Once);

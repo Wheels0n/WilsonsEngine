@@ -77,11 +77,11 @@ namespace wilson
 			pContext->GSSetShader(nullptr, nullptr, 0);
 			pContext->PSSetShader(m_pShadowPS, nullptr, 0);
 		}
-		inline void SetOmniDirShadowShader(ID3D11DeviceContext* pContext)
+		inline void SetCubeShadowShader(ID3D11DeviceContext* pContext)
 		{
-			pContext->VSSetShader(m_pOmniDirShadowVS, nullptr, 0);
-		    pContext->GSSetShader(m_pOmniDirShadowGS, nullptr, 0);
-			pContext->PSSetShader(m_pOmniDirShadowPS, nullptr, 0);
+			pContext->VSSetShader(m_pCubeShadowVS, nullptr, 0);
+		    pContext->GSSetShader(m_pCubeShadowGS, nullptr, 0);
+			pContext->PSSetShader(m_pCubeShadowPS, nullptr, 0);
 		}
 		inline void SetDeferredGeoShader(ID3D11DeviceContext* pContext)
 		{
@@ -159,7 +159,7 @@ namespace wilson
 		ID3D11VertexShader* m_pVS;
 		ID3D11VertexShader* m_pSkyBoxVS;
 		ID3D11VertexShader* m_pShadowVS;
-		ID3D11VertexShader* m_pOmniDirShadowVS;
+		ID3D11VertexShader* m_pCubeShadowVS;
 		ID3D11VertexShader* m_pTexVS;
 		ID3D11VertexShader* m_pGeometryVS;
 		ID3D11VertexShader* m_pPBRGeometryVS;
@@ -169,14 +169,14 @@ namespace wilson
 		ID3D11VertexShader* m_pCascadeDirVS;
 
 		ID3D11GeometryShader* m_pCascadeDirGS;
-		ID3D11GeometryShader* m_pOmniDirShadowGS;
+		ID3D11GeometryShader* m_pCubeShadowGS;
 		ID3D11GeometryShader* m_pEquirect2CubeGS;
 		
 		ID3D11PixelShader* m_pPS;
 		ID3D11PixelShader* m_pCascadeDirPS;
 		ID3D11PixelShader* m_pSkyBoxPS;
 		ID3D11PixelShader* m_pShadowPS;
-		ID3D11PixelShader* m_pOmniDirShadowPS;
+		ID3D11PixelShader* m_pCubeShadowPS;
 		ID3D11PixelShader* m_pGeometryPS;
 		ID3D11PixelShader* m_pPBRGeometryPS;
 		ID3D11PixelShader* m_pEquirect2CubePS;

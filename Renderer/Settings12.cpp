@@ -10,7 +10,7 @@ namespace wilson
 	{
 		//D3D12
 		m_pDirLitIcon12Tex=nullptr;
-		m_pPntLitIcon12Tex=nullptr;
+		m_pCubeLitIcon12Tex=nullptr;
 		m_pSpotLitIcon12Tex=nullptr;
 		m_pDirLitIcon12UploadCB=nullptr;
 		m_pPntLitIcon12UploadCB=nullptr;
@@ -86,7 +86,7 @@ namespace wilson
 			}
 		}
 
-		//Gen PointLightIcon
+		//Gen CubeLightIcon
 		{
 			{
 				//Gen IconTexFromFile 
@@ -118,12 +118,12 @@ namespace wilson
 				heapProps.CreationNodeMask = 1;
 				heapProps.VisibleNodeMask = 1;
 				hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-					nullptr, IID_PPV_ARGS(&m_pPntLitIcon12Tex));
+					nullptr, IID_PPV_ARGS(&m_pCubeLitIcon12Tex));
 				assert(SUCCEEDED(hr));
-				m_pPntLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("Settings12::m_pPntLitIcon12Tex") - 1, "Settings12::m_pPntLitIcon12Tex");
+				m_pCubeLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Settings12::m_pCubeLitIcon12Tex") - 1, "Settings12::m_pCubeLitIcon12Tex");
 
-				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pPntLitIcon12Tex, &m_pPntLitIcon12UploadCB, pCommandlist);
+				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pCubeLitIcon12Tex, &m_pPntLitIcon12UploadCB, pCommandlist);
 
 				//Gen SRV
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -136,7 +136,7 @@ namespace wilson
 
 				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
 				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-				pDevice->CreateShaderResourceView(m_pPntLitIcon12Tex, &srvDesc, cbvSrvCpuHandle);
+				pDevice->CreateShaderResourceView(m_pCubeLitIcon12Tex, &srvDesc, cbvSrvCpuHandle);
 				m_pntLitIcon12SRV = cbvSrvGpuHandle;
 				pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 			}
@@ -300,7 +300,7 @@ namespace wilson
 
 			ImGui::Image((ImTextureID)m_pntLitIcon12SRV.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
-			ImGui::Text("PointLight");
+			ImGui::Text("CubeLight");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{
 				ImGui::SetDragDropPayload("pnt", nullptr, 0, ImGuiCond_Once);
@@ -345,10 +345,10 @@ namespace wilson
 			m_pDirLitIcon12Tex = nullptr;
 		}
 		
-		if (m_pPntLitIcon12Tex != nullptr)
+		if (m_pCubeLitIcon12Tex != nullptr)
 		{
-			m_pPntLitIcon12Tex->Release();
-			m_pPntLitIcon12Tex = nullptr;
+			m_pCubeLitIcon12Tex->Release();
+			m_pCubeLitIcon12Tex = nullptr;
 		}
 
 		if (m_pSpotLitIcon12Tex != nullptr)

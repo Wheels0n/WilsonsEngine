@@ -32,114 +32,47 @@ namespace wilson
 #endif // _DEBUG
 	D3D12* D3D12::g_pD3D12 = nullptr;
 	void D3D12::WorkerThread(UINT threadIndex)
-	{	
-		D3D12_RANGE readRange = { 0, };
-
-		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
-
-		std::vector<DirectionalLight12*>& dirLights = m_pLightBuffer->GetDirLights();
-		std::vector<PointLight12*>& pointLights = m_pLightBuffer->GetPointLights();
-		std::vector<SpotLight12*>& spotLights = m_pLightBuffer->GetSpotLights();
+	{
 
 		while (true)
 		{
+			//Zpass
 			WaitForSingleObject(m_workerBeginFrame[threadIndex], INFINITE);
-			HRESULT hr=m_pWorkerCommandAllocator[threadIndex]->Reset();
-			assert(SUCCEEDED(hr));
-			m_pWokerCommandList[threadIndex]->Reset(m_pWorkerCommandAllocator[threadIndex], m_pZpassPso);
-			m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-			m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
-			m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			m_pWokerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
-			m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
-			m_pWokerCommandList[threadIndex]->OMSetRenderTargets(1, &m_SceneRTV, FALSE, &m_SceneDSV);
-			DrawENTT(eZpass, threadIndex);
-			m_pWokerCommandList[threadIndex]->Close();
-
+			DrawObject(eZpass, threadIndex, -1);
 			SetEvent(m_workerFinishZpass[threadIndex]);
 
-
+			//ShadowPass
 			WaitForSingleObject(m_workerBeginShadowPass[threadIndex], INFINITE);
-			hr=m_pWorkerCommandAllocator[threadIndex]->Reset();
-			assert(SUCCEEDED(hr));
-			m_pWokerCommandList[threadIndex]->Reset(m_pWorkerCommandAllocator[threadIndex], nullptr);
-			UINT litCounts[3] = { dirLights.size(), pointLights.size(), spotLights.size() };
+
+			std::vector<DirectionalLight12*>& dirLights = m_pLightBuffer->GetDirLights();
+			std::vector<CubeLight12*>& CubeLights = m_pLightBuffer->GetCubeLights();
+			std::vector<SpotLight12*>& spotLights = m_pLightBuffer->GetSpotLights();
+			UINT litCounts[3] = { dirLights.size(), CubeLights.size(), spotLights.size() };
 			UINT litCountSum = litCounts[0] + litCounts[1] + litCounts[2];
-			//Gen ShadowMap	
 			if (litCountSum)
 			{
-				//텍스쳐 rtv,dsv떄문에 에러
-				m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-				m_pWokerCommandList[threadIndex]->RSSetViewports(1, m_pShadowMap->GetViewport12());
-				m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
-				m_pWokerCommandList[threadIndex]->SetPipelineState(m_pCascadeDirShadowPso);
-				m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetCascadeDirShadowRootSingnature());
-				m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				for (int i = 0; i < dirLights.size(); ++i)
 				{
-					dirLights[i]->UpdateLightSpaceMatrices();
-					dirLights[i]->UploadShadowMatrices(m_pWokerCommandList[threadIndex]);
-					m_pShadowMap->BindDirDSV(m_pWokerCommandList[threadIndex], i);
-					DrawENTT(eDefault, threadIndex);
+					DrawObject(eCascadeDirShadowPass, threadIndex, i);
 				}
 
-				m_pWokerCommandList[threadIndex]->SetPipelineState(m_pSpotShadowPso);
-				m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetSpotShadowRootSingnature());
 				
 				for (int i = 0; i < spotLights.size(); ++i)
 				{
-					spotLights[i]->UpdateLitMat();
-					m_pLitMat = spotLights[i]->GetLightSpaceMat();
-					m_pShadowMap->BindSpotDSV(m_pWokerCommandList[threadIndex], i);
-					DrawENTT(eSpotShadowPass, threadIndex);
+					DrawObject(eSpotShadowPass, threadIndex, i);
 				}
-				;
-
-
-				m_pWokerCommandList[threadIndex]->SetPipelineState(m_pOmniDirShadowPso);
-				m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetOmniDirShadowRootSingnature());
-				for (int i = 0; i <pointLights.size(); ++i)
+				
+				for (int i = 0; i <CubeLights.size(); ++i)
 				{
-					m_pShadowMap->BindCubeDSV(m_pWokerCommandList[threadIndex], i);
-					pointLights[i]->UploadShadowMatrices(m_pWokerCommandList[threadIndex]);
-					pointLights[i]->UploadLightPos(m_pWokerCommandList[threadIndex]);
-					DrawENTT(eDefault, threadIndex);
+					DrawObject(eCubeShadowPass, threadIndex, i);
 				}
 
 			}
-			m_pWokerCommandList[threadIndex]->Close();
-			m_pMainCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pWokerCommandList[threadIndex]);
-			UINT workerFenceValue = m_workerFenceValue[threadIndex]++;
-			m_pMainCommandQueue->Signal(m_pWorkerFence[threadIndex], workerFenceValue);
-			if (m_pWorkerFence[threadIndex]->GetCompletedValue() < workerFenceValue)
-			{
-				m_pWorkerFence[threadIndex]->SetEventOnCompletion(workerFenceValue, m_workerFenceEvent[threadIndex]);
-				WaitForSingleObject(m_workerFenceEvent[threadIndex], INFINITE);
-			}	
 			SetEvent(m_workerFinishShadowPass[threadIndex]);
 
 			//PbrGeoPass
 			WaitForSingleObject(m_workerBeginDeferredGeoPass[threadIndex], INFINITE);
-
-			hr=m_pWorkerCommandAllocator[threadIndex]->Reset();
-			assert(SUCCEEDED(hr));
-			m_pWokerCommandList[threadIndex]->Reset(m_pWorkerCommandAllocator[threadIndex], nullptr);
-	
-			m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-			m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetPBRDeferredGeoShaderRootSingnature());
-			m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			m_pWokerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
-			m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
-
-			m_pCam->UploadCamPos(m_pWokerCommandList[threadIndex], true);
-			m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsSampler, m_WrapSSV);
-			m_pWokerCommandList[threadIndex]->OMSetRenderTargets(eGbuf_cnt, m_GBufRTV, FALSE, &m_SceneDSV);
-			memcpy(m_pHeightScaleCbBegin, &m_heightScale, sizeof(float));
-			m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsHeightScale, m_HeightScaleCBV);
-			DrawENTT(eGeoPass, threadIndex);
-
-			m_pWokerCommandList[threadIndex]->Close();
+			DrawObject(eGeoPass, threadIndex, -1);
 			SetEvent(m_workerEndFrame[threadIndex]);
 		}
 		return;
@@ -1232,89 +1165,193 @@ namespace wilson
 		}
 	}
 
-	void D3D12::DrawENTT(ePass curPass, UINT threadIndex) 
+	void D3D12::DrawObject(ePass curPass, UINT threadIndex, UINT lightIdx) 
 	{
 		XMMATRIX worldMat, invWorldMat;
-		UINT ENTTCnt = 0;
-		UINT ENTTDrawn = 0;
-		Plane* pPlanes = m_pFrustum->GetPlanes();
+		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
+											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+		std::vector<DirectionalLight12*>& dirLights = m_pLightBuffer->GetDirLights();
+		std::vector<CubeLight12*>& cubetLights = m_pLightBuffer->GetCubeLights();
+		std::vector<SpotLight12*>& spotLights = m_pLightBuffer->GetSpotLights();
 
-		for (int i = threadIndex; i < m_pTotalModels.size(); i+=_WORKER_THREAD_COUNT)
+		while (!m_pModelQueue.empty())
 		{
-			ENTTCnt++;
-			worldMat = m_pTotalModels[i]->GetTransformMatrix(false);
-			invWorldMat = m_pTotalModels[i]->GetInverseWorldMatrix();
-			AABB* aabb = m_pTotalModels[i]->GetAABB();
-			if (aabb->IsOnFrustum(pPlanes, worldMat))
-			{
+			DWORD result =WaitForSingleObject(m_wokerMutex, INFINITE);
 
-				ENTTDrawn++;
-				MatBuffer12* pMatBuffer = m_pTotalModels[i]->GetMatBuffer();
-				pMatBuffer->SetWorldMatrix(&worldMat);
-				pMatBuffer->SetInvWorldMatrix(&invWorldMat);
-				pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
-				pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-				
+			if (result==WAIT_OBJECT_0)
+			{	
+				Model12* pModels[_OBJECT_PER_THREAD];
+				UINT qLen = m_pModelQueue.size();
+				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
+				{
+					pModels[i] = m_pModelQueue.front();
+					m_pModelQueue.pop();
+				}
+				//Set-up Status
+				ReleaseMutex(m_wokerMutex);
 				switch (curPass)
 				{
 				case wilson::eZpass:
-					pMatBuffer->UpdateCombinedMat(false);
-					pMatBuffer->UploadCombinedMat(m_pWokerCommandList[threadIndex], false);
+				{
+					m_pWokerCommandList[threadIndex]->SetPipelineState(m_pZpassPso);
+					m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
+					m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					m_pWokerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
+					m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
+					m_pWokerCommandList[threadIndex]->OMSetRenderTargets(1, &m_SceneRTV, FALSE, &m_SceneDSV);
+				}
+					break;
+				case wilson::eCascadeDirShadowPass:
+				{
+					m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWokerCommandList[threadIndex]->SetPipelineState(m_pCascadeDirShadowPso);
+					m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetCascadeDirShadowRootSingnature());
+					m_pWokerCommandList[threadIndex]->RSSetViewports(1, m_pShadowMap->GetViewport12());
+					m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
+					m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					dirLights[lightIdx]->UpdateLightSpaceMatrices();
+					dirLights[lightIdx]->UploadShadowMatrices(m_pWokerCommandList[threadIndex]);
+					m_pShadowMap->BindDirDSV(m_pWokerCommandList[threadIndex], lightIdx);
+					
+				}
 					break;
 				case wilson::eSpotShadowPass:
-					pMatBuffer->SetLightSpaceMatrix(m_pLitMat);
-					pMatBuffer->UpdateCombinedMat(true);
-					pMatBuffer->UploadCombinedMat(m_pWokerCommandList[threadIndex], true);
+				{
+					m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWokerCommandList[threadIndex]->SetPipelineState(m_pSpotShadowPso);
+					m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetSpotShadowRootSingnature());
+					m_pWokerCommandList[threadIndex]->RSSetViewports(1, m_pShadowMap->GetViewport12());
+					m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
+					m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					spotLights[lightIdx]->UpdateLitMat();
+					m_pLitMat = spotLights[lightIdx]->GetLightSpaceMat();
+					m_pShadowMap->BindSpotDSV(m_pWokerCommandList[threadIndex], lightIdx);
+				}
+					break;
+				case wilson::eCubeShadowPass:
+				{	
+					m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWokerCommandList[threadIndex]->SetPipelineState(m_pCubeShadowPso);
+					m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetCubeShadowRootSingnature());
+					m_pWokerCommandList[threadIndex]->RSSetViewports(1, m_pShadowMap->GetViewport12());
+					m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
+					m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(eCubeShadow_ePsSampler, m_WrapSSV);
+					m_pShadowMap->BindCubeDSV(m_pWokerCommandList[threadIndex], lightIdx);
+					cubetLights[lightIdx]->UploadShadowMatrices(m_pWokerCommandList[threadIndex]);
+					cubetLights[lightIdx]->UploadLightPos(m_pWokerCommandList[threadIndex]);
+				}
 					break;
 				case wilson::eGeoPass:
-					pMatBuffer->UpdateCombinedMat(false);
-					pMatBuffer->UploadMatBuffer(m_pWokerCommandList[threadIndex]);
+				{
+
+					m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetPBRDeferredGeoShaderRootSingnature());
+					m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					m_pWokerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
+					m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
+
+					m_pCam->UploadCamPos(m_pWokerCommandList[threadIndex], true);
+					m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsSampler, m_WrapSSV);
+					m_pWokerCommandList[threadIndex]->OMSetRenderTargets(eGbuf_cnt, m_GBufRTV, FALSE, &m_SceneDSV);
+					memcpy(m_pHeightScaleCbBegin, &m_heightScale, sizeof(float));
+					m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsHeightScale, m_HeightScaleCBV);
+				}
 					break;
 				case wilson::eDefault:
 				default:
 					break;
 				}
-
-				for (int j = 0; j < m_pTotalModels[i]->GetMatCount(); ++j)
+				
+				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
 				{
-					if (curPass==eGeoPass)
+					worldMat = pModels[i]->GetTransformMatrix(false);
+					invWorldMat = pModels[i]->GetInverseWorldMatrix();
+					MatBuffer12* pMatBuffer = pModels[i]->GetMatBuffer();
+					pMatBuffer->SetWorldMatrix(&worldMat);
+					pMatBuffer->SetInvWorldMatrix(&invWorldMat);
+					pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
+					pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
+
+					switch (curPass)
 					{
-						PerModel perModel = *(m_pTotalModels[i]->GetPerModel(j));
-						if (perModel.hasNormal)
+					case wilson::eZpass:
+						pMatBuffer->UpdateCombinedMat(false);
+						pMatBuffer->UploadCombinedMat(m_pWokerCommandList[threadIndex], false);
+						break;
+					case wilson::eSpotShadowPass:
+						pMatBuffer->SetLightSpaceMatrix(m_pLitMat);
+						pMatBuffer->UpdateCombinedMat(true);
+						pMatBuffer->UploadCombinedMat(m_pWokerCommandList[threadIndex], true);
+						break;
+					case wilson::eGeoPass:
+						pMatBuffer->UpdateCombinedMat(false);
+						pMatBuffer->UploadMatBuffer(m_pWokerCommandList[threadIndex]);
+						break;
+					case wilson::eCascadeDirShadowPass:
+					case wilson::eCubeShadowPass:
+					case wilson::eDefault:
+					default:
+						pMatBuffer->UploadMatBuffer(m_pWokerCommandList[threadIndex]);
+						break;
+					}
+
+					for (int j = 0; j < pModels[i]->GetMatCount(); ++j)
+					{
+						if (curPass == eGeoPass)
 						{
-							if (m_bHeightOnOff)
+							PerModel perModel = *(pModels[i]->GetPerModel(j));
+							if (perModel.hasNormal)
 							{
-								if (perModel.hasEmissive)
+								if (m_bHeightOnOff)
 								{
-									m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightEmissivePso);
+									if (perModel.hasEmissive)
+									{
+										m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightEmissivePso);
+									}
+									else
+									{
+										m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightPso);
+									}
 								}
 								else
 								{
-									m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightPso);
+									m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalPso);
 								}
+							}
+							else if (perModel.hasEmissive)
+							{
+								m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoEmissivePso);
 							}
 							else
 							{
-								m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalPso);
+								m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoPso);
 							}
 						}
-						else if (perModel.hasEmissive)
-						{
-							m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoEmissivePso);
-						}
-						else
-						{
-							m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoPso);
-						}
+
+						pModels[i]->UploadBuffers(m_pWokerCommandList[threadIndex], j, curPass);
+						m_pWokerCommandList[threadIndex]->DrawIndexedInstanced(pModels[i]->GetIndexCount(j), 1,
+							0, 0, 0);
 					}
 
-					m_pTotalModels[i]->UploadBuffers(m_pWokerCommandList[threadIndex], j, curPass);
-					m_pWokerCommandList[threadIndex]->DrawIndexedInstanced(m_pTotalModels[i]->GetIndexCount(j),1,
-						0, 0, 0);
 				}
-
+				m_pWokerCommandList[threadIndex]->Close();
+				m_pMainCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pWokerCommandList[threadIndex]);
+				UINT fenceValue = m_workerFenceValue[threadIndex]++;
+				m_pMainCommandQueue->Signal(m_pWorkerFence[threadIndex], fenceValue);
+				if (m_pWorkerFence[threadIndex]->GetCompletedValue() < fenceValue)
+				{
+					m_pWorkerFence[threadIndex]->SetEventOnCompletion(fenceValue, m_workerFenceEvent[threadIndex]);
+					WaitForSingleObject(m_workerFenceEvent[threadIndex], INFINITE);
+				}
+				
+				HRESULT hr = m_pWorkerCommandAllocator[threadIndex]->Reset();
+				assert(SUCCEEDED(hr));
+				m_pWokerCommandList[threadIndex]->Reset(m_pWorkerCommandAllocator[threadIndex], nullptr);
 			}
 		}
+		
 
 	}
 
@@ -1353,8 +1390,8 @@ namespace wilson
 		case eLIGHT_TYPE::DIR:
 			size = m_pLightBuffer->GetDirLightSize();
 			break;
-		case eLIGHT_TYPE::PNT:
-			size = m_pLightBuffer->GetPointLightSize();
+		case eLIGHT_TYPE::CUBE:
+			size = m_pLightBuffer->GetCubeLightSize();
 			break;
 		case eLIGHT_TYPE::SPT:
 			size = m_pLightBuffer->GetSpotLightSize();
@@ -1369,8 +1406,8 @@ namespace wilson
 		case eLIGHT_TYPE::DIR:
 			m_pLightBuffer->PushDirLight((DirectionalLight12*)pLight);
 			break;
-		case eLIGHT_TYPE::PNT:
-			m_pLightBuffer->PushPointLight((PointLight12*)pLight);
+		case eLIGHT_TYPE::CUBE:
+			m_pLightBuffer->PushCubeLight((CubeLight12*)pLight);
 			break;
 		case eLIGHT_TYPE::SPT:
 			m_pLightBuffer->PushSpotLight((SpotLight12*)pLight);
@@ -1380,7 +1417,7 @@ namespace wilson
 	void D3D12::RemoveLight(int i, Light12* pLight)
 	{
 		std::vector<DirectionalLight12*>& pDirLights = m_pLightBuffer->GetDirLights();;
-		std::vector<PointLight12*>& pPointLights = m_pLightBuffer->GetPointLights();
+		std::vector<CubeLight12*>& pCubeLights = m_pLightBuffer->GetCubeLights();
 		std::vector<SpotLight12*>& pSpotLights = m_pLightBuffer->GetSpotLights();
 		switch (pLight->GetType())
 		{
@@ -1388,9 +1425,9 @@ namespace wilson
 			delete pDirLights[i];
 			pDirLights.erase(pDirLights.begin() + i);
 			break;
-		case eLIGHT_TYPE::PNT:
-			delete pPointLights[i];
-			pPointLights.erase(pPointLights.begin() + i);
+		case eLIGHT_TYPE::CUBE:
+			delete pCubeLights[i];
+			pCubeLights.erase(pCubeLights.begin() + i);
 			break;
 		case eLIGHT_TYPE::SPT:
 			delete pSpotLights[i];
@@ -1444,7 +1481,7 @@ namespace wilson
 
 
 
-		UINT litCounts[] = { m_pLightBuffer->GetDirLightSize(), m_pLightBuffer->GetPointLightSize(), m_pLightBuffer->GetSpotLightSize() };
+		UINT litCounts[] = { m_pLightBuffer->GetDirLightSize(), m_pLightBuffer->GetCubeLightSize(), m_pLightBuffer->GetSpotLightSize() };
 		UINT litCountSum = litCounts[0] + litCounts[1] + litCounts[2];
 		//Clear ShadowMap	
 		if (litCountSum)
@@ -1472,27 +1509,32 @@ namespace wilson
 
 		m_pCam->Update();
 
+		//전체 개체 수 갱신 및 프러스텀 컬링
+	
+		Plane* pPlanes = m_pFrustum->GetPlanes();
+		for (int i = 0; i < m_pTotalModels.size(); ++i)
+		{
+			XMMATRIX worldMat = m_pTotalModels[i]->GetTransformMatrix(false);
+			AABB* aabb = m_pTotalModels[i]->GetAABB();
+			if (aabb->IsOnFrustum(pPlanes, worldMat))
+			{
+				m_pModelQueue.push(m_pTotalModels[i]);
+			}
+		}
+		m_pFrustum->SetENTTsInTotal(m_pTotalModels.size());
+		m_pFrustum->SetENTTsInFrustum(m_pModelQueue.size());
+		std::queue<Model12*> pModelQueue = m_pModelQueue;
+		
 		//Zpass
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
 			SetEvent(m_workerBeginFrame[i]);
 		}
 		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_workerFinishZpass, TRUE, INFINITE);
-		ID3D12CommandList* cmdLists[_WORKER_THREAD_COUNT] = {};
-		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
-		{
-			cmdLists[i] = m_pWokerCommandList[i];
-		}
-		m_pMainCommandQueue->ExecuteCommandLists(_WORKER_THREAD_COUNT, cmdLists);
-		fenceValue = m_fenceValue++;
-		m_pMainCommandQueue->Signal(m_pFence, fenceValue);
-		if (m_pFence->GetCompletedValue() < fenceValue)
-		{
-			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
-			WaitForSingleObject(m_fenceEvent, INFINITE);
-		}
-
-		//ShadowPass + ssaoPass
+		
+		
+		//ShadowPass 
+		m_pModelQueue=pModelQueue;
 		HANDLE m_handles[_WORKER_THREAD_COUNT] ;
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
@@ -1510,22 +1552,14 @@ namespace wilson
 			m_pShadowMap->SetResourceBarrier(m_pMainCommandList, litCounts,
 				D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, false);
 		}
+
 		//Draw PbrGeo
+		m_pModelQueue = pModelQueue;
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
 			SetEvent(m_workerBeginDeferredGeoPass[i]);
 		}
 		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_workerEndFrame, TRUE, INFINITE);
-
-		m_pMainCommandQueue->ExecuteCommandLists(_WORKER_THREAD_COUNT, cmdLists);
-
-		fenceValue = m_fenceValue++;
-		m_pMainCommandQueue->Signal(m_pFence, fenceValue);
-		if (m_pFence->GetCompletedValue() < fenceValue)
-		{
-			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
-			WaitForSingleObject(m_fenceEvent, INFINITE);
-		}
 
 		D3D12_RESOURCE_BARRIER gbuf_barriers[eGbuf_cnt];
 		for (int i =0; i < eGbuf_cnt; ++i)
@@ -1833,7 +1867,7 @@ namespace wilson
 		m_pZpassPso = nullptr;
 		m_pCascadeDirShadowPso = nullptr;
 		m_pSpotShadowPso = nullptr;
-		m_pOmniDirShadowPso = nullptr;
+		m_pCubeShadowPso = nullptr;
 		m_pSkyBoxPso = nullptr;
 		m_pPbrDeferredGeoPso = nullptr;
 		m_pPbrDeferredGeoEmissivePso = nullptr;
@@ -2113,8 +2147,6 @@ namespace wilson
 			assert(SUCCEEDED(hr));
 			m_pWokerCommandList[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pWokerCommandList[i]") - 1, "D3D12::m_pWokerCommandList[i]");
-
-			m_pWokerCommandList[i]->Close();
 		}
 
 		//Gen User-Defined Class
@@ -2132,7 +2164,7 @@ namespace wilson
 			m_pShadowMap = new ShadowMap12(m_pDevice, m_pMainCommandList,
 				m_pDescriptorHeapManager,
 				_SHADOWMAP_SIZE, _SHADOWMAP_SIZE, m_pCam->GetCascadeLevels().size(),
-				m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetPointLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
+				m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetCubeLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
 		}
 
 		//Init Viewports and Rects
@@ -2308,9 +2340,9 @@ namespace wilson
 			assert(SUCCEEDED(hr));
 
 			psoDesc.RasterizerState = skyboxRD;
-			psoDesc.pRootSignature= m_pShader->GetOmniDirShadowRootSingnature();
-			m_pShader->SetOmniDirShadowShader(&psoDesc);
-			hr=m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pOmniDirShadowPso));
+			psoDesc.pRootSignature= m_pShader->GetCubeShadowRootSingnature();
+			m_pShader->SetCubeShadowShader(&psoDesc);
+			hr=m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pCubeShadowPso));
 			assert(SUCCEEDED(hr));
 
 			psoDesc.pRootSignature = m_pShader->GetSkyBoxRootSingnature();
@@ -3155,6 +3187,7 @@ namespace wilson
 				nullptr ));
 		}
 		
+		m_wokerMutex = CreateMutex(NULL, FALSE, NULL);
 	}
 	D3D12::~D3D12()
 	{	
@@ -3169,6 +3202,7 @@ namespace wilson
 		CloseHandle(m_ssaoThreadHandle);
 		CloseHandle(m_ssaoBeginFrame);
 		CloseHandle(m_ssaoEndFrame);
+		CloseHandle(m_wokerMutex);
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
 			CloseHandle(m_threadHandles[i]);
@@ -3275,10 +3309,10 @@ namespace wilson
 			m_pSpotShadowPso = nullptr;
 		}
 		
-		if (m_pOmniDirShadowPso != nullptr)
+		if (m_pCubeShadowPso != nullptr)
 		{
-			m_pOmniDirShadowPso->Release();
-			m_pOmniDirShadowPso = nullptr;
+			m_pCubeShadowPso->Release();
+			m_pCubeShadowPso = nullptr;
 		}
 
 		if (m_pSkyBoxPso != nullptr)

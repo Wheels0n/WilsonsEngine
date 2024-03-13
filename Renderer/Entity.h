@@ -6,7 +6,7 @@
 
 #include "ModelGroup.h"
 #include "DirectionalLight.h"
-#include "PointLight.h"
+#include "CubeLight.h"
 #include "SpotLight.h"
 
 namespace wilson

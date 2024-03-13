@@ -13,7 +13,7 @@ namespace wilson
 	class Light12
 	{
 	public:
-		eLIGHT_TYPE virtual GetType() { return eLIGHT_TYPE::PNT; };
+		eLIGHT_TYPE virtual GetType() { return eLIGHT_TYPE::CUBE; };
 		inline UINT GetLightIndex() const
 		{
 			return m_entityIdx;

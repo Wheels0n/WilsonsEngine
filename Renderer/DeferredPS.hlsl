@@ -17,7 +17,7 @@ struct DirectionalLight
     float3 position;
     float pad;
 };
-struct PointLight
+struct CubeLight
 {
     float4 ambient;
     float4 diffuse;
@@ -52,7 +52,7 @@ Texture2D g_specualrTex;
 Texture2D g_reflectivityTex;
 Texture2D g_SSAOTex;
 //Texture2D dirShadowMaps[1];
-//TextureCube omniDirShadowMaps[1];
+//TextureCube CubeShadowMaps[1];
 Texture2D g_spotShadowMaps[1];
 TextureCube g_envMap;
 SamplerState g_sampler : register(s0);
@@ -63,8 +63,8 @@ cbuffer cbLight
 {
     DirectionalLight g_DirLight[10];
     uint g_dirCnt;
-    PointLight g_PointLight[48];
-    uint g_pntCnt;
+    CubeLight g_CubeLight[48];
+    uint g_CubeCnt;
     SpotLight g_SpotLight[20];
     uint g_sptCnt;
     uint padding;
@@ -117,7 +117,7 @@ float CalShadowFactor(SamplerComparisonState shadowSampler,
    
     return percentLit /= 9.0f;
 }
-float CalOmniDirShadowFactor(SamplerState cubeShadowSampler,
+float CalCubeShadowFactor(SamplerState cubeShadowSampler,
                         TextureCube cubeShadowMap, float3 fragToLight)
 {
     
@@ -170,7 +170,7 @@ void CalDirectionalLight(DirectionalLight L,
     }
  
 }
-void CalPointLight(PointLight L, float3 lightDir, float3 normal, float3 toEye, float4 specularIntensity,
+void CalCubeLight(CubeLight L, float3 lightDir, float3 normal, float3 toEye, float4 specularIntensity,
 out float4 ambient, out float4 diffuse, out float4 specular)
 {
     ambient = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -285,10 +285,10 @@ PixelOutput main(PixelInput input)
         
     }
     [unroll]
-    for (int j = 0; j < g_pntCnt; ++j)
+    for (int j = 0; j < g_CubeCnt; ++j)
     {
-        float3 lightDir = g_PointLight[j].position - wPos.xyz;
-        CalPointLight(g_PointLight[j], lightDir, normal.xyz, viewDir, spec, A, D, S);
+        float3 lightDir = g_CubeLight[j].position - wPos.xyz;
+        CalCubeLight(g_CubeLight[j], lightDir, normal.xyz, viewDir, spec, A, D, S);
         //shadowFactor = CalOmniDirShadowFactor(g_cubeShadowSampler, omniDirShadowMaps[j], -lightDir);
         lightVal += (occlusion * A + shadowFactor * (D + S)) * albedo;
     }

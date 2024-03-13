@@ -7,7 +7,7 @@
 namespace wilson
 {	
 
-	class PointLight :public Light
+	class CubeLight :public Light
 	{
 	public:
 		inline DirectX::XMFLOAT3* GetAttenuation()
@@ -18,24 +18,24 @@ namespace wilson
 		{
 			return &m_range;
 		}
-		inline PointLightProperty* GetProperty()
+		inline CubeLightProperty* GetProperty()
 		{
-			return &m_pointLightProperty;
+			return &m_CubeLightProperty;
 		}
 
 		void UpdateProperty();
 		void CreateShadowMatrices();
 		void UploadShadowMatrices(ID3D11DeviceContext*);
 		void UploadLightPos(ID3D11DeviceContext*);
-		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::PNT; };
+		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::CUBE; };
 
-		PointLight() = default;
-		PointLight(ID3D11Device*, UINT idx);
-		PointLight(const PointLight&) = default;
-		~PointLight();
+		CubeLight() = default;
+		CubeLight(ID3D11Device*, UINT idx);
+		CubeLight(const CubeLight&) = default;
+		~CubeLight();
 		
 	private:
-		PointLightProperty m_pointLightProperty;
+		CubeLightProperty m_CubeLightProperty;
 		ID3D11Buffer* m_pMatricesBuffer;
 		ID3D11Buffer* m_pPosBuffer;
 

@@ -495,6 +495,15 @@ namespace wilson
 				
 			}
 		}
+		else if (curPass == eCubeShadowPass)
+		{
+			MaterialInfo matInfo = m_matInfos[i];
+			const UINT srvDescriptorSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			UINT texCnt = 0;
+			UINT idx = m_texHash[matInfo.diffuseMap];
+			UINT nIdx = 0;
+			pCommandlist->SetGraphicsRootDescriptorTable(eCubeShadow_ePsDiffuseMap, m_texSrvs[idx]);
+		}
 
 		return;
 	}

@@ -134,7 +134,7 @@ namespace wilson
 			ID3D11DepthStencilView**);
 		bool CreateDSS();
 
-		void DrawENTT(bool bGeoPass, bool bSpotShadowPass);
+		void DrawObject(bool bGeoPass, bool bSpotShadowPass);
 
 		void DestroyDSS();
 		void DestroyRTVandSRV();
