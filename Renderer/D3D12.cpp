@@ -70,6 +70,11 @@ namespace wilson
 			}
 			SetEvent(m_workerFinishShadowPass[threadIndex]);
 
+			//HWOcclusionTestPass
+			WaitForSingleObject(m_workerBeginHWOcclusionTestPass[threadIndex], INFINITE);
+			HWQueryForOcclusion(threadIndex);
+			SetEvent(m_workerFinishHWOcclusionTestPass[threadIndex]);
+
 			//PbrGeoPass
 			WaitForSingleObject(m_workerBeginDeferredGeoPass[threadIndex], INFINITE);
 			DrawObject(eGeoPass, threadIndex, -1);
@@ -158,6 +163,12 @@ namespace wilson
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		barrier.Transition.StateBefore = beforeState;
 		barrier.Transition.StateAfter = afterState;
+		return barrier;
+	}
+	D3D12_RESOURCE_BARRIER D3D12::CreateResourceBarrier(ID3D12Resource* pResource, D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState, UINT mipLevel)
+	{
+		D3D12_RESOURCE_BARRIER barrier = CreateResourceBarrier(pResource, beforeState, afterState);
+		barrier.Transition.Subresource = mipLevel;
 		return barrier;
 	}
 	void D3D12::ExecuteCommandLists(ID3D12GraphicsCommandList** ppCmdLists, UINT cnt)
@@ -328,6 +339,29 @@ namespace wilson
 		}
 
 
+	
+		//fmaxf : 원래 밉맵은 가장 큰 변(side) 기준
+		//log2f : 텍스쳐 크기가 절반씩 줄어들어서
+		//+1    : 원본 텍스쳐까지 반영. ex)64, 32, 16, 8, 4, 2, 1
+
+		UINT mipLevels = 1 + (int)floorf(log2f(fmaxf(width, height)));
+		m_hiZTempRtvs = std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>(mipLevels);
+		m_hiZTempSrvs = std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>(mipLevels);
+
+		texDesc.MipLevels = mipLevels;
+		texDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		
+		clearVal.Format = DXGI_FORMAT_R32_FLOAT;
+
+		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pHiZTempTex));
+		assert(SUCCEEDED(hr));
+		m_pHiZTempTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D12:::m_pHiZTempTex") - 1, "D3D12:::m_pHiZTempTex");
+
+		texDesc.MipLevels = 1;
+		texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		clearVal.Format= DXGI_FORMAT_R32G32B32A32_FLOAT;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
 		m_pDevice->CreateRenderTargetView(m_pSceneTex, &rtvDesc, rtvCpuHandle);
@@ -340,6 +374,18 @@ namespace wilson
 		m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
 
 
+		rtvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		for (int i = 0; i < mipLevels; ++i)
+		{
+			rtvDesc.Texture2D.MipSlice = i;
+			rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
+			m_pDevice->CreateRenderTargetView(m_pHiZTempTex, &rtvDesc, rtvCpuHandle);
+			m_hiZTempRtvs[i] = rtvCpuHandle;
+			m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
+		}
+
+		rtvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		rtvDesc.Texture2D.MipSlice = 0;
 		for (int i = 0; i < 2; ++i)
 		{
 			rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
@@ -381,7 +427,27 @@ namespace wilson
 		m_BrightSRV = cbvSrvGpuHandle;
 		m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 
+		srvDesc.Format= DXGI_FORMAT_R32_FLOAT;
+		for (int i = 0; i < mipLevels; ++i)
+		{
+			srvDesc.Texture2D.MostDetailedMip = i;
+			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+			m_pDevice->CreateShaderResourceView(m_pHiZTempTex, &srvDesc, cbvSrvCpuHandle);
+			m_hiZTempSrvs[i] = cbvSrvGpuHandle;
+			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+		}
+		srvDesc.Texture2D.MipLevels=mipLevels;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+		cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+		m_pDevice->CreateShaderResourceView(m_pHiZTempTex, &srvDesc, cbvSrvCpuHandle);
+		m_hiZTempSrvs.push_back(cbvSrvGpuHandle);
+		m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 
+
+		srvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		srvDesc.Texture2D.MipLevels = 1;
 		for (int i = 0; i < 2; ++i)
 		{
 			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
@@ -400,10 +466,8 @@ namespace wilson
 		}
 
 
-		//SSAO & Post process
+		//SSAO & Post process and UAV..
 		{
-
-
 			texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;//DXGI_FORMAT_R32_FLOAT;
 			texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 			clearVal.Format = texDesc.Format;
@@ -431,6 +495,16 @@ namespace wilson
 			m_pViewportTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pViewportTex") - 1, "D3D12:::m_pViewportTex");
 
+			texDesc.Width = 64;
+			texDesc.Height = 64;
+			texDesc.Format = DXGI_FORMAT_R32_FLOAT;
+			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&m_pHiZCullListTex));
+			assert(SUCCEEDED(hr));
+			m_pHiZCullListTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12:::m_pViewportTex") - 1, "D3D12:::m_pHiZCullListTex");
+
+			texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 			srvDesc.Format = texDesc.Format;
 
 			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
@@ -484,6 +558,14 @@ namespace wilson
 			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
 			m_pDevice->CreateUnorderedAccessView(m_pViewportTex, nullptr, &uavDesc, cbvSrvCpuHandle);
 			m_ViewportUAV = cbvSrvGpuHandle;
+			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+
+			uavDesc.Format = DXGI_FORMAT_R32_FLOAT;
+
+			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+			m_pDevice->CreateUnorderedAccessView(m_pHiZCullListTex, nullptr, &uavDesc, cbvSrvCpuHandle);
+			m_HiZCullListUAV = cbvSrvGpuHandle;
 			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 		}
 
@@ -645,11 +727,10 @@ namespace wilson
 		dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 		dsvDesc.Texture2D.MipSlice = 0;
-		
 
 		D3D12_CPU_DESCRIPTOR_HANDLE dsvCpuHandle = m_pDescriptorHeapManager->GetCurDsvHandle();
 		m_pDevice->CreateDepthStencilView(m_pScreenDepthTex, &dsvDesc, dsvCpuHandle);
-		m_pScreenDSV = dsvCpuHandle;
+		m_ScreenDSV = dsvCpuHandle;
 		m_pDescriptorHeapManager->IncreaseDsvHandleOffset();
 		
 		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
@@ -702,6 +783,18 @@ namespace wilson
 		{
 			m_pSSAOTex->Release();
 			m_pSSAOTex = nullptr;
+		}
+
+		if (m_pHiZTempTex != nullptr)
+		{
+			m_pHiZTempTex->Release();
+			m_pHiZTempTex = nullptr;
+		}
+
+		if (m_pHiZCullListTex != nullptr)
+		{
+			m_pHiZCullListTex->Release();
+			m_pHiZCullListTex = nullptr;
 		}
 
 		if (m_pSSAOBlurTex != nullptr)
@@ -1176,7 +1269,7 @@ namespace wilson
 
 		while (!m_pModelQueue.empty())
 		{
-			DWORD result =WaitForSingleObject(m_wokerMutex, INFINITE);
+			DWORD result =WaitForSingleObject(m_workerMutex, INFINITE);
 
 			if (result==WAIT_OBJECT_0)
 			{	
@@ -1188,75 +1281,75 @@ namespace wilson
 					m_pModelQueue.pop();
 				}
 				//Set-up Status
-				ReleaseMutex(m_wokerMutex);
+				ReleaseMutex(m_workerMutex);
 				switch (curPass)
 				{
 				case wilson::eZpass:
 				{
-					m_pWokerCommandList[threadIndex]->SetPipelineState(m_pZpassPso);
-					m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-					m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
-					m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-					m_pWokerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
-					m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
-					m_pWokerCommandList[threadIndex]->OMSetRenderTargets(1, &m_SceneRTV, FALSE, &m_SceneDSV);
+					m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pZpassPso);
+					m_pWorkerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWorkerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
+					m_pWorkerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					m_pWorkerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
+					m_pWorkerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
+					m_pWorkerCommandList[threadIndex]->OMSetRenderTargets(1, &m_SceneRTV, FALSE, &m_SceneDSV);
 				}
 					break;
 				case wilson::eCascadeDirShadowPass:
 				{
-					m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-					m_pWokerCommandList[threadIndex]->SetPipelineState(m_pCascadeDirShadowPso);
-					m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetCascadeDirShadowRootSingnature());
-					m_pWokerCommandList[threadIndex]->RSSetViewports(1, m_pShadowMap->GetViewport12());
-					m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
-					m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					m_pWorkerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pCascadeDirShadowPso);
+					m_pWorkerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetCascadeDirShadowRootSingnature());
+					m_pWorkerCommandList[threadIndex]->RSSetViewports(1, m_pShadowMap->GetViewport12());
+					m_pWorkerCommandList[threadIndex]->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
+					m_pWorkerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 					dirLights[lightIdx]->UpdateLightSpaceMatrices();
-					dirLights[lightIdx]->UploadShadowMatrices(m_pWokerCommandList[threadIndex]);
-					m_pShadowMap->BindDirDSV(m_pWokerCommandList[threadIndex], lightIdx);
+					dirLights[lightIdx]->UploadShadowMatrices(m_pWorkerCommandList[threadIndex]);
+					m_pShadowMap->BindDirDSV(m_pWorkerCommandList[threadIndex], lightIdx);
 					
 				}
 					break;
 				case wilson::eSpotShadowPass:
 				{
-					m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-					m_pWokerCommandList[threadIndex]->SetPipelineState(m_pSpotShadowPso);
-					m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetSpotShadowRootSingnature());
-					m_pWokerCommandList[threadIndex]->RSSetViewports(1, m_pShadowMap->GetViewport12());
-					m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
-					m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					m_pWorkerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pSpotShadowPso);
+					m_pWorkerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetSpotShadowRootSingnature());
+					m_pWorkerCommandList[threadIndex]->RSSetViewports(1, m_pShadowMap->GetViewport12());
+					m_pWorkerCommandList[threadIndex]->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
+					m_pWorkerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 					spotLights[lightIdx]->UpdateLitMat();
 					m_pLitMat = spotLights[lightIdx]->GetLightSpaceMat();
-					m_pShadowMap->BindSpotDSV(m_pWokerCommandList[threadIndex], lightIdx);
+					m_pShadowMap->BindSpotDSV(m_pWorkerCommandList[threadIndex], lightIdx);
 				}
 					break;
 				case wilson::eCubeShadowPass:
 				{	
-					m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-					m_pWokerCommandList[threadIndex]->SetPipelineState(m_pCubeShadowPso);
-					m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetCubeShadowRootSingnature());
-					m_pWokerCommandList[threadIndex]->RSSetViewports(1, m_pShadowMap->GetViewport12());
-					m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
-					m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-					m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(eCubeShadow_ePsSampler, m_WrapSSV);
-					m_pShadowMap->BindCubeDSV(m_pWokerCommandList[threadIndex], lightIdx);
-					cubetLights[lightIdx]->UploadShadowMatrices(m_pWokerCommandList[threadIndex]);
-					cubetLights[lightIdx]->UploadLightPos(m_pWokerCommandList[threadIndex]);
+					m_pWorkerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pCubeShadowPso);
+					m_pWorkerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetCubeShadowRootSingnature());
+					m_pWorkerCommandList[threadIndex]->RSSetViewports(1, m_pShadowMap->GetViewport12());
+					m_pWorkerCommandList[threadIndex]->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
+					m_pWorkerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					m_pWorkerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(eCubeShadow_ePsSampler, m_WrapSSV);
+					m_pShadowMap->BindCubeDSV(m_pWorkerCommandList[threadIndex], lightIdx);
+					cubetLights[lightIdx]->UploadShadowMatrices(m_pWorkerCommandList[threadIndex]);
+					cubetLights[lightIdx]->UploadLightPos(m_pWorkerCommandList[threadIndex]);
 				}
 					break;
 				case wilson::eGeoPass:
 				{
 
-					m_pWokerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-					m_pWokerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetPBRDeferredGeoShaderRootSingnature());
-					m_pWokerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-					m_pWokerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
-					m_pWokerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
+					m_pWorkerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWorkerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetPBRDeferredGeoShaderRootSingnature());
+					m_pWorkerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					m_pWorkerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
+					m_pWorkerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
 
-					m_pCam->UploadCamPos(m_pWokerCommandList[threadIndex], true);
-					m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsSampler, m_WrapSSV);
-					m_pWokerCommandList[threadIndex]->OMSetRenderTargets(eGbuf_cnt, m_GBufRTV, FALSE, &m_SceneDSV);
+					m_pCam->UploadCamPos(m_pWorkerCommandList[threadIndex], true);
+					m_pWorkerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsSampler, m_WrapSSV);
+					m_pWorkerCommandList[threadIndex]->OMSetRenderTargets(eGbuf_cnt, m_GBufRTV, FALSE, &m_SceneDSV);
 					memcpy(m_pHeightScaleCbBegin, &m_heightScale, sizeof(float));
-					m_pWokerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsHeightScale, m_HeightScaleCBV);
+					m_pWorkerCommandList[threadIndex]->SetGraphicsRootDescriptorTable(ePbrGeoRP::ePbrGeo_ePsHeightScale, m_HeightScaleCBV);
 				}
 					break;
 				case wilson::eDefault:
@@ -1278,66 +1371,76 @@ namespace wilson
 					{
 					case wilson::eZpass:
 						pMatBuffer->UpdateCombinedMat(false);
-						pMatBuffer->UploadCombinedMat(m_pWokerCommandList[threadIndex], false);
+						pMatBuffer->UploadCombinedMat(m_pWorkerCommandList[threadIndex], false);
 						break;
 					case wilson::eSpotShadowPass:
 						pMatBuffer->SetLightSpaceMatrix(m_pLitMat);
 						pMatBuffer->UpdateCombinedMat(true);
-						pMatBuffer->UploadCombinedMat(m_pWokerCommandList[threadIndex], true);
+						pMatBuffer->UploadCombinedMat(m_pWorkerCommandList[threadIndex], true);
 						break;
 					case wilson::eGeoPass:
 						pMatBuffer->UpdateCombinedMat(false);
-						pMatBuffer->UploadMatBuffer(m_pWokerCommandList[threadIndex]);
+						pMatBuffer->UploadMatBuffer(m_pWorkerCommandList[threadIndex]);
 						break;
 					case wilson::eCascadeDirShadowPass:
 					case wilson::eCubeShadowPass:
 					case wilson::eDefault:
 					default:
-						pMatBuffer->UploadMatBuffer(m_pWokerCommandList[threadIndex]);
+						pMatBuffer->UploadMatBuffer(m_pWorkerCommandList[threadIndex]);
 						break;
 					}
 
-					for (int j = 0; j < pModels[i]->GetMatCount(); ++j)
+					if (curPass == eGeoPass)
 					{
-						if (curPass == eGeoPass)
+						for (int j = 0; j < pModels[i]->GetMatCount(); ++j)
 						{
-							PerModel perModel = *(pModels[i]->GetPerModel(j));
-							if (perModel.hasNormal)
+
 							{
-								if (m_bHeightOnOff)
+								PerModel perModel = *(pModels[i]->GetPerModel(j));
+								if (perModel.hasNormal)
 								{
-									if (perModel.hasEmissive)
+									if (m_bHeightOnOff)
 									{
-										m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightEmissivePso);
+										if (perModel.hasEmissive)
+										{
+											m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightEmissivePso);
+										}
+										else
+										{
+											m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightPso);
+										}
 									}
 									else
 									{
-										m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightPso);
+										m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalPso);
 									}
+								}
+								else if (perModel.hasEmissive)
+								{
+									m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoEmissivePso);
 								}
 								else
 								{
-									m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalPso);
+									m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoPso);
 								}
 							}
-							else if (perModel.hasEmissive)
-							{
-								m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoEmissivePso);
-							}
-							else
-							{
-								m_pWokerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoPso);
-							}
-						}
 
-						pModels[i]->UploadBuffers(m_pWokerCommandList[threadIndex], j, curPass);
-						m_pWokerCommandList[threadIndex]->DrawIndexedInstanced(pModels[i]->GetIndexCount(j), 1,
+							pModels[i]->UploadBuffers(m_pWorkerCommandList[threadIndex], j, curPass);
+							m_pWorkerCommandList[threadIndex]->DrawIndexedInstanced(pModels[i]->GetIndexCount(j), 1,
+								0, 0, 0);
+						}
+					}
+					else
+					{
+						pModels[i]->UploadBuffers(m_pWorkerCommandList[threadIndex], 0, curPass);
+						m_pWorkerCommandList[threadIndex]->DrawIndexedInstanced(pModels[i]->GetTotalIndexCount(), 1,
 							0, 0, 0);
 					}
+					
 
 				}
-				m_pWokerCommandList[threadIndex]->Close();
-				m_pMainCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pWokerCommandList[threadIndex]);
+				m_pWorkerCommandList[threadIndex]->Close();
+				m_pMainCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pWorkerCommandList[threadIndex]);
 				UINT fenceValue = m_workerFenceValue[threadIndex]++;
 				m_pMainCommandQueue->Signal(m_pWorkerFence[threadIndex], fenceValue);
 				if (m_pWorkerFence[threadIndex]->GetCompletedValue() < fenceValue)
@@ -1348,11 +1451,107 @@ namespace wilson
 				
 				HRESULT hr = m_pWorkerCommandAllocator[threadIndex]->Reset();
 				assert(SUCCEEDED(hr));
-				m_pWokerCommandList[threadIndex]->Reset(m_pWorkerCommandAllocator[threadIndex], nullptr);
+				m_pWorkerCommandList[threadIndex]->Reset(m_pWorkerCommandAllocator[threadIndex], nullptr);
 			}
 		}
 		
 
+	}
+
+	void D3D12::HWQueryForOcclusion(UINT threadIndex)
+	{	
+		ID3D12DescriptorHeap* ppHeaps[] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
+											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+		while (!m_pModelQueue.empty())
+		{
+			DWORD result = WaitForSingleObject(m_workerMutex, INFINITE);
+
+			if (result == WAIT_OBJECT_0)
+			{
+				Model12* pModels[_OBJECT_PER_THREAD];
+				UINT qLen = m_pModelQueue.size();
+				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
+				{
+					pModels[i] = m_pModelQueue.front();
+					m_pModelQueue.pop();
+				}
+				//Set-up Status
+				ReleaseMutex(m_workerMutex);
+				UINT queryCnt = 0;
+				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
+				{
+					
+					XMMATRIX worldMat = pModels[i]->GetTransformMatrix(false);
+					XMMATRIX invWorldMat = pModels[i]->GetInverseWorldMatrix();
+					MatBuffer12* pMatBuffer = pModels[i]->GetMatBuffer();
+					//m_pHWOcclusionQueryPso는 DSS만 Zpass랑 다름
+					m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pHWOcclusionQueryPso);
+					m_pWorkerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWorkerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
+					m_pWorkerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					m_pWorkerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
+					m_pWorkerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
+					m_pWorkerCommandList[threadIndex]->OMSetRenderTargets(1, &m_SceneRTV, FALSE, &m_SceneDSV);
+
+					pMatBuffer->SetWorldMatrix(&worldMat);
+					pMatBuffer->SetInvWorldMatrix(&invWorldMat);
+					pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
+					pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
+
+					pMatBuffer->UpdateCombinedMat(false);
+					pMatBuffer->UploadCombinedMat(m_pWorkerCommandList[threadIndex], false);
+
+					pModels[i]->UploadBuffers(m_pWorkerCommandList[threadIndex], 0, eOcclusionTestPass);
+					m_pWorkerCommandList[threadIndex]->BeginQuery(m_pQueryHeap[threadIndex], D3D12_QUERY_TYPE_OCCLUSION, queryCnt);
+					m_pWorkerCommandList[threadIndex]->DrawIndexedInstanced(pModels[i]->GetTotalIndexCount(), 1,
+						0, 0, 0);
+					m_pWorkerCommandList[threadIndex]->EndQuery(m_pQueryHeap[threadIndex], D3D12_QUERY_TYPE_OCCLUSION, queryCnt++);
+				}
+
+			
+				m_pWorkerCommandList[threadIndex]->ResolveQueryData(m_pQueryHeap[threadIndex], D3D12_QUERY_TYPE_OCCLUSION, 0, queryCnt,
+					m_pQueryResultBuffer[threadIndex], 0);
+
+				D3D12_RESOURCE_BARRIER copyDstToSrc =
+				{
+					CreateResourceBarrier(m_pQueryResultBuffer[threadIndex], D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE)
+				};
+				m_pWorkerCommandList[threadIndex]->ResourceBarrier(1, &copyDstToSrc);
+				m_pWorkerCommandList[threadIndex]->CopyBufferRegion(m_pQueryReadBuffer[threadIndex], 0, m_pQueryResultBuffer[threadIndex], 0, 
+					sizeof(UINT64)* min(qLen, _OBJECT_PER_THREAD));
+
+				D3D12_RESOURCE_BARRIER copySrcToDst =
+				{
+					CreateResourceBarrier(m_pQueryResultBuffer[threadIndex], D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST)
+				};
+				m_pWorkerCommandList[threadIndex]->ResourceBarrier(1, &copySrcToDst);
+
+				m_pWorkerCommandList[threadIndex]->Close();
+				m_pMainCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pWorkerCommandList[threadIndex]);
+				UINT fenceValue = m_workerFenceValue[threadIndex]++;
+				m_pMainCommandQueue->Signal(m_pWorkerFence[threadIndex], fenceValue);
+				if (m_pWorkerFence[threadIndex]->GetCompletedValue() < fenceValue)
+				{
+					m_pWorkerFence[threadIndex]->SetEventOnCompletion(fenceValue, m_workerFenceEvent[threadIndex]);
+					WaitForSingleObject(m_workerFenceEvent[threadIndex], INFINITE);
+				}
+				m_pWorkerCommandAllocator[threadIndex]->Reset();
+				m_pWorkerCommandList[threadIndex]->Reset(m_pWorkerCommandAllocator[threadIndex], nullptr);
+
+
+				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
+				{
+					UINT64 result = *((UINT64*)m_pQueryReadCbBegin[threadIndex] + i);
+
+					if (result)
+					{
+						m_pHWOcclusionQueue[threadIndex].push(pModels[i]);
+					}
+				}
+				
+			}
+		}
+		
 	}
 
 	void D3D12::AddModelGroup(ModelGroup12* pModelGroup)
@@ -1444,6 +1643,7 @@ namespace wilson
 
 		D3D12_RANGE readRange = { 0, };
 
+		PIXBeginEvent(m_pMainCommandList, 0, L"Init Textures and Set Barriers");
 		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
 											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
 		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
@@ -1475,12 +1675,12 @@ namespace wilson
 			m_pMainCommandList->ClearRenderTargetView(m_GBufRTV[i], color, 0, nullptr);
 		}
 
-		m_pMainCommandList->ClearDepthStencilView(m_pScreenDSV, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
+		m_pMainCommandList->ClearDepthStencilView(m_ScreenDSV, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
 		m_pMainCommandList->ClearDepthStencilView(m_SceneDSV, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
+		PIXEndEvent(m_pMainCommandList);
 
 
-
-
+		PIXBeginEvent(m_pMainCommandList, 0, L"Init Shadow Textures and Set Barriers");
 		UINT litCounts[] = { m_pLightBuffer->GetDirLightSize(), m_pLightBuffer->GetCubeLightSize(), m_pLightBuffer->GetSpotLightSize() };
 		UINT litCountSum = litCounts[0] + litCounts[1] + litCounts[2];
 		//Clear ShadowMap	
@@ -1494,6 +1694,7 @@ namespace wilson
 			m_pShadowMap->ClearRTV(m_pMainCommandList, litCounts);
 			m_pShadowMap->ClearDSV(m_pMainCommandList, litCounts);
 		}
+		PIXEndEvent(m_pMainCommandList);
 		m_pMainCommandList->Close();
 
 		m_pMainCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pMainCommandList);
@@ -1510,13 +1711,35 @@ namespace wilson
 		m_pCam->Update();
 
 		//전체 개체 수 갱신 및 프러스텀 컬링
-	
-		Plane* pPlanes = m_pFrustum->GetPlanes();
+		
+		XMVECTOR* pPlanes = m_pFrustum->GetPlanes();
 		for (int i = 0; i < m_pTotalModels.size(); ++i)
 		{
-			XMMATRIX worldMat = m_pTotalModels[i]->GetTransformMatrix(false);
-			AABB* aabb = m_pTotalModels[i]->GetAABB();
-			if (aabb->IsOnFrustum(pPlanes, worldMat))
+			XMMATRIX w = m_pTotalModels[i]->GetTransformMatrix(false);
+			w = XMMatrixTranspose(w);
+
+			Sphere* pSphere = m_pTotalModels[i]->GetSphere();
+			XMFLOAT3 center = pSphere->GetCenter();
+			XMFLOAT4 center4 = XMFLOAT4(center.x, center.y, center.z, 1.0f);
+			XMVECTOR centerV = XMLoadFloat4(&center4);
+			centerV = XMVector4Transform(centerV, w);
+			XMStoreFloat3(&center, centerV);
+
+			float r = pSphere->GetRadius();
+
+			bool result= true;
+			for (int j = 0; j < 6; ++j)
+			{
+				float dot =XMVectorGetX(
+					XMPlaneDotCoord(pPlanes[j],
+						XMVectorSet(center.x, center.y, center.z, 1.0f)));
+				if (dot < -r/2)
+				{
+					result = false;
+					break;
+				}
+			}
+			if (result)
 			{
 				m_pModelQueue.push(m_pTotalModels[i]);
 			}
@@ -1524,16 +1747,18 @@ namespace wilson
 		m_pFrustum->SetENTTsInTotal(m_pTotalModels.size());
 		m_pFrustum->SetENTTsInFrustum(m_pModelQueue.size());
 		std::queue<Model12*> pModelQueue = m_pModelQueue;
-		
+
+		PIXBeginEvent(m_pMainCommandList, 0, L"Pre-Z Pass");
 		//Zpass
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
 			SetEvent(m_workerBeginFrame[i]);
 		}
 		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_workerFinishZpass, TRUE, INFINITE);
-		
-		
+		PIXEndEvent(m_pMainCommandList);
+
 		//ShadowPass 
+		PIXBeginEvent(m_pMainCommandList, 0, L"ShadowPass");
 		m_pModelQueue=pModelQueue;
 		HANDLE m_handles[_WORKER_THREAD_COUNT] ;
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
@@ -1552,24 +1777,287 @@ namespace wilson
 			m_pShadowMap->SetResourceBarrier(m_pMainCommandList, litCounts,
 				D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, false);
 		}
+		PIXEndEvent(m_pMainCommandList);
+
+		if (0)
+		{	
+			
+			//Hi-Z Occlusion Pass
+			{
+				PIXBeginEvent(m_pMainCommandList, 0, L"Gen Hi-Z");
+				UINT mipLevels = 1 + (UINT)floorf(log2f(fmaxf(m_clientWidth, m_clientHeight)));
+				//SetUp
+				{
+					D3D12_RESOURCE_BARRIER copyZ[] =
+					{
+						CreateResourceBarrier(m_pSceneDepthTex, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_COPY_SOURCE),
+						CreateResourceBarrier(m_pHiZTempTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST, 0)
+					};
+					m_pMainCommandList->ResourceBarrier(sizeof(copyZ) / sizeof(D3D12_RESOURCE_BARRIER), copyZ);
+
+					UINT curWidth = m_clientWidth;
+					UINT curHeight = m_clientHeight;
+
+					D3D12_TEXTURE_COPY_LOCATION dst = {};
+					dst.pResource = m_pHiZTempTex;
+					dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+					dst.SubresourceIndex = 0;
+
+					D3D12_TEXTURE_COPY_LOCATION src = {};
+					src.pResource = m_pSceneDepthTex;
+					src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+					src.SubresourceIndex = 0;
+
+					m_pMainCommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+
+					D3D12_RESOURCE_BARRIER afterCopyZ[] =
+					{
+						CreateResourceBarrier(m_pHiZTempTex, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET,0),
+						CreateResourceBarrier(m_pSceneDepthTex, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE)
+					};
+
+					m_pMainCommandList->ResourceBarrier(sizeof(afterCopyZ) / sizeof(D3D12_RESOURCE_BARRIER), afterCopyZ);
+
+					for (int i = 1; i < mipLevels; ++i)
+					{
+						m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+						m_pMainCommandList->SetPipelineState(m_pGenHiZPassPso);
+						m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetGenHiZpassRootSignature());
+						m_pMainCommandList->SetGraphicsRootDescriptorTable(eGenHiZRP_ePs_sampler, m_borderSSV);
+						m_pMainCommandList->SetGraphicsRootDescriptorTable(eGenHiZRP_ePs_lastResoltion, m_ResolutionCBV);
+						D3D12_RESOURCE_BARRIER mipPrep[] =
+						{
+							CreateResourceBarrier(m_pHiZTempTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, i - 1),
+							CreateResourceBarrier(m_pHiZTempTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, i)
+						};
+						m_pMainCommandList->ResourceBarrier(sizeof(mipPrep) / sizeof(D3D12_RESOURCE_BARRIER), mipPrep);
+						m_pMainCommandList->SetGraphicsRootDescriptorTable(eGenHiZRP_ePs_lastMip, m_hiZTempSrvs[i - 1]);
+
+						UINT resolution[] = { curWidth, curHeight };
+						memcpy(m_pResolutionCbBegin, resolution, sizeof(UINT) * 2);
+
+						D3D12_VIEWPORT viewPort = {};
+						viewPort.Width = max(curWidth / 2, 1);
+						viewPort.Height = max(curHeight / 2, 1);
+			
+						D3D12_RECT scissorRect = {};
+						scissorRect.right = max(curWidth / 2, 1);
+						scissorRect.bottom = max(curHeight / 2, 1);
+
+						m_pMainCommandList->IASetVertexBuffers(0, 1, &m_QuadVBV);
+						m_pMainCommandList->IASetIndexBuffer(&m_QuadIBV);
+						m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+						m_pMainCommandList->RSSetViewports(1, &viewPort);
+						m_pMainCommandList->RSSetScissorRects(1, &scissorRect);
+						m_pMainCommandList->OMSetRenderTargets(1, &m_hiZTempRtvs[i], FALSE, nullptr);
+						m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
+
+
+						m_pMainCommandList->Close();
+						m_pMainCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pMainCommandList);
+						UINT fenceValue = m_fenceValue++;
+						m_pMainCommandQueue->Signal(m_pFence, fenceValue);
+						if (m_pFence->GetCompletedValue() < fenceValue)
+						{
+							m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
+							WaitForSingleObject(m_fenceEvent, INFINITE);
+						}
+						m_pMainCommandAllocator->Reset();
+						m_pMainCommandList->Reset(m_pMainCommandAllocator, nullptr);
+						curWidth /= 2;
+						curHeight /= 2;
+					}
+					D3D12_RESOURCE_BARRIER mipPrep[] =
+					{
+						CreateResourceBarrier(m_pHiZTempTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, mipLevels - 1),
+						CreateResourceBarrier(m_pHiZTempTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
+					};
+					m_pMainCommandList->ResourceBarrier(sizeof(mipPrep) / sizeof(D3D12_RESOURCE_BARRIER), mipPrep);
+				}
+				PIXEndEvent(m_pMainCommandList);
+				//Test
+				std::queue<Model12*> q;
+				UINT nModelsTotal = 0;
+				PIXBeginEvent(m_pMainCommandList, 0, L"Hi-Z Culling");
+				while (!m_pModelQueue.empty())
+				{	
+					UINT nModels = min(m_pModelQueue.size(),4096);
+					UINT8* pSphereCbBegin = m_pSphereCbBegin;
+					UINT8* pHiZCullMatrixCbBegin = m_pHiZCullMatrixCbBegin;
+
+					UINT resolution[] = { m_clientWidth, m_clientHeight };
+					memcpy(m_pResolutionCbBegin, resolution, sizeof(UINT) * 2);
+					XMMATRIX matrices[3] = {
+						*(m_pCam->GetViewMatrix()),
+						*(m_pCam->GetProjectionMatrix()),
+						*(m_pCam->GetViewProjectionMatrix())
+					};
+					memcpy(pHiZCullMatrixCbBegin, matrices, sizeof(XMMATRIX)*3);
+					pHiZCullMatrixCbBegin += sizeof(XMMATRIX) * 3;
+					memcpy(pHiZCullMatrixCbBegin, m_pFrustum->GetPlanes(), sizeof(XMVECTOR)*6);
+					pHiZCullMatrixCbBegin += sizeof(XMVECTOR) * 6;
+
+					XMVECTOR camInfo[3] =
+					{
+						*(m_pCam->GetPosition()),
+						m_pCam->GetUp(),
+						m_pCam->GetDir()
+					};
+					memcpy(pHiZCullMatrixCbBegin, camInfo, sizeof(XMVECTOR) * 3);
+
+
+
+					for (int i=0;i<nModels;++i)
+					{
+						Model12* pModel = m_pModelQueue.front();
+						m_pModelQueue.pop();
+						
+						MatBuffer12* pMatBuffer = pModel->GetMatBuffer();
+						XMMATRIX w = pModel->GetTransformMatrix(false);
+						w = XMMatrixTranspose(w);
+
+						Sphere* pSphere = pModel->GetSphere();
+						XMFLOAT3 center= pSphere->GetCenter();
+
+						FLOAT r = pSphere->GetRadius();
+						XMFLOAT4 center4 = XMFLOAT4(center.x, center.y, center.z, 1.0f);
+						XMVECTOR centerV = XMLoadFloat4(&center4);
+						centerV = XMVector4Transform(centerV, w);
+						XMStoreFloat4(&center4, centerV);
+						center4.w = r*0.5f;
+						centerV = XMLoadFloat4(&center4);
+					
+						memcpy(pSphereCbBegin, &centerV, sizeof(XMVECTOR));
+						pSphereCbBegin += sizeof(XMVECTOR);
+
+					}
+
+					m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pMainCommandList->SetPipelineState(m_pHiZCullPassPso);
+					m_pMainCommandList->SetComputeRootSignature(m_pShader->GetHiZCullPassRootSignature());
+					m_pMainCommandList->SetComputeRootDescriptorTable(eHiZCullRP_eCs_hiZ, m_hiZTempSrvs[mipLevels]);
+					m_pMainCommandList->SetComputeRootDescriptorTable(eHiZCullRP_eCs_dst, m_HiZCullListUAV);
+					m_pMainCommandList->SetComputeRootDescriptorTable(eHiZCullRP_eCs_resolution, m_ResolutionCBV);
+					m_pMainCommandList->SetComputeRootDescriptorTable(eHiZCullRP_eCs_sphere, m_SphereCBV);
+					m_pMainCommandList->SetComputeRootDescriptorTable(eHiZCullRP_eCs_matrix, m_HiZCullMatrixCBV);
+					m_pMainCommandList->SetComputeRootDescriptorTable(eHiZCullRP_eCs_border, m_borderSSV);
+					m_pMainCommandList->Dispatch(8, 8, 1);
+
+					D3D12_RESOURCE_BARRIER fininshHiZ[] =
+					{
+						CreateResourceBarrier(m_pHiZCullListTex, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE )
+					};
+					m_pMainCommandList->ResourceBarrier(sizeof(fininshHiZ) / sizeof(D3D12_RESOURCE_BARRIER), fininshHiZ);
+					
+					//ReadBackResult;
+					{  
+						
+						D3D12_TEXTURE_COPY_LOCATION dst = {};
+						dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32_FLOAT;
+						dst.PlacedFootprint.Footprint.Width = 64;
+						dst.PlacedFootprint.Footprint.RowPitch =_CBV_ALIGN(sizeof(FLOAT) * 64);
+						dst.PlacedFootprint.Footprint.Height =64;
+						dst.PlacedFootprint.Footprint.Depth = 1;
+
+						dst.pResource = m_pHiZCullReadCb;
+						dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+						
+						D3D12_TEXTURE_COPY_LOCATION src = {};
+						src.pResource = m_pHiZCullListTex;
+						src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+						src.SubresourceIndex = 0;
+						
+						m_pMainCommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+					}
+
+					D3D12_RESOURCE_BARRIER finishReadBack[] =
+					{
+						CreateResourceBarrier(m_pHiZCullListTex, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+					};
+					m_pMainCommandList->ResourceBarrier(sizeof(finishReadBack) / sizeof(D3D12_RESOURCE_BARRIER), finishReadBack);
+
+					m_pMainCommandList->Close();
+					m_pMainCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pMainCommandList);
+					UINT fenceValue = m_fenceValue++;
+					m_pMainCommandQueue->Signal(m_pFence, fenceValue);
+					if (m_pFence->GetCompletedValue() < fenceValue)
+					{
+						m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
+						WaitForSingleObject(m_fenceEvent, INFINITE);
+					}
+					m_pMainCommandAllocator->Reset();
+					m_pMainCommandList->Reset(m_pMainCommandAllocator, nullptr);
+					
+					float* pHiZCullReadCbBegin = (float*)m_pHiZCullReadCbBegin;
+					//Refresh queue
+					for (int i = 0; i < nModels; ++i)
+					{
+						float result = *(pHiZCullReadCbBegin + i);
+						Model12* pModel = pModelQueue.front();
+						if (result)
+						{
+							q.push(pModel);
+						}
+						pModelQueue.pop();
+						
+					}
+					nModelsTotal += nModels;
+				}
+				pModelQueue   = q;
+				m_pModelQueue = pModelQueue;
+
+				D3D12_RESOURCE_BARRIER finishHiZtest[] =
+				{
+					CreateResourceBarrier(m_pHiZTempTex, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+				};
+				m_pMainCommandList->ResourceBarrier(sizeof(finishHiZtest) / sizeof(D3D12_RESOURCE_BARRIER), finishHiZtest);
+				PIXEndEvent(m_pMainCommandList);
+			}
+		}
+		m_numOfModelsHiZPassed = m_pModelQueue.size();
+		
+		//HW오클루전 테스트
+		PIXBeginEvent(m_pMainCommandList, 0, L"HW Culling");
+		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+		{
+			SetEvent(m_workerBeginHWOcclusionTestPass[i]);
+			m_handles[i] = m_workerFinishHWOcclusionTestPass[i];
+
+		}
+		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_handles, TRUE, INFINITE);
+		PIXEndEvent(m_pMainCommandList);
+		std::queue<Model12*> q;
+		m_numOfModelsNotOccluded = 0;
+		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+		{
+			m_numOfModelsNotOccluded += m_pHWOcclusionQueue[i].size();
+			while (!m_pHWOcclusionQueue[i].empty())
+			{
+				Model12* pModel = m_pHWOcclusionQueue[i].front();
+				m_pHWOcclusionQueue[i].pop();
+				q.push(pModel);
+			}
+			
+		}
+		m_pModelQueue = q;
 
 		//Draw PbrGeo
-		m_pModelQueue = pModelQueue;
+		PIXBeginEvent(m_pMainCommandList, 0, L"PbrGeo Pass");
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
 			SetEvent(m_workerBeginDeferredGeoPass[i]);
 		}
 		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_workerEndFrame, TRUE, INFINITE);
 
-		D3D12_RESOURCE_BARRIER gbuf_barriers[eGbuf_cnt];
-		for (int i =0; i < eGbuf_cnt; ++i)
-		{	
-			gbuf_barriers[i] = i>eGbuf_emissive?
-				CreateResourceBarrier(m_pGBufTex[i], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE):
+		D3D12_RESOURCE_BARRIER PbrGeoPass_barriers[eGbuf_cnt];
+		for (int i = 0; i < eGbuf_cnt; ++i)
+		{
+			PbrGeoPass_barriers[i] = i > eGbuf_emissive ?
+				CreateResourceBarrier(m_pGBufTex[i], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE) :
 				CreateResourceBarrier(m_pGBufTex[i], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		}
-		m_pMainCommandList->ResourceBarrier(eGbuf_cnt, gbuf_barriers);
-
+		m_pMainCommandList->ResourceBarrier(sizeof(PbrGeoPass_barriers)/sizeof(D3D12_RESOURCE_BARRIER), PbrGeoPass_barriers);
+		PIXEndEvent(m_pMainCommandList);
 		m_pMainCommandList->Close();
 		m_pMainCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pMainCommandList);
 		fenceValue = m_fenceValue++;
@@ -1582,7 +2070,6 @@ namespace wilson
 		m_pMainCommandAllocator->Reset();
 		m_pMainCommandList->Reset(m_pMainCommandAllocator, nullptr);
 
-
 		SetEvent(m_ssaoBeginFrame);
 		WaitForSingleObject(m_ssaoEndFrame, INFINITE);
 		D3D12_RESOURCE_BARRIER ssaoEndBarriers[] = {
@@ -1591,12 +2078,13 @@ namespace wilson
 			CreateResourceBarrier(m_pGBufTex[eGbuf_vPos], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
 		};
 
-		m_pMainCommandList->ResourceBarrier(3, ssaoEndBarriers);
+		m_pMainCommandList->ResourceBarrier(sizeof(ssaoEndBarriers) / sizeof(D3D12_RESOURCE_BARRIER) , ssaoEndBarriers);
 		//Upload HeightScale and bHeightOnOff
 		if (!m_pModelGroups.empty())
 		{	
 		
 			//LightingPass
+			PIXBeginEvent(m_pMainCommandList, 0, L"PbrLighting Pass");
 			m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
 			m_pMainCommandList->SetPipelineState(m_pPbrDeferredLightingPso);
 			m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetPBRDeferredLightingShaderRootSingnature());
@@ -1629,10 +2117,12 @@ namespace wilson
 			m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			m_pMainCommandList->OMSetRenderTargets(1, &m_SceneRTV, TRUE, nullptr);
 			m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
+			PIXEndEvent(m_pMainCommandList);
 		}
 		
 
 		//Draw SkyBox
+		PIXBeginEvent(m_pMainCommandList, 0, L"DrawSkyBox");
 		m_pMainCommandList->SetPipelineState(m_pSkyBoxPso);
 		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
 		m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetSkyBoxRootSingnature());
@@ -1651,13 +2141,15 @@ namespace wilson
 		m_pMatBuffer->UpdateCombinedMat(false);
 		m_pMatBuffer->UploadCombinedMat(m_pMainCommandList, false);
 		m_pMainCommandList->DrawIndexedInstanced(_CUBE_IDX_COUNT, 1, 0, 0, 0);
-	
 
 		D3D12_RESOURCE_BARRIER postProcessPassBarriers[] = {
 			CreateResourceBarrier(m_pSceneTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
 		};
 		m_pMainCommandList->ResourceBarrier(1, postProcessPassBarriers);
+		PIXEndEvent(m_pMainCommandList);
 		//PostProcess
+		PIXBeginEvent(m_pMainCommandList, 0, L"PostProcess");
+
 		m_pMainCommandList->SetPipelineState(m_pPostProcessPso);
 		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
 		m_pMainCommandList->SetComputeRootSignature(m_pShader->GetPostProcessShaderRootSingnature());
@@ -1672,7 +2164,7 @@ namespace wilson
 		m_pMainCommandList->SetComputeRootDescriptorTable(ePostProcess_eCsUav, m_ViewportUAV);
 		m_pMainCommandList->SetComputeRootDescriptorTable(ePostProcessRP::ePostProcess_eCsSampler, m_WrapSSV);
 		m_pMainCommandList->Dispatch(ceil(m_clientWidth / (float)8), ceil(m_clientHeight / (float)8), 1);
-
+		PIXEndEvent(m_pMainCommandList);
 		//DrawUI
 		
 		D3D12_RESOURCE_BARRIER uiPassBarriers[] = {
@@ -1681,7 +2173,7 @@ namespace wilson
 		};
 
 		m_pMainCommandList->ResourceBarrier(2, uiPassBarriers);
-		m_pMainCommandList->OMSetRenderTargets(1, &m_ScreenRTV[m_curFrame], FALSE, &m_pScreenDSV);
+		m_pMainCommandList->OMSetRenderTargets(1, &m_ScreenRTV[m_curFrame], FALSE, &m_ScreenDSV);
 		return;
 }
 
@@ -1839,7 +2331,14 @@ namespace wilson
 		m_pMainCommandQueue = nullptr;
 		m_pComputeCommandQueue = nullptr;
 		m_pSwapChain = nullptr;
-		
+
+		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+		{
+			m_pQueryHeap[i] = nullptr;
+			m_pQueryResultBuffer[i] = nullptr;
+			m_pQueryReadBuffer[i] = nullptr;
+			m_pQueryReadCbBegin[i] = nullptr;
+		}
 		for (int i = 0; i < _BUFFER_COUNT; ++i)
 		{
 			m_pScreenTex[i] = nullptr;
@@ -1848,11 +2347,12 @@ namespace wilson
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
 			m_pWorkerCommandAllocator[i] = nullptr;
-			m_pWokerCommandList[i] = nullptr;
+			m_pWorkerCommandList[i] = nullptr;
 			m_pWorkerFence[i] = nullptr;
 			m_workerFenceValue[i] = 0;
-			
+			m_pQueryHeap[i] = nullptr;
 		}
+
 		m_pMainCommandAllocator = nullptr;
 		m_pMainCommandList = nullptr;
 		m_pSSAOCommandAllocator = nullptr;
@@ -1865,6 +2365,9 @@ namespace wilson
 		m_pSsaoFence = nullptr;
 
 		m_pZpassPso = nullptr;
+		m_pGenHiZPassPso = nullptr;
+		m_pHiZCullPassPso = nullptr;
+		m_pHWOcclusionQueryPso = nullptr;
 		m_pCascadeDirShadowPso = nullptr;
 		m_pSpotShadowPso = nullptr;
 		m_pCubeShadowPso = nullptr;
@@ -1895,18 +2398,25 @@ namespace wilson
 		m_pAABBIB = nullptr;
 		m_pBoolCB = nullptr;
 		m_pColorCB = nullptr;
+	
 		m_pRoughnessCB = nullptr;
 		m_pSSAOKernelCB = nullptr;
 		m_pExposureCB = nullptr;
 		m_pHeightScaleCB = nullptr;
+		m_pHiZCullMatrixCb = nullptr;
+		m_pSphereCb = nullptr;
 		m_pEquirect2CubeCB = nullptr;
 		m_pMipCB = nullptr;
 		m_pHdrUploadCB = nullptr;
 		m_pNoiseUploadCB = nullptr;
 		m_pNoiseTex = nullptr;
+		m_pResolutionCB = nullptr;
+		m_pHiZCullReadCb = nullptr;
 
 		m_pViewportTex = nullptr;
 		m_pSceneTex = nullptr;
+		m_pHiZTempTex = nullptr;
+		m_pHiZCullListTex = nullptr;
 		m_pSSAOTex = nullptr;
 		m_pSSAOBlurTex = nullptr;
 		m_pSSAOBlurDebugTex = nullptr;
@@ -2143,10 +2653,10 @@ namespace wilson
 			m_pWorkerCommandAllocator[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pWorkerCommandAllocator[i]") - 1, "D3D12::m_pWorkerCommandAllocator[i]");
 
-			hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pWorkerCommandAllocator[i], nullptr, IID_PPV_ARGS(&m_pWokerCommandList[i]));
+			hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pWorkerCommandAllocator[i], nullptr, IID_PPV_ARGS(&m_pWorkerCommandList[i]));
 			assert(SUCCEEDED(hr));
-			m_pWokerCommandList[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12::m_pWokerCommandList[i]") - 1, "D3D12::m_pWokerCommandList[i]");
+			m_pWorkerCommandList[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12::m_pWorkerCommandList[i]") - 1, "D3D12::m_pWorkerCommandList[i]");
 		}
 
 		//Gen User-Defined Class
@@ -2205,7 +2715,7 @@ namespace wilson
 		//Gen RS
 		{
 			geoRDesc.AntialiasedLineEnable = false;
-			geoRDesc.CullMode = D3D12_CULL_MODE_BACK;
+			geoRDesc.CullMode = D3D12_CULL_MODE_NONE;
 			geoRDesc.DepthBias = 0.0f;
 			geoRDesc.DepthBiasClamp = 0.0f;
 			geoRDesc.DepthClipEnable = true;
@@ -2234,7 +2744,7 @@ namespace wilson
 		//Gen BS
 		{
 
-			GBufferWriteRTBlendDesc.BlendEnable = TRUE;
+			GBufferWriteRTBlendDesc.BlendEnable = FALSE;
 			GBufferWriteRTBlendDesc.SrcBlend = D3D12_BLEND_ONE;
 			GBufferWriteRTBlendDesc.DestBlend = D3D12_BLEND_ZERO;
 			GBufferWriteRTBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
@@ -2246,6 +2756,7 @@ namespace wilson
 			GBufferBS = { FALSE, FALSE, GBufferWriteRTBlendDesc };
 
 			lightingPassBlendDesc = GBufferWriteRTBlendDesc;
+			lightingPassBlendDesc.BlendEnable = FALSE;
 			lightingPassBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
 
 			lightingBS = { FALSE, FALSE, lightingPassBlendDesc };
@@ -2327,6 +2838,19 @@ namespace wilson
 			hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pZpassPso));
 			assert(SUCCEEDED(hr));
 
+			psoDesc.DepthStencilState = DepthTestOnlyDss;
+			hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pHWOcclusionQueryPso));
+			assert(SUCCEEDED(hr));
+
+			psoDesc.DepthStencilState = offDss;
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R32_FLOAT;
+			psoDesc.pRootSignature = m_pShader->GetGenHiZpassRootSignature();
+			m_pShader->SetGenHiZpassShader(&psoDesc);
+			hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pGenHiZPassPso));
+			assert(SUCCEEDED(hr));
+
+			psoDesc.DepthStencilState = defaultDss;
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
 			psoDesc.pRootSignature = m_pShader->GetCascadeDirShadowRootSingnature();
 			m_pShader->SetPosOnlyInputLayout(&psoDesc);
 			m_pShader->SetCascadeDirShadowShader(&psoDesc);
@@ -2350,6 +2874,7 @@ namespace wilson
 			m_pShader->SetSkyBoxShader(&psoDesc);
 			hr=m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pSkyBoxPso));
 			assert(SUCCEEDED(hr));
+
 
 			for (int i = 0; i < eGbuf_cnt; ++i)
 			{
@@ -2455,6 +2980,11 @@ namespace wilson
 			assert(SUCCEEDED(hr));
 
 			D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
+			computePsoDesc.pRootSignature = m_pShader->GetHiZCullPassRootSignature();
+			m_pShader->SetHiZCullPassShader(&computePsoDesc);
+			hr = m_pDevice->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_pHiZCullPassPso));
+			assert(SUCCEEDED(hr));
+
 			computePsoDesc.pRootSignature = m_pShader->GetGenMipShaderRootSingnature();
 			m_pShader->SetGenMipShader(&computePsoDesc);
 			hr=m_pDevice->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_pGenMipmapPso));
@@ -2542,6 +3072,23 @@ namespace wilson
 				m_pDescriptorHeapManager->IncreaseSamplerHandleOffset();
 			}
 
+			{
+				D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle = m_pDescriptorHeapManager->GetCurSamplerCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuHandle = m_pDescriptorHeapManager->GetCurSamplerGpuHandle();
+
+				D3D12_SAMPLER_DESC borderSamplerDesc = {};
+				borderSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+				borderSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+				borderSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+				borderSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+
+				borderSamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+				m_pDevice->CreateSampler(&borderSamplerDesc, samplerCpuHandle);
+
+				m_borderSSV = samplerGpuHandle;
+				m_pDescriptorHeapManager->IncreaseSamplerHandleOffset();
+			}
+
 		}
 
 		//Gen ConstantBuffers
@@ -2566,7 +3113,6 @@ namespace wilson
 			cbufferDesc.MipLevels = 1;
 			cbufferDesc.SampleDesc.Count = 1;
 			cbufferDesc.SampleDesc.Quality = 0;
-
 
 			{
 				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
@@ -2610,7 +3156,53 @@ namespace wilson
 
 				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 			}
-			
+
+			{
+				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+
+				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMVECTOR) * 4096);
+				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pSphereCb));
+				assert(SUCCEEDED(hr));
+				m_pSphereCb->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D12::m_pSphereCb") - 1, "D3D12::m_pSphereCb");
+				hr = m_pSphereCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pSphereCbBegin));
+				assert(SUCCEEDED(hr));
+
+				UINT constantBufferSize = sizeof(XMVECTOR) * 4096;
+				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
+				cbvDesc.BufferLocation = m_pSphereCb->GetGPUVirtualAddress();
+				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
+				m_SphereCBV = cbvGpuHandle;
+
+				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+			}
+
+			{
+				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+
+				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMMATRIX) * 3+sizeof(XMVECTOR)*9);
+				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pHiZCullMatrixCb));
+				assert(SUCCEEDED(hr));
+				m_pHiZCullMatrixCb->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D12::m_pHiZCullMatrixCb") - 1, "D3D12::m_pHiZCullMatrixCb");
+				hr = m_pHiZCullMatrixCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pHiZCullMatrixCbBegin));
+				assert(SUCCEEDED(hr));
+
+				UINT constantBufferSize = sizeof(XMMATRIX) * 3 + sizeof(XMVECTOR) * 9;
+				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
+				cbvDesc.BufferLocation = m_pHiZCullMatrixCb->GetGPUVirtualAddress();
+				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
+				m_HiZCullMatrixCBV = cbvGpuHandle;
+
+				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+			}
+
 			{
 				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
 				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
@@ -2731,6 +3323,29 @@ namespace wilson
 				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
 				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
 
+				cbufferDesc.Width = _64KB_ALIGN(sizeof(UINT) * 2);
+				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pResolutionCB));
+				assert(SUCCEEDED(hr));
+				m_pResolutionCB->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D12::m_pResolutionCB") - 1, "D3D12::m_pResolutionCB");
+				hr = m_pResolutionCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pResolutionCbBegin));
+				assert(SUCCEEDED(hr));
+
+				UINT constantBufferSize = sizeof(UINT) * 2;
+				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
+				cbvDesc.BufferLocation = m_pResolutionCB->GetGPUVirtualAddress();
+				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
+				m_ResolutionCBV = cbvGpuHandle;
+
+				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+			}
+
+			{
+				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+
 				cbufferDesc.Width = 64 * 1024;
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pMipCB));
@@ -2750,7 +3365,69 @@ namespace wilson
 
 			}
 			
-		
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{					
+				{
+					heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+					cbufferDesc.Width = _64KB_ALIGN(8);
+
+
+					D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+					D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+
+					hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+						&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pQueryResultBuffer[i]));
+					assert(SUCCEEDED(hr));
+					m_pQueryResultBuffer[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+						sizeof("D3D12::m_pQueryResultBuffer[i]") - 1, "D3D12::m_pQueryResultBuffer[i]");
+
+					m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+					D3D12_RESOURCE_BARRIER readTocopyDst =
+						CreateResourceBarrier(m_pQueryResultBuffer[i], D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST);
+					m_pMainCommandList->ResourceBarrier(1, &readTocopyDst);
+				}
+
+				{
+					heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+
+					D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+					D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+
+					hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+						&cbufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&m_pQueryReadBuffer[i]));
+					assert(SUCCEEDED(hr));
+					m_pQueryReadBuffer[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+						sizeof("D3D12::m_pQueryReadBuffer[i]") - 1, "D3D12::m_pQueryReadBuffer[i]");
+
+					m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+
+					readRange.End = cbufferDesc.Width;
+					hr = m_pQueryReadBuffer[i]->Map(0, &readRange, reinterpret_cast<void**>(&m_pQueryReadCbBegin[i]));
+					assert(SUCCEEDED(hr));
+				}
+				
+			}
+
+			{
+				cbufferDesc.Width = _64KB_ALIGN(4096 *sizeof(FLOAT));
+
+				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+
+				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+					&cbufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&m_pHiZCullReadCb));
+				assert(SUCCEEDED(hr));
+				m_pHiZCullReadCb->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D12::m_pHiZCullReadCb") - 1, "D3D12::m_pHiZCullReadCb");
+
+				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+
+				readRange.End = cbufferDesc.Width;
+				hr = m_pHiZCullReadCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pHiZCullReadCbBegin));
+				assert(SUCCEEDED(hr));
+			}
+			
+			
 		}
 		//GenSSAOResources
 		{	
@@ -3103,6 +3780,20 @@ namespace wilson
 			OutputDebugStringA("D3D12::CreateDSV()onScreenFailed");
 		}
 
+		//Gen QueryHeap
+		{
+			D3D12_QUERY_HEAP_DESC queryHeapDesc = {};
+			queryHeapDesc.Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
+			queryHeapDesc.Count = 1000;
+
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				hr = m_pDevice->CreateQueryHeap(&queryHeapDesc, IID_PPV_ARGS(&m_pQueryHeap[i]));
+				assert(SUCCEEDED(hr));
+			}
+			
+		}
+
 		//GenPBR Resources	
 	    {
 			bool result =
@@ -3153,6 +3844,18 @@ namespace wilson
 				FALSE,
 				NULL);
 
+			m_workerBeginHWOcclusionTestPass[i] = CreateEvent(
+				NULL,
+				FALSE,
+				FALSE,
+				NULL);
+
+			m_workerFinishHWOcclusionTestPass[i] = CreateEvent(
+				NULL,
+				FALSE,
+				FALSE,
+				NULL);
+
 			m_workerBeginShadowPass[i] = CreateEvent(
 				NULL,
 				FALSE,
@@ -3187,7 +3890,7 @@ namespace wilson
 				nullptr ));
 		}
 		
-		m_wokerMutex = CreateMutex(NULL, FALSE, NULL);
+		m_workerMutex = CreateMutex(NULL, FALSE, NULL);
 	}
 	D3D12::~D3D12()
 	{	
@@ -3202,12 +3905,14 @@ namespace wilson
 		CloseHandle(m_ssaoThreadHandle);
 		CloseHandle(m_ssaoBeginFrame);
 		CloseHandle(m_ssaoEndFrame);
-		CloseHandle(m_wokerMutex);
+		CloseHandle(m_workerMutex);
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
 			CloseHandle(m_threadHandles[i]);
 			CloseHandle(m_workerBeginFrame[i]);
 			CloseHandle(m_workerFinishZpass[i]);
+			CloseHandle(m_workerBeginHWOcclusionTestPass[i]);
+			CloseHandle(m_workerFinishHWOcclusionTestPass[i]);
 			CloseHandle(m_workerBeginShadowPass[i]);
 			CloseHandle(m_workerFinishShadowPass[i]);
 			CloseHandle(m_workerBeginDeferredGeoPass[i]);
@@ -3251,6 +3956,27 @@ namespace wilson
 			m_pFence = nullptr;
 		}
 
+		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+		{
+			if (m_pQueryHeap[i] != nullptr)
+			{
+				m_pQueryHeap[i]->Release();
+				m_pQueryHeap[i] = nullptr;
+			}
+			if (m_pQueryResultBuffer[i] != nullptr)
+			{
+				m_pQueryResultBuffer[i]->Release();
+				m_pQueryResultBuffer[i] = nullptr;
+			}
+
+			if (m_pQueryReadBuffer[i] != nullptr)
+			{
+				m_pQueryReadBuffer[i]->Release();
+				m_pQueryReadBuffer[i] = nullptr;
+			}
+		}
+		
+
 		if (m_pSsaoFence != nullptr)
 		{
 			m_pSsaoFence->Release();
@@ -3264,6 +3990,7 @@ namespace wilson
 				m_pWorkerFence[i]->Release();
 				m_pWorkerFence[i] = nullptr;
 			}
+
 		}
 
 
@@ -3295,6 +4022,24 @@ namespace wilson
 		{
 			m_pZpassPso->Release();
 			m_pZpassPso = nullptr;
+		}
+		
+		if (m_pGenHiZPassPso != nullptr)
+		{
+			m_pGenHiZPassPso->Release();
+			m_pGenHiZPassPso = nullptr;
+		}
+
+		if (m_pHiZCullPassPso != nullptr)
+		{
+			m_pHiZCullPassPso->Release();
+			m_pHiZCullPassPso = nullptr;
+		}
+
+		if (m_pHWOcclusionQueryPso != nullptr)
+		{
+			m_pHWOcclusionQueryPso->Release();
+			m_pHWOcclusionQueryPso = nullptr;
 		}
 
 		if (m_pCascadeDirShadowPso != nullptr)
@@ -3478,6 +4223,17 @@ namespace wilson
 			m_pHeightScaleCB = nullptr;
 		}
 
+		if (m_pSphereCb != nullptr)
+		{
+			m_pSphereCb->Release();
+			m_pSphereCb = nullptr;
+		}
+
+		if (m_pHiZCullMatrixCb != nullptr)
+		{
+			m_pHiZCullMatrixCb->Release();
+			m_pHiZCullMatrixCb = nullptr;
+		}
 
 		if (m_pRoughnessCB != nullptr)
 		{
@@ -3515,6 +4271,18 @@ namespace wilson
 			m_pNoiseTex = nullptr;
 		}
 
+		if (m_pResolutionCB != nullptr)
+		{
+			m_pResolutionCB->Release();
+			m_pResolutionCB = nullptr;
+		}
+
+		if (m_pHiZCullReadCb != nullptr)
+		{
+			m_pHiZCullReadCb->Release();
+			m_pHiZCullReadCb = nullptr;
+		}
+
 		if (m_pMainCommandList != nullptr)
 		{
 			m_pMainCommandList->Release();
@@ -3541,10 +4309,10 @@ namespace wilson
 
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
-			if (m_pWokerCommandList[i] != nullptr)
+			if (m_pWorkerCommandList[i] != nullptr)
 			{
-				m_pWokerCommandList[i]->Release();
-				m_pWokerCommandList[i] = nullptr;
+				m_pWorkerCommandList[i]->Release();
+				m_pWorkerCommandList[i] = nullptr;
 			}
 
 			if (m_pWorkerCommandAllocator[i] != nullptr)

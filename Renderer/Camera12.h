@@ -63,6 +63,10 @@ namespace wilson {
 		{
 			return &m_projMat;
 		}
+		inline DirectX::XMMATRIX* GetViewProjectionMatrix()
+		{
+			return &m_vpMat;
+		}
 		inline std::vector<float>& GetCascadeLevels()
 		{
 			return m_shadowCascadeLevels;
@@ -119,6 +123,7 @@ namespace wilson {
 
 		DirectX::XMMATRIX m_viewMat;
 		DirectX::XMMATRIX m_projMat;// think of the frustum as the lens of our camera, for it controls our view
+		DirectX::XMMATRIX m_vpMat;
 
 		ID3D12Resource* m_pCamCb;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_camPosCBV;

@@ -57,6 +57,35 @@ namespace wilson
 			return m_pZpassRootSignature;
 		}
 
+		void SetGenHiZpassShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		{
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pTex12VS->GetBufferPointer(), m_pTex12VS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
+			D3D12_SHADER_BYTECODE psBytecode = { m_pGenHiZPS->GetBufferPointer(), m_pGenHiZPS->GetBufferSize() };
+
+			pPSODesc->VS = vsBytecode;
+			pPSODesc->GS = gsBytecode;
+			pPSODesc->PS = psBytecode;
+		}
+
+		inline ID3D12RootSignature* GetGenHiZpassRootSignature()
+		{
+			return m_pGenHiZpassRootSignature;
+		}
+		
+		void SetHiZCullPassShader(D3D12_COMPUTE_PIPELINE_STATE_DESC* pPSODesc)
+		{
+			D3D12_SHADER_BYTECODE csBytecode = { m_pHiZCullCS->GetBufferPointer(), m_pHiZCullCS->GetBufferSize() };
+
+			pPSODesc->CS = csBytecode;
+
+		}
+
+		inline ID3D12RootSignature* GetHiZCullPassRootSignature()
+		{
+			return m_pHiZCullPassRootSignature;
+		}
+
 		void SetEquirect2CubeShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
 		{
 			D3D12_SHADER_BYTECODE vsBytecode = { m_pPosOnly12VS->GetBufferPointer(),m_pPosOnly12VS->GetBufferSize() };
@@ -441,13 +470,16 @@ namespace wilson
 		ID3DBlob* m_pOutlinerTest12PS;
 		ID3DBlob* m_pPostProcess12PS;
 		ID3DBlob* m_pAABB12PS;
+		ID3DBlob* m_pGenHiZPS;
 
 		ID3DBlob* m_pGenMipCS;
 		ID3DBlob* m_pSSAOCS;
 		ID3DBlob* m_pSSAOBlurCS;
 		ID3DBlob* m_pPostProcessCS;
+		ID3DBlob* m_pHiZCullCS;
 
 		ID3D12RootSignature* m_pZpassRootSignature;
+		ID3D12RootSignature* m_pGenHiZpassRootSignature;
 		ID3D12RootSignature* m_pCasacadePassRootSignature;
 		ID3D12RootSignature* m_pSpotShadowRootSignature;
 		ID3D12RootSignature* m_pCubeShadowRootSignature;
@@ -458,6 +490,8 @@ namespace wilson
 		ID3D12RootSignature* m_pPBRLightRootSignature;
 		ID3D12RootSignature* m_pOutlinerTestRootSignature;
 		ID3D12RootSignature* m_pPostProcessRootSignature;
+		ID3D12RootSignature* m_pHiZCullPassRootSignature;
+
 		//
 		ID3D12RootSignature* m_pPrefilterRootSignature;
 		ID3D12RootSignature* m_pBrdfRootSignature;

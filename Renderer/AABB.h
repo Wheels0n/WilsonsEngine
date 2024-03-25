@@ -12,7 +12,7 @@ namespace wilson
 	{
 	public:
 		bool IsOnFrustum(const Plane* pPlanes, const DirectX::XMMATRIX transfrom) const;
-
+		AABB MultiplyWorldMatrix(const DirectX::XMMATRIX transform);
 		inline DirectX::XMVECTOR GetCenter()const
 		{
 			return m_center;

@@ -40,7 +40,7 @@ namespace wilson
 		float* m_pExposure;
 		float* m_pHeightScale;
 
-		XMFLOAT3 m_prevPos;
+		XMFLOAT4 m_prevPos;
 		XMFLOAT3 m_prevAngleFloat;
 		float m_prevFarZ;
 		float m_prevNearZ;

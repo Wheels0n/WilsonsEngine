@@ -39,6 +39,10 @@ namespace wilson
 		{
 			m_lightSpaceMat = *plightSpaceMat;
 		}
+		inline XMMATRIX GetWVPMatrix()
+		{
+			return m_wvpMat;
+		}
 
 		MatBuffer12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager,
 			XMMATRIX* pViewMat, XMMATRIX* pProjMat);

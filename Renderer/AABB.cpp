@@ -60,7 +60,7 @@ namespace wilson
 	bool AABB::IsOnFrustum(const Plane* pPlanes, const DirectX::XMMATRIX transform) const
 	{	
 
-		DirectX::XMVECTOR globalCenterV = DirectX::XMVector4Transform(m_center, transform);
+		DirectX::XMVECTOR globalCenterV = DirectX::XMVector4Transform(m_center, DirectX::XMMatrixTranspose(transform));
 		DirectX::XMFLOAT4 globalCenter;
 		DirectX::XMStoreFloat4(&globalCenter, globalCenterV);
 
@@ -109,5 +109,49 @@ namespace wilson
 			globalAABB.IsOnOrForwardPlane(pPlanes[3])&&
 			globalAABB.IsOnOrForwardPlane(pPlanes[4])&&
 			globalAABB.IsOnOrForwardPlane(pPlanes[5]));
+	}
+	AABB AABB::MultiplyWorldMatrix(const DirectX::XMMATRIX transform)
+	{
+		DirectX::XMVECTOR globalCenterV = DirectX::XMVector4Transform(m_center, DirectX::XMMatrixTranspose(transform));
+		DirectX::XMFLOAT4 globalCenter;
+		DirectX::XMStoreFloat4(&globalCenter, globalCenterV);
+
+		DirectX::XMFLOAT3 extents;
+		DirectX::XMStoreFloat3(&extents, m_extents);
+
+
+		DirectX::XMVECTOR right = DirectX::XMVectorScale(transform.r[0], extents.x);
+		DirectX::XMVECTOR up = DirectX::XMVectorScale(transform.r[1], extents.y);
+		DirectX::XMVECTOR forward = DirectX::XMVectorScale(transform.r[2], -extents.z);
+
+
+		DirectX::XMVECTOR x = DirectX::XMVectorSet(1.0, 0.0f, 0.0f, 0.f);
+		DirectX::XMVECTOR y = DirectX::XMVectorSet(0.0, 1.0f, 0.0f, 0.f);
+		DirectX::XMVECTOR z = DirectX::XMVectorSet(0.0, 0.0f, 1.0f, 0.f);
+
+		float dotRight;
+		float dotUp;
+		float dotForward;
+
+		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(x, right));
+		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(x, up));
+		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(x, forward));
+
+		const float newli = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
+
+		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(y, right));
+		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(y, up));
+		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(y, forward));
+
+		const float newlj = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
+
+		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(z, right));
+		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(z, up));
+		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(z, forward));
+
+		const float newlk = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
+
+
+		return AABB(globalCenter, newli, newlj, newlk);
 	}
 }

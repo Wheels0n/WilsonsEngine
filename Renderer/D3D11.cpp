@@ -99,7 +99,7 @@ namespace wilson
 		m_pBRDFRTTV = nullptr;
 		m_pBRDFSRV = nullptr;
 
-		m_pScreenDSV = nullptr;
+		m_ScreenDSV = nullptr;
 		m_SceneDSV = nullptr;
 		for (int i = 0; i < 2; ++i)
 		{
@@ -467,7 +467,7 @@ namespace wilson
 				OutputDebugStringA("D3D11::CreateDSS()Failed");
 			}
 
-			if (!CreateDSV(m_clientWidth, m_clientHeight, &m_pScreenDepthTex, &m_pScreenDSV))
+			if (!CreateDSV(m_clientWidth, m_clientHeight, &m_pScreenDepthTex, &m_ScreenDSV))
 			{
 				OutputDebugStringA("D3D11::CreateDSV()onScreenFailed");
 			}
@@ -1118,7 +1118,7 @@ namespace wilson
 			OutputDebugStringA("D3D11::CreateRTVandSRV()Failed");
 		}
 
-		if (!CreateDSV(m_clientWidth, m_clientHeight, &m_pScreenDepthTex, &m_pScreenDSV))
+		if (!CreateDSV(m_clientWidth, m_clientHeight, &m_pScreenDepthTex, &m_ScreenDSV))
 		{
 			OutputDebugStringA("D3D11::CreateDSV()onScreenFailed");
 		}
@@ -1169,7 +1169,7 @@ namespace wilson
 			m_pContext->ClearRenderTargetView(m_pGbufferRTTV[i], color);
 		}
 
-		m_pContext->ClearDepthStencilView(m_pScreenDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		m_pContext->ClearDepthStencilView(m_ScreenDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		m_pContext->ClearDepthStencilView(m_SceneDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		m_pContext->PSSetSamplers(0, 1, &m_pWrapSS);
 		m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -1370,7 +1370,7 @@ namespace wilson
 		m_pContext->OMSetDepthStencilState(0, 0);
 		m_pContext->DrawIndexed(6, 0, 0);
 		//DrawUI
-		m_pContext->OMSetRenderTargets(1, &m_pScreenRTTV, m_pScreenDSV);
+		m_pContext->OMSetRenderTargets(1, &m_pScreenRTTV, m_ScreenDSV);
 		return;
 	}
 	void D3D11::DrawScene()
@@ -2187,10 +2187,10 @@ namespace wilson
 			m_pScreenRTTV = nullptr;
 		}
 
-		if (m_pScreenDSV != nullptr)
+		if (m_ScreenDSV != nullptr)
 		{
-			m_pScreenDSV->Release();
-			m_pScreenDSV = nullptr;
+			m_ScreenDSV->Release();
+			m_ScreenDSV = nullptr;
 		}
 	}
 	

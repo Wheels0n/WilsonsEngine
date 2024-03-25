@@ -207,8 +207,10 @@ namespace wilson
 		{
 			m_FPS.Frame();
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_FPS.GetFps());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "TotalENTTs:%d", m_pFrustum->GetENTTsInTotal());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ENTTSInFrustum:%d", m_pFrustum->GetENTTsInFrustum());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ModelsInScene: %d", m_pFrustum->GetENTTsInTotal());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ModelsInFrustum: %d", m_pFrustum->GetENTTsInFrustum());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ModelsHiZPassed: %d", m_pD3D12->GetModelsHiZPassed());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ModelsNotOccluded: %d", m_pD3D12->GetModelsNotOccluded());
 			ImGui::Separator();
 
 			ImGuiIO io = ImGui::GetIO();
@@ -228,14 +230,15 @@ namespace wilson
 				ImGui::DragFloat("FarZ", curFarZ, 100.f, 10000.f);
 
 				XMVECTOR* curPosVec = m_pCam->GetPosition();
-				XMFLOAT3 posFloat;
-				XMStoreFloat3(&posFloat, *curPosVec);
+				XMFLOAT4 posFloat;
+				XMStoreFloat4(&posFloat, *curPosVec);
 
 				ImGui::Text("Position");
 				ImGui::DragFloat("X", &posFloat.x, -100, 100);
 				ImGui::DragFloat("Y", &posFloat.y, -100, 100);
 				ImGui::DragFloat("Z", &posFloat.z, -100, 100);
-				*curPosVec = XMLoadFloat3(&posFloat);
+				posFloat.w=1.0f;
+				*curPosVec = XMLoadFloat4(&posFloat);
 				ImGui::PushID(0);
 				if (ImGui::Button("Reset"))
 				{

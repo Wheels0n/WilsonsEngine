@@ -2,6 +2,7 @@
 #include <DirectXMath.h>
 #include <string>
 #include <Windows.h>
+#include <pix.h>
 
 #define _64KB 64*1024
 #define _CBV_READ_SIZE 256;
@@ -155,6 +156,26 @@ namespace wilson
 	constexpr UINT _MAX_INSTANCES = 50;
 	
 	//Shader
+	enum eGenHiZRP
+	{
+		eGenHiZRP_ePs_lastResoltion,
+		eGenHiZRP_ePs_lastMip,
+		eGenHiZRP_ePs_sampler,
+		eGenHiZRP_eCnt
+	};
+
+	enum eHiZCullRP
+	{
+		eHiZCullRP_eCs_hiZ,
+		eHiZCullRP_eCs_dst,
+		eHiZCullRP_eCs_matrix,
+		eHiZCullRP_eCs_sphere,
+		eHiZCullRP_eCs_resolution,
+		eHiZCullRP_eCs_border,
+		eHiZCullRP_eCnt
+
+	};
+	
 	enum eCascadeShadowRP
 	{
 		eCascadeShadow_eVsMat,
@@ -351,6 +372,7 @@ namespace wilson
 		eCascadeDirShadowPass,
 		eSpotShadowPass,
 		eCubeShadowPass,
+		eOcclusionTestPass,
 		eGeoPass,
 		eDefault
 	};

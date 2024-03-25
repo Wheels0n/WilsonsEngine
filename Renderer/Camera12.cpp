@@ -18,11 +18,12 @@ namespace wilson {
 
 		ResetTranslation();
 		ResetRotation();
-		m_up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+		m_up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f);
 		m_worldUp = m_up;
 
 		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_nearZ, m_farZ);
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
+		m_vpMat = DirectX::XMMatrixMultiplyTranspose(m_viewMat, m_projMat);
 		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
 		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
 
@@ -110,7 +111,7 @@ namespace wilson {
 	void Camera12::ResetTranslation()
 	{
 		m_pos = DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 1.0f);
-		m_target = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+		m_target = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f);
 	}
 
 	void Camera12::UpdateCascadeLevels()
@@ -164,8 +165,9 @@ namespace wilson {
 		m_up = DirectX::XMVector3Normalize(m_up);
 
 		m_viewMat = DirectX::XMMatrixLookAtLH(m_pos, m_target, m_up);
-		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
 		m_projMat = DirectX::XMMatrixPerspectiveFovLH(m_fFOV, m_fScreenRatio, m_nearZ, m_farZ);
+		m_vpMat =   DirectX::XMMatrixMultiplyTranspose(m_viewMat, m_projMat);
+		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
 		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
 		UpdateCascadeLevels();
 	}

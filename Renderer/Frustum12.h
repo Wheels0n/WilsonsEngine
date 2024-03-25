@@ -21,7 +21,7 @@ namespace wilson {
 		{
 			return m_ENTTsInTotal;
 		}
-		inline Plane* GetPlanes()
+		inline DirectX::XMVECTOR* GetPlanes()
 		{
 			return m_planes;
 		}
@@ -34,7 +34,7 @@ namespace wilson {
 	private:
 		UINT m_ENTTsInFrustum;
 		UINT m_ENTTsInTotal;
-		Plane m_planes[6];
+		DirectX::XMVECTOR m_planes[6];
 		Frustum* m_pFrustum;
 	};
 }

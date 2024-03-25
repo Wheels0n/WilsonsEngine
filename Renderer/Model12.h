@@ -8,6 +8,7 @@
 #include <dxgicommon.h>
 
 #include "AABB.h"
+#include "Sphere.h"
 #include "typedef.h"
 namespace wilson {
 
@@ -24,6 +25,11 @@ namespace wilson {
 			std::unordered_map<std::string, int>& texhash, std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& texSrvs);
 		void UploadBuffers(ID3D12GraphicsCommandList* pCommandList, int i, ePass curPass);
 		AABB GetGlobalAABB();
+
+		inline Sphere* GetSphere() const
+		{
+			return m_pSphere;
+		}
 
 		inline AABB* GetAABB() const
 		{
@@ -69,9 +75,12 @@ namespace wilson {
 		{
 			return &m_perModels[i];
 		}
+		inline UINT GetTotalIndexCount()
+		{
+			return m_indexCount;
+		}
 		inline UINT GetIndexCount(UINT i)
 		{
-
 			return m_indicesPos[i + 1] - m_indicesPos[i];
 		}
 		inline UINT GetIndexOffset(UINT i)
@@ -135,7 +144,8 @@ namespace wilson {
 		ID3D12Resource* m_pInstancePosCB;
 		
 		D3D12_VERTEX_BUFFER_VIEW m_vbV;
-		std::vector<D3D12_INDEX_BUFFER_VIEW> m_ibVs;
+		std::vector<D3D12_INDEX_BUFFER_VIEW> m_subIbVs;
+		D3D12_INDEX_BUFFER_VIEW m_ibV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_materialCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_instancePosCBV;
 
@@ -172,6 +182,7 @@ namespace wilson {
 		bool m_isInstanced;
 
 		AABB* m_pAABB;
+		Sphere* m_pSphere;
 		MatBuffer12* m_pMatBuffer;
 
 		UINT* m_pMaterial;

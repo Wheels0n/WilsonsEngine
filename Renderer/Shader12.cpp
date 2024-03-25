@@ -58,6 +58,7 @@ namespace wilson
 			m_pAABB12VS = nullptr;
 			m_pAABB12PS = nullptr;
 
+			m_pGenHiZPS = nullptr;
 			m_pOutlinerTest12PS = nullptr;
 			m_pBlur12PS = nullptr;
 			m_pPostProcess12PS = nullptr;
@@ -66,8 +67,11 @@ namespace wilson
 			m_pSSAOCS = nullptr;
 			m_pSSAOBlurCS = nullptr;
 			m_pPostProcessCS = nullptr;
+			m_pHiZCullCS = nullptr;
 
 			m_pZpassRootSignature = nullptr;
+			m_pGenHiZpassRootSignature = nullptr;
+			m_pHiZCullPassRootSignature = nullptr;
 			m_pCasacadePassRootSignature = nullptr;
 			m_pSpotShadowRootSignature = nullptr;
 			m_pCubeShadowRootSignature = nullptr;
@@ -222,8 +226,13 @@ namespace wilson
 			hr = D3DCompileFromFile(L"BlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pBlur12PS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-
 			hr = D3DCompileFromFile(L"FinPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPostProcess12PS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
+			hr = D3DCompileFromFile(L"Hierarchical-zGenPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pGenHiZPS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
+			hr = D3DCompileFromFile(L"Hierarchical-zCullCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pHiZCullCS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"PostProcessCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPostProcessCS, &pErrorBlob);
@@ -412,6 +421,105 @@ namespace wilson
 			assert(SUCCEEDED(hr));
 			m_pZpassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pZpassRootSignature") - 1, "Shader12::m_pZpassRootSignature");
+			
+			//Hi-Z Pass
+			D3D12_DESCRIPTOR_RANGE1 GenHiZPassRanges[eGenHiZRP::eGenHiZRP_eCnt] = {};
+
+			GenHiZPassRanges[eGenHiZRP_ePs_lastResoltion].RangeType= D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+			GenHiZPassRanges[eGenHiZRP_ePs_lastResoltion].NumDescriptors = 1;
+			GenHiZPassRanges[eGenHiZRP_ePs_lastResoltion].BaseShaderRegister = 0;
+			GenHiZPassRanges[eGenHiZRP_ePs_lastResoltion].RegisterSpace = 0;
+			GenHiZPassRanges[eGenHiZRP_ePs_lastResoltion].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			GenHiZPassRanges[eGenHiZRP_ePs_lastMip].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			GenHiZPassRanges[eGenHiZRP_ePs_lastMip].NumDescriptors = 1;
+			GenHiZPassRanges[eGenHiZRP_ePs_lastMip].BaseShaderRegister = 0;
+			GenHiZPassRanges[eGenHiZRP_ePs_lastMip].RegisterSpace = 0;
+			GenHiZPassRanges[eGenHiZRP_ePs_lastMip].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			GenHiZPassRanges[eGenHiZRP_ePs_sampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+			GenHiZPassRanges[eGenHiZRP_ePs_sampler].NumDescriptors = 1;
+			GenHiZPassRanges[eGenHiZRP_ePs_sampler].BaseShaderRegister = 0;
+			GenHiZPassRanges[eGenHiZRP_ePs_sampler].RegisterSpace = 0;
+			GenHiZPassRanges[eGenHiZRP_ePs_sampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			D3D12_ROOT_PARAMETER1 genHiZPassRootParameter[eGenHiZRP::eGenHiZRP_eCnt] = {};
+			for (int i = 0; i < eGenHiZRP_eCnt; ++i)
+			{
+				genHiZPassRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				genHiZPassRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+				genHiZPassRootParameter[i].DescriptorTable.pDescriptorRanges = &GenHiZPassRanges[i];
+				genHiZPassRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+			}
+			D3D12_VERSIONED_ROOT_SIGNATURE_DESC  genHiZPassRootSignatureDesc;
+			genHiZPassRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+			genHiZPassRootSignatureDesc.Desc_1_1.NumParameters = eGenHiZRP_eCnt;
+			genHiZPassRootSignatureDesc.Desc_1_1.pParameters = genHiZPassRootParameter;
+			genHiZPassRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+			genHiZPassRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+			genHiZPassRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+			hr = D3D12SerializeVersionedRootSignature(&genHiZPassRootSignatureDesc, &signature, &error);
+			assert(SUCCEEDED(hr));
+			hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pGenHiZpassRootSignature));
+			assert(SUCCEEDED(hr));
+			m_pGenHiZpassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Shader12::m_pGenHiZpassRootSignature") - 1, "Shader12::m_pGenHiZpassRootSignature");
+
+
+
+			D3D12_DESCRIPTOR_RANGE1 hiZCullPassRanges[eHiZCullRP_eCnt] = {};
+			hiZCullPassRanges[eHiZCullRP_eCs_hiZ].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			hiZCullPassRanges[eHiZCullRP_eCs_hiZ].NumDescriptors = 1;
+			hiZCullPassRanges[eHiZCullRP_eCs_hiZ].BaseShaderRegister = 0;
+			hiZCullPassRanges[eHiZCullRP_eCs_hiZ].RegisterSpace = 0;
+			hiZCullPassRanges[eHiZCullRP_eCs_hiZ].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			hiZCullPassRanges[eHiZCullRP_eCs_dst].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+			hiZCullPassRanges[eHiZCullRP_eCs_dst].NumDescriptors = 1;
+			hiZCullPassRanges[eHiZCullRP_eCs_dst].BaseShaderRegister = 0;
+			hiZCullPassRanges[eHiZCullRP_eCs_dst].RegisterSpace = 0;
+			hiZCullPassRanges[eHiZCullRP_eCs_dst].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			for (int i = eHiZCullRP_eCs_matrix; i < eHiZCullRP_eCs_border; ++i)
+			{
+				hiZCullPassRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				hiZCullPassRanges[i].NumDescriptors = 1;
+				hiZCullPassRanges[i].BaseShaderRegister = i- eHiZCullRP_eCs_matrix;
+				hiZCullPassRanges[i].RegisterSpace = 0;
+				hiZCullPassRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			}
+		
+			hiZCullPassRanges[eHiZCullRP_eCs_border].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+			hiZCullPassRanges[eHiZCullRP_eCs_border].NumDescriptors = 1;
+			hiZCullPassRanges[eHiZCullRP_eCs_border].BaseShaderRegister = 0;
+			hiZCullPassRanges[eHiZCullRP_eCs_border].RegisterSpace = 0;
+			hiZCullPassRanges[eHiZCullRP_eCs_border].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			D3D12_ROOT_PARAMETER1 hiZCullPassRootParameter[eHiZCullRP_eCnt] = {};
+			for (int i = 0; i < eHiZCullRP_eCnt; ++i)
+			{
+				hiZCullPassRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				hiZCullPassRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+				hiZCullPassRootParameter[i].DescriptorTable.pDescriptorRanges = &hiZCullPassRanges[i];
+				hiZCullPassRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+			}
+
+			D3D12_VERSIONED_ROOT_SIGNATURE_DESC hiZCullPassRootSignatureDesc = {};
+			hiZCullPassRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+			hiZCullPassRootSignatureDesc.Desc_1_1.NumParameters = eHiZCullRP_eCnt;
+			hiZCullPassRootSignatureDesc.Desc_1_1.pParameters = hiZCullPassRootParameter;
+			hiZCullPassRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+			hiZCullPassRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+			hiZCullPassRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
+
+			hr = D3D12SerializeVersionedRootSignature(&hiZCullPassRootSignatureDesc, &signature, &error);
+			assert(SUCCEEDED(hr));
+			hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pHiZCullPassRootSignature));
+			assert(SUCCEEDED(hr));
+			m_pHiZCullPassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("Shader12::m_pHiZCullPassRootSignature") - 1, "Shader12::m_pHiZCullPassRootSignature");
 
 
 			//CascadeShadow Pass 
@@ -948,7 +1056,7 @@ namespace wilson
 			m_pOutlinerTestRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Shader12::m_pOutlinerTestRootSignature") - 1, "Shader12::m_pOutlinerTestRootSignature");
 
-			//Final
+			//PostProcess
 		
 			D3D12_DESCRIPTOR_RANGE1 PostProcessRanges[ePostProcessRP::ePostProcess_eCnt] = {};
 
@@ -1467,6 +1575,13 @@ namespace wilson
 				m_pPostProcess12PS->Release();
 				m_pPostProcess12PS = nullptr;
 			}
+
+			if (m_pGenHiZPS != nullptr)
+			{
+				m_pGenHiZPS->Release();
+				m_pGenHiZPS = nullptr;
+			}
+
 			if (m_pAABB12VS != nullptr)
 			{
 				m_pAABB12VS->Release();
@@ -1502,10 +1617,22 @@ namespace wilson
 				m_pPostProcessCS = nullptr;
 			}
 
+			if (m_pHiZCullCS != nullptr)
+			{
+				m_pHiZCullCS->Release();
+				m_pHiZCullCS = nullptr;
+			}
+
 			if (m_pZpassRootSignature != nullptr)
 			{
 				m_pZpassRootSignature->Release();
 				m_pZpassRootSignature = nullptr;
+			}
+
+			if (m_pGenHiZpassRootSignature != nullptr)
+			{
+				m_pGenHiZpassRootSignature->Release();
+				m_pGenHiZpassRootSignature = nullptr;
 			}
 
 			if (m_pCasacadePassRootSignature != nullptr)
@@ -1557,6 +1684,12 @@ namespace wilson
 			{
 				m_pPostProcessRootSignature->Release();
 				m_pPostProcessRootSignature = nullptr;
+			}
+
+			if (m_pHiZCullPassRootSignature != nullptr)
+			{
+				m_pHiZCullPassRootSignature->Release();
+				m_pHiZCullPassRootSignature = nullptr;
 			}
 
 			if (m_pPrefilterRootSignature != nullptr)

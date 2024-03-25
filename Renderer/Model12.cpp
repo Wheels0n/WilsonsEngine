@@ -25,7 +25,7 @@ namespace wilson
 			m_pIndices = pIndices;
 			m_vertexDataPos = vertexDataPos;
 			m_indicesPos = indicesPos;
-			m_ibVs.resize(indicesPos.size()-1);
+			m_subIbVs.resize(indicesPos.size()-1);
 			m_vertexCount = vertexDataPos[vertexDataPos.size() - 1];
 			m_indexCount = indicesPos[indicesPos.size() - 1];
 
@@ -72,6 +72,14 @@ namespace wilson
 				maxAABB.z = max(maxAABB.z, m_pVertexData[i].position.z);
 			}
 			m_pAABB = new AABB(minAABB, maxAABB);
+
+			DirectX::XMFLOAT3 center((maxAABB.x + minAABB.x) * 0.5f,
+				(maxAABB.y + minAABB.y) * 0.5f, (maxAABB.z + minAABB.z) * 0.5f);
+			DirectX::XMFLOAT3 len((minAABB.x-maxAABB.x),
+				(minAABB.y - maxAABB.y), (minAABB.z - maxAABB.z));
+			DirectX::XMVECTOR lenV = DirectX::XMLoadFloat3(&len);
+			lenV = DirectX::XMVector4Length(lenV);
+			m_pSphere = new Sphere(center, lenV.m128_f32[0]);
 		}
 	
 		//Gen Name;
@@ -169,12 +177,16 @@ namespace wilson
 			memcpy(pIB, m_pIndices, ibSize);
 			m_pIB->Unmap(0, 0);
 
-			for (int i = 0; i < m_ibVs.size(); ++i)
+			for (int i = 0; i < m_subIbVs.size(); ++i)
 			{
-				m_ibVs[i].BufferLocation = m_pIB->GetGPUVirtualAddress()+ sizeof(UINT)*indicesPos[i];
-				m_ibVs[i].Format = DXGI_FORMAT_R32_UINT;
-				m_ibVs[i].SizeInBytes = sizeof(UINT)*(indicesPos[i+1]-indicesPos[i]);
+				m_subIbVs[i].BufferLocation = m_pIB->GetGPUVirtualAddress()+ sizeof(UINT)*indicesPos[i];
+				m_subIbVs[i].Format = DXGI_FORMAT_R32_UINT;
+				m_subIbVs[i].SizeInBytes = sizeof(UINT)*(indicesPos[i+1]-indicesPos[i]);
 			}
+
+			m_ibV.BufferLocation = m_pIB->GetGPUVirtualAddress();
+			m_ibV.Format = DXGI_FORMAT_R32_UINT;
+			m_ibV.SizeInBytes = sizeof(UINT) * indicesPos[indicesPos.size() - 1];
 		}
 
 		//Gen CB
@@ -426,15 +438,13 @@ namespace wilson
 	void Model12::UploadBuffers(ID3D12GraphicsCommandList* pCommandlist, int i, ePass curPass)
 	{	
 		HRESULT hr;
-
-		//SetVB&IB
-		pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
-		pCommandlist->IASetIndexBuffer(&m_ibVs[i]);
-		
-
 		//Upload CBV
 		if(curPass==eGeoPass)
 		{
+			//SetVB&IB
+			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
+			pCommandlist->IASetIndexBuffer(&m_subIbVs[i]);
+
 			MaterialInfo matInfo = m_matInfos[i];
 			//Upload materialCB
 			{
@@ -503,6 +513,13 @@ namespace wilson
 			UINT idx = m_texHash[matInfo.diffuseMap];
 			UINT nIdx = 0;
 			pCommandlist->SetGraphicsRootDescriptorTable(eCubeShadow_ePsDiffuseMap, m_texSrvs[idx]);
+			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
+			pCommandlist->IASetIndexBuffer(&m_ibV);
+		}
+		else
+		{
+			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
+			pCommandlist->IASetIndexBuffer(&m_ibV);
 		}
 
 		return;
