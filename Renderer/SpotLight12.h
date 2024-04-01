@@ -4,7 +4,7 @@
 #include"typedef.h"
 namespace wilson
 {
-	class DescriptorHeapManager;
+	class HeapManager;
 	class SpotLight12 :public Light12
 	{
 	public:
@@ -44,7 +44,7 @@ namespace wilson
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::SPT; };
 
 		SpotLight12() = default;
-		SpotLight12(ID3D12Device*, ID3D12GraphicsCommandList*, DescriptorHeapManager*, UINT);
+		SpotLight12(ID3D12Device*, ID3D12GraphicsCommandList*, HeapManager*, UINT);
 		SpotLight12(const SpotLight12&) = default;
 		~SpotLight12() { Light12::~Light12(); };
 	private:

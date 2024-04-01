@@ -1,11 +1,11 @@
 #include<cmath>
 
 #include"DirectionalLight12.h"
-#include"DescriptorHeapManager.h"
+#include"HeapManager.h"
 namespace wilson
 {
  
-    DirectionalLight12::DirectionalLight12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager, 
+    DirectionalLight12::DirectionalLight12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager, 
         UINT idx, Camera12* pCam)
         :Light12(idx)
     {
@@ -13,69 +13,15 @@ namespace wilson
         m_lightSpaceMat.resize(pCam->GetCascadeLevels().size());
         UpdateLightSpaceMatrices();
 
-        m_pMatrice12Buffer = nullptr;
         m_pMatricesCbBegin = nullptr;
 
-        {
-            HRESULT hr;
-            D3D12_HEAP_PROPERTIES heapProps = {};
-            heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-            heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-            heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-            heapProps.CreationNodeMask = 1;
-            heapProps.VisibleNodeMask = 1;
+        UINT cbSize = sizeof(DirectX::XMMATRIX) * _CASCADE_LEVELS;
+        m_pMatricesCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
+        m_matriceCBV = pHeapManager->GetCBV(cbSize, pDevice);
 
-            D3D12_RESOURCE_DESC cbufferDesc = {};
-            cbufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-            cbufferDesc.Alignment = 0;
-            cbufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-            cbufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-            cbufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-            cbufferDesc.Height = 1;
-            cbufferDesc.DepthOrArraySize = 1;
-            cbufferDesc.MipLevels = 1;
-            cbufferDesc.SampleDesc.Count = 1;
-            cbufferDesc.SampleDesc.Quality = 0;
-       
-
-            {
-                D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-                D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-                cbufferDesc.Width = sizeof(DirectX::XMMATRIX) * _CASCADE_LEVELS;
-                cbufferDesc.Width = _64KB_ALIGN(cbufferDesc.Width);
-
-                hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-                    &cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pMatrice12Buffer));
-                assert(SUCCEEDED(hr));
-                m_pMatrice12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-                    sizeof("DirectionalLight::m_pMatrices12Buffer") - 1, "DirectionalLight::m_pMatrices12Buffer");
-
-                D3D12_RANGE readRange = { 0, };
-                hr = m_pMatrice12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pMatricesCbBegin));
-                assert(SUCCEEDED(hr));
-
-
-                UINT constantBufferSize = sizeof(DirectX::XMMATRIX) * _CASCADE_LEVELS;
-
-                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-                cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-                cbvDesc.BufferLocation = m_pMatrice12Buffer->GetGPUVirtualAddress();
-                pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-                m_matriceCBV = cbvSrvGpuHandle;
-                pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-            }
-
-        }
     }
     DirectionalLight12::~DirectionalLight12()
     {
-        if (m_pMatrice12Buffer != nullptr)
-        {
-            m_pMatrice12Buffer->Release();
-            m_pMatrice12Buffer = nullptr;
-        }
-
         Light12::~Light12();
     }
 

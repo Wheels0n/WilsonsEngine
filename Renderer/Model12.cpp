@@ -4,11 +4,11 @@
 
 #include "Model12.h"
 #include "MatrixBuffer12.h"
-#include "DescriptorHeapManager.h"
+#include "HeapManager.h"
 namespace wilson 
 {
 	//Pos를 담는 변수들은 가장 끝 원소로 전체 크기를 담고 있음에 유의
-	Model12::Model12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, DescriptorHeapManager* pDescriptorHeapManager,
+	Model12::Model12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, HeapManager* pHeapManager,
 		VertexData* pVertices,
 		unsigned long* pIndices,
 		std::vector<unsigned int> vertexDataPos,
@@ -43,19 +43,16 @@ namespace wilson
 
 			m_angleVec = DirectX::XMVectorZero();
 
-			m_pVB = nullptr;
-			m_pIB = nullptr;
 			m_pAABB = nullptr;
 			m_instancedData = nullptr;
 			m_isInstanced = false;
-			m_pInstancePosCB = nullptr;
 			m_pMatBuffer = nullptr;
-			m_pMaterial = nullptr;
+			m_pMaterialBegin = nullptr;
 		}
 
 		//Gen MatBuffer
 		DirectX::XMMATRIX iMat =  DirectX::XMMatrixIdentity();
-		m_pMatBuffer = new MatBuffer12(pDevice, pCommandList, pDescriptorHeapManager, &iMat, &iMat);
+		m_pMatBuffer = new MatBuffer12(pDevice, pCommandList, pHeapManager, &iMat, &iMat);
 
 		//Gen AABB
 		{
@@ -95,146 +92,37 @@ namespace wilson
 	
 		//Gen VB
 		{	
-
-			const UINT vbSize= sizeof(VertexData) * m_vertexCount;
-
-			D3D12_HEAP_PROPERTIES heapProps = {};
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-
-			D3D12_RESOURCE_DESC vbDesc = {};
-			vbDesc.Width = vbSize;
-			vbDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-			vbDesc.Alignment = 0;
-			vbDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			vbDesc.Format = DXGI_FORMAT_UNKNOWN;
-			vbDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			vbDesc.Height = 1;
-			vbDesc.DepthOrArraySize = 1;
-			vbDesc.MipLevels = 1;
-			vbDesc.SampleDesc.Count = 1;
-			vbDesc.SampleDesc.Quality = 0;
-
-
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vbDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ| D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pVB));
-			assert(SUCCEEDED(hr));
-			m_pVB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Model12::m_pVB") - 1, "Model12::m_pVB");
-
-
-			UINT8* pVB;
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pVB->Map(0, &readRange, reinterpret_cast<void**>(&pVB));
-			assert(SUCCEEDED(hr));
-			memcpy(pVB, m_pVertexData, vbSize);
-			m_pVB->Unmap(0, 0);
-
-			m_vbV.BufferLocation = m_pVB->GetGPUVirtualAddress();
-			m_vbV.SizeInBytes = vbSize; 
-			m_vbV.StrideInBytes = sizeof(VertexData);
+			const UINT64 vbSize= sizeof(VertexData) * m_vertexCount;
+			pHeapManager->AllocateVertexData((UINT8*)m_pVertexData, vbSize);
+			m_vbV = pHeapManager->GetVBV(vbSize, sizeof(VertexData));
 		}
 
 		//Gen IB
 		{	
 			const UINT ibSize = sizeof(UINT) * m_indexCount;
-
-			D3D12_HEAP_PROPERTIES heapProps = {};
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-
-			D3D12_RESOURCE_DESC ibDesc = {};
-			ibDesc.Width = ibSize;
-			ibDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-			ibDesc.Alignment = 0;
-			ibDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			ibDesc.Format = DXGI_FORMAT_UNKNOWN;
-			ibDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			ibDesc.Height = 1;
-			ibDesc.DepthOrArraySize = 1;
-			ibDesc.MipLevels = 1;
-			ibDesc.SampleDesc.Count = 1;
-			ibDesc.SampleDesc.Quality = 0;
-
-
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &ibDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ| D3D12_RESOURCE_STATE_INDEX_BUFFER, nullptr, IID_PPV_ARGS(&m_pIB));
-			assert(SUCCEEDED(hr));
-			m_pIB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Model12::m_pIB") - 1, "Model12::m_pIB");
-
-
-			UINT8* pIB;
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pIB->Map(0, &readRange, reinterpret_cast<void**>(&pIB));
-			assert(SUCCEEDED(hr));
-			memcpy(pIB, m_pIndices, ibSize);
-			m_pIB->Unmap(0, 0);
+			pHeapManager->AllocateIndexData((UINT8*)m_pIndices, ibSize);
 
 			for (int i = 0; i < m_subIbVs.size(); ++i)
 			{
-				m_subIbVs[i].BufferLocation = m_pIB->GetGPUVirtualAddress()+ sizeof(UINT)*indicesPos[i];
-				m_subIbVs[i].Format = DXGI_FORMAT_R32_UINT;
-				m_subIbVs[i].SizeInBytes = sizeof(UINT)*(indicesPos[i+1]-indicesPos[i]);
+				m_subIbVs[i]= pHeapManager->GetIBV(
+					sizeof(UINT) * (indicesPos[i + 1] - indicesPos[i]), 
+					sizeof(UINT) * indicesPos[i]);
 			}
-
-			m_ibV.BufferLocation = m_pIB->GetGPUVirtualAddress();
-			m_ibV.Format = DXGI_FORMAT_R32_UINT;
-			m_ibV.SizeInBytes = sizeof(UINT) * indicesPos[indicesPos.size() - 1];
+			m_ibV = pHeapManager->GetIBV(sizeof(UINT) * indicesPos[indicesPos.size() - 1], 0);
+			UINT   idx = pHeapManager->GetIndexBufferHeapOffset();
+			idx /= _IB_HEAP_SIZE;
+			UINT64 curBlockOffset = pHeapManager->GetIndexBufferBlockOffset(idx);
+			pHeapManager->SetIndexBufferBlockOffset(idx,curBlockOffset + m_ibV.SizeInBytes);
 		}
 
 		//Gen CB
 		{
-			D3D12_RANGE readRange = { 0, };
 			//Gen materialCB
 			{
 
-				D3D12_HEAP_PROPERTIES heapProps = {};
-				heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-				heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-				heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-				heapProps.CreationNodeMask = 1;
-				heapProps.VisibleNodeMask = 1;
-
-				D3D12_RESOURCE_DESC cbufferDesc = {};
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(Material));
-				cbufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-				cbufferDesc.Alignment = 0;
-				cbufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-				cbufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-				cbufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-				cbufferDesc.Height = 1;
-				cbufferDesc.DepthOrArraySize = 1;
-				cbufferDesc.MipLevels = 1;
-				cbufferDesc.SampleDesc.Count = 1;
-				cbufferDesc.SampleDesc.Quality = 0;
-
-
-				UINT constantBufferSize = sizeof(Material);
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ| D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pMaterialCB));
-				assert(SUCCEEDED(hr));
-				m_pMaterialCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("Model12::m_pMaterialCB") - 1, "Model12::m_pMaterialCB");
-
-				hr = m_pMaterialCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pMaterial));
-				assert(SUCCEEDED(hr));
-
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pMaterialCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-				m_materialCBV = cbvSrvGpuHandle;
-
-				pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+				UINT cbSize = sizeof(Material);
+				m_pMaterialBegin = pHeapManager->GetCbMappedPtr(cbSize);
+				m_materialCBV = pHeapManager->GetCBV(cbSize, pDevice);
 				
 			}
 
@@ -254,45 +142,11 @@ namespace wilson
 					m_instancedData[i] = DirectX::XMMatrixTranslation(x, y, z);
 				}
 
-				D3D12_HEAP_PROPERTIES heapProps = {};
-				heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-				heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-				heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-				heapProps.CreationNodeMask = 1;
-				heapProps.VisibleNodeMask = 1;
+				UINT cbSize = sizeof(DirectX::XMMATRIX) * _MAX_INSTANCES;
+				m_pInstancePosBegin = pHeapManager->GetCbMappedPtr(cbSize);
+				m_instancePosCBV = pHeapManager->GetCBV(cbSize, pDevice);
 
-				D3D12_RESOURCE_DESC cbufferDesc = {};
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(DirectX::XMMATRIX) * _MAX_INSTANCES); 
-				cbufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-				cbufferDesc.Alignment = 0;
-				cbufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-				cbufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-				cbufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-				cbufferDesc.Height = 1;
-				cbufferDesc.DepthOrArraySize = 1;
-				cbufferDesc.MipLevels = 1;
-				cbufferDesc.SampleDesc.Count = 1;
-				cbufferDesc.SampleDesc.Quality = 0;
-
-
-				UINT constantBufferSize = sizeof(DirectX::XMMATRIX) * _MAX_INSTANCES;
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ| D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pInstancePosCB));
-				assert(SUCCEEDED(hr));
-				m_pInstancePosCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("Model12::m_pInstancePosCB") - 1, "Model12::m_pInstancePosCB");
-
-
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pMaterialCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-				m_materialCBV = cbvSrvGpuHandle;
-				pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
 			}
-
 
 		}
 
@@ -310,11 +164,11 @@ namespace wilson
 			m_nullSrvs.resize(5);
 			for (int i = 0; i < 5; ++i)
 			{	
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pHeapManager->GetCurCbvSrvCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pHeapManager->GetCurCbvSrvGpuHandle();
 				m_pDevice->CreateShaderResourceView(nullptr, &nullSrvDesc, cbvSrvCpuHandle);
 				m_nullSrvs[i] = cbvSrvGpuHandle;
-				pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+				pHeapManager->IncreaseCbvSrvHandleOffset();
 			}
 			
 		}
@@ -342,30 +196,6 @@ namespace wilson
 		m_matInfos.clear();
 		m_matNames.clear();
 		m_perModels.clear();
-
-		if (m_pVB != nullptr)
-		{
-			m_pVB->Release();
-			m_pVB = nullptr;
-		}
-
-		if (m_pIB != nullptr)
-		{
-			m_pIB->Release();
-			m_pIB = nullptr;
-		}
-
-		if (m_pMaterialCB != nullptr)
-		{
-			m_pMaterialCB->Release();
-			m_pMaterialCB = nullptr;
-		}
-
-		if (m_pInstancePosCB != nullptr)
-		{
-			m_pInstancePosCB->Release();
-			m_pInstancePosCB = nullptr;
-		}
 
 		if (m_instancedData != nullptr)
 		{
@@ -448,7 +278,7 @@ namespace wilson
 			MaterialInfo matInfo = m_matInfos[i];
 			//Upload materialCB
 			{
-				memcpy(m_pMaterial, &matInfo.material, sizeof(Material));
+				memcpy(m_pMaterialBegin, &matInfo.material, sizeof(Material));
 				pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsMaterial, m_materialCBV);
 			}
 

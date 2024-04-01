@@ -4,7 +4,7 @@
 #include "typedef.h"
 namespace wilson
 {	
-	class DescriptorHeapManager;
+	class HeapManager;
 	class ShadowMap12
 	{
 
@@ -53,7 +53,7 @@ namespace wilson
 		}
 		ShadowMap12() = default;
 		ShadowMap12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList,
-			DescriptorHeapManager* pDescriptorHeapManager,
+			HeapManager* pHeapManager,
 			const UINT width, const UINT height, const UINT cascadeLevel,
 			const UINT dirLightCap, const UINT pntLightCap, const UINT spotLightCap);
 		~ShadowMap12();

@@ -1,14 +1,10 @@
 #include "MatrixBuffer12.h"
-#include "DescriptorHeapManager.h"
+#include "HeapManager.h"
 namespace wilson
 {
-	MatBuffer12::MatBuffer12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager,
+	MatBuffer12::MatBuffer12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager,
 		XMMATRIX* pViewMat, XMMATRIX* pProjMat)
 	{
-		m_pMat12Cb = nullptr;
-		m_pProjMat12Cb = nullptr;
-		m_pViewMat12Cb = nullptr;
-		m_pCombinedMat12Cb = nullptr;
 
 		m_pMatricesCbBegin = nullptr;
 		m_pProjMatCbBegin = nullptr;
@@ -23,153 +19,27 @@ namespace wilson
 		m_viewMat = *pViewMat;
 		m_projMat = *pProjMat;
 
-
-		D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-		D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-		D3D12_HEAP_PROPERTIES heapProps = {};
-		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
-
-		D3D12_RESOURCE_DESC cbufferDesc = {};
-		cbufferDesc.Width = _64KB_ALIGN(sizeof(MatrixBuffer));
-		cbufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-		cbufferDesc.Alignment = 0;
-		cbufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		cbufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-		cbufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		cbufferDesc.Height = 1;
-		cbufferDesc.DepthOrArraySize = 1;
-		cbufferDesc.MipLevels = 1;
-		cbufferDesc.SampleDesc.Count = 1;
-		cbufferDesc.SampleDesc.Quality = 0;
-
-		HRESULT hr;
-		{
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pMat12Cb));
-			assert(SUCCEEDED(hr));
-			m_pMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("MatBuffer::m_pMat12Cb") - 1, "MatBuffer::m_pMat12Cb");
-
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&m_pMatricesCbBegin));
-			assert(SUCCEEDED(hr));
-			UINT constantBufferSize = sizeof(MatrixBuffer);
-
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-			cbvDesc.BufferLocation = m_pMat12Cb->GetGPUVirtualAddress();
-			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-			m_matCBV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-		}
 		
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			cbufferDesc.Width = _64KB_ALIGN(sizeof(DirectX::XMMATRIX));
+		UINT cbSize = sizeof(MatrixBuffer);
+		m_pMatricesCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
+		m_matCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		
+		cbSize = sizeof(DirectX::XMMATRIX);
+		m_pProjMatCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
+		m_projMatCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		
+		cbSize = sizeof(DirectX::XMMATRIX);
+		m_pViewMatCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
+		m_viewMatCBV = pHeapManager->GetCBV(cbSize, pDevice);
 
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pProjMat12Cb));
-			assert(SUCCEEDED(hr));
-			m_pProjMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("MatBuffer::m_pProjMat12Cb") - 1, "MatBuffer::m_pProjMat12Cb");
-
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pProjMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&m_pProjMatCbBegin));
-			assert(SUCCEEDED(hr));
-
-			UINT constantBufferSize = sizeof(DirectX::XMMATRIX);
-
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-			cbvDesc.BufferLocation = m_pProjMat12Cb->GetGPUVirtualAddress();
-			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-			m_projMatCBV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-		}
-
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			cbufferDesc.Width = _64KB_ALIGN(sizeof(DirectX::XMMATRIX));
-
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pViewMat12Cb));
-			assert(SUCCEEDED(hr));
-			m_pViewMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("MatBuffer::m_pViewMat12Cb") - 1, "MatBuffer::m_pViewMat12Cb");
-
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pViewMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&m_pViewMatCbBegin));
-			assert(SUCCEEDED(hr));
-
-			UINT constantBufferSize = sizeof(DirectX::XMMATRIX);
-
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-			cbvDesc.BufferLocation = m_pViewMat12Cb->GetGPUVirtualAddress();
-			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-			m_viewMatCBV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-		}
-
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			cbufferDesc.Width = _64KB_ALIGN(sizeof(DirectX::XMMATRIX));
-
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pCombinedMat12Cb));
-			assert(SUCCEEDED(hr));
-			m_pCombinedMat12Cb->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("MatBuffer::m_pCombinedMat12Cb") - 1, "MatBuffer::m_pCombinedMat12Cb");
-
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pCombinedMat12Cb->Map(0, &readRange, reinterpret_cast<void**>(&m_pCombinedMatCbBegin));
-			assert(SUCCEEDED(hr));
-
-			UINT constantBufferSize = sizeof(DirectX::XMMATRIX);
-
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-			cbvDesc.BufferLocation = m_pCombinedMat12Cb->GetGPUVirtualAddress();
-			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-			m_combinedMatCBV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-		}
+		cbSize = sizeof(DirectX::XMMATRIX);
+		m_pCombinedMatCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
+		m_combinedMatCBV = pHeapManager->GetCBV(cbSize, pDevice);
+	
 	}
 
 	MatBuffer12::~MatBuffer12()
 	{
-
-		if (m_pMat12Cb != nullptr)
-		{
-			m_pMat12Cb->Release();
-			m_pMat12Cb = nullptr;
-		}
-
-		if (m_pProjMat12Cb != nullptr)
-		{
-			m_pProjMat12Cb->Release();
-			m_pProjMat12Cb = nullptr;
-		}
-
-		if (m_pViewMat12Cb != nullptr)
-		{
-			m_pViewMat12Cb->Release();
-			m_pViewMat12Cb = nullptr;
-		}
-
-		if (m_pCombinedMat12Cb != nullptr)
-		{
-			m_pCombinedMat12Cb->Release();
-			m_pCombinedMat12Cb = nullptr;
-		}
 	}
 
 	void MatBuffer12::UploadMatBuffer(ID3D12GraphicsCommandList* pCommandlist)

@@ -9,7 +9,7 @@ using namespace DirectX;
 
 namespace wilson
 {
-	class DescriptorHeapManager;
+	class HeapManager;
 	class MatBuffer12
 	{
 	public:
@@ -44,7 +44,7 @@ namespace wilson
 			return m_wvpMat;
 		}
 
-		MatBuffer12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager,
+		MatBuffer12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager,
 			XMMATRIX* pViewMat, XMMATRIX* pProjMat);
 		~MatBuffer12();
 
@@ -61,10 +61,6 @@ namespace wilson
 		XMMATRIX m_wvpMat;
 		XMMATRIX m_wvpLitMat;
 
-		ID3D12Resource* m_pMat12Cb;
-		ID3D12Resource* m_pProjMat12Cb;
-		ID3D12Resource* m_pViewMat12Cb;
-		ID3D12Resource* m_pCombinedMat12Cb;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_matCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_projMatCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_viewMatCBV;

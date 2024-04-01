@@ -6,7 +6,7 @@
 namespace wilson
 {	
 	class D3D12;
-	class DescriptorHeapManager;
+	class HeapManager;
 	class ContentBrowser12
 	{
 	public:

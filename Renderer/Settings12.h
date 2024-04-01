@@ -7,7 +7,7 @@
 
 namespace wilson
 {	
-	class DescriptorHeapManager;
+	class HeapManager;
 	class Settings12
 	{
 	public:
@@ -27,7 +27,7 @@ namespace wilson
 		ID3D12Resource* m_pSpotLitIcon12UploadCB;
 
 		D3D12_GPU_DESCRIPTOR_HANDLE m_dirLitIcon12SRV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_pntLitIcon12SRV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_cubeLitIcon12SRV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_spotLitIcon12SRV;
 
 		FPS m_FPS;

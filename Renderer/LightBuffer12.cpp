@@ -1,5 +1,5 @@
 #include "LightBuffer12.h"
-#include "DescriptorHeapManager.h"
+#include "HeapManager.h"
 namespace wilson
 {
 	void LightBuffer12::UpdateDirLightMatrices(ID3D12GraphicsCommandList* pCommandlist)
@@ -83,13 +83,8 @@ namespace wilson
 
 	}
 	
-	LightBuffer12::LightBuffer12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, DescriptorHeapManager* pDescriptorHeapManager)
+	LightBuffer12::LightBuffer12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, HeapManager* pHeapManager)
 	{
-	
-		m_pLightProperty12Buffer = nullptr;
-		m_pDirLitMatrices12Buffer = nullptr;
-		m_pSpotLitMatrices12Buffer = nullptr;
-
 		m_pLightPropertyCbBegin = nullptr;
 		m_pDirLitMatricesCbBegin = nullptr;
 		m_pSpotLitMatricesCbBegin = nullptr;
@@ -112,138 +107,32 @@ namespace wilson
 
 			for (int i = 0; i < _MAX_DIR_LIGHTS + _MAX_PNT_LIGHTS + _MAX_SPT_LIGHTS; ++i)
 			{
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pHeapManager->GetCurCbvSrvCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pHeapManager->GetCurCbvSrvGpuHandle();
 				pDevice->CreateShaderResourceView(nullptr, &nullSrvDesc, cbvSrvCpuHandle);
-				pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+				pHeapManager->IncreaseCbvSrvHandleOffset();
 			}
 		}
 		
-		HRESULT hr;
-
-		D3D12_HEAP_PROPERTIES heapProps = {};
-		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
-
-		D3D12_RESOURCE_DESC cbufferDesc = {};
-		cbufferDesc.Width = _64KB_ALIGN(sizeof(LightBufferProperty));
-		cbufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-		cbufferDesc.Alignment = 0;
-		cbufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		cbufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-		cbufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		cbufferDesc.Height = 1;
-		cbufferDesc.DepthOrArraySize = 1;
-		cbufferDesc.MipLevels = 1;
-		cbufferDesc.SampleDesc.Count = 1;
-		cbufferDesc.SampleDesc.Quality = 0;
-
-
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pLightProperty12Buffer));
-			assert(SUCCEEDED(hr));
-			m_pLightProperty12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("LightBuffer::m_pLightPropertyBuffer") - 1, "LightBuffer::m_pLightPropertyBuffer");
-
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pLightProperty12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pLightPropertyCbBegin));
-			assert(SUCCEEDED(hr));
-
-			UINT constantBufferSize = sizeof(LightBufferProperty);
-
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-			cbvDesc.BufferLocation = m_pLightProperty12Buffer->GetGPUVirtualAddress();
-			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-			m_lightPropertyBufferCBV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-		}
+		UINT cbSize = sizeof(DirLightMatrices);
+		m_pLightPropertyCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
+		m_lightPropertyBufferCBV = pHeapManager->GetCBV(cbSize, pDevice);
 		
-
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-			cbufferDesc.Width = _64KB_ALIGN(sizeof(DirLightMatrices));
-
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pDirLitMatrices12Buffer));
-			assert(SUCCEEDED(hr));
-			m_pDirLitMatrices12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("LightBuffer::m_pDirLitMatrices12Buffer") - 1, "LightBuffer::m_pDirLitMatrices12Buffer");
-
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pDirLitMatrices12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pDirLitMatricesCbBegin));
-			assert(SUCCEEDED(hr));
-
-			UINT constantBufferSize = sizeof(DirLightMatrices);
-
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-			cbvDesc.BufferLocation = m_pDirLitMatrices12Buffer->GetGPUVirtualAddress();
-			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-			m_dirLitMatrices12BufferCBV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-		}
-
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-			cbufferDesc.Width = _64KB_ALIGN(sizeof(SpotLightMatrices));
+		cbSize = sizeof(DirLightMatrices);
+		m_pDirLitMatricesCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
+		m_dirLitMatrices12BufferCBV = pHeapManager->GetCBV(cbSize, pDevice);
 
 
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pSpotLitMatrices12Buffer));
-			assert(SUCCEEDED(hr));
-			m_pSpotLitMatrices12Buffer->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("LightBuffer::m_pSpotLitMatrices12Buffer") - 1, "LightBuffer::m_pSpotLitMatrices12Buffer");
-
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pSpotLitMatrices12Buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pSpotLitMatricesCbBegin));
-			assert(SUCCEEDED(hr));
-
-			UINT constantBufferSize = sizeof(SpotLightMatrices);
-
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-			cbvDesc.BufferLocation = m_pSpotLitMatrices12Buffer->GetGPUVirtualAddress();
-			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-			m_spotLitMatrices12BufferCBV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-		}
+		
+		cbSize = sizeof(SpotLightMatrices);
+		m_pSpotLitMatricesCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
+		m_spotLitMatrices12BufferCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		
 
 	}
 
 	LightBuffer12::~LightBuffer12()
 	{
-
-		if (m_pLightProperty12Buffer != nullptr)
-		{
-			m_pLightProperty12Buffer->Release();
-			m_pLightProperty12Buffer = nullptr;
-		}
-
-		if (m_pDirLitMatrices12Buffer != nullptr)
-		{
-			m_pDirLitMatrices12Buffer->Release();
-			m_pDirLitMatrices12Buffer = nullptr;
-		}
-
-		if (m_pSpotLitMatrices12Buffer != nullptr)
-		{
-			m_pSpotLitMatrices12Buffer->Release();
-			m_pSpotLitMatrices12Buffer = nullptr;
-		}
 
 		for (int i = 0; i < m_pDirLights.size(); ++i)
 		{

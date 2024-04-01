@@ -8,7 +8,7 @@
 #include"typedef.h"
 namespace wilson
 {
-	class DescriptorHeapManager;
+	class HeapManager;
 	class LightBuffer12
 	{
 	public:
@@ -65,13 +65,10 @@ namespace wilson
 		void UpdateSpotLightMatrices(ID3D12GraphicsCommandList* pCommandlist);
 		void UpdateLightBuffer(ID3D12GraphicsCommandList* pCommandlist);
 
-		LightBuffer12(ID3D12Device*, ID3D12GraphicsCommandList*, DescriptorHeapManager*);
+		LightBuffer12(ID3D12Device*, ID3D12GraphicsCommandList*, HeapManager*);
 		~LightBuffer12();
 	private:
 
-		ID3D12Resource* m_pLightProperty12Buffer;
-		ID3D12Resource* m_pDirLitMatrices12Buffer;
-		ID3D12Resource* m_pSpotLitMatrices12Buffer;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_lightPropertyBufferCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_dirLitMatrices12BufferCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_spotLitMatrices12BufferCBV;

@@ -1,9 +1,9 @@
 #include "SpotLight12.h"
-#include "DescriptorHeapManager.h"
+#include "HeapManager.h"
 namespace wilson
 {
 
-    SpotLight12::SpotLight12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager, UINT idx)
+    SpotLight12::SpotLight12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager, UINT idx)
         :Light12(idx)
     {
        

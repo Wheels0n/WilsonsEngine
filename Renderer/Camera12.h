@@ -8,7 +8,7 @@
 namespace wilson {
 
 	class Frustum;
-	class DescriptorHeapManager;
+	class HeapManager;
 	class Camera12
 	{
 	public:
@@ -107,9 +107,9 @@ namespace wilson {
 		void Rotate(int, int);
 		void Translate(DirectX::XMVECTOR);
 
-		Camera12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager,
+		Camera12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager,
 			const UINT screenWidth, const UINT screenHeight, float ScreenFar, float ScreenNear);
-		~Camera12();
+		~Camera12()=default;
 	private:
 
 
@@ -125,7 +125,6 @@ namespace wilson {
 		DirectX::XMMATRIX m_projMat;// think of the frustum as the lens of our camera, for it controls our view
 		DirectX::XMMATRIX m_vpMat;
 
-		ID3D12Resource* m_pCamCb;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_camPosCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_cascadeLevelCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_frustumInfoCBV;

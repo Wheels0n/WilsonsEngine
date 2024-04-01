@@ -1,7 +1,7 @@
 #include <DirectXTex.h>
 #include "ContentBrowser12.h"
 #include "D3D12.h"
-#include "DescriptorHeapManager.h"
+#include "HeapManager.h"
 namespace wilson {
 	const static std::filesystem::path assetsPath = "Assets";
 	const static float _ICON_SZ = 128.0f;
@@ -36,7 +36,7 @@ namespace wilson {
 
 	}
 
-	ContentBrowser12::ContentBrowser12(D3D12* pD3D12)//ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager)
+	ContentBrowser12::ContentBrowser12(D3D12* pD3D12)
 	{
 		//D3D12
 		m_pDirIcon12Tex = nullptr;
@@ -46,7 +46,7 @@ namespace wilson {
 
 		ID3D12Device* pDevice = pD3D12->GetDevice();
 		ID3D12GraphicsCommandList* pCommandlist = pD3D12->GetCommandList();
-		DescriptorHeapManager* pDescriptorHeapManager = pD3D12->GetDescriptorHeapManager();
+		HeapManager* pHeapManager = pD3D12->GetHeapManager();
 
 		HRESULT hr;
 		//Gen DirIcon
@@ -74,15 +74,8 @@ namespace wilson {
 			texDesc.SampleDesc.Count = 1;
 			texDesc.SampleDesc.Quality = 0;
 
-			D3D12_HEAP_PROPERTIES heapProps = {};
-			heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-				nullptr, IID_PPV_ARGS(&m_pDirIcon12Tex));
-			assert(SUCCEEDED(hr));
+			pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
+				&m_pDirIcon12Tex, pDevice);
 			m_pDirIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ContentBrowser12::m_pDirIcon12Tex") - 1, "ContentBrowser12::m_pDirIcon12Tex");
 			
@@ -97,11 +90,7 @@ namespace wilson {
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			pDevice->CreateShaderResourceView(m_pDirIcon12Tex, &srvDesc, cbvSrvCpuHandle);
-			m_dirIcon12SRV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+			m_dirIcon12SRV = pHeapManager->GetSRV(srvDesc, m_pDirIcon12Tex, pDevice);
 			
 		}
 
@@ -133,15 +122,8 @@ namespace wilson {
 			texDesc.SampleDesc.Count = 1;
 			texDesc.SampleDesc.Quality = 0;
 
-			D3D12_HEAP_PROPERTIES heapProps = {};
-			heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-				nullptr, IID_PPV_ARGS(&m_pFileIcon12Tex));
-			assert(SUCCEEDED(hr));
+			pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
+				&m_pFileIcon12Tex, pDevice);
 			m_pFileIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ContentBrowser12::m_pFileIcon12Tex") - 1, "ContentBrowser12::m_pFileIcon12Tex");
 
@@ -156,12 +138,7 @@ namespace wilson {
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			pDevice->CreateShaderResourceView(m_pFileIcon12Tex, &srvDesc,  cbvSrvCpuHandle);
-			m_fileIcon12SRV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+			m_fileIcon12SRV = pHeapManager->GetSRV(srvDesc, m_pFileIcon12Tex, pDevice);
 		}
 
 

@@ -51,7 +51,7 @@ namespace wilson
 		int m_top;
 
 		D3D12* m_pD3D12;
-		DescriptorHeapManager* m_pDescripotrHeapManager;
+		HeapManager* m_pDescripotrHeapManager;
 		Camera12* m_pCam;
 		Scene12* m_pScene12;
 		Importer12* m_pImporter12;

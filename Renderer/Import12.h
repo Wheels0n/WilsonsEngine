@@ -9,7 +9,7 @@
 #include "typedef.h"
 namespace wilson {
 	
-	class DescriptorHeapManager;
+	class HeapManager;
 	class D3D12;
 	class Importer12
 	{
@@ -85,7 +85,7 @@ namespace wilson {
 		ID3D12GraphicsCommandList* m_pImporterCommandList;
 		ID3D12CommandAllocator* m_pImporterCommandAllocator;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SRV;
-		DescriptorHeapManager* m_pDescriptorHeapManager;
+		HeapManager* m_pHeapManager;
 
 		FbxManager* m_fbxManager;
 		FbxIOSettings* m_fbxIOsettings;

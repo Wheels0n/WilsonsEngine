@@ -1,9 +1,9 @@
 #include "Camera12.h"
-#include "DescriptorHeapManager.h"
+#include "HeapManager.h"
 #include "typedef.h"
 namespace wilson {
 
-	Camera12::Camera12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, DescriptorHeapManager* pDescriptorHeapManager,
+	Camera12::Camera12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager,
 		const UINT screenWidth, const UINT screenHeight, float screenFar, float screenNear)
 	{
 		m_nearZ = screenNear;
@@ -27,85 +27,19 @@ namespace wilson {
 		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
 		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
 
-		m_pCamCb = nullptr;
 		m_pCamPosCbBegin = nullptr;
 		m_pCascadeLevelCbBegin = nullptr; 
-
-		HRESULT hr;
-
-
-		D3D12_HEAP_PROPERTIES heapProps = {};
-		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
-
-		D3D12_RESOURCE_DESC cbufferDesc = {};
-		cbufferDesc.Width = _64KB_ALIGN(sizeof(DirectX::XMVECTOR));
-		cbufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-		cbufferDesc.Alignment = 0;
-		cbufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		cbufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-		cbufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		cbufferDesc.Height = 1;
-		cbufferDesc.DepthOrArraySize = 1;
-		cbufferDesc.MipLevels = 1;
-		cbufferDesc.SampleDesc.Count = 1;
-		cbufferDesc.SampleDesc.Quality = 0;
-
 		
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-				&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pCamCb));
-			assert(SUCCEEDED(hr));
-			m_pCamCb->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Camera::m_pCamCb") - 1, "Camera::m_pCamCb");
-
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pCamCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pCamPosCbBegin));
-			assert(SUCCEEDED(hr));
-
-			UINT constantBufferSize = sizeof(DirectX::XMVECTOR);
-			m_pCascadeLevelCbBegin = m_pCamPosCbBegin + (_CBV_ALIGN(constantBufferSize));
-
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);//255aligned
-			cbvDesc.BufferLocation = m_pCamCb->GetGPUVirtualAddress();
-			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-			m_camPosCBV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-		}
-
-
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-			UINT constantBufferSize = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-			cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-			cbvDesc.BufferLocation = m_pCamCb->GetGPUVirtualAddress()+_CBV_READ_SIZE;
-			pDevice->CreateConstantBufferView(&cbvDesc, cbvSrvCpuHandle);
-			m_cascadeLevelCBV = cbvSrvGpuHandle;
-			pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-		}
+		UINT cbSize = sizeof(DirectX::XMVECTOR);
+		m_pCamPosCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
+		m_camPosCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		
+		
+		cbSize = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;
+		m_pCascadeLevelCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
+		m_cascadeLevelCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		
 	
-	}
-
-	Camera12::~Camera12()
-	{
-
-		if (m_pCamCb != nullptr)
-		{
-			m_pCamCb->Release();
-			m_pCamCb = nullptr;
-		}
-
 	}
 
 	void Camera12::ResetTranslation()

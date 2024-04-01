@@ -671,7 +671,7 @@ namespace wilson
 						0.0f);
 					m_rotationVecs.push_back(rot);
 				}
-				D3D11_TEXTURE2D_DESC texDesc = {};
+				D3D11_TEXTURE2D_DESC texDesc= {};
 				texDesc.Width = _NOISE_TEX_SIZE;
 				texDesc.Height = _NOISE_TEX_SIZE;
 				texDesc.Usage = D3D11_USAGE_DEFAULT;

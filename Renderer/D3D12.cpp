@@ -94,8 +94,8 @@ namespace wilson
 		{	
 			WaitForSingleObject(m_ssaoBeginFrame, INFINITE);
 
-			ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+			ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 			//SSAO Pass
 		
 			m_pSSAOCommandList->SetPipelineState(m_pSSAOPso);
@@ -206,7 +206,7 @@ namespace wilson
 		HRESULT hr;
 		for (UINT i = 0; i < _BUFFER_COUNT; ++i)
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
+			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pHeapManager->GetCurRtvHandle();
 			hr = m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&m_pScreenTex[i]));
 			assert(SUCCEEDED(hr));
 			m_pScreenTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
@@ -214,7 +214,7 @@ namespace wilson
 
 			m_pDevice->CreateRenderTargetView(m_pScreenTex[i], nullptr, rtvHandle);
 			m_ScreenRTV[i] = rtvHandle;
-			m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
+			m_pHeapManager->IncreaseRtvHandleOffset();
 
 		}
 
@@ -265,16 +265,11 @@ namespace wilson
 	}
 	bool D3D12::CreateRTVandSRV(UINT width, UINT height)
 	{
-		//코드 중복, 함수로 만들것
-		DestroyTexture();
+		//SSAO, 위치, 법선, PBR 텍스쳐들은 DXGI_FORMAT_R16G16B16A16_FLOAT;
+		//Hi-Z는 깊이라서 d32
+		//그외는 DXGI_FORMAT_R8G8B8A8_UNORM;
 
-		HRESULT hr;
-		D3D12_HEAP_PROPERTIES heapProps = {};
-		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
+		DestroyTexture();
 
 		D3D12_RESOURCE_DESC	texDesc = {};
 		texDesc.Width = width;
@@ -282,7 +277,7 @@ namespace wilson
 		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		texDesc.Alignment = 0;
 		texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 		texDesc.DepthOrArraySize = 1;
 		texDesc.MipLevels = 1;
@@ -304,383 +299,215 @@ namespace wilson
 		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-		D3D12_CLEAR_VALUE clearVal = {};
-		clearVal.Format = texDesc.Format;
-		clearVal.Color[3] = 1.0f;
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+		uavDesc.Format = texDesc.Format;
 
-		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pSceneTex));
-		assert(SUCCEEDED(hr));
+		m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			&m_pSceneTex, m_pDevice);
 		m_pSceneTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pSceneTex") - 1, "D3D12:::m_pSceneTex");
+		m_SceneRTV = m_pHeapManager->GetRTV(rtvDesc, m_pSceneTex, m_pDevice);
+		m_SceneSRV = m_pHeapManager->GetSRV(srvDesc, m_pSceneTex, m_pDevice);
+	
+		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+		m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE ,
+			&m_pViewportTex, m_pDevice);
+		m_pViewportTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D12:::m_pViewportTex") - 1, "D3D12:::m_pViewportTex");
 
-		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pBrightTex));
-		assert(SUCCEEDED(hr));
+		m_ViewportUAV = m_pHeapManager->GetUAV(uavDesc, m_pViewportTex, m_pDevice);
+		m_ViewportSRV = m_pHeapManager->GetSRV(srvDesc, m_pViewportTex, m_pDevice);
+
+
+		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE ,
+			&m_pBrightTex, m_pDevice);
 		m_pBrightTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12:::m_pBrightTex") - 1, "D3D12:::m_pBrightTex");
-
+		m_BrightRTV = m_pHeapManager->GetRTV(rtvDesc, m_pBrightTex, m_pDevice);
+		m_BrightSRV = m_pHeapManager->GetSRV(srvDesc, m_pBrightTex, m_pDevice);
 
 		for (int i = 0; i < 2; ++i)
 		{
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pPingPongTex[i]));
-			assert(SUCCEEDED(hr));
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE ,
+				&m_pPingPongTex[i], m_pDevice);
 			m_pPingPongTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pPingPongTex[i]") - 1, "D3D12:::m_pPingPongTex[i]");
+			m_PingPongRTV[i] = m_pHeapManager->GetRTV(rtvDesc, m_pPingPongTex[i], m_pDevice);
+			m_PingPongSRV[i] = m_pHeapManager->GetSRV(srvDesc, m_pPingPongTex[i], m_pDevice);
 		}
+
+		
 		for (int i = 0; i < eGbuf_cnt; ++i)
-		{
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pGBufTex[i]));
-			assert(SUCCEEDED(hr));
+		{	
+			if (i <eGbuf_albedo || i >eGbuf_emissive)
+			{
+				texDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+				rtvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+				srvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+			}
+			else
+			{
+				texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			}
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE ,
+				&m_pGBufTex[i], m_pDevice);
 			m_pGBufTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pGBufTex[i]") - 1, "D3D12:::m_pGBufTex[i]");
+			
+			m_GBufRTV[i] = m_pHeapManager->GetRTV(rtvDesc, m_pGBufTex[i], m_pDevice);
+			m_GBufSRV[i] = m_pHeapManager->GetSRV(srvDesc, m_pGBufTex[i], m_pDevice);
 		}
 
 
-	
+		//HiZ
 		//fmaxf : 원래 밉맵은 가장 큰 변(side) 기준
 		//log2f : 텍스쳐 크기가 절반씩 줄어들어서
 		//+1    : 원본 텍스쳐까지 반영. ex)64, 32, 16, 8, 4, 2, 1
 
-		UINT mipLevels = 1 + (int)floorf(log2f(fmaxf(width, height)));
-		m_hiZTempRtvs = std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>(mipLevels);
-		m_hiZTempSrvs = std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>(mipLevels);
+		{
+			UINT mipLevels = 1 + (int)floorf(log2f(fmaxf(width, height)));
+			m_hiZTempRtvs = std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>(mipLevels);
+			m_hiZTempSrvs = std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>(mipLevels);
 
-		texDesc.MipLevels = mipLevels;
-		texDesc.Format = DXGI_FORMAT_R32_FLOAT;
+			texDesc.MipLevels = mipLevels;
+			texDesc.Format = DXGI_FORMAT_R32_FLOAT;
+			rtvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+			srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE ,
+				&m_pHiZTempTex, m_pDevice);
+			m_pHiZTempTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12:::m_pHiZTempTex") - 1, "D3D12:::m_pHiZTempTex");
+
+			//밉맵생성용 
+			for (int i = 0; i < mipLevels; ++i)
+			{
+				rtvDesc.Texture2D.MipSlice = i;
+				srvDesc.Texture2D.MostDetailedMip = i;
+				m_hiZTempRtvs[i] = m_pHeapManager->GetRTV(rtvDesc, m_pHiZTempTex, m_pDevice);
+				m_hiZTempSrvs[i] = m_pHeapManager->GetSRV(srvDesc, m_pHiZTempTex, m_pDevice);
+			}
+
+			//Culling용
+			texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+			srvDesc.Texture2D.MipLevels = mipLevels;
+			srvDesc.Texture2D.MostDetailedMip = 0;
+			m_hiZTempSrvs.push_back(m_pHeapManager->GetSRV(srvDesc, m_pHiZTempTex, m_pDevice));
+
+
+			texDesc.Width = sqrt(_HI_Z_CULL_COUNT);
+			texDesc.Height = texDesc.Width;
+			texDesc.MipLevels = 1;
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+				&m_pHiZCullListTex, m_pDevice);
+			m_pHiZCullListTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12::m_pHiZCullListTex") - 1, "D3D12:::m_pHiZCullListTex");
+
+			uavDesc.Format = DXGI_FORMAT_R32_FLOAT;
+			m_HiZCullListUAV = m_pHeapManager->GetUAV(uavDesc, m_pHiZCullListTex, m_pDevice);
+		}
 		
-		clearVal.Format = DXGI_FORMAT_R32_FLOAT;
-
-		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pHiZTempTex));
-		assert(SUCCEEDED(hr));
-		m_pHiZTempTex->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D12:::m_pHiZTempTex") - 1, "D3D12:::m_pHiZTempTex");
-
-		texDesc.MipLevels = 1;
-		texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		clearVal.Format= DXGI_FORMAT_R32G32B32A32_FLOAT;
-
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
-		m_pDevice->CreateRenderTargetView(m_pSceneTex, &rtvDesc, rtvCpuHandle);
-		m_SceneRTV = rtvCpuHandle;
-		m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
-
-		rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
-		m_pDevice->CreateRenderTargetView(m_pBrightTex, &rtvDesc, rtvCpuHandle);
-		m_BrightRTV = rtvCpuHandle;
-		m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
-
-
-		rtvDesc.Format = DXGI_FORMAT_R32_FLOAT;
-		for (int i = 0; i < mipLevels; ++i)
-		{
-			rtvDesc.Texture2D.MipSlice = i;
-			rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
-			m_pDevice->CreateRenderTargetView(m_pHiZTempTex, &rtvDesc, rtvCpuHandle);
-			m_hiZTempRtvs[i] = rtvCpuHandle;
-			m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
-		}
-
-		rtvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		rtvDesc.Texture2D.MipSlice = 0;
-		for (int i = 0; i < 2; ++i)
-		{
-			rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
-			m_pDevice->CreateRenderTargetView(m_pPingPongTex[i], &rtvDesc, rtvCpuHandle);
-			m_PingPongRTV[i] = rtvCpuHandle;
-			m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
-		}
-		for (int i = 0; i < eGbuf_cnt; ++i)
-		{
-			rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
-			m_pDevice->CreateRenderTargetView(m_pGBufTex[i], &rtvDesc, rtvCpuHandle);
-			m_GBufRTV[i] = rtvCpuHandle;
-			m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
-
-		}
-
-
-		D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-		D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-		m_pDevice->CreateShaderResourceView(m_pViewportTex, &srvDesc, cbvSrvCpuHandle);
-		m_ViewportSRV = cbvSrvGpuHandle;
-		m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-		cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-		cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-		m_pDevice->CreateShaderResourceView(m_pSceneTex, &srvDesc, cbvSrvCpuHandle);
-		m_SceneSRV = cbvSrvGpuHandle;
-		m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-		cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-		cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-		m_pDevice->CreateShaderResourceView(m_pSSAOBlurDebugTex, &srvDesc, cbvSrvCpuHandle);
-		m_SSAOBlurDebugSRV = cbvSrvGpuHandle;
-		m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-		cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-		cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-		m_pDevice->CreateShaderResourceView(m_pBrightTex, &srvDesc, cbvSrvCpuHandle);
-		m_BrightSRV = cbvSrvGpuHandle;
-		m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-		srvDesc.Format= DXGI_FORMAT_R32_FLOAT;
-		for (int i = 0; i < mipLevels; ++i)
-		{
-			srvDesc.Texture2D.MostDetailedMip = i;
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateShaderResourceView(m_pHiZTempTex, &srvDesc, cbvSrvCpuHandle);
-			m_hiZTempSrvs[i] = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-		}
-		srvDesc.Texture2D.MipLevels=mipLevels;
-		srvDesc.Texture2D.MostDetailedMip = 0;
-		cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-		cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-		m_pDevice->CreateShaderResourceView(m_pHiZTempTex, &srvDesc, cbvSrvCpuHandle);
-		m_hiZTempSrvs.push_back(cbvSrvGpuHandle);
-		m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-
-		srvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		srvDesc.Texture2D.MipLevels = 1;
-		for (int i = 0; i < 2; ++i)
-		{
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateShaderResourceView(m_pPingPongTex[i], &srvDesc, cbvSrvCpuHandle);
-			m_PingPongSRV[i] = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-		}
-		for (int i = 0; i < eGbuf_cnt; ++i)
-		{
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateShaderResourceView(m_pGBufTex[i], &srvDesc, cbvSrvCpuHandle);
-			m_GBufSRV[i] = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-		}
-
 
 		//SSAO & Post process and UAV..
 		{
-			texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;//DXGI_FORMAT_R32_FLOAT;
+			texDesc.Width = width;
+			texDesc.Height = height;
+			texDesc.MipLevels = 1;
+			texDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 			texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-			clearVal.Format = texDesc.Format;
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, nullptr , IID_PPV_ARGS(&m_pSSAOTex));
-			assert(SUCCEEDED(hr));
+			srvDesc.Format = texDesc.Format;
+			srvDesc.Texture2D.MipLevels = 1;
+			uavDesc.Format = texDesc.Format;
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+				&m_pSSAOTex, m_pDevice);
 			m_pSSAOTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pSSAOTex") - 1, "D3D12:::m_pSSAOTex");
+			m_SSAOSRV = m_pHeapManager->GetSRV(srvDesc, m_pSSAOTex, m_pDevice);
+			m_SSAOUAV = m_pHeapManager->GetUAV(uavDesc, m_pSSAOTex, m_pDevice);
 
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, IID_PPV_ARGS(&m_pSSAOBlurTex));
-			assert(SUCCEEDED(hr));
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&m_pSSAOBlurTex, m_pDevice);
 			m_pSSAOBlurTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pSSAOBlurTex") - 1, "D3D12:::m_pSSAOBlurTex");
+			m_SSAOBlurSRV = m_pHeapManager->GetSRV(srvDesc, m_pSSAOBlurTex, m_pDevice);
+			m_SSAOBlurUAV = m_pHeapManager->GetUAV(uavDesc, m_pSSAOBlurTex, m_pDevice);
 
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&m_pSSAOBlurDebugTex));
-			assert(SUCCEEDED(hr));
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS ,
+				&m_pSSAOBlurDebugTex, m_pDevice);
 			m_pSSAOBlurDebugTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pSSAOBlurDebugTex") - 1, "D3D12:::m_pSSAOBlurDebugTex");
-
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, IID_PPV_ARGS(&m_pViewportTex));
-			assert(SUCCEEDED(hr));
-			m_pViewportTex->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12:::m_pViewportTex") - 1, "D3D12:::m_pViewportTex");
-
-			texDesc.Width = 64;
-			texDesc.Height = 64;
-			texDesc.Format = DXGI_FORMAT_R32_FLOAT;
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&m_pHiZCullListTex));
-			assert(SUCCEEDED(hr));
-			m_pHiZCullListTex->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12:::m_pViewportTex") - 1, "D3D12:::m_pHiZCullListTex");
-
-			texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			srvDesc.Format = texDesc.Format;
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateShaderResourceView(m_pSSAOTex, &srvDesc, cbvSrvCpuHandle);
-			m_SSAOSRV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateShaderResourceView(m_pSSAOBlurTex, &srvDesc, cbvSrvCpuHandle);
-			m_SSAOBlurSRV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateShaderResourceView(m_pSSAOBlurDebugTex, &srvDesc, cbvSrvCpuHandle);
-			m_SSAOBlurDebugSRV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateShaderResourceView(m_pViewportTex, &srvDesc, cbvSrvCpuHandle);
-			m_ViewportSRV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-			uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-			uavDesc.Format = texDesc.Format;
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateUnorderedAccessView(m_pSSAOTex, nullptr, &uavDesc, cbvSrvCpuHandle);
-			m_SSAOUAV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateUnorderedAccessView(m_pSSAOBlurTex, nullptr, &uavDesc, cbvSrvCpuHandle);
-			m_SSAOBlurUAV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateUnorderedAccessView(m_pSSAOBlurDebugTex, nullptr, &uavDesc, cbvSrvCpuHandle);
-			m_SSAOBlurDebugUAV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateUnorderedAccessView(m_pViewportTex, nullptr, &uavDesc, cbvSrvCpuHandle);
-			m_ViewportUAV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			uavDesc.Format = DXGI_FORMAT_R32_FLOAT;
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateUnorderedAccessView(m_pHiZCullListTex, nullptr, &uavDesc, cbvSrvCpuHandle);
-			m_HiZCullListUAV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+			m_SSAOBlurDebugSRV = m_pHeapManager->GetSRV(srvDesc, m_pSSAOBlurDebugTex, m_pDevice);
+			m_SSAOBlurDebugUAV = m_pHeapManager->GetUAV(uavDesc, m_pSSAOBlurDebugTex, m_pDevice);
 		}
 
 
 		//PBR
-		{
+		{ 
 			texDesc.Width = _SHADOWMAP_SIZE;
 			texDesc.Height = _SHADOWMAP_SIZE;
-			texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			texDesc.Flags=D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-			clearVal.Format = texDesc.Format;
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pBRDFTex));
-			assert(SUCCEEDED(hr));
+			texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+			texDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+			rtvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+			rtvDesc.Texture2D.MipSlice = 0;
+			srvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&m_pBRDFTex, m_pDevice);
 			m_pBRDFTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pBRDFTex") - 1, "D3D12:::m_pBRDFTex");
-
+			m_BRDFRTV = m_pHeapManager->GetRTV(rtvDesc, m_pBRDFTex, m_pDevice);
+			m_BRDFSRV = m_pHeapManager->GetSRV(srvDesc, m_pBRDFTex, m_pDevice);
+			
 			texDesc.DepthOrArraySize = 6;
+			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+			rtvDesc.Texture2DArray.ArraySize = 6;
+			rtvDesc.Texture2DArray.MipSlice = 0;
+			rtvDesc.Texture2DArray.FirstArraySlice = 0;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+			srvDesc.TextureCube.MipLevels = 1;
+			srvDesc.TextureCube.MostDetailedMip = 0;
 
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pSkyBoxTex));
-			assert(SUCCEEDED(hr));
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&m_pSkyBoxTex, m_pDevice);
 			m_pSkyBoxTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pSkyBoxTex") - 1, "D3D12:::m_pSkyBoxTex");
-
+			m_SkyBoxRTV = m_pHeapManager->GetRTV(rtvDesc, m_pSkyBoxTex, m_pDevice);
+			m_SkyBoxSRV = m_pHeapManager->GetSRV(srvDesc, m_pSkyBoxTex, m_pDevice);
 
 			texDesc.Width = _DIFFIRRAD_WIDTH;
 			texDesc.Height = _DIFFIRRAD_HEIGHT;
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pDiffIrradianceTex));
-			assert(SUCCEEDED(hr));
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&m_pDiffIrradianceTex, m_pDevice);
 			m_pDiffIrradianceTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pDiffIrradianceTex") - 1, "D3D12:::m_pDiffIrradianceTex");
-
-
+			m_DiffIrradianceRTV = m_pHeapManager->GetRTV(rtvDesc, m_pDiffIrradianceTex, m_pDevice);
+			m_DiffIrradianceSRV = m_pHeapManager->GetSRV(srvDesc, m_pDiffIrradianceTex, m_pDevice);
+			
 
 			texDesc.Width = _PREFILTER_WIDTH;
 			texDesc.Height = _PREFILTER_HEIGHT;
 			texDesc.MipLevels = _PREFILTER_MIP_LEVELS;
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_pPrefilterTex));
-			assert(SUCCEEDED(hr));
+			srvDesc.TextureCube.MipLevels = _PREFILTER_MIP_LEVELS;
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&m_pPrefilterTex, m_pDevice);
 			m_pPrefilterTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pPrefilterTex") - 1, "D3D12:::m_pPrefilterTex");
+			m_PrefilterRTV = m_pHeapManager->GetRTV(rtvDesc, m_pPrefilterTex, m_pDevice);
+			m_PrefilterSRV = m_pHeapManager->GetSRV(srvDesc, m_pPrefilterTex, m_pDevice);
+
 
 			texDesc.Width = _PREFILTER_WIDTH;
 			texDesc.Height = _PREFILTER_HEIGHT;
 			texDesc.MipLevels = _PREFILTER_MIP_LEVELS;
 			texDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_UNORDERED_ACCESS, &clearVal, IID_PPV_ARGS(&m_pUAVTex));
-			assert(SUCCEEDED(hr));
-			m_pUAVTex->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12:::m_pUAVTex") - 1, "D3D12:::m_pUAVTex");
-
-
-			rtvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-
-			rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
-			m_pDevice->CreateRenderTargetView(m_pBRDFTex, &rtvDesc, rtvCpuHandle);
-			m_BRDFRTV = rtvCpuHandle;
-			m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
-
-
-			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-			rtvDesc.Texture2DArray.ArraySize = 6;
-			rtvDesc.Texture2DArray.MipSlice = 0;
-			rtvDesc.Texture2DArray.FirstArraySlice = 0;
-
-			rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
-			m_pDevice->CreateRenderTargetView(m_pSkyBoxTex, &rtvDesc, rtvCpuHandle);
-			m_SkyBoxRTV = rtvCpuHandle;
-			m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
-
-			rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
-			m_pDevice->CreateRenderTargetView(m_pDiffIrradianceTex, &rtvDesc, rtvCpuHandle);
-			m_DiffIrradianceRTV = rtvCpuHandle;
-			m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
-
-			rtvCpuHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
-			m_pDevice->CreateRenderTargetView(m_pPrefilterTex, &rtvDesc, rtvCpuHandle);
-			m_PrefilterRTV = rtvCpuHandle;
-			m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
-
-
-
-			srvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateShaderResourceView(m_pBRDFTex, &srvDesc, cbvSrvCpuHandle);
-			m_BRDFSRV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-			srvDesc.TextureCube.MipLevels = 1;
-			srvDesc.TextureCube.MostDetailedMip = 0;
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateShaderResourceView(m_pSkyBoxTex, &srvDesc, cbvSrvCpuHandle);
-			m_SkyBoxSRV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateShaderResourceView(m_pDiffIrradianceTex, &srvDesc, cbvSrvCpuHandle);
-			m_DiffIrradianceSRV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			srvDesc.TextureCube.MipLevels = _PREFILTER_MIP_LEVELS;
-			m_pDevice->CreateShaderResourceView(m_pPrefilterTex, &srvDesc, cbvSrvCpuHandle);
-			m_PrefilterSRV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+				&m_pGenMipUAVTex, m_pDevice);
+			m_pGenMipUAVTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12:::m_pGenMipUAVTex") - 1, "D3D12:::m_pGenMipUAVTex");
 		}
 		return true;
 	}
@@ -688,16 +515,6 @@ namespace wilson
 	bool D3D12::CreateDSV(UINT width, UINT height)
 	{	
 		DestroySceneDepthTex();
-
-		HRESULT hr;
-
-		D3D12_HEAP_PROPERTIES heapProps = {};
-		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-		heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		heapProps.CreationNodeMask = 1;
-		heapProps.VisibleNodeMask = 1;
-
 
 		D3D12_RESOURCE_DESC texDesc = {};
 		texDesc.Width = width;
@@ -716,39 +533,23 @@ namespace wilson
 		clearVal.Format = DXGI_FORMAT_D32_FLOAT;
 		clearVal.DepthStencil.Depth = 1.0f;
 
-		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-			D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearVal, IID_PPV_ARGS(&m_pScreenDepthTex));
-		assert(SUCCEEDED(hr));
-		m_pScreenDepthTex->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D12::m_pScreenDepthTex") - 1, "D3D12::m_pScreenDepthTex");
-		
-		
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
 		dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 		dsvDesc.Texture2D.MipSlice = 0;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE dsvCpuHandle = m_pDescriptorHeapManager->GetCurDsvHandle();
-		m_pDevice->CreateDepthStencilView(m_pScreenDepthTex, &dsvDesc, dsvCpuHandle);
-		m_ScreenDSV = dsvCpuHandle;
-		m_pDescriptorHeapManager->IncreaseDsvHandleOffset();
-		
-		hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-			D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearVal, IID_PPV_ARGS(&m_pSceneDepthTex));
-		assert(SUCCEEDED(hr));
+		m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			&m_pScreenDepthTex, m_pDevice);
+		m_pScreenDepthTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D12::m_pScreenDepthTex") - 1, "D3D12::m_pScreenDepthTex");
+		m_ScreenDSV = m_pHeapManager->GetDSV(dsvDesc, m_pScreenDepthTex, m_pDevice);
+
+		m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE ,
+			&m_pSceneDepthTex, m_pDevice);
 		m_pSceneDepthTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pSceneDepthTex") - 1, "D3D12::m_pSceneDepthTex");
-
-		dsvCpuHandle = m_pDescriptorHeapManager->GetCurDsvHandle();
-		m_pDevice->CreateDepthStencilView(m_pSceneDepthTex, &dsvDesc, dsvCpuHandle);
-		m_SceneDSV = dsvCpuHandle;
-		m_pDescriptorHeapManager->IncreaseDsvHandleOffset();
+		m_SceneDSV = m_pHeapManager->GetDSV(dsvDesc, m_pSceneDepthTex, m_pDevice);
 	
-		
-
-		D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
@@ -757,9 +558,7 @@ namespace wilson
 		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-		m_pDevice->CreateShaderResourceView(m_pSceneDepthTex, &srvDesc, srvCpuHandle);
-		m_SceneDepthSRV = srvGpuHandle;
-		m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+		m_SceneDepthSRV = m_pHeapManager->GetSRV(srvDesc, m_pSceneDepthTex, m_pDevice);
 	
 		return true;
 	}
@@ -839,10 +638,10 @@ namespace wilson
 			m_pPrefilterTex = nullptr;
 		}
 
-		if (m_pUAVTex != nullptr)
+		if (m_pGenMipUAVTex != nullptr)
 		{
-			m_pUAVTex->Release();
-			m_pUAVTex = nullptr;
+			m_pGenMipUAVTex->Release();
+			m_pGenMipUAVTex = nullptr;
 		}
 
 		for (int i = 0; i < 2; ++i)
@@ -916,26 +715,19 @@ namespace wilson
 
 			DestroyHDR();
 
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, IID_PPV_ARGS(&m_pHDRTex));
-			assert(SUCCEEDED(hr));
-			
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&m_pHDRTex, m_pDevice);
 			m_pHDRTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12::m_pHDRTex") - 1, "D3D12::m_pHDRTex");
 
-			UploadTexThroughCB(texDesc, sizeof(XMVECTOR)*width, (UINT8*)data, m_pHDRTex, &m_pHdrUploadCB, m_pPbrSetupCommandList);
+			UploadTexThroughCB(texDesc, sizeof(XMVECTOR)*width, (UINT8*)data, m_pHDRTex, &m_pHdrUploadCb, m_pPbrSetupCommandList);
+			
 			ID3D12CommandList* ppCommandList[1] = { m_pPbrSetupCommandList };
-			ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+			ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 
 			m_pPbrSetupCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			
-			m_pDevice->CreateShaderResourceView(m_pHDRTex, &srvDesc, cbvSrvCpuHandle);
-			m_HDRSRV = cbvSrvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+			m_HDRSRV = m_pHeapManager->GetSRV(srvDesc, m_pHDRTex, m_pDevice);
 			
 			return true;
 		}
@@ -947,11 +739,7 @@ namespace wilson
 
 	void D3D12::ConvertEquirectagular2Cube()
 	{
-		HRESULT hr;
-		UINT8* pEquirect2CubeCB;
-		D3D12_RANGE readRange = { 0, };
-		hr = m_pEquirect2CubeCB->Map(0, &readRange, reinterpret_cast<void**>(&pEquirect2CubeCB));
-		assert(SUCCEEDED(hr));
+		
 		UINT stride;
 		UINT offset = 0;
 
@@ -967,16 +755,16 @@ namespace wilson
 			XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
 			XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f))
 		};
-		XMMATRIX* pMatrix = reinterpret_cast<XMMATRIX*>(pEquirect2CubeCB);
+		XMMATRIX* pMatrix = reinterpret_cast<XMMATRIX*>(m_pEquirect2CubeCbBegin);
 		for (int i = 0; i < 6; ++i)
 		{
 			pMatrix[i] = XMMatrixMultiplyTranspose(capView[i], capProj);
 
 		}
-		m_pEquirect2CubeCB->Unmap(0, 0);
+		
 
-		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 		D3D12_RESOURCE_BARRIER barriers[] = {
 			CreateResourceBarrier(m_pSkyBoxTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
 			CreateResourceBarrier(m_pHDRTex, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
@@ -1000,8 +788,8 @@ namespace wilson
 
 	void D3D12::CreateDiffuseIrradianceMap()
 	{		
-		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 		D3D12_RESOURCE_BARRIER barriers[] = {
 			CreateResourceBarrier(m_pSkyBoxTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
 			CreateResourceBarrier(m_pDiffIrradianceTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
@@ -1026,17 +814,11 @@ namespace wilson
 
 	void D3D12::CreatePrefileterMap()
 	{	
-		HRESULT hr;
-		UINT8* pRoughnessCB;
-		D3D12_RANGE readRange = { 0, };
-		hr = m_pRoughnessCB->Map(0, &readRange, reinterpret_cast<void**>(&pRoughnessCB));
-		assert(SUCCEEDED(hr));
 		FLOAT r = 0;
-		memcpy(pRoughnessCB, &r, sizeof(FLOAT));
-		m_pRoughnessCB->Unmap(0, nullptr);
+		memcpy(m_pRoughnessCbBegin, &r, sizeof(FLOAT));
 
-		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 		D3D12_RESOURCE_BARRIER barriers[] = {
 			CreateResourceBarrier(m_pDiffIrradianceTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
 			CreateResourceBarrier(m_pPrefilterTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
@@ -1068,8 +850,8 @@ namespace wilson
 	{
 
 		HRESULT hr;
-		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 		//Gen Null UAVs
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
@@ -1082,13 +864,13 @@ namespace wilson
 
 		D3D12_TEXTURE_COPY_LOCATION src = {};
 		src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-		src.pResource = m_pUAVTex;
+		src.pResource = m_pGenMipUAVTex;
 
 
 		UINT8* pMipCB;
 		D3D12_RANGE readRange = {};
-		D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-		D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+		D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = m_pHeapManager->GetCurCbvSrvCpuHandle();
+		D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = m_pHeapManager->GetCurCbvSrvGpuHandle();
 	
 
 		for (int i = 1; i < _PREFILTER_MIP_LEVELS; ++i)
@@ -1100,17 +882,14 @@ namespace wilson
 
 				uavDesc.Texture2DArray.MipSlice = i;
 
-				cbvSrvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				cbvSrvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-				m_pDevice->CreateUnorderedAccessView(m_pUAVTex, nullptr, &uavDesc, cbvSrvCpuHandle);
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+				cbvSrvCpuHandle = m_pHeapManager->GetCurCbvSrvCpuHandle();
+				cbvSrvGpuHandle = m_pHeapManager->GetCurCbvSrvGpuHandle();
+				m_pDevice->CreateUnorderedAccessView(m_pGenMipUAVTex, nullptr, &uavDesc, cbvSrvCpuHandle);
+				m_pHeapManager->IncreaseCbvSrvHandleOffset();
 
-				hr = m_pMipCB->Map(0, &readRange, reinterpret_cast<void**>(&pMipCB));
-				assert(SUCCEEDED(hr));
 				FLOAT texelSize[2] = { _PREFILTER_WIDTH >> i, _PREFILTER_HEIGHT >> i };
 
-				memcpy(pMipCB, texelSize, sizeof(texelSize));
-				m_pMipCB->Unmap(0, nullptr);
+				memcpy(m_pResolutionCbBegin, texelSize, sizeof(texelSize));
 
 				m_pPbrSetupCommandList->SetPipelineState(m_pGenMipmapPso);
 				m_pPbrSetupCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
@@ -1118,13 +897,13 @@ namespace wilson
 				m_pPbrSetupCommandList->SetComputeRootDescriptorTable(eGenMipRP::eGenMipRP_eCsTex, m_PrefilterSRV);
 				m_pPbrSetupCommandList->SetComputeRootDescriptorTable(eGenMipRP::eGenMipRP_eCsUAV, cbvSrvGpuHandle);
 				m_pPbrSetupCommandList->SetComputeRootDescriptorTable(eGenMipRP::eGenMipRP_eCsSampler, m_ClampSSV);
-				m_pPbrSetupCommandList->SetComputeRootDescriptorTable(eGenMipRP::eGenMipRP_eCsCb, m_MipCBV);
+				m_pPbrSetupCommandList->SetComputeRootDescriptorTable(eGenMipRP::eGenMipRP_eCsCb, m_ResolutionCBV);
 				m_pPbrSetupCommandList->Dispatch(texelSize[0], texelSize[1], 6);//tex Dimesion
 
 
 				D3D12_RESOURCE_BARRIER barriers[] = {
 					CreateResourceBarrier(m_pPrefilterTex, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,  D3D12_RESOURCE_STATE_COPY_DEST),
-					CreateResourceBarrier(m_pUAVTex, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE),
+					CreateResourceBarrier(m_pGenMipUAVTex, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE),
 				};
 				m_pPbrSetupCommandList->ResourceBarrier(sizeof(barriers) / sizeof(D3D12_RESOURCE_BARRIER), barriers);
 				m_pPbrSetupCommandList->Close();
@@ -1153,7 +932,7 @@ namespace wilson
 
 				D3D12_RESOURCE_BARRIER barriers[] = {
 					CreateResourceBarrier(m_pPrefilterTex, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-					CreateResourceBarrier(m_pUAVTex, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+					CreateResourceBarrier(m_pGenMipUAVTex, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
 				};
 
 				m_pPbrSetupCommandList->ResourceBarrier(sizeof(barriers) / sizeof(D3D12_RESOURCE_BARRIER), barriers);
@@ -1185,8 +964,8 @@ namespace wilson
 	{
 		//Gen BRDFMap
 		ID3D12CommandList* ppCommandList[1] = { m_pPbrSetupCommandList };
-		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 		D3D12_RESOURCE_BARRIER rtvToSrvBarrier = CreateResourceBarrier(m_pBRDFTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		D3D12_RESOURCE_BARRIER srvToRtvBarrier = CreateResourceBarrier(m_pBRDFTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -1261,8 +1040,8 @@ namespace wilson
 	void D3D12::DrawObject(ePass curPass, UINT threadIndex, UINT lightIdx) 
 	{
 		XMMATRIX worldMat, invWorldMat;
-		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 		std::vector<DirectionalLight12*>& dirLights = m_pLightBuffer->GetDirLights();
 		std::vector<CubeLight12*>& cubetLights = m_pLightBuffer->GetCubeLights();
 		std::vector<SpotLight12*>& spotLights = m_pLightBuffer->GetSpotLights();
@@ -1460,8 +1239,8 @@ namespace wilson
 
 	void D3D12::HWQueryForOcclusion(UINT threadIndex)
 	{	
-		ID3D12DescriptorHeap* ppHeaps[] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+		ID3D12DescriptorHeap* ppHeaps[] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 		while (!m_pModelQueue.empty())
 		{
 			DWORD result = WaitForSingleObject(m_workerMutex, INFINITE);
@@ -1508,21 +1287,21 @@ namespace wilson
 					m_pWorkerCommandList[threadIndex]->EndQuery(m_pQueryHeap[threadIndex], D3D12_QUERY_TYPE_OCCLUSION, queryCnt++);
 				}
 
-			
+				ID3D12Resource* pQueryBlock= m_pHeapManager->GetQueryBlock();
 				m_pWorkerCommandList[threadIndex]->ResolveQueryData(m_pQueryHeap[threadIndex], D3D12_QUERY_TYPE_OCCLUSION, 0, queryCnt,
-					m_pQueryResultBuffer[threadIndex], 0);
+					pQueryBlock, m_QueryResultOffset[threadIndex]);
 
 				D3D12_RESOURCE_BARRIER copyDstToSrc =
 				{
-					CreateResourceBarrier(m_pQueryResultBuffer[threadIndex], D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE)
+					CreateResourceBarrier(pQueryBlock, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE)
 				};
 				m_pWorkerCommandList[threadIndex]->ResourceBarrier(1, &copyDstToSrc);
-				m_pWorkerCommandList[threadIndex]->CopyBufferRegion(m_pQueryReadBuffer[threadIndex], 0, m_pQueryResultBuffer[threadIndex], 0, 
+				m_pWorkerCommandList[threadIndex]->CopyBufferRegion(m_pQueryReadBuffer[threadIndex], 0, pQueryBlock, m_QueryResultOffset[threadIndex],
 					sizeof(UINT64)* min(qLen, _OBJECT_PER_THREAD));
 
 				D3D12_RESOURCE_BARRIER copySrcToDst =
 				{
-					CreateResourceBarrier(m_pQueryResultBuffer[threadIndex], D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST)
+					CreateResourceBarrier(pQueryBlock, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST)
 				};
 				m_pWorkerCommandList[threadIndex]->ResourceBarrier(1, &copySrcToDst);
 
@@ -1644,8 +1423,8 @@ namespace wilson
 		D3D12_RANGE readRange = { 0, };
 
 		PIXBeginEvent(m_pMainCommandList, 0, L"Init Textures and Set Barriers");
-		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
 		m_pMainCommandList->SetPipelineState(m_pZpassPso);
 
@@ -1707,7 +1486,7 @@ namespace wilson
 		}
 		m_pMainCommandAllocator->Reset();
 		m_pMainCommandList->Reset(m_pMainCommandAllocator, nullptr);
-
+		
 		m_pCam->Update();
 
 		//전체 개체 수 갱신 및 프러스텀 컬링
@@ -1778,7 +1557,7 @@ namespace wilson
 				D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, false);
 		}
 		PIXEndEvent(m_pMainCommandList);
-
+		m_pModelQueue = pModelQueue;
 		if (0)
 		{	
 			
@@ -1951,12 +1730,12 @@ namespace wilson
 					
 					//ReadBackResult;
 					{  
-						
+						UINT len =sqrt(_HI_Z_CULL_COUNT);
 						D3D12_TEXTURE_COPY_LOCATION dst = {};
 						dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32_FLOAT;
-						dst.PlacedFootprint.Footprint.Width = 64;
-						dst.PlacedFootprint.Footprint.RowPitch =_CBV_ALIGN(sizeof(FLOAT) * 64);
-						dst.PlacedFootprint.Footprint.Height =64;
+						dst.PlacedFootprint.Footprint.Width = sqrt(_HI_Z_CULL_COUNT);
+						dst.PlacedFootprint.Footprint.RowPitch =CUSTUM_ALIGN(sizeof(FLOAT) * len, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+						dst.PlacedFootprint.Footprint.Height = len;
 						dst.PlacedFootprint.Footprint.Depth = 1;
 
 						dst.pResource = m_pHiZCullReadCb;
@@ -2186,7 +1965,7 @@ namespace wilson
 	HRESULT hr;
 	D3D12_RESOURCE_DESC uploadCbDesc = {};
 	uploadCbDesc.Alignment = 0;
-	uploadCbDesc.Width = _64KB_ALIGN(uploadSize);
+	uploadCbDesc.Width = CUSTUM_ALIGN(uploadSize, _64KB);
 	uploadCbDesc.Height = 1;
 	uploadCbDesc.DepthOrArraySize = 1;
 	uploadCbDesc.MipLevels = 1;
@@ -2242,6 +2021,8 @@ namespace wilson
 	UINT64 uploadPitch = (rp + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u);
 	UINT64 uploadSize = uploadPitch * height;
 	GenUploadBuffer(ppUploadCB, uploadPitch, uploadSize);
+
+
 	D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
 	D3D12_RESOURCE_DESC copytexDesc= texDesc;
 	UINT numRows;
@@ -2253,7 +2034,7 @@ namespace wilson
 	hr = (*ppUploadCB)->Map(0, &readRange, reinterpret_cast<void**>(&pUploadCbPtr));
 	assert(SUCCEEDED(hr));
 	//Padding 떄문에 memcpy한줄로 처리 불가
-	for (int y = 0; y < height; ++y)
+	for (UINT64 y = 0; y < height; ++y)
 	{
 		memcpy((void*)(pUploadCbPtr + y * uploadPitch),
 			(UINT8*)pData + y * rp, rp);
@@ -2277,8 +2058,8 @@ namespace wilson
 	{	
 		ID3D12CommandList* ppCommandList[] = { m_pPbrSetupCommandList, m_pMainCommandList };
 		ImGuiIO& io = ImGui::GetIO();
-		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pDescriptorHeapManager->GetSamplerHeap()),
-											*(m_pDescriptorHeapManager->GetCbvSrvHeap()) };
+		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 
 		ImGui::Render();
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_pMainCommandList);
@@ -2335,7 +2116,6 @@ namespace wilson
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
 			m_pQueryHeap[i] = nullptr;
-			m_pQueryResultBuffer[i] = nullptr;
 			m_pQueryReadBuffer[i] = nullptr;
 			m_pQueryReadCbBegin[i] = nullptr;
 		}
@@ -2390,28 +2170,10 @@ namespace wilson
 		m_pEquirect2CubePso = nullptr;
 		m_pGenMipmapPso = nullptr;
 
-		m_pQuadVB = nullptr;
-		m_pQuadIB = nullptr;
-		m_pSkyBoxVB = nullptr;
-		m_pSkyBoxIB = nullptr;
-		m_pAABBVB = nullptr;
-		m_pAABBIB = nullptr;
-		m_pBoolCB = nullptr;
-		m_pColorCB = nullptr;
-	
-		m_pRoughnessCB = nullptr;
-		m_pSSAOKernelCB = nullptr;
-		m_pExposureCB = nullptr;
-		m_pHeightScaleCB = nullptr;
-		m_pHiZCullMatrixCb = nullptr;
-		m_pSphereCb = nullptr;
-		m_pEquirect2CubeCB = nullptr;
-		m_pMipCB = nullptr;
-		m_pHdrUploadCB = nullptr;
-		m_pNoiseUploadCB = nullptr;
 		m_pNoiseTex = nullptr;
-		m_pResolutionCB = nullptr;
+		m_pNoiseUploadCb = nullptr;
 		m_pHiZCullReadCb = nullptr;
+		m_pHdrUploadCb = nullptr;
 
 		m_pViewportTex = nullptr;
 		m_pSceneTex = nullptr;
@@ -2425,7 +2187,7 @@ namespace wilson
 		m_pSkyBoxTex = nullptr;
 		m_pDiffIrradianceTex = nullptr;
 		m_pPrefilterTex = nullptr;
-		m_pUAVTex = nullptr;
+		m_pGenMipUAVTex = nullptr;
 		m_pScreenDepthTex = nullptr;
 		m_pSceneDepthTex = nullptr;
 
@@ -2440,7 +2202,7 @@ namespace wilson
 		}
 
 
-		m_pDescriptorHeapManager = nullptr;
+		m_pHeapManager = nullptr;
 		m_pCam = nullptr;
 		m_pFrustum = nullptr;
 		m_pLightBuffer = nullptr;
@@ -2572,24 +2334,24 @@ namespace wilson
 		pFactory = nullptr;
 
 		//Gen DescriptorHeap
-		m_pDescriptorHeapManager = new DescriptorHeapManager(m_pDevice);
+		m_pHeapManager = new HeapManager(m_pDevice);
 
-		ImGui_ImplDX12_Init(m_pDevice, _BUFFER_COUNT, DXGI_FORMAT_R8G8B8A8_UNORM, *(m_pDescriptorHeapManager->GetCbvSrvHeap()),
-			m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle(),
-			m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle());
-		m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+		ImGui_ImplDX12_Init(m_pDevice, _BUFFER_COUNT, DXGI_FORMAT_R8G8B8A8_UNORM, *(m_pHeapManager->GetCbvSrvUavHeap()),
+			m_pHeapManager->GetCurCbvSrvCpuHandle(),
+			m_pHeapManager->GetCurCbvSrvGpuHandle());
+		m_pHeapManager->IncreaseCbvSrvHandleOffset();
 
 		//Gen Rtvs;
 		{
 
 			for (UINT i = 0; i < _BUFFER_COUNT; ++i)
 			{
-				D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pDescriptorHeapManager->GetCurRtvHandle();
+				D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pHeapManager->GetCurRtvHandle();
 				hr = m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(&m_pScreenTex[i]));
 				assert(SUCCEEDED(hr));
 				m_pDevice->CreateRenderTargetView(m_pScreenTex[i], nullptr, rtvHandle);
 				m_ScreenRTV[i] = rtvHandle;
-				m_pDescriptorHeapManager->IncreaseRtvHandleOffset();
+				m_pHeapManager->IncreaseRtvHandleOffset();
 
 				m_pScreenTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pScreenTex") - 1, "D3D12::m_pScreenTex");
@@ -2662,17 +2424,17 @@ namespace wilson
 		//Gen User-Defined Class
 		{
 			m_pShader = new Shader12(m_pDevice);
-			m_pCam = new Camera12(m_pDevice, m_pMainCommandList, m_pDescriptorHeapManager, screenWidth, screenHeight, fScreenFar, fScreenNear);
+			m_pCam = new Camera12(m_pDevice, m_pMainCommandList, m_pHeapManager, screenWidth, screenHeight, fScreenFar, fScreenNear);
 			XMMATRIX* m_projMat = m_pCam->GetProjectionMatrix();
 			XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
 			m_pFrustum = new Frustum12(m_pCam);
-			m_pMatBuffer = new MatBuffer12(m_pDevice, m_pMainCommandList, m_pDescriptorHeapManager, m_viewMat, m_projMat);
-			m_pOutlinerMatBuffer = new MatBuffer12(m_pDevice, m_pMainCommandList, m_pDescriptorHeapManager, m_viewMat, m_projMat);
+			m_pMatBuffer = new MatBuffer12(m_pDevice, m_pMainCommandList, m_pHeapManager, m_viewMat, m_projMat);
+			m_pOutlinerMatBuffer = new MatBuffer12(m_pDevice, m_pMainCommandList, m_pHeapManager, m_viewMat, m_projMat);
 
-			m_pLightBuffer = new LightBuffer12(m_pDevice, m_pMainCommandList, m_pDescriptorHeapManager);
+			m_pLightBuffer = new LightBuffer12(m_pDevice, m_pMainCommandList, m_pHeapManager);
 
 			m_pShadowMap = new ShadowMap12(m_pDevice, m_pMainCommandList,
-				m_pDescriptorHeapManager,
+				m_pHeapManager,
 				_SHADOWMAP_SIZE, _SHADOWMAP_SIZE, m_pCam->GetCascadeLevels().size(),
 				m_pLightBuffer->GetDirLightCapacity(), m_pLightBuffer->GetCubeLightCapacity(), m_pLightBuffer->GetSpotLightCapacity());
 		}
@@ -2827,7 +2589,7 @@ namespace wilson
 			psoDesc.SampleMask = UINT_MAX; //BlendDesc의 그것,  고정
 			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 			psoDesc.NumRenderTargets = 1;
-			psoDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			psoDesc.RTVFormats[0] =DXGI_FORMAT_R32_FLOAT;
 			psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
 			psoDesc.SampleDesc.Count = 1; //AA기능 추가 전까진 고정
@@ -2838,6 +2600,7 @@ namespace wilson
 			hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pZpassPso));
 			assert(SUCCEEDED(hr));
 
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 			psoDesc.DepthStencilState = DepthTestOnlyDss;
 			hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pHWOcclusionQueryPso));
 			assert(SUCCEEDED(hr));
@@ -2850,7 +2613,7 @@ namespace wilson
 			assert(SUCCEEDED(hr));
 
 			psoDesc.DepthStencilState = defaultDss;
-			psoDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 			psoDesc.pRootSignature = m_pShader->GetCascadeDirShadowRootSingnature();
 			m_pShader->SetPosOnlyInputLayout(&psoDesc);
 			m_pShader->SetCascadeDirShadowShader(&psoDesc);
@@ -2869,6 +2632,7 @@ namespace wilson
 			hr=m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pCubeShadowPso));
 			assert(SUCCEEDED(hr));
 
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 			psoDesc.pRootSignature = m_pShader->GetSkyBoxRootSingnature();
 			psoDesc.DepthStencilState = DepthTestOnlyDss;
 			m_pShader->SetSkyBoxShader(&psoDesc);
@@ -2877,9 +2641,17 @@ namespace wilson
 
 
 			for (int i = 0; i < eGbuf_cnt; ++i)
-			{
-				psoDesc.RTVFormats[i] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			{	
+				if (i > eGbuf_normal && i < eGbuf_vPos)
+				{
+					psoDesc.RTVFormats[i] = DXGI_FORMAT_R8G8B8A8_UNORM;
+				}
+				else
+				{
+					psoDesc.RTVFormats[i] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+				}
 			}
+			
 			psoDesc.pRootSignature = m_pShader->GetPBRDeferredGeoShaderRootSingnature();
 			psoDesc.RasterizerState = quadRDesc;
 			psoDesc.DepthStencilState =DepthTestOnlyDss;
@@ -2922,6 +2694,8 @@ namespace wilson
 			{
 				psoDesc.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
 			}
+
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 			psoDesc.DepthStencilState = offDss;
 			psoDesc.BlendState = lightingBS;
 			psoDesc.NumRenderTargets = 1;
@@ -2942,6 +2716,7 @@ namespace wilson
 			assert(SUCCEEDED(hr));
 
 			//BRDF
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
 			psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 			psoDesc.BlendState = defaultBS;
 			psoDesc.DepthStencilState = offDss;
@@ -3042,8 +2817,8 @@ namespace wilson
 		//Gen Samplers
 		{
 			{
-				D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle = m_pDescriptorHeapManager->GetCurSamplerCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuHandle = m_pDescriptorHeapManager->GetCurSamplerGpuHandle();
+				D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle = m_pHeapManager->GetCurSamplerCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuHandle = m_pHeapManager->GetCurSamplerGpuHandle();
 
 				D3D12_SAMPLER_DESC wrapSamplerDesc = {};
 				wrapSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -3053,13 +2828,13 @@ namespace wilson
 				m_pDevice->CreateSampler(&wrapSamplerDesc, samplerCpuHandle);
 
 				m_WrapSSV = samplerGpuHandle;
-				m_pDescriptorHeapManager->IncreaseSamplerHandleOffset();
+				m_pHeapManager->IncreaseSamplerHandleOffset();
 			}
 			
 
 			{
-				D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle = m_pDescriptorHeapManager->GetCurSamplerCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuHandle = m_pDescriptorHeapManager->GetCurSamplerGpuHandle();
+				D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle = m_pHeapManager->GetCurSamplerCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuHandle = m_pHeapManager->GetCurSamplerGpuHandle();
 
 				D3D12_SAMPLER_DESC clampSamplerDesc = {};
 				clampSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -3069,12 +2844,12 @@ namespace wilson
 				m_pDevice->CreateSampler(&clampSamplerDesc, samplerCpuHandle);
 
 				m_ClampSSV = samplerGpuHandle;
-				m_pDescriptorHeapManager->IncreaseSamplerHandleOffset();
+				m_pHeapManager->IncreaseSamplerHandleOffset();
 			}
 
 			{
-				D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle = m_pDescriptorHeapManager->GetCurSamplerCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuHandle = m_pDescriptorHeapManager->GetCurSamplerGpuHandle();
+				D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle = m_pHeapManager->GetCurSamplerCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuHandle = m_pHeapManager->GetCurSamplerGpuHandle();
 
 				D3D12_SAMPLER_DESC borderSamplerDesc = {};
 				borderSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -3086,7 +2861,7 @@ namespace wilson
 				m_pDevice->CreateSampler(&borderSamplerDesc, samplerCpuHandle);
 
 				m_borderSSV = samplerGpuHandle;
-				m_pDescriptorHeapManager->IncreaseSamplerHandleOffset();
+				m_pHeapManager->IncreaseSamplerHandleOffset();
 			}
 
 		}
@@ -3102,7 +2877,6 @@ namespace wilson
 			heapProps.VisibleNodeMask = 1;
 
 			D3D12_RESOURCE_DESC cbufferDesc = {};
-			cbufferDesc.Width = _64KB_ALIGN(sizeof(BOOL) * 4);
 			cbufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 			cbufferDesc.Alignment = 0;
 			cbufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -3112,294 +2886,68 @@ namespace wilson
 			cbufferDesc.DepthOrArraySize = 1;
 			cbufferDesc.MipLevels = 1;
 			cbufferDesc.SampleDesc.Count = 1;
-			cbufferDesc.SampleDesc.Quality = 0;
-
-			{
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-				UINT constantBufferSize = sizeof(BOOL) * 4;
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pBoolCB));
-				assert(SUCCEEDED(hr));
-				m_pBoolCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pBoolCB") - 1, "D3D12::m_pBoolCB");
-
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pBoolCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_BoolCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			}
+			cbufferDesc.SampleDesc.Quality = 0;		
+		
 			
+			UINT cbSize = sizeof(DirectX::XMVECTOR) * _HI_Z_CULL_COUNT;
+			m_pSphereCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
+			m_SphereCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
 			
-			{
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMVECTOR)); 
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pColorCB));
-				assert(SUCCEEDED(hr));
-				m_pColorCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pColorCB") - 1, "D3D12::m_pColorCB");
-
-
-				UINT constantBufferSize = sizeof(XMVECTOR);
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pColorCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_ColorCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-			}
-
-			{
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMVECTOR) * 4096);
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pSphereCb));
-				assert(SUCCEEDED(hr));
-				m_pSphereCb->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pSphereCb") - 1, "D3D12::m_pSphereCb");
-				hr = m_pSphereCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pSphereCbBegin));
-				assert(SUCCEEDED(hr));
-
-				UINT constantBufferSize = sizeof(XMVECTOR) * 4096;
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pSphereCb->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_SphereCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-			}
-
-			{
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMMATRIX) * 3+sizeof(XMVECTOR)*9);
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pHiZCullMatrixCb));
-				assert(SUCCEEDED(hr));
-				m_pHiZCullMatrixCb->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pHiZCullMatrixCb") - 1, "D3D12::m_pHiZCullMatrixCb");
-				hr = m_pHiZCullMatrixCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pHiZCullMatrixCbBegin));
-				assert(SUCCEEDED(hr));
-
-				UINT constantBufferSize = sizeof(XMMATRIX) * 3 + sizeof(XMVECTOR) * 9;
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pHiZCullMatrixCb->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_HiZCullMatrixCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-			}
-
-			{
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMVECTOR));
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pRoughnessCB));
-				assert(SUCCEEDED(hr));
-				m_pRoughnessCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pRoughnessCB") - 1, "D3D12::m_pRoughnessCB");
-
-
-				UINT constantBufferSize = sizeof(XMVECTOR);
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pRoughnessCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_RoughnessCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-			}
-
-			{	
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(SamplePoints));
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pSSAOKernelCB));
-				assert(SUCCEEDED(hr));
-				m_pSSAOKernelCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pSSAOKernelCB") - 1, "D3D12::m_pSSAOKernelCB");
-
-
-				UINT constantBufferSize = sizeof(SamplePoints);
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pSSAOKernelCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_SSAOKernelCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-			}
+			cbSize = sizeof(XMMATRIX) * 3 + sizeof(XMVECTOR) * 9;
+			m_pHiZCullMatrixCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
+			m_HiZCullMatrixCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
 			
-
-			{
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMFLOAT4));
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pExposureCB));
-				assert(SUCCEEDED(hr));
-				m_pExposureCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pExposureCB") - 1, "D3D12::m_pExposureCB");
-
-				hr = m_pExposureCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pExposureCbBegin));
-				assert(SUCCEEDED(hr));
-
-
-				UINT constantBufferSize = sizeof(XMFLOAT4);
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pExposureCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_ExposureCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			}
-
-			{	
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMFLOAT4)); 
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pHeightScaleCB));
-				assert(SUCCEEDED(hr));
-				m_pHeightScaleCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pHeightScaleCB") - 1, "D3D12::m_pHeightScaleCB");
-
-				hr = m_pHeightScaleCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pHeightScaleCbBegin));
-				assert(SUCCEEDED(hr));
-				UINT constantBufferSize = sizeof(XMFLOAT4);
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pHeightScaleCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_HeightScaleCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-			}
+			cbSize = sizeof(DirectX::XMVECTOR);
+			m_pRoughnessCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
+			m_RoughnessCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
 			
-			{
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(XMMATRIX) * 6); 
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pEquirect2CubeCB));
-				assert(SUCCEEDED(hr));
-				m_pEquirect2CubeCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pEquirect2CubeCB") - 1, "D3D12::m_pEquirect2CubeCB");
-
-
-				UINT constantBufferSize = sizeof(XMMATRIX) * 6;
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pEquirect2CubeCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_Equirect2CubeCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-			}
-
-			{
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-				cbufferDesc.Width = _64KB_ALIGN(sizeof(UINT) * 2);
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pResolutionCB));
-				assert(SUCCEEDED(hr));
-				m_pResolutionCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pResolutionCB") - 1, "D3D12::m_pResolutionCB");
-				hr = m_pResolutionCB->Map(0, &readRange, reinterpret_cast<void**>(&m_pResolutionCbBegin));
-				assert(SUCCEEDED(hr));
-
-				UINT constantBufferSize = sizeof(UINT) * 2;
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pResolutionCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_ResolutionCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-			}
-
-			{
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-				cbufferDesc.Width = 64 * 1024;
-				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pMipCB));
-				assert(SUCCEEDED(hr));
-				m_pMipCB->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("D3D12::m_pMipCB") - 1, "D3D12::m_pMipCB");
-
-
-				UINT constantBufferSize = sizeof(UINT) * 2;
-				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-				cbvDesc.SizeInBytes = _CBV_ALIGN(constantBufferSize);
-				cbvDesc.BufferLocation = m_pMipCB->GetGPUVirtualAddress();
-				m_pDevice->CreateConstantBufferView(&cbvDesc, cbvCpuHandle);
-				m_MipCBV = cbvGpuHandle;
-
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-
-			}
+			cbSize = sizeof(SamplePoints);
+			m_pSSAOKernalCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
+			m_SSAOKernelCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
 			
+			cbSize = sizeof(XMFLOAT4);
+			m_pExposureCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
+			m_ExposureCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
+
+			cbSize = sizeof(XMFLOAT4);
+			m_pHeightScaleCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
+			m_HeightScaleCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
+			
+			cbSize = sizeof(XMMATRIX) * 6;
+			m_pEquirect2CubeCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
+			m_Equirect2CubeCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
+
+			cbSize = sizeof(UINT) * 2;
+			m_pResolutionCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
+			m_ResolutionCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
+
+			cbSize = sizeof(UINT) * 2;
+			m_pResolutionCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
+			m_ResolutionCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
+
+
+			D3D12_RESOURCE_BARRIER readTocopyDst =
+				CreateResourceBarrier(m_pHeapManager->GetQueryBlock(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST);
+			m_pMainCommandList->ResourceBarrier(1, &readTocopyDst);
 			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 			{					
 				{
-					heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-					cbufferDesc.Width = _64KB_ALIGN(8);
-
-
-					D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-					D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-					hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-						&cbufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pQueryResultBuffer[i]));
-					assert(SUCCEEDED(hr));
-					m_pQueryResultBuffer[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
-						sizeof("D3D12::m_pQueryResultBuffer[i]") - 1, "D3D12::m_pQueryResultBuffer[i]");
-
-					m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
-					D3D12_RESOURCE_BARRIER readTocopyDst =
-						CreateResourceBarrier(m_pQueryResultBuffer[i], D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST);
-					m_pMainCommandList->ResourceBarrier(1, &readTocopyDst);
+					UINT resultSize = 8;
+					UINT64 offset = m_pHeapManager->GetQueryHeapOffset();
+					m_QueryResultOffset[i] = offset;
+					m_pHeapManager->SetQueryHeapOffset(offset + 8);
 				}
 
 				{
+					cbufferDesc.Width = _64KB;
 					heapProps.Type = D3D12_HEAP_TYPE_READBACK;
-
-					D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-					D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
 					hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 						&cbufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&m_pQueryReadBuffer[i]));
 					assert(SUCCEEDED(hr));
 					m_pQueryReadBuffer[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 						sizeof("D3D12::m_pQueryReadBuffer[i]") - 1, "D3D12::m_pQueryReadBuffer[i]");
 
-					m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+					m_pHeapManager->IncreaseCbvSrvHandleOffset();
 
 					readRange.End = cbufferDesc.Width;
 					hr = m_pQueryReadBuffer[i]->Map(0, &readRange, reinterpret_cast<void**>(&m_pQueryReadCbBegin[i]));
@@ -3407,12 +2955,12 @@ namespace wilson
 				}
 				
 			}
-
+			
 			{
-				cbufferDesc.Width = _64KB_ALIGN(4096 *sizeof(FLOAT));
+				cbufferDesc.Width = CUSTUM_ALIGN(_HI_Z_CULL_COUNT * sizeof(FLOAT), _64KB);
 
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+				D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pHeapManager->GetCurCbvSrvCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pHeapManager->GetCurCbvSrvGpuHandle();
 
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
 					&cbufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&m_pHiZCullReadCb));
@@ -3420,13 +2968,12 @@ namespace wilson
 				m_pHiZCullReadCb->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pHiZCullReadCb") - 1, "D3D12::m_pHiZCullReadCb");
 
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+				m_pHeapManager->IncreaseCbvSrvHandleOffset();
 
 				readRange.End = cbufferDesc.Width;
 				hr = m_pHiZCullReadCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pHiZCullReadCbBegin));
 				assert(SUCCEEDED(hr));
 			}
-			
 			
 		}
 		//GenSSAOResources
@@ -3460,16 +3007,8 @@ namespace wilson
 				kernels.coord[i] = sampleV;
 			}
 
-
-			UINT8* pKernelCB;
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pSSAOKernelCB->Map(0, &readRange, reinterpret_cast<void**>(&pKernelCB));
-			assert(SUCCEEDED(hr));
-
-			memcpy(pKernelCB, &kernels, sizeof(kernels));
-			m_pSSAOKernelCB->Unmap(0, nullptr);
-
-
+			memcpy(m_pSSAOKernalCbBegin, &kernels, sizeof(kernels));
+			
 
 			XMFLOAT3 noiseVecs[_NOISE_VEC_COUNT];
 			//Gen noise texture
@@ -3494,18 +3033,18 @@ namespace wilson
 			texDesc.SampleDesc.Count = 1;
 			texDesc.SampleDesc.Quality = 0;
 
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, 
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, IID_PPV_ARGS(&m_pNoiseTex));
-			assert(SUCCEEDED(hr));
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
+				&m_pNoiseTex, m_pDevice);
 			m_pNoiseTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pNoiseTex") - 1, "D3D12:::m_pNoiseTex");
 
-			//Gen Cbuffer for Upload
-			UploadTexThroughCB(texDesc, sizeof(XMVECTOR)*_NOISE_TEX_SIZE, (UINT8*)noiseVecs, m_pNoiseTex, &m_pNoiseUploadCB, m_pMainCommandList);
+			
+			UploadTexThroughCB(texDesc, sizeof(XMVECTOR)*_NOISE_TEX_SIZE, (UINT8*)noiseVecs, m_pNoiseTex, &m_pNoiseUploadCb, m_pMainCommandList);
 				
 			D3D12_RESOURCE_BARRIER copyDstToSrvBarrier =
 				CreateResourceBarrier(m_pNoiseTex, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 			m_pMainCommandList->ResourceBarrier(1, &copyDstToSrvBarrier);
+
 
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -3515,11 +3054,7 @@ namespace wilson
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-			D3D12_CPU_DESCRIPTOR_HANDLE cbvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-			m_pDevice->CreateShaderResourceView(m_pNoiseTex, &srvDesc, cbvCpuHandle);
-			m_NoiseSrv = cbvGpuHandle;
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+			m_NoiseSrv = m_pHeapManager->GetSRV(srvDesc, m_pNoiseTex, m_pDevice);
 		}
 
 		//GenQuad
@@ -3545,68 +3080,17 @@ namespace wilson
 			}
 
 			UINT quadsVBSize = sizeof(quads);
-
-			D3D12_HEAP_PROPERTIES heapProps = {};
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-
-			D3D12_RESOURCE_DESC quadDesc = {};
-			quadDesc.Width = quadsVBSize;
-			quadDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-			quadDesc.Alignment = 0;
-			quadDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			quadDesc.Format = DXGI_FORMAT_UNKNOWN;
-			quadDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			quadDesc.Height = 1;
-			quadDesc.DepthOrArraySize = 1;
-			quadDesc.MipLevels = 1;
-			quadDesc.SampleDesc.Count = 1;
-			quadDesc.SampleDesc.Quality = 0;
-
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &quadDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pQuadVB));
-			assert(SUCCEEDED(hr));
-			m_pQuadVB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12::m_pQuadVB") - 1, "D3D12::m_pQuadVB");
-
-
-			UINT8* pQuadVB;
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pQuadVB->Map(0, &readRange, reinterpret_cast<void**>(&pQuadVB));
-			assert(SUCCEEDED(hr));
-			memcpy(pQuadVB, quads, quadsVBSize);
-			m_pQuadVB->Unmap(0, nullptr);
-
-			m_QuadVBV.BufferLocation = m_pQuadVB->GetGPUVirtualAddress();
-			m_QuadVBV.SizeInBytes = quadsVBSize;
-			m_QuadVBV.StrideInBytes = sizeof(QUAD);
-
-
+			m_pHeapManager->AllocateVertexData((UINT8*)quads, quadsVBSize);
+			m_QuadVBV = m_pHeapManager->GetVBV(quadsVBSize, sizeof(QUAD));
 
 			unsigned long indices[6] = { 0,1,2, 2,3,0 };
 			UINT quadsIBSize = sizeof(indices);
-
-			quadDesc.Width = quadsIBSize;
-
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &quadDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pQuadIB));
-			assert(SUCCEEDED(hr));
-			m_pQuadIB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12::m_pQuadIB") - 1, "D3D12::m_pQuadIB");
-
-
-			UINT8* pQuadIB;
-			hr = m_pQuadIB->Map(0, &readRange, reinterpret_cast<void**>(&pQuadIB));
-			assert(SUCCEEDED(hr));
-			memcpy(pQuadIB, indices, quadsIBSize);
-			m_pQuadIB->Unmap(0, nullptr);
-
-			m_QuadIBV.BufferLocation = m_pQuadIB->GetGPUVirtualAddress();
-			m_QuadIBV.SizeInBytes = quadsIBSize;
-			m_QuadIBV.Format = DXGI_FORMAT_R32_UINT;
+			m_pHeapManager->AllocateIndexData((UINT8*)indices, quadsIBSize);
+			m_QuadIBV = m_pHeapManager->GetIBV(quadsIBSize, 0);
+			UINT idx = m_pHeapManager->GetIndexBufferHeapOffset();
+			idx /= _IB_HEAP_SIZE;
+			UINT64 curBlockOffset = m_pHeapManager->GetIndexBufferBlockOffset(idx);
+			m_pHeapManager->SetIndexBufferBlockOffset(idx, curBlockOffset + m_QuadIBV.SizeInBytes);
 		}
 
 
@@ -3625,44 +3109,9 @@ namespace wilson
 
 			UINT skyVBSize = sizeof(vertices);
 
-			D3D12_HEAP_PROPERTIES heapProps = {};
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
 
-			D3D12_RESOURCE_DESC skyDesc = {};
-			skyDesc.Width = skyVBSize;
-			skyDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-			skyDesc.Alignment = 0;
-			skyDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			skyDesc.Format = DXGI_FORMAT_UNKNOWN;
-			skyDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			skyDesc.Height = 1;
-			skyDesc.DepthOrArraySize = 1;
-			skyDesc.MipLevels = 1;
-			skyDesc.SampleDesc.Count = 1;
-			skyDesc.SampleDesc.Quality = 0;
-
-
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &skyDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pSkyBoxVB));
-			assert(SUCCEEDED(hr));
-			m_pSkyBoxVB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12::m_pSkyBoxVB") - 1, "D3D12::m_pSkyBoxVB");
-
-
-			UINT8* pSkyBoxVB;
-			D3D12_RANGE readRange = { 0, };
-			hr = m_pSkyBoxVB->Map(0, &readRange, reinterpret_cast<void**>(&pSkyBoxVB));
-			assert(SUCCEEDED(hr));
-			memcpy(pSkyBoxVB, vertices, skyVBSize);
-			m_pSkyBoxVB->Unmap(0, nullptr);
-
-			m_SkyBoxVBV.BufferLocation = m_pSkyBoxVB->GetGPUVirtualAddress();
-			m_SkyBoxVBV.SizeInBytes = skyVBSize;
-			m_SkyBoxVBV.StrideInBytes = sizeof(XMFLOAT3);
+			m_pHeapManager->AllocateVertexData((UINT8*)vertices, skyVBSize);
+			m_SkyBoxVBV = m_pHeapManager->GetVBV(skyVBSize, sizeof(XMFLOAT3));
 
 			//시계방향 감은 면이  frontface
 			unsigned long indices[] = {
@@ -3686,88 +3135,28 @@ namespace wilson
 				7,2,3
 			};
 			UINT skyIBSize = sizeof(indices);
-
-			skyDesc.Width = skyIBSize;
-
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &skyDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pSkyBoxIB));
-			assert(SUCCEEDED(hr));
-			m_pSkyBoxIB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12::m_pSkyBoxIB") - 1, "D3D12::m_pSkyBoxIB");
-
-
-			UINT8* pSkyBoxIB;
-			hr = m_pSkyBoxIB->Map(0, &readRange, reinterpret_cast<void**>(&pSkyBoxIB));
-			assert(SUCCEEDED(hr));
-			memcpy(pSkyBoxIB, indices, skyIBSize);
-			m_pSkyBoxIB->Unmap(0, nullptr);
-
-			m_SkyBoxIBV.BufferLocation = m_pSkyBoxIB->GetGPUVirtualAddress();
-			m_SkyBoxIBV.SizeInBytes = skyIBSize;
-			m_SkyBoxIBV.Format = DXGI_FORMAT_R32_UINT;
-
+			m_pHeapManager->AllocateIndexData((UINT8*)indices, skyIBSize);
+			m_SkyBoxIBV = m_pHeapManager->GetIBV(skyIBSize, 0);
+			UINT idx = m_pHeapManager->GetIndexBufferHeapOffset();
+			idx /= _IB_HEAP_SIZE;
+			UINT64 curBlockOffset = m_pHeapManager->GetIndexBufferBlockOffset(idx);
+			m_pHeapManager->SetIndexBufferBlockOffset(idx,curBlockOffset + m_SkyBoxIBV.SizeInBytes);
 		}
 
 		//GenAABB Debug 
 		{
-			D3D12_HEAP_PROPERTIES heapProps = {};
-			heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-
-			D3D12_RESOURCE_DESC AABBDesc = {};
-			AABBDesc.Width = sizeof(DirectX::XMFLOAT3) * 8;
-			AABBDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-			AABBDesc.Alignment = 0;
-			AABBDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			AABBDesc.Format = DXGI_FORMAT_UNKNOWN;
-			AABBDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			AABBDesc.Height = 1;
-			AABBDesc.DepthOrArraySize = 1;
-			AABBDesc.MipLevels = 1;
-			AABBDesc.SampleDesc.Count = 1;
-			AABBDesc.SampleDesc.Quality = 0;
-
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &AABBDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pAABBVB));
-			assert(SUCCEEDED(hr));
-			m_pAABBVB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12::m_pAABBVB") - 1, "D3D12::m_pAABBVB");
-
-			m_AABBVBV.BufferLocation = m_pAABBVB->GetGPUVirtualAddress();
-			m_AABBVBV.SizeInBytes = AABBDesc.Width;
-			m_AABBVBV.StrideInBytes = sizeof(DirectX::XMFLOAT3);
-
-
-
-
+			m_AABBVBV = m_SkyBoxVBV;
 			unsigned long cubeIndices[24] = { 0, 1,   1, 2,   2, 3,  3,0 ,
 					   0, 4,   1, 5,   2, 6,  3,7,
 					   4, 5,   5, 6,   6, 7,  7,0 };
 
 			UINT AABBIBSize = sizeof(cubeIndices);
-			AABBDesc.Width = AABBIBSize;
-
-			hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &AABBDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pAABBIB));
-			assert(SUCCEEDED(hr));
-			m_pAABBIB->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12::m_pAABBIB") - 1, "D3D12::m_pAABBIB");
-
-
-			UINT8* pAABBIB;
-			D3D12_RANGE readRange = { 0, };
-
-			hr = m_pAABBIB->Map(0, &readRange, reinterpret_cast<void**>(&pAABBIB));
-			assert(SUCCEEDED(hr));
-			memcpy(pAABBIB, cubeIndices, AABBIBSize);
-			m_pAABBIB->Unmap(0, nullptr);
-
-			m_AABBIBV.BufferLocation = m_pAABBIB->GetGPUVirtualAddress();
-			m_AABBIBV.SizeInBytes = AABBIBSize;
-			m_AABBIBV.Format = DXGI_FORMAT_R32_UINT;
+			m_pHeapManager->AllocateIndexData((UINT8*)cubeIndices, AABBIBSize);
+			m_AABBIBV = m_pHeapManager->GetIBV(AABBIBSize, 0);
+			UINT idx = m_pHeapManager->GetIndexBufferHeapOffset();
+			idx /= _IB_HEAP_SIZE;
+			UINT64 curBlockOffset = m_pHeapManager->GetIndexBufferBlockOffset(idx);
+			m_pHeapManager->SetIndexBufferBlockOffset(idx, curBlockOffset + m_AABBIBV.SizeInBytes);
 		}
 
 		if (!CreateRTVandSRV(m_clientWidth, m_clientHeight))
@@ -3963,11 +3352,6 @@ namespace wilson
 				m_pQueryHeap[i]->Release();
 				m_pQueryHeap[i] = nullptr;
 			}
-			if (m_pQueryResultBuffer[i] != nullptr)
-			{
-				m_pQueryResultBuffer[i]->Release();
-				m_pQueryResultBuffer[i] = nullptr;
-			}
 
 			if (m_pQueryReadBuffer[i] != nullptr)
 			{
@@ -4157,113 +3541,6 @@ namespace wilson
 			m_pGenMipmapPso = nullptr;
 		}
 
-		if (m_pQuadVB != nullptr)
-		{
-			m_pQuadVB->Release();
-			m_pQuadVB = nullptr;
-		}
-
-		if (m_pQuadIB != nullptr)
-		{
-			m_pQuadIB->Release();
-			m_pQuadIB = nullptr;
-		}
-
-		if (m_pSkyBoxVB != nullptr)
-		{
-			m_pSkyBoxVB->Release();
-			m_pSkyBoxVB = nullptr;
-		}
-
-		if (m_pSkyBoxIB != nullptr)
-		{
-			m_pSkyBoxIB->Release();
-			m_pSkyBoxIB = nullptr;
-		}
-
-		if (m_pAABBVB != nullptr)
-		{
-			m_pAABBVB->Release();
-			m_pAABBVB = nullptr;
-		}
-
-		if (m_pAABBIB != nullptr)
-		{
-			m_pAABBIB->Release();
-			m_pAABBIB = nullptr;
-		}
-
-		if (m_pBoolCB != nullptr)
-		{
-			m_pBoolCB->Release();
-			m_pBoolCB = nullptr;
-		}
-
-		if (m_pColorCB != nullptr)
-		{	
-			m_pColorCB->Release();
-			m_pColorCB = nullptr;
-		}
-
-		if (m_pSSAOKernelCB != nullptr)
-		{
-			m_pSSAOKernelCB->Release();
-			m_pSSAOKernelCB = nullptr;
-		}
-
-		if (m_pExposureCB != nullptr)
-		{	
-			m_pExposureCB->Release();
-			m_pExposureCB = nullptr;
-		}
-
-		if (m_pHeightScaleCB != nullptr)
-		{	
-			m_pHeightScaleCB->Release();
-			m_pHeightScaleCB = nullptr;
-		}
-
-		if (m_pSphereCb != nullptr)
-		{
-			m_pSphereCb->Release();
-			m_pSphereCb = nullptr;
-		}
-
-		if (m_pHiZCullMatrixCb != nullptr)
-		{
-			m_pHiZCullMatrixCb->Release();
-			m_pHiZCullMatrixCb = nullptr;
-		}
-
-		if (m_pRoughnessCB != nullptr)
-		{
-			m_pRoughnessCB->Release();
-			m_pRoughnessCB = nullptr;
-		}
-
-		if (m_pEquirect2CubeCB != nullptr)
-		{	
-			m_pEquirect2CubeCB->Release();
-			m_pEquirect2CubeCB = nullptr;
-		}
-
-		if (m_pMipCB != nullptr)
-		{
-			m_pMipCB->Release();
-			m_pMipCB = nullptr;
-		}
-
-		if (m_pHdrUploadCB != nullptr)
-		{
-			m_pHdrUploadCB->Release();
-			m_pHdrUploadCB = nullptr;
-		}
-
-		if (m_pNoiseUploadCB != nullptr)
-		{
-			m_pNoiseUploadCB->Release();
-			m_pNoiseUploadCB = nullptr;
-		}
 
 		if (m_pNoiseTex != nullptr)
 		{
@@ -4271,16 +3548,22 @@ namespace wilson
 			m_pNoiseTex = nullptr;
 		}
 
-		if (m_pResolutionCB != nullptr)
+		if (m_pNoiseUploadCb != nullptr)
 		{
-			m_pResolutionCB->Release();
-			m_pResolutionCB = nullptr;
+			m_pNoiseUploadCb->Release();
+			m_pNoiseUploadCb = nullptr;
 		}
 
 		if (m_pHiZCullReadCb != nullptr)
 		{
 			m_pHiZCullReadCb->Release();
 			m_pHiZCullReadCb = nullptr;
+		}
+
+		if (m_pHdrUploadCb != nullptr)
+		{	
+			m_pHdrUploadCb->Release();
+			m_pHdrUploadCb = nullptr;
 		}
 
 		if (m_pMainCommandList != nullptr)
@@ -4331,10 +3614,10 @@ namespace wilson
 			}
 		}
 
-		if (m_pDescriptorHeapManager != nullptr)
+		if (m_pHeapManager != nullptr)
 		{	
-			delete m_pDescriptorHeapManager;
-			m_pDescriptorHeapManager = nullptr;
+			delete m_pHeapManager;
+			m_pHeapManager = nullptr;
 		}
 
 		if (m_pLightBuffer != nullptr)

@@ -6,7 +6,7 @@
 #include"typedef.h"
 namespace wilson
 {
-	class DescriptorHeapManager;
+	class HeapManager;
 	class DirectionalLight12 : public Light12
 	{
 	public:
@@ -26,7 +26,7 @@ namespace wilson
 		DirectX::XMMATRIX UpdateLightSpaceMat(const float nearZ, const float farZ);
 		void UpdateLightSpaceMatrices();
 
-		DirectionalLight12(ID3D12Device*, ID3D12GraphicsCommandList*, DescriptorHeapManager*, UINT, Camera12* pCam);
+		DirectionalLight12(ID3D12Device*, ID3D12GraphicsCommandList*, HeapManager*, UINT, Camera12* pCam);
 		DirectionalLight12(const DirectionalLight12&) = default;
 		~DirectionalLight12();
 	private:
@@ -36,7 +36,6 @@ namespace wilson
 		DirLightProperty m_dirLightProperty;
 		std::vector<DirectX::XMMATRIX> m_lightSpaceMat;
 
-		ID3D12Resource* m_pMatrice12Buffer;
 		UINT8* m_pMatricesCbBegin;
 
 		D3D12_GPU_DESCRIPTOR_HANDLE m_matriceCBV;

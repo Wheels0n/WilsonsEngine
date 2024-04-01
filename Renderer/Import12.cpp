@@ -5,7 +5,7 @@
 #include <DirectXTex.h>
 #include "D3D12.h"
 #include "Import12.h"
-#include "DescriptorHeapManager.h"
+#include "HeapManager.h"
 
 namespace wilson
 {
@@ -46,7 +46,7 @@ namespace wilson
 
 		m_pD3D12 = pD3D12;
 		m_pDevice = m_pD3D12->GetDevice();
-		m_pDescriptorHeapManager= m_pD3D12->GetDescriptorHeapManager();
+		m_pHeapManager= m_pD3D12->GetHeapManager();
 		m_pCommandList = m_pD3D12->GetCommandList();
 		m_pImporterCommandList = nullptr;
 		m_pImporterCommandAllocator = nullptr;
@@ -295,7 +295,7 @@ namespace wilson
 		indicesPos.push_back(m_indexCount);
 		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
 		DirectX::XMVECTOR zeroV = DirectX::XMVectorZero();
-		m_pModel = new Model12(m_pDevice, m_pCommandList, m_pDescriptorHeapManager, 
+		m_pModel = new Model12(m_pDevice, m_pCommandList, m_pHeapManager, 
 			m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
 		m_pModels.push_back(m_pModel);
 		++m_objectCount;
@@ -353,14 +353,10 @@ namespace wilson
 			srvDesc.Texture2D.MostDetailedMip = 0;
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-			D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-			D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-			pDevice->CreateShaderResourceView(m_pTexs[i], &srvDesc, srvCpuHandle);
-			m_SRV = srvGpuHandle;
+			
+			m_SRV = m_pHeapManager->GetSRV(srvDesc, m_pTexs[i], pDevice);
 			m_pTexSrvs.push_back(m_SRV);
-			m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+
 		}
 		m_pModelGroup = new ModelGroup12(m_pModels, m_MaterialInfoV, m_pTexSrvs, m_pTexs, 
 			m_fileName, eFileType::OBJ, m_matHash, m_texHash);
@@ -752,7 +748,7 @@ namespace wilson
 							size_t slidePitch;
 							ComputePitch(metadata.format, metadata.width, metadata.height, rowPitch, slidePitch);
 							
-							D3D12_RESOURCE_DESC	texDesc = {};
+							D3D12_RESOURCE_DESC	texDesc= {};
 							//4byte배수 제한
 							texDesc.Width =metadata.width;
 							texDesc.Height = metadata.height;
@@ -766,16 +762,7 @@ namespace wilson
 							texDesc.SampleDesc.Count = 1;
 							texDesc.SampleDesc.Quality = 0;
 
-							D3D12_HEAP_PROPERTIES heapProps = {};
-							heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-							heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-							heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-							heapProps.CreationNodeMask = 1;
-							heapProps.VisibleNodeMask = 1;
-
-							hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-								nullptr, IID_PPV_ARGS(&pTex));
-							assert(SUCCEEDED(hr));
+							m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &pTex, m_pDevice);
 							pTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 								sizeof("Importer12:: pTex") - 1, "Importer12:: pTex");
 							
@@ -885,16 +872,7 @@ namespace wilson
 			texDesc.SampleDesc.Count = 1;
 			texDesc.SampleDesc.Quality = 0;
 
-			D3D12_HEAP_PROPERTIES heapProps = {};
-			heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heapProps.CreationNodeMask = 1;
-			heapProps.VisibleNodeMask = 1;
-
-			hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr, IID_PPV_ARGS(&pTex));
-			assert(SUCCEEDED(hr));
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_GENERIC_READ, &pTex, m_pDevice);
 			pTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Importer12:: pTex") - 1, "Importer12:: pTex");
 		}
@@ -1188,7 +1166,7 @@ namespace wilson
 
 
 		std::wstring wName(name.begin(), name.end());
-		m_pModel = new Model12(m_pDevice, m_pCommandList, m_pDescriptorHeapManager, 
+		m_pModel = new Model12(m_pDevice, m_pCommandList, m_pHeapManager, 
 			m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
 			(wchar_t*)wName.c_str(), matNames);
 		m_pModels.push_back(m_pModel);
@@ -1247,12 +1225,12 @@ namespace wilson
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
 
-				D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = m_pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
+				D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHandle = m_pHeapManager->GetCurCbvSrvCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = m_pHeapManager->GetCurCbvSrvGpuHandle();
 				pDevice->CreateShaderResourceView(m_pTexs[i], &srvDesc, srvCpuHandle);
 				m_SRV = srvGpuHandle;
 				m_pTexSrvs.push_back(m_SRV);
-				m_pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+				m_pHeapManager->IncreaseCbvSrvHandleOffset();
 			}
 			m_pModelGroup = new ModelGroup12(m_pModels, m_MaterialInfoV, m_pTexSrvs, m_pTexs,
 				(wchar_t*)wfileName.c_str(),

@@ -4,11 +4,16 @@
 #include <Windows.h>
 #include <pix.h>
 
+#define _4KB 4*1024
 #define _64KB 64*1024
+#define _CB_HEAP_SIZE 256ull*1024*1024
+#define _VB_HEAP_SIZE 1024ull*1024*1024
+#define _IB_HEAP_SIZE 1024ull*1024*1024
+#define _TEX_HEAP_SIZE 3*1024ull*1024*1024
 #define _CBV_READ_SIZE 256;
-#define _CBV_ALIGN(LEN) (LEN+D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT-1u)&~(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT-1u)
-#define _64KB_ALIGN(LEN) (LEN+_64KB-1u)&~(_64KB-1u)
-#define _ALIGN
+#define CUSTUM_ALIGN(LEN, ALIGN) (LEN+ALIGN-1u)&~(ALIGN-1u)
+#define _HEAP_BLOCK_COUNT 8
+
 namespace wilson
 {	 
 	//Cam
@@ -365,6 +370,7 @@ namespace wilson
 	constexpr UINT  _DIFFIRRAD_HEIGHT = 32;
 	constexpr UINT  _QUAD_IDX_COUNT = 6;
 	constexpr UINT  _CUBE_IDX_COUNT = 36;
+	constexpr UINT  _HI_Z_CULL_COUNT = 2048;
 
 	enum ePass
 	{

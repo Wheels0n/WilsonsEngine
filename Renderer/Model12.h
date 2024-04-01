@@ -12,7 +12,7 @@
 #include "typedef.h"
 namespace wilson {
 
-	class DescriptorHeapManager;
+	class HeapManager;
 	class MatBuffer12;
 	class Model12
 	{
@@ -129,7 +129,7 @@ namespace wilson {
 			m_isInstanced = ~m_isInstanced;
 		}
 
-		Model12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, DescriptorHeapManager* pDescriptorHeapManager,
+		Model12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, HeapManager* pHeapManager,
 			VertexData* pVertices, unsigned long* pIndices,
 			std::vector<unsigned int> vertexDataPos,std::vector<unsigned int> indicesPos,
 			wchar_t* pName, std::vector<std::string> matNames);
@@ -138,11 +138,7 @@ namespace wilson {
 
 	private:
 		ID3D12Device* m_pDevice;
-		ID3D12Resource* m_pVB;
-		ID3D12Resource* m_pIB;
-		ID3D12Resource* m_pMaterialCB;
-		ID3D12Resource* m_pInstancePosCB;
-		
+
 		D3D12_VERTEX_BUFFER_VIEW m_vbV;
 		std::vector<D3D12_INDEX_BUFFER_VIEW> m_subIbVs;
 		D3D12_INDEX_BUFFER_VIEW m_ibV;
@@ -185,6 +181,7 @@ namespace wilson {
 		Sphere* m_pSphere;
 		MatBuffer12* m_pMatBuffer;
 
-		UINT* m_pMaterial;
+		UINT8* m_pMaterialBegin;
+		UINT8* m_pInstancePosBegin;
 	};
 }

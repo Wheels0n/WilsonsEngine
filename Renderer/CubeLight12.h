@@ -6,7 +6,7 @@
 #include "typedef.h"
 namespace wilson
 {
-	class DescriptorHeapManager;
+	class HeapManager;
 	class CubeLight12 :public Light12
 	{
 	public:
@@ -30,15 +30,13 @@ namespace wilson
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::CUBE; };
 
 		CubeLight12() = default;
-		CubeLight12(ID3D12Device*, ID3D12GraphicsCommandList*, DescriptorHeapManager*, UINT idx);
+		CubeLight12(ID3D12Device*, ID3D12GraphicsCommandList*, HeapManager*, UINT idx);
 		CubeLight12(const CubeLight12&) = default;
 		~CubeLight12();
 
 	private:
 		CubeLightProperty m_CubeLightProperty;
 
-		ID3D12Resource* m_pMatrices12Buffer;
-		ID3D12Resource* m_pPosCb;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_posCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_matriceCBV;
 

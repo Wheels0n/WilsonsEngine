@@ -1,10 +1,10 @@
 #include "ShadowMap12.h"
-#include "DescriptorHeapManager.h"
+#include "HeapManager.h"
 #include "D3D12.h"
 namespace wilson
 {
 	ShadowMap12::ShadowMap12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList,
-		DescriptorHeapManager* pDescriptorHeapManager,
+		HeapManager* pHeapManager,
 		const UINT width, const UINT height, const UINT cascadeLevel, 
 		const UINT dirLightCap, const UINT cubeLightCap, const UINT spotLightCap)
 	{
@@ -51,20 +51,9 @@ namespace wilson
 		m_viewport12.MinDepth = 0.0f;
 		m_viewport12.MaxDepth = 1.0f;
 
-		HRESULT hr;
 		{
-			D3D12_CLEAR_VALUE clearVal = {};
-			clearVal.Format = DXGI_FORMAT_D32_FLOAT;
-			clearVal.DepthStencil.Depth = 1.0f;
 			//Gen Tex
 			{
-				D3D12_HEAP_PROPERTIES heapProps = {};
-				heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-				heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-				heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-				heapProps.CreationNodeMask = 1;
-				heapProps.VisibleNodeMask = 1;
-
 				D3D12_RESOURCE_DESC	texDesc = {};
 				texDesc.Width = width;
 				texDesc.Height = height;
@@ -91,29 +80,14 @@ namespace wilson
 				srvDesc.Texture2DArray.MostDetailedMip = 0;
 				srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-
-
-
+				//D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 				for (int i = 0; i < m_dir12Tex.size(); ++i)
 				{
-					D3D12_CPU_DESCRIPTOR_HANDLE dsvCpuHandle = pDescriptorHeapManager->GetCurDsvHandle();
-					D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-					D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-					hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-						D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal , IID_PPV_ARGS(&m_dir12Tex[i]));
-					assert(SUCCEEDED(hr));
+					pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &m_dir12Tex[i], pDevice);
 					m_dir12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 						sizeof("ShadowMap:::m_dir12Tex[i]") - 1, "ShadowMap:::m_dir12Tex[i]");
-
-					pDevice->CreateDepthStencilView(m_dir12Tex[i], &dsvDesc, dsvCpuHandle);
-					m_dir12DSVs[i] = dsvCpuHandle;
-					pDescriptorHeapManager->IncreaseDsvHandleOffset();
-
-					pDevice->CreateShaderResourceView(m_dir12Tex[i], &srvDesc, cbvSrvCpuHandle);
-					m_dir12SRVs[i] = cbvSrvGpuHandle;
-					pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+					m_dir12DSVs[i] = pHeapManager->GetDSV(dsvDesc, m_dir12Tex[i], pDevice);
+					m_dir12SRVs[i] = pHeapManager->GetSRV(srvDesc, m_dir12Tex[i], pDevice);
 
 				}
 
@@ -122,23 +96,11 @@ namespace wilson
 					srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
 					for (int i = 0; i < m_cube12Tex.size(); ++i)
 					{
-						D3D12_CPU_DESCRIPTOR_HANDLE dsvCpuHandle = pDescriptorHeapManager->GetCurDsvHandle();
-						D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-						D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-						hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-							D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_cube12Tex[i]));
-						assert(SUCCEEDED(hr));
+						pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &m_cube12Tex[i], pDevice);
 						m_cube12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 							sizeof("ShadowMap:::m_cube12Tex[i]") - 1, "ShadowMap:::m_cube12Tex[i]");
-
-						pDevice->CreateDepthStencilView(m_cube12Tex[i], &dsvDesc, dsvCpuHandle);
-						m_cube12DSVs[i] = dsvCpuHandle;
-						pDescriptorHeapManager->IncreaseDsvHandleOffset();
-
-						pDevice->CreateShaderResourceView(m_cube12Tex[i], &srvDesc, cbvSrvCpuHandle);
-						m_cube12SRVs[i] = cbvSrvGpuHandle;
-						pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+						m_cube12DSVs[i] = pHeapManager->GetDSV(dsvDesc, m_cube12Tex[i], pDevice);
+						m_cube12SRVs[i] = pHeapManager->GetSRV(srvDesc, m_cube12Tex[i], pDevice);
 					}
 				}
 
@@ -150,23 +112,11 @@ namespace wilson
 
 					for (int i = 0; i < m_spot12Tex.size(); ++i)
 					{
-						D3D12_CPU_DESCRIPTOR_HANDLE dsvCpuHandle = pDescriptorHeapManager->GetCurDsvHandle();
-						D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-						D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-						hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-							D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_spot12Tex[i]));
-						assert(SUCCEEDED(hr));
+						pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &m_spot12Tex[i], pDevice);
 						m_spot12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 							sizeof("ShadowMap:::m_spot12Tex[i]") - 1, "ShadowMap:::m_spot12Tex[i]");
-
-						pDevice->CreateDepthStencilView(m_spot12Tex[i], &dsvDesc, dsvCpuHandle);
-						m_spot12DSVs[i] = dsvCpuHandle;
-						pDescriptorHeapManager->IncreaseDsvHandleOffset();
-
-						pDevice->CreateShaderResourceView(m_spot12Tex[i], &srvDesc, cbvSrvCpuHandle);
-						m_spot12SRVs[i] = cbvSrvGpuHandle;
-						pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+						m_spot12DSVs[i] = pHeapManager->GetDSV(dsvDesc, m_spot12Tex[i], pDevice);
+						m_spot12SRVs[i] = pHeapManager->GetSRV(srvDesc, m_spot12Tex[i], pDevice);
 					}
 				}
 
@@ -175,29 +125,15 @@ namespace wilson
 		}
 
 		{	
-			D3D12_CLEAR_VALUE clearVal = {};
-			clearVal.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			clearVal.Color[0] = 1.0f;
-			clearVal.Color[1] = 1.0f;
-			clearVal.Color[2] = 1.0f;
-			clearVal.Color[3] = 1.0f;
-
 			//Gen DebugTex
 			{
-				D3D12_HEAP_PROPERTIES heapProps = {};
-				heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-				heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-				heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-				heapProps.CreationNodeMask = 1;
-				heapProps.VisibleNodeMask = 1;
-
 				D3D12_RESOURCE_DESC	texDesc = {};
 				texDesc.Width = width;
 				texDesc.Height = height;
 				texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 				texDesc.Alignment = 0;
 				texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-				texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+				texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 				texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 				texDesc.DepthOrArraySize = max(cascadeLevel,6);
 				texDesc.MipLevels = 1;
@@ -222,48 +158,22 @@ namespace wilson
 
 				for (int i = 0; i < m_dirDebug12Tex.size(); ++i)
 				{
-					D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle = pDescriptorHeapManager->GetCurRtvHandle();
-					D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-					D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-					hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-						D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_dirDebug12Tex[i]));
-					assert(SUCCEEDED(hr));
+					pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &m_dirDebug12Tex[i], pDevice);
 					m_dirDebug12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 						sizeof("ShadowMap:::m_dirDebug12Tex[i]") - 1, "ShadowMap:::m_dirDebug12Tex[i]");
-
-					pDevice->CreateRenderTargetView(m_dirDebug12Tex[i], &rtvDesc, rtvCpuHandle);
-					m_dirDebug12RTVs[i] = rtvCpuHandle;
-					pDescriptorHeapManager->IncreaseRtvHandleOffset();
-
-					pDevice->CreateShaderResourceView(m_dirDebug12Tex[i], &srvDesc, cbvSrvCpuHandle);
-					m_dirDebug12SRVs[i] = cbvSrvGpuHandle;
-					pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+					m_dirDebug12RTVs[i] = pHeapManager->GetRTV(rtvDesc, m_dirDebug12Tex[i], pDevice);
+					m_dirDebug12SRVs[i] = pHeapManager->GetSRV(srvDesc, m_dirDebug12Tex[i], pDevice);
 				}
 
 				//Gen CubeShadowMap
 				{
 					for (int i = 0; i < m_cubeDebug12Tex.size(); ++i)
 					{
-						D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle = pDescriptorHeapManager->GetCurRtvHandle();
-						D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-						D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-
-						hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-							D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_cubeDebug12Tex[i]));
-						assert(SUCCEEDED(hr));
+						pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &m_cubeDebug12Tex[i], pDevice);
 						m_cubeDebug12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 							sizeof("ShadowMap:::m_cubeDebug12Tex[i]") - 1, "ShadowMap:::m_cubeDebug12Tex[i]");
-
-
-						pDevice->CreateRenderTargetView(m_cubeDebug12Tex[i], &rtvDesc, rtvCpuHandle);
-						m_cubeDebug12RTVs[i] = rtvCpuHandle;
-						pDescriptorHeapManager->IncreaseRtvHandleOffset();
-
-						pDevice->CreateShaderResourceView(m_cubeDebug12Tex[i], &srvDesc, cbvSrvCpuHandle);
-						m_cubeDebug12SRVs[i] = cbvSrvGpuHandle;
-						pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+						m_cubeDebug12RTVs[i] = pHeapManager->GetRTV(rtvDesc, m_cubeDebug12Tex[i], pDevice);
+						m_cubeDebug12SRVs[i] = pHeapManager->GetSRV(srvDesc, m_cubeDebug12Tex[i], pDevice);
 					}
 				}
 
@@ -275,24 +185,11 @@ namespace wilson
 
 					for (int i = 0; i < m_spotDebug12Tex.size(); ++i)
 					{
-						D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle = pDescriptorHeapManager->GetCurRtvHandle();
-						D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-						D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-						hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-							D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_spotDebug12Tex[i]));
-						assert(SUCCEEDED(hr));
+						pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &m_spotDebug12Tex[i], pDevice);
 						m_spotDebug12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 							sizeof("ShadowMap:::m_spotDebug12Tex[i]") - 1, "ShadowMap:::m_spotDebug12Tex[i]");
-
-
-						pDevice->CreateRenderTargetView(m_spotDebug12Tex[i], &rtvDesc, rtvCpuHandle);
-						m_spotDebug12RTVs[i] = rtvCpuHandle;
-						pDescriptorHeapManager->IncreaseRtvHandleOffset();
-
-						pDevice->CreateShaderResourceView(m_spotDebug12Tex[i], &srvDesc, cbvSrvCpuHandle);
-						m_spotDebug12SRVs[i] = cbvSrvGpuHandle;
-						pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+						m_spotDebug12RTVs[i] = pHeapManager->GetRTV(rtvDesc, m_spotDebug12Tex[i], pDevice);
+						m_spotDebug12SRVs[i] = pHeapManager->GetSRV(srvDesc, m_spotDebug12Tex[i], pDevice);
 					}
 				}
 
@@ -300,19 +197,10 @@ namespace wilson
 				{
 					for (int i = 0; i < m_debug12Tex.size(); ++i)
 					{
-						D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-						D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-
-						hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-							D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearVal, IID_PPV_ARGS(&m_debug12Tex[i]));
-						assert(SUCCEEDED(hr));
+						pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &m_debug12Tex[i], pDevice);
 						m_debug12Tex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 							sizeof("ShadowMap:::m_debug12Tex[i]") - 1, "ShadowMap:::m_debug12Tex[i]");
-
-
-						pDevice->CreateShaderResourceView(m_debug12Tex[i], &srvDesc, cbvSrvCpuHandle);
-						m_debug12SRVs[i] = cbvSrvGpuHandle;
-						pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+						m_debug12SRVs[i] = pHeapManager->GetSRV(srvDesc, m_debug12Tex[i], pDevice);
 
 					}
 				}
@@ -334,20 +222,20 @@ namespace wilson
 			ssDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS;
 
 			{
-				D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle = pDescriptorHeapManager->GetCurSamplerCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuHandle = pDescriptorHeapManager->GetCurSamplerGpuHandle();
+				D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle = pHeapManager->GetCurSamplerCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuHandle = pHeapManager->GetCurSamplerGpuHandle();
 
 				pDevice->CreateSampler(&ssDesc, samplerCpuHandle);
 				m_dirShadowSSV = samplerGpuHandle;
-				pDescriptorHeapManager->IncreaseSamplerHandleOffset();
+				pHeapManager->IncreaseSamplerHandleOffset();
 			}
 
 			{
-				D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle = pDescriptorHeapManager->GetCurSamplerCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuHandle = pDescriptorHeapManager->GetCurSamplerGpuHandle();
+				D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle = pHeapManager->GetCurSamplerCpuHandle();
+				D3D12_GPU_DESCRIPTOR_HANDLE samplerGpuHandle = pHeapManager->GetCurSamplerGpuHandle();
 				pDevice->CreateSampler(&ssDesc, samplerCpuHandle);
 				m_cubeShadowSSV = samplerGpuHandle;
-				pDescriptorHeapManager->IncreaseSamplerHandleOffset();
+				pHeapManager->IncreaseSamplerHandleOffset();
 			}
 			
 		}

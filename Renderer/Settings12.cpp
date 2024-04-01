@@ -26,7 +26,7 @@ namespace wilson
 
 		ID3D12GraphicsCommandList* pCommandlist = m_pD3D12->GetCommandList();
 		ID3D12Device* pDevice = pD3D12->GetDevice();
-		DescriptorHeapManager* pDescriptorHeapManager = m_pD3D12->GetDescriptorHeapManager();
+		HeapManager* pHeapManager = m_pD3D12->GetHeapManager();
 
 		HRESULT hr;
 		//Gen DirLightIcon
@@ -55,15 +55,8 @@ namespace wilson
 				texDesc.SampleDesc.Count = 1;
 				texDesc.SampleDesc.Quality = 0;
 
-				D3D12_HEAP_PROPERTIES heapProps = {};
-				heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-				heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-				heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-				heapProps.CreationNodeMask = 1;
-				heapProps.VisibleNodeMask = 1;
-				hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-					nullptr, IID_PPV_ARGS(&m_pDirLitIcon12Tex));
-				assert(SUCCEEDED(hr));
+				pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+					&m_pDirLitIcon12Tex, pDevice);
 				m_pDirLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pDirLitIcon12Tex") - 1, "Settings12::m_pDirLitIcon12Tex");
 				
@@ -78,11 +71,7 @@ namespace wilson
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-				pDevice->CreateShaderResourceView(m_pDirLitIcon12Tex, &srvDesc, cbvSrvCpuHandle);
-				m_dirLitIcon12SRV = cbvSrvGpuHandle;
-				pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+				m_dirLitIcon12SRV = pHeapManager->GetSRV(srvDesc, m_pDirLitIcon12Tex, pDevice);
 			}
 		}
 
@@ -111,15 +100,8 @@ namespace wilson
 				texDesc.SampleDesc.Count = 1;
 				texDesc.SampleDesc.Quality = 0;
 
-				D3D12_HEAP_PROPERTIES heapProps = {};
-				heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-				heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-				heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-				heapProps.CreationNodeMask = 1;
-				heapProps.VisibleNodeMask = 1;
-				hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-					nullptr, IID_PPV_ARGS(&m_pCubeLitIcon12Tex));
-				assert(SUCCEEDED(hr));
+				pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
+					&m_pCubeLitIcon12Tex, pDevice);
 				m_pCubeLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pCubeLitIcon12Tex") - 1, "Settings12::m_pCubeLitIcon12Tex");
 
@@ -134,11 +116,7 @@ namespace wilson
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-				pDevice->CreateShaderResourceView(m_pCubeLitIcon12Tex, &srvDesc, cbvSrvCpuHandle);
-				m_pntLitIcon12SRV = cbvSrvGpuHandle;
-				pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+				m_cubeLitIcon12SRV = pHeapManager->GetSRV(srvDesc, m_pCubeLitIcon12Tex, pDevice);
 			}
 		}
 
@@ -167,15 +145,8 @@ namespace wilson
 				texDesc.SampleDesc.Count = 1;
 				texDesc.SampleDesc.Quality = 0;
 
-				D3D12_HEAP_PROPERTIES heapProps = {};
-				heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-				heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-				heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-				heapProps.CreationNodeMask = 1;
-				heapProps.VisibleNodeMask = 1;
-				hr = pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-					nullptr, IID_PPV_ARGS(&m_pSpotLitIcon12Tex));
-				assert(SUCCEEDED(hr));
+				pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
+					&m_pSpotLitIcon12Tex, pDevice);
 				m_pSpotLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pSpotLitIcon12Tex") - 1, "Settings12::m_pSpotLitIcon12Tex");
 
@@ -190,12 +161,7 @@ namespace wilson
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-
-				D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = pDescriptorHeapManager->GetCurCbvSrvCpuHandle();
-				D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = pDescriptorHeapManager->GetCurCbvSrvGpuHandle();
-				pDevice->CreateShaderResourceView(m_pSpotLitIcon12Tex, &srvDesc, cbvSrvCpuHandle);
-				m_spotLitIcon12SRV = cbvSrvGpuHandle;
-				pDescriptorHeapManager->IncreaseCbvSrvHandleOffset();
+				m_spotLitIcon12SRV = pHeapManager->GetSRV(srvDesc, m_pSpotLitIcon12Tex, pDevice);
 			}
 		}
 
@@ -301,7 +267,7 @@ namespace wilson
 				ImGui::EndDragDropSource();
 			}
 
-			ImGui::Image((ImTextureID)m_pntLitIcon12SRV.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
+			ImGui::Image((ImTextureID)m_cubeLitIcon12SRV.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
 			ImGui::Text("CubeLight");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))

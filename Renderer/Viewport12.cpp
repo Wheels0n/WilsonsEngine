@@ -14,7 +14,7 @@ namespace wilson
 		m_pD3D12 = pD3D12;
 		m_pDevice = pD3D12->GetDevice();
 		m_pCam = pD3D12->GetCam();
-		m_pDescripotrHeapManager = pD3D12->GetDescriptorHeapManager();
+		m_pDescripotrHeapManager = pD3D12->GetHeapManager();
 		m_pScene12 = pScene;
 		m_pImporter12 = new Importer12(m_pD3D12);
 

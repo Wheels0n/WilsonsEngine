@@ -20,7 +20,7 @@
 #include "Terrain.h"
 #include "Import12.h"
 #include "ShadowMap12.h"
-#include "DescriptorHeapManager.h"
+#include "HeapManager.h"
 #include "typedef.h"
 
 namespace wilson 
@@ -65,9 +65,9 @@ namespace wilson
 		{
 			return m_pMainCommandList;
 		};
-		inline DescriptorHeapManager* GetDescriptorHeapManager()
+		inline HeapManager* GetHeapManager()
 		{
-			return m_pDescriptorHeapManager;
+			return m_pHeapManager;
 		}
 		inline ShadowMap12* GetShadowMap() const
 		{
@@ -186,7 +186,6 @@ namespace wilson
 		IDXGISwapChain* m_pSwapChain;
 		ID3D12Resource* m_pScreenTex[_BUFFER_COUNT];
 		ID3D12QueryHeap* m_pQueryHeap[_WORKER_THREAD_COUNT];
-		ID3D12Resource* m_pQueryResultBuffer[_WORKER_THREAD_COUNT];
 		ID3D12Resource* m_pQueryReadBuffer[_WORKER_THREAD_COUNT];
 	
 		ID3D12GraphicsCommandList* m_pMainCommandList;
@@ -231,27 +230,10 @@ namespace wilson
 		ID3D12PipelineState* m_pEquirect2CubePso;
 		ID3D12PipelineState* m_pGenMipmapPso;
 
-		ID3D12Resource* m_pQuadVB;
-		ID3D12Resource* m_pSkyBoxVB;
-		ID3D12Resource* m_pQuadIB;
-		ID3D12Resource* m_pSkyBoxIB;
-		ID3D12Resource* m_pAABBVB;
-		ID3D12Resource* m_pAABBIB;
-		ID3D12Resource* m_pBoolCB;
-		ID3D12Resource* m_pColorCB;
-		ID3D12Resource* m_pHiZCullMatrixCb;
-		ID3D12Resource* m_pSphereCb;
-		ID3D12Resource* m_pRoughnessCB;
-		ID3D12Resource* m_pSSAOKernelCB;
-		ID3D12Resource* m_pExposureCB;
-		ID3D12Resource* m_pHeightScaleCB;
-		ID3D12Resource* m_pEquirect2CubeCB;
-		ID3D12Resource* m_pMipCB;
-		ID3D12Resource* m_pHdrUploadCB;
-		ID3D12Resource* m_pNoiseUploadCB;
-		ID3D12Resource* m_pResolutionCB;
 		ID3D12Resource* m_pNoiseTex;
+		ID3D12Resource* m_pNoiseUploadCb;
 		ID3D12Resource* m_pHiZCullReadCb;
+		ID3D12Resource* m_pHdrUploadCb;
 
 		ID3D12Resource* m_pViewportTex;
 		ID3D12Resource* m_pSceneTex;
@@ -267,7 +249,7 @@ namespace wilson
 		ID3D12Resource* m_pSkyBoxTex;
 		ID3D12Resource* m_pDiffIrradianceTex;
 		ID3D12Resource* m_pPrefilterTex;
-		ID3D12Resource* m_pUAVTex;
+		ID3D12Resource* m_pGenMipUAVTex;
 		ID3D12Resource* m_pHDRTex;
 		ID3D12Resource* m_pScreenDepthTex;
 		ID3D12Resource* m_pSceneDepthTex;
@@ -316,13 +298,10 @@ namespace wilson
 		D3D12_INDEX_BUFFER_VIEW m_SkyBoxIBV;
 		D3D12_INDEX_BUFFER_VIEW m_AABBIBV;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE m_BoolCBV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_ColorCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SSAOKernelCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_ExposureCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_HeightScaleCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_Equirect2CubeCBV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_MipCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_RoughnessCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_ResolutionCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_HiZCullMatrixCBV;
@@ -344,7 +323,7 @@ namespace wilson
 		std::queue<Model12*>m_pModelQueue;
 		std::queue<Model12*>m_pHWOcclusionQueue[_WORKER_THREAD_COUNT];
 		std::vector<ModelGroup12*> m_pModelGroups;
-		DescriptorHeapManager* m_pDescriptorHeapManager;
+		HeapManager* m_pHeapManager;
 		Camera12* m_pCam;
 		Frustum12* m_pFrustum;
 		LightBuffer12* m_pLightBuffer;
@@ -370,8 +349,10 @@ namespace wilson
 		UINT8* m_pSphereCbBegin;
 		UINT8* m_pResolutionCbBegin;
 		UINT8* m_pHiZCullReadCbBegin;
-
-
+		UINT8* m_pRoughnessCbBegin;
+		UINT8* m_pSSAOKernalCbBegin;
+		UINT8* m_pEquirect2CubeCbBegin;
+	
 		UINT m_selectedModelGroup;
 		UINT m_selectedModel;
 		
@@ -381,6 +362,8 @@ namespace wilson
 		HANDLE m_fenceEvent;
 		HANDLE m_workerFenceEvent[_WORKER_THREAD_COUNT];
 		HANDLE m_SsaoFenceEvent;
+
+		UINT m_QueryResultOffset[_WORKER_THREAD_COUNT];
 
 	};
 }
