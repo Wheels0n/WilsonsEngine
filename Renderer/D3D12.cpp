@@ -97,7 +97,13 @@ namespace wilson
 			ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
 											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 			//SSAO Pass
-		
+			UINT8* pSSAOParametersCbBegin = m_pSSAOParametersCbBegin;
+			memcpy(pSSAOParametersCbBegin, &m_ssaoRadius, sizeof(FLOAT));
+			pSSAOParametersCbBegin += sizeof(FLOAT);
+			memcpy(pSSAOParametersCbBegin, &m_ssaoBias, sizeof(FLOAT));
+			pSSAOParametersCbBegin += sizeof(FLOAT);
+			memcpy(pSSAOParametersCbBegin, &m_ssaoSampleCnt, sizeof(UINT));
+
 			m_pSSAOCommandList->SetPipelineState(m_pSSAOPso);
 			m_pSSAOCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
 			m_pSSAOCommandList->SetComputeRootSignature(m_pShader->GetSSAOShaderRootSingnature());
@@ -108,9 +114,10 @@ namespace wilson
 			m_pSSAOCommandList->SetComputeRootDescriptorTable(eSsao_eCsWrap, m_WrapSSV);
 			m_pSSAOCommandList->SetComputeRootDescriptorTable(eSsao_eCsClamp, m_ClampSSV);
 			m_pSSAOCommandList->SetComputeRootDescriptorTable(eSsao_eCsSamplePoints, m_SSAOKernelCBV);
+			m_pSSAOCommandList->SetComputeRootDescriptorTable(eSsao_eCsParameters, m_SsaoParameterCBV);
 			m_pMatBuffer->UploadProjMat(m_pSSAOCommandList, true);
 			//8보다 낮을 경우 감안
-			m_pSSAOCommandList->Dispatch(ceil(m_clientWidth / (float)8), ceil(m_clientHeight / (float)8), 1);
+			m_pSSAOCommandList->Dispatch(ceil(m_clientWidth / (float)16), ceil(m_clientHeight / (float)16), 1);
 
 			//Blur SSAOTex
 			D3D12_RESOURCE_BARRIER blurBarriers[] =
@@ -414,8 +421,8 @@ namespace wilson
 
 		//SSAO & Post process and UAV..
 		{
-			texDesc.Width = width;
-			texDesc.Height = height;
+			texDesc.Width = width/2;
+			texDesc.Height = height/2;
 			texDesc.MipLevels = 1;
 			texDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 			texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
@@ -429,6 +436,8 @@ namespace wilson
 			m_SSAOSRV = m_pHeapManager->GetSRV(srvDesc, m_pSSAOTex, m_pDevice);
 			m_SSAOUAV = m_pHeapManager->GetUAV(uavDesc, m_pSSAOTex, m_pDevice);
 
+			texDesc.Width = width;
+			texDesc.Height = height;
 			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				&m_pSSAOBlurTex, m_pDevice);
 			m_pSSAOBlurTex->SetPrivateData(WKPDID_D3DDebugObjectName,
@@ -2103,7 +2112,7 @@ namespace wilson
 	}
 
 	D3D12::D3D12(int screenWidth, int screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
-		float fScreenFar, float fScreenNear) :m_selectedModelGroup(-1), m_exposure(1.0f)
+		float fScreenFar, float fScreenNear) :m_selectedModelGroup(-1), m_exposure(1.0f), m_ssaoSampleCnt(64), m_ssaoBias(0.025f), m_ssaoRadius(0.5f)
 	{  
 		g_pD3D12 = this;
 
@@ -2905,6 +2914,10 @@ namespace wilson
 			m_pSSAOKernalCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
 			m_SSAOKernelCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
 			
+			cbSize = sizeof(FLOAT) + sizeof(UINT) * 2;
+			m_pSSAOParametersCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
+			m_SsaoParameterCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
+
 			cbSize = sizeof(XMFLOAT4);
 			m_pExposureCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
 			m_ExposureCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);

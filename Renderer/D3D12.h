@@ -93,9 +93,21 @@ namespace wilson
 		{
 			return &m_heightScale;
 		}
+		inline float* GetSsaoRadius()
+		{
+			return &m_ssaoRadius;
+		}
+		inline float* GetSsaoBias()
+		{
+			return &m_ssaoBias;
+		}
 		inline BOOL* GetHeighOnOFF()
 		{
 			return &m_bHeightOnOff;
+		}
+		inline UINT* GetSsaoSampleCnt()
+		{
+			return &m_ssaoSampleCnt;
 		}
 		inline int GetClientWidth() const
 		{
@@ -306,6 +318,7 @@ namespace wilson
 		D3D12_GPU_DESCRIPTOR_HANDLE m_ResolutionCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_HiZCullMatrixCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SphereCBV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_SsaoParameterCBV;
 
 		D3D12_GPU_DESCRIPTOR_HANDLE m_ClampSSV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_WrapSSV;
@@ -339,6 +352,9 @@ namespace wilson
 		UINT m_curFrame;
 		UINT m_numOfModelsHiZPassed;
 		UINT m_numOfModelsNotOccluded;
+		UINT m_ssaoSampleCnt;
+		float m_ssaoBias;
+		float m_ssaoRadius;
 		float m_exposure;
 		float m_heightScale;
 
@@ -351,6 +367,7 @@ namespace wilson
 		UINT8* m_pHiZCullReadCbBegin;
 		UINT8* m_pRoughnessCbBegin;
 		UINT8* m_pSSAOKernalCbBegin;
+		UINT8* m_pSSAOParametersCbBegin;
 		UINT8* m_pEquirect2CubeCbBegin;
 	
 		UINT m_selectedModelGroup;

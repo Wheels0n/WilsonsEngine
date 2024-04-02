@@ -239,6 +239,7 @@ namespace wilson
 		eSsao_eCsClamp,
 		eSsao_eCsSamplePoints,
 		eSsao_eCsProj,
+		eSsao_eCsParameters,
 		eSsao_eCnt
 	};
 

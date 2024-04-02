@@ -39,6 +39,9 @@ namespace wilson
 		BOOL* m_pHeightOnOFF;
 		float* m_pExposure;
 		float* m_pHeightScale;
+		float* m_pSsaoRadius;
+		float* m_pSsaoBias;
+		UINT* m_pSsaoSampleCount;
 
 		XMFLOAT4 m_prevPos;
 		XMFLOAT3 m_prevAngleFloat;

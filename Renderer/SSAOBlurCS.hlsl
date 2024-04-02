@@ -7,7 +7,7 @@ SamplerState g_WrapSampler;
 void main(uint3 DTid : SV_DispatchThreadID, uint3 groupId : SV_GroupID, uint3 groupThreadId : SV_GroupThreadID)
 {
     float2 size;
-    g_SSAOTex.GetDimensions(size.x, size.y);
+    g_Dst.GetDimensions(size.x, size.y);
     
     if (DTid.x >= size.x || DTid.y >= size.y)
     {

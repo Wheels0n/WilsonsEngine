@@ -6,18 +6,21 @@ RWTexture2D<float4> g_Dst;
 SamplerState g_WrapSampler;
 SamplerState g_clampSampler;
 
-static const float _RADIUS = 0.5f;
-static const float _BIAS = 0.025;
-static const int _SAMPLE_CNT = 64;
 static const int _NoiseTex_Len = 4;
 
 cbuffer Kernels : register(b0)
 {
-    float4 g_kernels[_SAMPLE_CNT];
+    float4 g_kernels[64];
 };
 cbuffer ProjMat : register(b1)
 {
     matrix g_projMat;
+};
+cbuffer SSAOParameters : register(b2)
+{
+    float _RADIUS;
+    float _BIAS;
+    uint _SAMPLE_CNT;
 };
 
 
@@ -25,8 +28,8 @@ cbuffer ProjMat : register(b1)
 void main(uint3 DTid : SV_DispatchThreadID, uint3 groupId : SV_GroupID, uint3 groupThreadId : SV_GroupThreadID)
 {   
     float2 size;
-    g_vPosTex.GetDimensions(size.x, size.y);
-    float2 uv = DTid.xy / (size - 1);
+    g_Dst.GetDimensions(size.x, size.y);
+    float2 uv = (DTid.xy + 0.5) / (size - 1);
     
     float4 vPos = g_vPosTex.SampleLevel(g_clampSampler, uv, 0);
     if (dot(vPos.xyz, vPos.xyz) == 0)

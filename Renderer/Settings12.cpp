@@ -23,6 +23,9 @@ namespace wilson
 		m_pExposure = m_pD3D12->GetExposure();
 		m_pHeightScale = m_pD3D12->GetHeightScale();
 		m_pHeightOnOFF = m_pD3D12->GetHeighOnOFF();
+		m_pSsaoRadius = m_pD3D12->GetSsaoRadius();
+		m_pSsaoBias = m_pD3D12->GetSsaoBias();
+		m_pSsaoSampleCount = m_pD3D12->GetSsaoSampleCnt();
 
 		ID3D12GraphicsCommandList* pCommandlist = m_pD3D12->GetCommandList();
 		ID3D12Device* pDevice = pD3D12->GetDevice();
@@ -301,6 +304,13 @@ namespace wilson
 			ImGui::DragFloat("Exposure", m_pExposure, 0.01f, 0.1f, 5.0f);
 			ImGui::DragFloat("HeightScale", m_pHeightScale, 0.0001f, 0.0001f, 5.0f, "%.4f");
 
+		}
+		ImGui::End();
+		if (ImGui::Begin("SSAO"))
+		{
+			ImGui::DragInt("SampleCount", (INT*)m_pSsaoSampleCount, 1, 1, 64);
+			ImGui::DragFloat("Bias", m_pSsaoBias, 0.01f, 0.1f, 5.0f);
+			ImGui::DragFloat("Radius", m_pSsaoRadius, 0.01f, 0.1f, 5.0f);
 		}
 		ImGui::End();
 	}
