@@ -5,7 +5,7 @@
 #include <fstream>
 #include <unordered_set>
 
-#include "ModelGroup12.h"
+#include "Object.h"
 #include "typedef.h"
 namespace wilson {
 	
@@ -17,12 +17,12 @@ namespace wilson {
 	public:
 		void ClearModel();
 		void ClearModelGroup();
-		inline ModelGroup12* GetModelGroup()
+		inline Object* GetpObject()
 		{
 			return m_pModelGroup;
 		};
 		bool LoadTex(LPCWSTR fileName, ID3D12Device* pDevice, bool isDiffuse);
-		bool LoadModel(const char* extension, LPCWSTR fileName, ID3D12Device* pDevice);
+		bool LoadObject(const char* extension, LPCWSTR fileName, ID3D12Device* pDevice);
 
 		Importer12() = delete;
 		Importer12(D3D12*);
@@ -54,10 +54,10 @@ namespace wilson {
 		wchar_t* m_mtlPath;
 		wchar_t* m_fileName;
 
-		ModelGroup12* m_pModelGroup;
-		Model12* m_pModel;
+		Object* m_pModelGroup;
+		Mesh* m_pModel;
 
-		std::vector<Model12*> m_pModels;
+		std::vector<Mesh*> m_pMeshes;
 		std::vector<MaterialInfo>m_MaterialInfoV;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_pTexSrvs;
 		std::vector<ID3D12Resource*> m_pTexs;

@@ -53,6 +53,7 @@ namespace wilson
 			m_pPBRDeferred12PS = nullptr;
 
 			m_pMatrixTransformVS = nullptr;
+			m_pMatrixTransformInstancedVS = nullptr;
 			m_pConstantPS = nullptr;
 
 			m_pAABB12VS = nullptr;
@@ -207,6 +208,8 @@ namespace wilson
 
 
 			hr = D3DCompileFromFile(L"MatrixTransformVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pMatrixTransformVS, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+			hr = D3DCompileFromFile(L"MatrixTransformInstancedVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pMatrixTransformInstancedVS, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"ConstantPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pConstantPS, &pErrorBlob);
@@ -1550,6 +1553,12 @@ namespace wilson
 			{
 				m_pMatrixTransformVS->Release();
 				m_pMatrixTransformVS = nullptr;
+			}
+
+			if (m_pMatrixTransformInstancedVS != nullptr)
+			{
+				m_pMatrixTransformInstancedVS->Release();
+				m_pMatrixTransformInstancedVS = nullptr;
 			}
 
 			if (m_pConstantPS != nullptr)

@@ -63,10 +63,10 @@ namespace wilson
 						if (i < 2)
 						{
 							const wchar_t* path = (const wchar_t*)payLoad->Data;
-							m_pImporter->LoadModel(g_types[i], path, m_pDevice);
-							ModelGroup* pModelGroup = m_pImporter->GetModelGroup();
+							m_pImporter->LoadObject(g_types[i], path, m_pDevice);
+							ModelGroup* pModelGroup = m_pImporter->GetpObject();
 
-							std::vector<Model*> pModels = pModelGroup->GetModels();
+							std::vector<Model*> pModels = pModelGroup->GetMeshes();
 							for (int i = 0; i < pModels.size(); ++i)
 							{
 								Model* pModel = pModels[i];
@@ -74,8 +74,8 @@ namespace wilson
 								XMMATRIX trMat = XMMatrixTranslationFromVector(pos);
 								*pTrMat = trMat;
 							}
-							int modelIdx = m_pD3D11->GetModelGroupSize();
-							m_pD3D11->AddModelGroup(pModelGroup);
+							int modelIdx = m_pD3D11->GetObjectSize();
+							m_pD3D11->AddObject(pModelGroup);
 							m_pScene->AddModelEntity(pModelGroup, newEntityIdx, modelIdx);
 							break;
 						}

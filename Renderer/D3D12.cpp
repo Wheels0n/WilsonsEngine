@@ -1,5 +1,6 @@
 #include <random>
 #include <process.h>
+#include <algorithm>
 #include "D3D12.h"
 #include "stb_image.h"
 #include "../ImGui/imgui_impl_dx12.h"
@@ -38,12 +39,14 @@ namespace wilson
 		{
 			//Zpass
 			WaitForSingleObject(m_workerBeginFrame[threadIndex], INFINITE);
+			PIXBeginEvent(m_pWorkerCommandList[threadIndex], 0, L"Pre-Z Pass");
 			DrawObject(eZpass, threadIndex, -1);
+			PIXEndEvent(m_pWorkerCommandList[threadIndex]);
 			SetEvent(m_workerFinishZpass[threadIndex]);
 
 			//ShadowPass
 			WaitForSingleObject(m_workerBeginShadowPass[threadIndex], INFINITE);
-
+			PIXBeginEvent(m_pWorkerCommandList[threadIndex], 0, L"ShadowPass");
 			std::vector<DirectionalLight12*>& dirLights = m_pLightBuffer->GetDirLights();
 			std::vector<CubeLight12*>& CubeLights = m_pLightBuffer->GetCubeLights();
 			std::vector<SpotLight12*>& spotLights = m_pLightBuffer->GetSpotLights();
@@ -68,16 +71,24 @@ namespace wilson
 				}
 
 			}
+			PIXEndEvent(m_pWorkerCommandList[threadIndex]);
 			SetEvent(m_workerFinishShadowPass[threadIndex]);
 
 			//HWOcclusionTestPass
-			WaitForSingleObject(m_workerBeginHWOcclusionTestPass[threadIndex], INFINITE);
-			HWQueryForOcclusion(threadIndex);
-			SetEvent(m_workerFinishHWOcclusionTestPass[threadIndex]);
+			//if (m_pCam->GetDirty())
+			{
+				WaitForSingleObject(m_workerBeginHWOcclusionTestPass[threadIndex], INFINITE);
+				PIXBeginEvent(m_pWorkerCommandList[threadIndex], 0, L"HW Culling");
+				HWQueryForOcclusion(threadIndex);
+				PIXEndEvent(m_pWorkerCommandList[threadIndex]);
+				SetEvent(m_workerFinishHWOcclusionTestPass[threadIndex]);
+			}
 
 			//PbrGeoPass
 			WaitForSingleObject(m_workerBeginDeferredGeoPass[threadIndex], INFINITE);
+			PIXBeginEvent(m_pWorkerCommandList[threadIndex], 0, L"PbrGeo Pass");
 			DrawObject(eGeoPass, threadIndex, -1);
+			PIXEndEvent(m_pWorkerCommandList[threadIndex]);
 			SetEvent(m_workerEndFrame[threadIndex]);
 		}
 		return;
@@ -520,7 +531,6 @@ namespace wilson
 		}
 		return true;
 	}
-
 	bool D3D12::CreateDSV(UINT width, UINT height)
 	{	
 		DestroySceneDepthTex();
@@ -674,7 +684,6 @@ namespace wilson
 
 		}
 	}
-
 	void D3D12::DestroySceneDepthTex()
 	{
 		if (m_pSceneDepthTex != nullptr)
@@ -1022,28 +1031,26 @@ namespace wilson
 		
 
 	}
-
-	void D3D12::UpdateTotalModels()
+	void D3D12::UpdateTotalMeshes()
 	{
+		UINT meshCnt = 0;
+		for (int i = 0; i < m_pObjects.size(); ++i)
 		{
-			UINT modelCnt = 0;
-			for (int i = 0; i < m_pModelGroups.size(); ++i)
-			{
-				std::vector<Model12*> pModels = m_pModelGroups[i]->GetModels();
-				modelCnt += pModels.size();
-			}
-			std::vector<Model12*> drawLists;
-			drawLists.reserve(modelCnt);
-			for (int i = 0; i < m_pModelGroups.size(); ++i)
-			{
-				std::vector<Model12*> pModels = m_pModelGroups[i]->GetModels();
-				for (int j = 0; j < pModels.size(); ++j)
-				{
-					drawLists.push_back(pModels[j]);
-				}
-			}
-			m_pTotalModels = drawLists;
+			std::vector<Mesh*> pMeshes = m_pObjects[i]->GetMeshes();
+			meshCnt += pMeshes.size();
 		}
+		std::vector<Mesh*> drawLists;
+		drawLists.reserve(meshCnt);
+		for (int i = 0; i < m_pObjects.size(); ++i)
+		{
+			std::vector<Mesh*> pMeshes = m_pObjects[i]->GetMeshes();
+			for (int j = 0; j < pMeshes.size(); ++j)
+			{
+				drawLists.push_back(pMeshes[j]);
+			}
+
+		}
+		m_pTotalMeshes = drawLists;
 	}
 
 	void D3D12::DrawObject(ePass curPass, UINT threadIndex, UINT lightIdx) 
@@ -1055,20 +1062,37 @@ namespace wilson
 		std::vector<CubeLight12*>& cubetLights = m_pLightBuffer->GetCubeLights();
 		std::vector<SpotLight12*>& spotLights = m_pLightBuffer->GetSpotLights();
 
-		while (!m_pModelQueue.empty())
+		while (!m_pSubMeshQueue.empty()||!m_pMeshQueue.empty())
 		{
 			DWORD result =WaitForSingleObject(m_workerMutex, INFINITE);
 
 			if (result==WAIT_OBJECT_0)
 			{	
-				Model12* pModels[_OBJECT_PER_THREAD];
-				UINT qLen = m_pModelQueue.size();
-				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
+				UINT qLen = 0;
+				Mesh* pMeshes[_OBJECT_PER_THREAD] = {};
+				SubMesh* pSubMeshes[_OBJECT_PER_THREAD] = {};
+				if (curPass == eGeoPass)
 				{
-					pModels[i] = m_pModelQueue.front();
-					m_pModelQueue.pop();
+					qLen = m_pSubMeshQueue.size();
+					for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
+					{
+						pSubMeshes[i] = m_pSubMeshQueue.front();
+						m_pSubMeshQueue.pop();
+					}
 				}
+				else
+				{
+					qLen = m_pMeshQueue.size();
+					for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
+					{
+						pMeshes[i] = m_pMeshQueue.front();
+						m_pMeshQueue.pop();
+					}
+				}
+				
+				m_drawCallCnt += min(qLen, _OBJECT_PER_THREAD);
 				//Set-up Status
+				
 				ReleaseMutex(m_workerMutex);
 				switch (curPass)
 				{
@@ -1144,14 +1168,12 @@ namespace wilson
 				default:
 					break;
 				}
-				
-				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
-				{
-					worldMat = pModels[i]->GetTransformMatrix(false);
-					invWorldMat = pModels[i]->GetInverseWorldMatrix();
-					MatBuffer12* pMatBuffer = pModels[i]->GetMatBuffer();
-					pMatBuffer->SetWorldMatrix(&worldMat);
-					pMatBuffer->SetInvWorldMatrix(&invWorldMat);
+				int n =min(qLen, _OBJECT_PER_THREAD);
+	
+				for (int i = 0; i < n; ++i)
+				{	
+					MatBuffer12* pMatBuffer = curPass==eGeoPass?
+						pSubMeshes[i]->GetMatBuffer():pMeshes[i]->GetMatBuffer();
 					pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 					pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
 
@@ -1174,58 +1196,92 @@ namespace wilson
 					case wilson::eCubeShadowPass:
 					case wilson::eDefault:
 					default:
-						pMatBuffer->UploadMatBuffer(m_pWorkerCommandList[threadIndex]);
 						break;
 					}
 
 					if (curPass == eGeoPass)
 					{
-						for (int j = 0; j < pModels[i]->GetMatCount(); ++j)
+						PerModel perModel = *(pSubMeshes[i]->GetPerModel());
+						if (perModel.hasNormal)
 						{
-
+							if (m_bHeightOnOff)
 							{
-								PerModel perModel = *(pModels[i]->GetPerModel(j));
-								if (perModel.hasNormal)
+								if (perModel.hasEmissive)
 								{
-									if (m_bHeightOnOff)
-									{
-										if (perModel.hasEmissive)
-										{
-											m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightEmissivePso);
-										}
-										else
-										{
-											m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightPso);
-										}
-									}
-									else
-									{
-										m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalPso);
-									}
-								}
-								else if (perModel.hasEmissive)
-								{
-									m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoEmissivePso);
+									m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightEmissivePso);
 								}
 								else
 								{
-									m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoPso);
+									m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightPso);
 								}
 							}
+							else
+							{
+								m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalPso);
+							}
+						}
+						else if (perModel.hasEmissive)
+						{
+							m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoEmissivePso);
+						}
+						else
+						{
+							m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pPbrDeferredGeoPso);
+						}
 
-							pModels[i]->UploadBuffers(m_pWorkerCommandList[threadIndex], j, curPass);
-							m_pWorkerCommandList[threadIndex]->DrawIndexedInstanced(pModels[i]->GetIndexCount(j), 1,
-								0, 0, 0);
+						pSubMeshes[i]->SetVBandIB(m_pWorkerCommandList[threadIndex]);
+						pSubMeshes[i]->SetTexture(m_pWorkerCommandList[threadIndex], curPass);
+						m_pWorkerCommandList[threadIndex]->DrawIndexedInstanced(pSubMeshes[i]->GetIndexCount(), 1,
+							0, 0, 0);
+						int j = i + 1;
+						while (j < n)
+						{
+							if (pSubMeshes[i]->GetMaterialName() == pSubMeshes[j]->GetMaterialName())
+							{
+								pMatBuffer = pSubMeshes[j]->GetMatBuffer();
+								pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
+								pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
+
+								switch (curPass)
+								{
+								case wilson::eZpass:
+									pMatBuffer->UpdateCombinedMat(false);
+									pMatBuffer->UploadCombinedMat(m_pWorkerCommandList[threadIndex], false);
+									break;
+								case wilson::eSpotShadowPass:
+									pMatBuffer->SetLightSpaceMatrix(m_pLitMat);
+									pMatBuffer->UpdateCombinedMat(true);
+									pMatBuffer->UploadCombinedMat(m_pWorkerCommandList[threadIndex], true);
+									break;
+								case wilson::eGeoPass:
+									pMatBuffer->UpdateCombinedMat(false);
+									pMatBuffer->UploadMatBuffer(m_pWorkerCommandList[threadIndex]);
+									break;
+								case wilson::eCascadeDirShadowPass:
+								case wilson::eCubeShadowPass:
+								case wilson::eDefault:
+								default:
+									break;
+								}
+
+								pSubMeshes[j]->SetVBandIB(m_pWorkerCommandList[threadIndex]);
+								m_pWorkerCommandList[threadIndex]->DrawIndexedInstanced(pSubMeshes[j++]->GetIndexCount(), 1,
+									0, 0, 0);
+								++i;
+							}
+							else
+							{
+								break;
+							}
 						}
 					}
 					else
 					{
-						pModels[i]->UploadBuffers(m_pWorkerCommandList[threadIndex], 0, curPass);
-						m_pWorkerCommandList[threadIndex]->DrawIndexedInstanced(pModels[i]->GetTotalIndexCount(), 1,
+						pMeshes[i]->SetVBandIB(m_pWorkerCommandList[threadIndex]);
+						m_pWorkerCommandList[threadIndex]->DrawIndexedInstanced(pMeshes[i]->GetTotalIndexCount(), 1,
 							0, 0, 0);
 					}
 					
-
 				}
 				m_pWorkerCommandList[threadIndex]->Close();
 				m_pMainCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pWorkerCommandList[threadIndex]);
@@ -1250,48 +1306,45 @@ namespace wilson
 	{	
 		ID3D12DescriptorHeap* ppHeaps[] = { *(m_pHeapManager->GetSamplerHeap()),
 											*(m_pHeapManager->GetCbvSrvUavHeap()) };
-		while (!m_pModelQueue.empty())
+		while (!m_pMeshQueue.empty())
 		{
 			DWORD result = WaitForSingleObject(m_workerMutex, INFINITE);
 
 			if (result == WAIT_OBJECT_0)
 			{
-				Model12* pModels[_OBJECT_PER_THREAD];
-				UINT qLen = m_pModelQueue.size();
+				Mesh* pMesh[_OBJECT_PER_THREAD];
+				UINT qLen = m_pMeshQueue.size();
 				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
 				{
-					pModels[i] = m_pModelQueue.front();
-					m_pModelQueue.pop();
+					pMesh[i] = m_pMeshQueue.front();
+					m_pMeshQueue.pop();
 				}
+				m_drawCallCnt += min(qLen, _OBJECT_PER_THREAD);
 				//Set-up Status
 				ReleaseMutex(m_workerMutex);
 				UINT queryCnt = 0;
+
+				
+				//m_pHWOcclusionQueryPso는 DSS만 Zpass랑 다름
+				m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pHWOcclusionQueryPso);
+				m_pWorkerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+				m_pWorkerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
+				m_pWorkerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				m_pWorkerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
+				m_pWorkerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
+				m_pWorkerCommandList[threadIndex]->OMSetRenderTargets(1, &m_SceneRTV, FALSE, &m_SceneDSV);
 				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
 				{
 					
-					XMMATRIX worldMat = pModels[i]->GetTransformMatrix(false);
-					XMMATRIX invWorldMat = pModels[i]->GetInverseWorldMatrix();
-					MatBuffer12* pMatBuffer = pModels[i]->GetMatBuffer();
-					//m_pHWOcclusionQueryPso는 DSS만 Zpass랑 다름
-					m_pWorkerCommandList[threadIndex]->SetPipelineState(m_pHWOcclusionQueryPso);
-					m_pWorkerCommandList[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-					m_pWorkerCommandList[threadIndex]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
-					m_pWorkerCommandList[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-					m_pWorkerCommandList[threadIndex]->RSSetViewports(1, &m_viewport);
-					m_pWorkerCommandList[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
-					m_pWorkerCommandList[threadIndex]->OMSetRenderTargets(1, &m_SceneRTV, FALSE, &m_SceneDSV);
-
-					pMatBuffer->SetWorldMatrix(&worldMat);
-					pMatBuffer->SetInvWorldMatrix(&invWorldMat);
+					MatBuffer12* pMatBuffer = pMesh[i]->GetMatBuffer();
 					pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 					pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-
 					pMatBuffer->UpdateCombinedMat(false);
 					pMatBuffer->UploadCombinedMat(m_pWorkerCommandList[threadIndex], false);
 
-					pModels[i]->UploadBuffers(m_pWorkerCommandList[threadIndex], 0, eOcclusionTestPass);
+					pMesh[i]->SetVBandIB(m_pWorkerCommandList[threadIndex]);
 					m_pWorkerCommandList[threadIndex]->BeginQuery(m_pQueryHeap[threadIndex], D3D12_QUERY_TYPE_OCCLUSION, queryCnt);
-					m_pWorkerCommandList[threadIndex]->DrawIndexedInstanced(pModels[i]->GetTotalIndexCount(), 1,
+					m_pWorkerCommandList[threadIndex]->DrawIndexedInstanced(pMesh[i]->GetTotalIndexCount(), 1,
 						0, 0, 0);
 					m_pWorkerCommandList[threadIndex]->EndQuery(m_pQueryHeap[threadIndex], D3D12_QUERY_TYPE_OCCLUSION, queryCnt++);
 				}
@@ -1333,7 +1386,7 @@ namespace wilson
 
 					if (result)
 					{
-						m_pHWOcclusionQueue[threadIndex].push(pModels[i]);
+						m_pHWOcclusionQueue[threadIndex].push(pMesh[i]);
 					}
 				}
 				
@@ -1342,31 +1395,31 @@ namespace wilson
 		
 	}
 
-	void D3D12::AddModelGroup(ModelGroup12* pModelGroup)
+	void D3D12::AddObject(Object* pObject)
 	{
-		m_pModelGroups.push_back(pModelGroup);
-		UpdateTotalModels();
+		m_pObjects.push_back(pObject);
+		UpdateTotalMeshes();
 	}
 
-	void D3D12::RemoveModelGroup(int i)
+	void D3D12::RemoveObject(int i)
 	{
-		delete m_pModelGroups[i];
-		m_pModelGroups.erase(m_pModelGroups.begin() + i);
-		UpdateTotalModels();
+		delete m_pObjects[i];
+		m_pObjects.erase(m_pObjects.begin() + i);
+		UpdateTotalMeshes();
 	}
 
-	void D3D12::RemoveModel(int i, int j)
+	void D3D12::RemoveMesh(int i, int j)
 	{
-		std::vector<Model12*>& pModels = m_pModelGroups[i]->GetModels();
-		delete pModels[j];
-		pModels.erase(pModels.begin() + j);
-		UpdateTotalModels();
+		std::vector<Mesh*>& pMeshes = m_pObjects[i]->GetMeshes();
+		delete pMeshes[j];
+		pMeshes.erase(pMeshes.begin() + j);
+		UpdateTotalMeshes();
 	}
 
-	UINT D3D12::GetModelSize(int i)
+	UINT D3D12::GetNumMesh(int i)
 	{
-		std::vector<Model12*>& pModels = m_pModelGroups[i]->GetModels();
-		return pModels.size();
+		std::vector<Mesh*>& pMeshes = m_pObjects[i]->GetMeshes();
+		return pMeshes.size();
 	}
 
 	UINT D3D12::GetLightSize(eLIGHT_TYPE eLType)
@@ -1497,46 +1550,49 @@ namespace wilson
 		m_pMainCommandList->Reset(m_pMainCommandAllocator, nullptr);
 		
 		m_pCam->Update();
-
+		m_drawCallCnt = 0;
 		//전체 개체 수 갱신 및 프러스텀 컬링
-		
-		XMVECTOR* pPlanes = m_pFrustum->GetPlanes();
-		for (int i = 0; i < m_pTotalModels.size(); ++i)
 		{
-			XMMATRIX w = m_pTotalModels[i]->GetTransformMatrix(false);
-			w = XMMatrixTranspose(w);
-
-			Sphere* pSphere = m_pTotalModels[i]->GetSphere();
-			XMFLOAT3 center = pSphere->GetCenter();
-			XMFLOAT4 center4 = XMFLOAT4(center.x, center.y, center.z, 1.0f);
-			XMVECTOR centerV = XMLoadFloat4(&center4);
-			centerV = XMVector4Transform(centerV, w);
-			XMStoreFloat3(&center, centerV);
-
-			float r = pSphere->GetRadius();
-
-			bool result= true;
-			for (int j = 0; j < 6; ++j)
+			std::sort(m_pTotalMeshes.begin(), m_pTotalMeshes.end(), Mesh::SortMeshByDepth);
+			m_pMeshQueue = std::queue<Mesh*>();
+			XMVECTOR* pPlanes = m_pFrustum->GetPlanes();
+			for (int i = 0; i < m_pTotalMeshes.size(); ++i)
 			{
-				float dot =XMVectorGetX(
-					XMPlaneDotCoord(pPlanes[j],
-						XMVectorSet(center.x, center.y, center.z, 1.0f)));
-				if (dot < -r/2)
+				XMMATRIX w = m_pTotalMeshes[i]->GetTransformMatrix(false);
+				w = XMMatrixTranspose(w);
+
+				Sphere* pSphere = m_pTotalMeshes[i]->GetSphere();
+				XMFLOAT3 center = pSphere->GetCenter();
+				XMFLOAT4 center4 = XMFLOAT4(center.x, center.y, center.z, 1.0f);
+				XMVECTOR centerV = XMLoadFloat4(&center4);
+				centerV = XMVector4Transform(centerV, w);
+				XMStoreFloat3(&center, centerV);
+
+				float r = pSphere->GetRadius();
+
+				bool result = true;
+
+				for (int j = 0; j < 6; ++j)
 				{
-					result = false;
-					break;
+					float dot = XMVectorGetX(
+						XMPlaneDotCoord(pPlanes[j],
+							XMVectorSet(center.x, center.y, center.z, 1.0f)));
+					if (dot < -r / 2)
+					{
+						result = false;
+						break;
+					}
+				}
+				if (result)
+				{
+					m_pMeshQueue.push(m_pTotalMeshes[i]);
 				}
 			}
-			if (result)
-			{
-				m_pModelQueue.push(m_pTotalModels[i]);
-			}
+			m_pFrustum->SetENTTsInTotal(m_pTotalMeshes.size());
+			m_pFrustum->SetENTTsInFrustum(m_pMeshQueue.size());
 		}
-		m_pFrustum->SetENTTsInTotal(m_pTotalModels.size());
-		m_pFrustum->SetENTTsInFrustum(m_pModelQueue.size());
-		std::queue<Model12*> pModelQueue = m_pModelQueue;
-
-		PIXBeginEvent(m_pMainCommandList, 0, L"Pre-Z Pass");
+	
+		std::queue<Mesh*> pMeshQueue = m_pMeshQueue;
 		//Zpass
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
@@ -1546,8 +1602,7 @@ namespace wilson
 		PIXEndEvent(m_pMainCommandList);
 
 		//ShadowPass 
-		PIXBeginEvent(m_pMainCommandList, 0, L"ShadowPass");
-		m_pModelQueue=pModelQueue;
+		m_pMeshQueue=pMeshQueue;
 		HANDLE m_handles[_WORKER_THREAD_COUNT] ;
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
@@ -1565,11 +1620,13 @@ namespace wilson
 			m_pShadowMap->SetResourceBarrier(m_pMainCommandList, litCounts,
 				D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, false);
 		}
-		PIXEndEvent(m_pMainCommandList);
-		m_pModelQueue = pModelQueue;
-		if (0)
-		{	
-			
+	
+		m_pMeshQueue = pMeshQueue;
+		
+		{
+			/*if (0)
+		{
+
 			//Hi-Z Occlusion Pass
 			{
 				PIXBeginEvent(m_pMainCommandList, 0, L"Gen Hi-Z");
@@ -1627,7 +1684,7 @@ namespace wilson
 						D3D12_VIEWPORT viewPort = {};
 						viewPort.Width = max(curWidth / 2, 1);
 						viewPort.Height = max(curHeight / 2, 1);
-			
+
 						D3D12_RECT scissorRect = {};
 						scissorRect.right = max(curWidth / 2, 1);
 						scissorRect.bottom = max(curHeight / 2, 1);
@@ -1664,12 +1721,12 @@ namespace wilson
 				}
 				PIXEndEvent(m_pMainCommandList);
 				//Test
-				std::queue<Model12*> q;
+				std::queue<SubMesh*> q;
 				UINT nModelsTotal = 0;
 				PIXBeginEvent(m_pMainCommandList, 0, L"Hi-Z Culling");
-				while (!m_pModelQueue.empty())
-				{	
-					UINT nModels = min(m_pModelQueue.size(),4096);
+				while (!m_pSubMeshQueue.empty())
+				{
+					UINT nModels = min(m_pSubMeshQueue.size(),4096);
 					UINT8* pSphereCbBegin = m_pSphereCbBegin;
 					UINT8* pHiZCullMatrixCbBegin = m_pHiZCullMatrixCbBegin;
 
@@ -1697,14 +1754,14 @@ namespace wilson
 
 					for (int i=0;i<nModels;++i)
 					{
-						Model12* pModel = m_pModelQueue.front();
-						m_pModelQueue.pop();
-						
-						MatBuffer12* pMatBuffer = pModel->GetMatBuffer();
-						XMMATRIX w = pModel->GetTransformMatrix(false);
+						SubMesh* pSubMesh = m_pSubMeshQueue.front();
+						m_pSubMeshQueue.pop();
+
+						MatBuffer12* pMatBuffer = pSubMesh->GetMatBuffer();
+						XMMATRIX w = pSubMesh->GetTransformMatrix(false);
 						w = XMMatrixTranspose(w);
 
-						Sphere* pSphere = pModel->GetSphere();
+						Sphere* pSphere = pSubMesh->GetSphere();
 						XMFLOAT3 center= pSphere->GetCenter();
 
 						FLOAT r = pSphere->GetRadius();
@@ -1714,7 +1771,7 @@ namespace wilson
 						XMStoreFloat4(&center4, centerV);
 						center4.w = r*0.5f;
 						centerV = XMLoadFloat4(&center4);
-					
+
 						memcpy(pSphereCbBegin, &centerV, sizeof(XMVECTOR));
 						pSphereCbBegin += sizeof(XMVECTOR);
 
@@ -1736,9 +1793,9 @@ namespace wilson
 						CreateResourceBarrier(m_pHiZCullListTex, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE )
 					};
 					m_pMainCommandList->ResourceBarrier(sizeof(fininshHiZ) / sizeof(D3D12_RESOURCE_BARRIER), fininshHiZ);
-					
+
 					//ReadBackResult;
-					{  
+					{
 						UINT len =sqrt(_HI_Z_CULL_COUNT);
 						D3D12_TEXTURE_COPY_LOCATION dst = {};
 						dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32_FLOAT;
@@ -1749,12 +1806,12 @@ namespace wilson
 
 						dst.pResource = m_pHiZCullReadCb;
 						dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-						
+
 						D3D12_TEXTURE_COPY_LOCATION src = {};
 						src.pResource = m_pHiZCullListTex;
 						src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 						src.SubresourceIndex = 0;
-						
+
 						m_pMainCommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
 					}
 
@@ -1775,24 +1832,24 @@ namespace wilson
 					}
 					m_pMainCommandAllocator->Reset();
 					m_pMainCommandList->Reset(m_pMainCommandAllocator, nullptr);
-					
+
 					float* pHiZCullReadCbBegin = (float*)m_pHiZCullReadCbBegin;
 					//Refresh queue
 					for (int i = 0; i < nModels; ++i)
 					{
 						float result = *(pHiZCullReadCbBegin + i);
-						Model12* pModel = pModelQueue.front();
+						SubMesh* pSubMesh = pSubMeshQueue.front();
 						if (result)
 						{
-							q.push(pModel);
+							q.push(pSubMesh);
 						}
-						pModelQueue.pop();
-						
+						pSubMeshQueue.pop();
+
 					}
 					nModelsTotal += nModels;
 				}
-				pModelQueue   = q;
-				m_pModelQueue = pModelQueue;
+				pSubMeshQueue   = q;
+				m_pSubMeshQueue = pSubMeshQueue;
 
 				D3D12_RESOURCE_BARRIER finishHiZtest[] =
 				{
@@ -1802,41 +1859,50 @@ namespace wilson
 				PIXEndEvent(m_pMainCommandList);
 			}
 		}
-		m_numOfModelsHiZPassed = m_pModelQueue.size();
-		
+		m_numSubMeshHiZPassed = m_pSubMeshQueue.size();
+		*/
 		//HW오클루전 테스트
-		PIXBeginEvent(m_pMainCommandList, 0, L"HW Culling");
-		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
-		{
-			SetEvent(m_workerBeginHWOcclusionTestPass[i]);
-			m_handles[i] = m_workerFinishHWOcclusionTestPass[i];
-
-		}
-		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_handles, TRUE, INFINITE);
-		PIXEndEvent(m_pMainCommandList);
-		std::queue<Model12*> q;
-		m_numOfModelsNotOccluded = 0;
-		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
-		{
-			m_numOfModelsNotOccluded += m_pHWOcclusionQueue[i].size();
-			while (!m_pHWOcclusionQueue[i].empty())
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 			{
-				Model12* pModel = m_pHWOcclusionQueue[i].front();
-				m_pHWOcclusionQueue[i].pop();
-				q.push(pModel);
+				SetEvent(m_workerBeginHWOcclusionTestPass[i]);
+				m_handles[i] = m_workerFinishHWOcclusionTestPass[i];
+
 			}
+			WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_handles, TRUE, INFINITE);
+
+			m_numSubMeshNotOccluded = 0;
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				m_numSubMeshNotOccluded += m_pHWOcclusionQueue[i].size();
+				while (!m_pHWOcclusionQueue[i].empty())
+				{
+					Mesh* pMesh = m_pHWOcclusionQueue[i].front();
+					m_pHWOcclusionQueue[i].pop();
+
+					std::vector<SubMesh*> subMeshes = pMesh->GetSubMeshes();
+					for (int j = 0; j < subMeshes.size(); ++j)
+					{
+						m_pTotalSubMeshes.push_back(subMeshes[j]);
+					}
+				}
+			}
+			std::sort(m_pTotalSubMeshes.begin(), m_pTotalSubMeshes.end(), SubMesh::SortSubMeshByMaterial);
+			for (int i = 0; i < m_pTotalSubMeshes.size(); ++i)
+			{
+				m_pSubMeshQueue.push(m_pTotalSubMeshes[i]);
+			}
+			m_pTotalSubMeshes = std::vector<SubMesh*>();
 			
 		}
-		m_pModelQueue = q;
+		
 
 		//Draw PbrGeo
-		PIXBeginEvent(m_pMainCommandList, 0, L"PbrGeo Pass");
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
 			SetEvent(m_workerBeginDeferredGeoPass[i]);
 		}
 		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_workerEndFrame, TRUE, INFINITE);
-
+		
 		D3D12_RESOURCE_BARRIER PbrGeoPass_barriers[eGbuf_cnt];
 		for (int i = 0; i < eGbuf_cnt; ++i)
 		{
@@ -1845,7 +1911,7 @@ namespace wilson
 				CreateResourceBarrier(m_pGBufTex[i], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		}
 		m_pMainCommandList->ResourceBarrier(sizeof(PbrGeoPass_barriers)/sizeof(D3D12_RESOURCE_BARRIER), PbrGeoPass_barriers);
-		PIXEndEvent(m_pMainCommandList);
+		
 		m_pMainCommandList->Close();
 		m_pMainCommandQueue->ExecuteCommandLists(1, (ID3D12CommandList**)&m_pMainCommandList);
 		fenceValue = m_fenceValue++;
@@ -1867,13 +1933,16 @@ namespace wilson
 		};
 
 		m_pMainCommandList->ResourceBarrier(sizeof(ssaoEndBarriers) / sizeof(D3D12_RESOURCE_BARRIER) , ssaoEndBarriers);
+		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+		m_pMainCommandList->RSSetViewports(1, &m_viewport);
+		m_pMainCommandList->RSSetScissorRects(1, &m_scissorRect);
+		m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		//Upload HeightScale and bHeightOnOff
-		if (!m_pModelGroups.empty())
+		if (!m_pObjects.empty())
 		{	
 		
 			//LightingPass
 			PIXBeginEvent(m_pMainCommandList, 0, L"PbrLighting Pass");
-			m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
 			m_pMainCommandList->SetPipelineState(m_pPbrDeferredLightingPso);
 			m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetPBRDeferredLightingShaderRootSingnature());
 			m_pMainCommandList->SetGraphicsRootDescriptorTable(ePbrLight_ePsPos, m_GBufSRV[eGbuf_pos]);
@@ -1900,9 +1969,6 @@ namespace wilson
 			m_pLightBuffer->UpdateSpotLightMatrices(m_pMainCommandList);
 			m_pMainCommandList->IASetVertexBuffers(0, 1, &m_QuadVBV);
 			m_pMainCommandList->IASetIndexBuffer(&m_QuadIBV);
-			m_pMainCommandList->RSSetViewports(1, &m_viewport);
-			m_pMainCommandList->RSSetScissorRects(1, &m_scissorRect);
-			m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			m_pMainCommandList->OMSetRenderTargets(1, &m_SceneRTV, TRUE, nullptr);
 			m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
 			PIXEndEvent(m_pMainCommandList);
@@ -1912,17 +1978,12 @@ namespace wilson
 		//Draw SkyBox
 		PIXBeginEvent(m_pMainCommandList, 0, L"DrawSkyBox");
 		m_pMainCommandList->SetPipelineState(m_pSkyBoxPso);
-		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
 		m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetSkyBoxRootSingnature());
 		m_pMainCommandList->SetGraphicsRootDescriptorTable(eSkybox_ePsDiffuseMap, m_SkyBoxSRV);
 		m_pMainCommandList->SetGraphicsRootDescriptorTable(eSkybox_ePsSampler, m_WrapSSV);
-		m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pMainCommandList->IASetVertexBuffers(0, 1, &m_SkyBoxVBV);
 		m_pMainCommandList->IASetIndexBuffer(&m_SkyBoxIBV);
-		m_pMainCommandList->RSSetViewports(1, &m_viewport);
-		m_pMainCommandList->RSSetScissorRects(1, &m_scissorRect);
 		m_pMainCommandList->OMSetRenderTargets(1, &m_SceneRTV, TRUE, &m_SceneDSV);
-
 		m_pMatBuffer->SetWorldMatrix(&m_idMat);
 		m_pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
 		m_pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
@@ -1939,7 +2000,6 @@ namespace wilson
 		PIXBeginEvent(m_pMainCommandList, 0, L"PostProcess");
 
 		m_pMainCommandList->SetPipelineState(m_pPostProcessPso);
-		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
 		m_pMainCommandList->SetComputeRootSignature(m_pShader->GetPostProcessShaderRootSingnature());
 		
 		//Exporsure CBV 바인딩
@@ -1947,7 +2007,6 @@ namespace wilson
 			memcpy(m_pExposureCbBegin, &m_exposure, sizeof(float));
 			m_pMainCommandList->SetComputeRootDescriptorTable(ePostProcessRP::ePostProcess_eCsExposure, m_ExposureCBV);
 		}
-
 		m_pMainCommandList->SetComputeRootDescriptorTable(ePostProcessRP::ePostProcess_eCsTex, m_SceneSRV);
 		m_pMainCommandList->SetComputeRootDescriptorTable(ePostProcess_eCsUav, m_ViewportUAV);
 		m_pMainCommandList->SetComputeRootDescriptorTable(ePostProcessRP::ePostProcess_eCsSampler, m_WrapSSV);
@@ -2611,6 +2670,7 @@ namespace wilson
 
 			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 			psoDesc.DepthStencilState = DepthTestOnlyDss;
+			m_pShader->SetHWOcclusionQueryShader(&psoDesc);
 			hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pHWOcclusionQueryPso));
 			assert(SUCCEEDED(hr));
 
@@ -2938,17 +2998,16 @@ namespace wilson
 			m_pResolutionCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
 			m_ResolutionCBV = m_pHeapManager->GetCBV(cbSize, m_pDevice);
 
-
 			D3D12_RESOURCE_BARRIER readTocopyDst =
 				CreateResourceBarrier(m_pHeapManager->GetQueryBlock(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST);
 			m_pMainCommandList->ResourceBarrier(1, &readTocopyDst);
 			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 			{					
 				{
-					UINT resultSize = 8;
+					UINT resultSize = 112;
 					UINT64 offset = m_pHeapManager->GetQueryHeapOffset();
 					m_QueryResultOffset[i] = offset;
-					m_pHeapManager->SetQueryHeapOffset(offset + 8);
+					m_pHeapManager->SetQueryHeapOffset(offset + 112);
 				}
 
 				{
@@ -3618,12 +3677,12 @@ namespace wilson
 			}
 		}
 		
-		for (int i = 0; i < m_pModelGroups.size(); ++i)
+		for (int i = 0; i < m_pObjects.size(); ++i)
 		{
-			if (m_pModelGroups[i] != nullptr)
+			if (m_pObjects[i] != nullptr)
 			{
-				delete m_pModelGroups[i];
-				m_pModelGroups[i] = nullptr;
+				delete m_pObjects[i];
+				m_pObjects[i] = nullptr;
 			}
 		}
 

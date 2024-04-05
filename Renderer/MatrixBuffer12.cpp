@@ -11,6 +11,8 @@ namespace wilson
 		m_pViewMatCbBegin = nullptr;
 		m_pCombinedMatCbBegin = nullptr;
 
+		bDirty = false;
+
 		m_worldMat = XMMatrixIdentity();
 		m_invWorldMat = m_worldMat;
 		m_lightSpaceMat = m_worldMat;
@@ -43,17 +45,23 @@ namespace wilson
 	}
 
 	void MatBuffer12::UploadMatBuffer(ID3D12GraphicsCommandList* pCommandlist)
-	{
-		XMMATRIX invWVMat = XMMatrixMultiply(XMMatrixTranspose(m_worldMat), XMMatrixTranspose(m_viewMat));
-		invWVMat = XMMatrixInverse(nullptr, invWVMat);
-		invWVMat = XMMatrixTranspose(invWVMat);
+	{	
+		if (bDirty)
+		{
+			XMMATRIX invWVMat = XMMatrixMultiply(XMMatrixTranspose(m_worldMat), XMMatrixTranspose(m_viewMat));
+			invWVMat = XMMatrixInverse(nullptr, invWVMat);
+			invWVMat = XMMatrixTranspose(invWVMat);
+			m_invWVMat= invWVMat;
+			bDirty = false;
+		}
+		
 
 		MatrixBuffer matBuffer;
-		matBuffer.m_worldMat = m_worldMat;
-		matBuffer.m_viewMat = m_viewMat;
-		matBuffer.m_invWorldMat = m_invWorldMat;
-		matBuffer.m_invWVMat = invWVMat;
-		matBuffer.m_wvpMat = m_wvpMat;
+		matBuffer.worldMat = m_worldMat;
+		matBuffer.viewMat = m_viewMat;
+		matBuffer.invWorldMat = m_invWorldMat;
+		matBuffer.invWVMat = m_invWVMat;
+		matBuffer.wvpMat = m_wvpMat;
 
 
 		memcpy(m_pMatricesCbBegin, &matBuffer, sizeof(matBuffer));
@@ -100,5 +108,16 @@ namespace wilson
 			m_wvpMat = XMMatrixMultiplyTranspose(wv, XMMatrixTranspose(m_projMat));
 		}
 		
+	}
+	MatrixBuffer MatBuffer12::GetMatrixBuffer()
+	{
+		MatrixBuffer matrixBuffer;
+		matrixBuffer.worldMat = m_worldMat;
+		matrixBuffer.viewMat = m_viewMat;
+		matrixBuffer.invWorldMat = m_invWorldMat;
+		matrixBuffer.invWVMat = m_invWVMat;
+		matrixBuffer.wvpMat = m_wvpMat;
+
+		return matrixBuffer;
 	}
 }

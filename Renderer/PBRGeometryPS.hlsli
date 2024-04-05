@@ -25,25 +25,13 @@ struct PixelOutputType
     float4 vPosition : SV_Target5;
     float4 vNormal : SV_Target6;
 };
-struct Material
-{
-    float4 ambient;
-    float4 diffuse;
-    float4 specular; // w = SpecPower
-    float4 reflect;
-};
 
 cbuffer CamBuffer : register(b0)
 {
     float4 g_camPos;
 };
 
-cbuffer cbMaterial : register(b1)
-{
-    Material g_Material;
-};
-
-cbuffer heightScale : register(b2)
+cbuffer heightScale : register(b1)
 {
     float g_heightScale;
     float3 pad;

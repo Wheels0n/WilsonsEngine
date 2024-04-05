@@ -2,13 +2,14 @@
 #include <random>
 #include <chrono>
 
-#include "Model12.h"
+#include "Mesh.h"
+#include "SubMesh.h"
 #include "MatrixBuffer12.h"
 #include "HeapManager.h"
 namespace wilson 
 {
 	//Pos를 담는 변수들은 가장 끝 원소로 전체 크기를 담고 있음에 유의
-	Model12::Model12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, HeapManager* pHeapManager,
+	Mesh::Mesh(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, HeapManager* pHeapManager,
 		VertexData* pVertices,
 		unsigned long* pIndices,
 		std::vector<unsigned int> vertexDataPos,
@@ -44,10 +45,7 @@ namespace wilson
 			m_angleVec = DirectX::XMVectorZero();
 
 			m_pAABB = nullptr;
-			m_instancedData = nullptr;
-			m_isInstanced = false;
 			m_pMatBuffer = nullptr;
-			m_pMaterialBegin = nullptr;
 		}
 
 		//Gen MatBuffer
@@ -98,56 +96,21 @@ namespace wilson
 		}
 
 		//Gen IB
-		{	
+		{
 			const UINT ibSize = sizeof(UINT) * m_indexCount;
 			pHeapManager->AllocateIndexData((UINT8*)m_pIndices, ibSize);
 
 			for (int i = 0; i < m_subIbVs.size(); ++i)
 			{
-				m_subIbVs[i]= pHeapManager->GetIBV(
-					sizeof(UINT) * (indicesPos[i + 1] - indicesPos[i]), 
+				m_subIbVs[i] = pHeapManager->GetIBV(
+					sizeof(UINT) * (indicesPos[i + 1] - indicesPos[i]),
 					sizeof(UINT) * indicesPos[i]);
 			}
 			m_ibV = pHeapManager->GetIBV(sizeof(UINT) * indicesPos[indicesPos.size() - 1], 0);
 			UINT   idx = pHeapManager->GetIndexBufferHeapOffset();
 			idx /= _IB_HEAP_SIZE;
 			UINT64 curBlockOffset = pHeapManager->GetIndexBufferBlockOffset(idx);
-			pHeapManager->SetIndexBufferBlockOffset(idx,curBlockOffset + m_ibV.SizeInBytes);
-		}
-
-		//Gen CB
-		{
-			//Gen materialCB
-			{
-
-				UINT cbSize = sizeof(Material);
-				m_pMaterialBegin = pHeapManager->GetCbMappedPtr(cbSize);
-				m_materialCBV = pHeapManager->GetCBV(cbSize, pDevice);
-				
-			}
-
-			//Gen InstancePosCB
-			{
-				std::random_device rd;
-				std::mt19937 rng(rd());
-				std::uniform_real_distribution floatGen(5.0f, 50.0f);
-				float x, y, z;
-				m_instancedData = new DirectX::XMMATRIX[_MAX_INSTANCES];
-
-				for (int i = 0; i < _MAX_INSTANCES; ++i)
-				{
-					x = floatGen(rng);
-					y = floatGen(rng);
-					z = floatGen(rng);
-					m_instancedData[i] = DirectX::XMMatrixTranslation(x, y, z);
-				}
-
-				UINT cbSize = sizeof(DirectX::XMMATRIX) * _MAX_INSTANCES;
-				m_pInstancePosBegin = pHeapManager->GetCbMappedPtr(cbSize);
-				m_instancePosCBV = pHeapManager->GetCBV(cbSize, pDevice);
-
-			}
-
+			pHeapManager->SetIndexBufferBlockOffset(idx, curBlockOffset + m_ibV.SizeInBytes);
 		}
 
 
@@ -172,10 +135,18 @@ namespace wilson
 			}
 			
 		}
+
+		m_pSubMeshs.resize(m_matNames.size());
+
 	}
 
-	Model12::~Model12()
+	Mesh::~Mesh()
 	{
+		for (int i = 0; i < m_pSubMeshs.size(); ++i)
+		{
+			delete m_pSubMeshs[i];
+		}
+
 		if (m_pVertexData != nullptr)
 		{
 			delete m_pVertexData;
@@ -197,11 +168,6 @@ namespace wilson
 		m_matNames.clear();
 		m_perModels.clear();
 
-		if (m_instancedData != nullptr)
-		{
-			delete[] m_instancedData;
-		}
-
 		if (m_pAABB != nullptr)
 		{
 			delete m_pAABB;
@@ -214,21 +180,39 @@ namespace wilson
 
 	}
 
-	void Model12::BindMaterial(std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
+	void Mesh::BindMaterial(std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
 		std::unordered_map<std::string, int>& texhash, std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& textures)
 	{	
 		m_matInfos.reserve(m_matNames.size());
 		m_perModels.reserve(m_matNames.size());
 		for (int i = 0; i < m_matNames.size(); ++i)
 		{
+			std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> texSrvs;
 			PerModel perModel = { false, };
+
 			int idx = mathash[m_matNames[i]];
 			MaterialInfo matInfo = matInfos[idx];
 			m_matInfos.push_back(matInfo);
 
+			UINT nullCount = 0;
+			//Diffuse
 			idx = texhash[matInfo.diffuseMap];
 			m_texHash[matInfo.diffuseMap] = m_texSrvs.size();
 			m_texSrvs.push_back(textures[idx]);
+			texSrvs.push_back(textures[idx]);
+
+			if (!matInfo.normalMap.empty())
+			{
+				idx = texhash[matInfo.normalMap];
+				m_texHash[matInfo.normalMap] = m_texSrvs.size();
+				m_texSrvs.push_back(textures[idx]);
+				texSrvs.push_back(textures[idx]);
+				perModel.hasNormal = true;
+			}
+			else
+			{
+				texSrvs.push_back(m_nullSrvs[nullCount++]);
+			}
 
 			if (!matInfo.specularMap.empty())
 			{
@@ -236,14 +220,24 @@ namespace wilson
 				m_texHash[matInfo.specularMap] = m_texSrvs.size();
 				m_texSrvs.push_back(textures[idx]);
 				perModel.hasSpecular = true;
+				texSrvs.push_back(textures[idx]);
+			}
+			else
+			{
+				texSrvs.push_back(m_nullSrvs[nullCount++]);
 			}
 
-			if (!matInfo.normalMap.empty())
+			if (!matInfo.emissiveMap.empty())
 			{
-				idx = texhash[matInfo.normalMap];
-				m_texHash[matInfo.normalMap] = m_texSrvs.size();
+				idx = texhash[matInfo.emissiveMap];
+				m_texHash[matInfo.emissiveMap] = m_texSrvs.size();
 				m_texSrvs.push_back(textures[idx]);
-				perModel.hasNormal = true;
+				texSrvs.push_back(textures[idx]);
+				perModel.hasEmissive = true;
+			}
+			else
+			{
+				texSrvs.push_back(m_nullSrvs[nullCount++]);
 			}
 
 			if (!matInfo.alphaMap.empty())
@@ -251,111 +245,23 @@ namespace wilson
 				idx = texhash[matInfo.alphaMap];
 				m_texHash[matInfo.alphaMap] = m_texSrvs.size();
 				m_texSrvs.push_back(textures[idx]);
+				texSrvs.push_back(textures[idx]);
 				perModel.hasAlpha = true;
 			}
-			if (!matInfo.emissiveMap.empty())
+			else
 			{
-				idx = texhash[matInfo.emissiveMap];
-				m_texHash[matInfo.emissiveMap] = m_texSrvs.size();
-				m_texSrvs.push_back(textures[idx]);
-				perModel.hasEmissive = true;
+				texSrvs.push_back(m_nullSrvs[nullCount++]);
 			}
+
+
 			m_perModels.push_back(perModel);
+			m_pSubMeshs[i] = new SubMesh(m_vbV, m_subIbVs[i], GetIndexCount(i), 
+				texSrvs, m_pMatBuffer, perModel, m_matNames[i]);
 		}
 
 	}
 
-	void Model12::UploadBuffers(ID3D12GraphicsCommandList* pCommandlist, int i, ePass curPass)
-	{	
-		HRESULT hr;
-		//Upload CBV
-		if(curPass==eGeoPass)
-		{
-			//SetVB&IB
-			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
-			pCommandlist->IASetIndexBuffer(&m_subIbVs[i]);
-
-			MaterialInfo matInfo = m_matInfos[i];
-			//Upload materialCB
-			{
-				memcpy(m_pMaterialBegin, &matInfo.material, sizeof(Material));
-				pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsMaterial, m_materialCBV);
-			}
-
-			//Set SRV
-			{
-				const UINT srvDescriptorSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-				UINT texCnt = 0;
-				UINT idx = m_texHash[matInfo.diffuseMap];
-				UINT nIdx = 0;
-				//SetDiffuseMap //GPU핸들이 필요하다
-				pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsDiffuse, m_texSrvs[idx]);
-
-				
-				if (m_perModels[i].hasNormal)
-				{
-					idx = m_texHash[matInfo.normalMap];
-					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsNormal, m_texSrvs[idx]);
-				}
-				else
-				{
-					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsNormal, m_nullSrvs[nIdx++]);
-				}
-
-				if (m_perModels[i].hasSpecular)
-				{
-					idx = m_texHash[matInfo.specularMap];
-					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsSpecular, m_texSrvs[idx]);
-				}
-				else
-				{
-					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsSpecular, m_nullSrvs[nIdx++]);
-				}
-
-				if (m_perModels[i].hasEmissive)
-				{
-					idx = m_texHash[matInfo.emissiveMap];
-					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsEmissive, m_texSrvs[idx]);
-				}
-				else
-				{
-					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsEmissive, m_nullSrvs[nIdx++]);
-				}
-					
-
-				if (m_perModels[i].hasAlpha)
-				{
-					idx = m_texHash[matInfo.alphaMap];
-					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsAlpha, m_texSrvs[idx]);
-				}
-				else
-				{
-					pCommandlist->SetGraphicsRootDescriptorTable(ePbrGeo_ePsAlpha, m_nullSrvs[nIdx++]);
-				}
-				
-			}
-		}
-		else if (curPass == eCubeShadowPass)
-		{
-			MaterialInfo matInfo = m_matInfos[i];
-			const UINT srvDescriptorSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			UINT texCnt = 0;
-			UINT idx = m_texHash[matInfo.diffuseMap];
-			UINT nIdx = 0;
-			pCommandlist->SetGraphicsRootDescriptorTable(eCubeShadow_ePsDiffuseMap, m_texSrvs[idx]);
-			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
-			pCommandlist->IASetIndexBuffer(&m_ibV);
-		}
-		else
-		{
-			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
-			pCommandlist->IASetIndexBuffer(&m_ibV);
-		}
-
-		return;
-	}
-
-	AABB Model12::GetGlobalAABB()
+	AABB Mesh::GetGlobalAABB()
 	{
 		DirectX::XMMATRIX transform = GetTransformMatrix(false);
 
@@ -408,7 +314,40 @@ namespace wilson
 		return globalAABB;
 	}
 
-	void Model12::UpdateWorldMatrix()
+	void Mesh::SetVBandIB(ID3D12GraphicsCommandList* pCommandList)
+	{
+		pCommandList->IASetVertexBuffers(0, 1, &m_vbV);
+		pCommandList->IASetIndexBuffer(&m_ibV);
+	}
+
+	bool Mesh::SortMeshByDepth(const Mesh* pMesh1, const Mesh* pMesh2)
+	{
+		MatBuffer12* pMatBuffer1 = pMesh1->GetMatBuffer();
+		XMMATRIX mat1 = pMatBuffer1->GetWVPMatrix();
+		mat1 = XMMatrixTranspose(mat1);
+		Sphere* pSphere1 = pMesh1->GetSphere();
+		XMFLOAT3 center = pSphere1->GetCenter();
+		XMVECTOR center1 = XMLoadFloat3(&center);
+		center1 = XMVector4Transform(center1, mat1);
+		XMFLOAT4 ndc1;
+		XMStoreFloat4(&ndc1, center1);
+		ndc1.z /= ndc1.w;
+
+		MatBuffer12* pMatBuffer2 = pMesh2->GetMatBuffer();
+		XMMATRIX mat2 = pMatBuffer2->GetWVPMatrix();
+		mat2 = XMMatrixTranspose(mat2);
+		Sphere* pSphere2 = pMesh2->GetSphere();
+		center = pSphere2->GetCenter();
+		XMVECTOR center2 = XMLoadFloat3(&center);
+		center2 = XMVector4Transform(center2, mat2);
+		XMFLOAT4 ndc2;
+		XMStoreFloat4(&ndc2, center2);
+		ndc2.z /= ndc2.w;
+
+		return ndc1.z< ndc2.z;
+	}
+
+	void Mesh::UpdateWorldMatrix()
 	{
 		DirectX::XMMATRIX srMat, osrMat;
 		osrMat = XMMatrixMultiply(m_outlinerScaleMat, m_rtMat);
@@ -422,7 +361,7 @@ namespace wilson
 		m_invWMat = DirectX::XMMatrixTranspose(m_invWMat);
 		m_outlinerMat = DirectX::XMMatrixTranspose(osrtMat);
 	}
-	D3D12_GPU_DESCRIPTOR_HANDLE* Model12::GetTextureSrv(int matIndex, eTexType texType)
+	D3D12_GPU_DESCRIPTOR_HANDLE* Mesh::GetTextureSrv(int matIndex, eTexType texType)
 	{
 		UINT idx;
 		MaterialInfo matInfo = m_matInfos[matIndex];
@@ -481,4 +420,5 @@ namespace wilson
 			return &m_nullSrvs[matIndex];
 		}
 	}
+
 }

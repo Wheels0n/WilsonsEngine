@@ -22,6 +22,7 @@
 #include "ShadowMap12.h"
 #include "HeapManager.h"
 #include "typedef.h"
+#include "Object.h"
 
 namespace wilson 
 {   
@@ -42,7 +43,7 @@ namespace wilson
 		void DestroySceneDepthTex();
 		void DestroyHDR();
 		void DestroyBackBuffer();
-		void UpdateTotalModels();
+		void UpdateTotalMeshes();
 		void DrawObject(ePass curPass, UINT threadIndex, UINT lightIdx);
 		void HWQueryForOcclusion(UINT threadIdx);
 		void D3DMemoryLeakCheck();
@@ -117,7 +118,7 @@ namespace wilson
 		{
 			return m_clientHeight;
 		};
-		inline void PickModel(int i, int j)
+		inline void PickSubMesh(int i, int j)
 		{
 			m_selectedModelGroup = i;
 			m_selectedModel = j;
@@ -142,23 +143,27 @@ namespace wilson
 		{
 			return eGbuf_cnt;
 		}
-		inline UINT GetModelGroupSize() const
+		inline UINT GetDrawCallCount() const
 		{
-			return m_pModelGroups.size();
+			return m_drawCallCnt;
 		}
-		inline UINT GetModelsHiZPassed() const
+		inline UINT GetObjectSize() const
 		{
-			return m_numOfModelsHiZPassed;
+			return m_pObjects.size();
 		}
-		inline UINT GetModelsNotOccluded() const
+		inline UINT GetSubMeshHiZPassed() const
 		{
-			return m_numOfModelsNotOccluded;
+			return m_numSubMeshHiZPassed;
+		}
+		inline UINT GetSubMeshNotOccluded() const
+		{
+			return m_numSubMeshNotOccluded;
 		}
 
-		void AddModelGroup(ModelGroup12*);
-		void RemoveModelGroup(int i);
-		void RemoveModel(int i, int j);
-		UINT GetModelSize(int i);
+		void AddObject(Object*);
+		void RemoveObject(int i);
+		void RemoveMesh(int i, int j);
+		UINT GetNumMesh(int i);
 		UINT GetLightSize(eLIGHT_TYPE);
 		void AddLight(Light12* pLight);
 		void RemoveLight(int i, Light12* pLight);
@@ -312,11 +317,11 @@ namespace wilson
 
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SSAOKernelCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_ExposureCBV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_HeightScaleCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_Equirect2CubeCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_RoughnessCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_ResolutionCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_HiZCullMatrixCBV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_HeightScaleCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SphereCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SsaoParameterCBV;
 
@@ -332,10 +337,12 @@ namespace wilson
 		D3D12_RECT m_prefilterRect;
 
 		static D3D12* g_pD3D12;
-		std::vector<Model12*>m_pTotalModels;
-		std::queue<Model12*>m_pModelQueue;
-		std::queue<Model12*>m_pHWOcclusionQueue[_WORKER_THREAD_COUNT];
-		std::vector<ModelGroup12*> m_pModelGroups;
+		std::vector<Mesh*>m_pTotalMeshes;
+		std::vector<SubMesh*>m_pTotalSubMeshes;
+		std::queue<Mesh*>m_pMeshQueue;
+		std::queue<Mesh*>m_pHWOcclusionQueue[_WORKER_THREAD_COUNT];
+		std::queue<SubMesh*>m_pSubMeshQueue;
+		std::vector<Object*> m_pObjects;
 		HeapManager* m_pHeapManager;
 		Camera12* m_pCam;
 		Frustum12* m_pFrustum;
@@ -350,25 +357,26 @@ namespace wilson
 		XMMATRIX* m_pLitMat;
 		BOOL m_bHeightOnOff;
 		UINT m_curFrame;
-		UINT m_numOfModelsHiZPassed;
-		UINT m_numOfModelsNotOccluded;
+		UINT m_numSubMeshHiZPassed;
+		UINT m_numSubMeshNotOccluded;
 		UINT m_ssaoSampleCnt;
+		UINT m_drawCallCnt;
 		float m_ssaoBias;
 		float m_ssaoRadius;
 		float m_exposure;
 		float m_heightScale;
 
-		UINT8* m_pHeightScaleCbBegin;
 		UINT8* m_pQueryReadCbBegin[_WORKER_THREAD_COUNT];
+		UINT8* m_pEquirect2CubeCbBegin;
 		UINT8* m_pExposureCbBegin;
 		UINT8* m_pHiZCullMatrixCbBegin;
-		UINT8* m_pSphereCbBegin;
-		UINT8* m_pResolutionCbBegin;
+		UINT8* m_pHeightScaleCbBegin;
 		UINT8* m_pHiZCullReadCbBegin;
+		UINT8* m_pResolutionCbBegin;
 		UINT8* m_pRoughnessCbBegin;
+		UINT8* m_pSphereCbBegin;
 		UINT8* m_pSSAOKernalCbBegin;
 		UINT8* m_pSSAOParametersCbBegin;
-		UINT8* m_pEquirect2CubeCbBegin;
 	
 		UINT m_selectedModelGroup;
 		UINT m_selectedModel;

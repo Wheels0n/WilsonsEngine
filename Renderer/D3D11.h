@@ -30,11 +30,11 @@ namespace wilson
 		void UpdateScene();
 		void DrawScene();
 		void AddLight(Light*);
-		void AddModelGroup(ModelGroup*);
-		void RemoveModelGroup(int i);
+		void AddObject(ModelGroup*);
+		void RemoveObject(int i);
 		void RemoveLight(int i, Light* pLight);
-		void RemoveModel(int modelGroupIdx, int modelIdx);
-		UINT GetModelSize(int i);
+		void RemoveMesh(int modelGroupIdx, int modelIdx);
+		UINT GetNumMesh(int i);
 		inline Camera* GetCam() const
 		{
 			return m_pCam;
@@ -97,11 +97,11 @@ namespace wilson
 		{
 			return m_clientHeight;
 		};
-		inline UINT GetModelGroupSize() const
+		inline UINT GetObjectSize() const
 		{
-			return m_pModelGroups.size();
+			return m_pObjects.size();
 		}
-		inline void PickModel(int i, int j)
+		inline void PickSubMesh(int i, int j)
 		{
 			m_selectedModelGroup = i;
 			m_selectedModel = j;
@@ -234,7 +234,7 @@ namespace wilson
 		D3D11_VIEWPORT m_diffIrradViewport;
 		D3D11_VIEWPORT m_prefilterViewport;
 
-		std::vector<ModelGroup*> m_pModelGroups;
+		std::vector<ModelGroup*> m_pObjects;
 		Terrain* m_pTerrain;
 		Camera* m_pCam;
 		Frustum* m_pFrustum;

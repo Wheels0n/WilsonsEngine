@@ -3,16 +3,16 @@ namespace wilson
 {
 	void ModelGroup::ToggleInstancing()
 	{
-		for (int i = 0; i < m_pModels.size(); ++i)
+		for (int i = 0; i < m_pMeshes.size(); ++i)
 		{
-			m_pModels[i]->ToggleInstancing();
+			m_pMeshes[i]->ToggleInstancing();
 		}
 	}
 	void ModelGroup::SetNumInstance(int n)
 	{
-		for (int i = 0; i < m_pModels.size(); ++i)
+		for (int i = 0; i < m_pMeshes.size(); ++i)
 		{
-			m_pModels[i]->SetNumInstance(n);
+			m_pMeshes[i]->SetNumInstance(n);
 		}
 	}
 	ModelGroup::ModelGroup(std::vector<Model*> pModels, std::vector<MaterialInfo> materials, std::vector<ID3D11ShaderResourceView*> pDiffMaps,
@@ -24,24 +24,24 @@ namespace wilson
 		m_Name = std::string(wstr.begin(), wstr.end());
 
 		m_type = eType;
-		m_pModels = pModels;
+		m_pMeshes = pModels;
 		m_materials = materials;
 		m_texSrvs = pDiffMaps;
 		m_matHash = matHash;
 		m_texHash = diffuseHash;
 
-		for (int i = 0; i < m_pModels.size(); ++i)
+		for (int i = 0; i < m_pMeshes.size(); ++i)
 		{
-			m_pModels[i]->BindMaterial(m_matHash, m_materials, m_texHash, m_texSrvs);
+			m_pMeshes[i]->BindMaterial(m_matHash, m_materials, m_texHash, m_texSrvs);
 		}
 	}
 	ModelGroup::~ModelGroup()
 	{
-		for (int i = 0; i < m_pModels.size(); ++i)
+		for (int i = 0; i < m_pMeshes.size(); ++i)
 		{
-			delete m_pModels[i];
+			delete m_pMeshes[i];
 		}
-		m_pModels.clear();
+		m_pMeshes.clear();
 
 		for (int i = 0; i < m_texSrvs.size(); ++i)
 		{

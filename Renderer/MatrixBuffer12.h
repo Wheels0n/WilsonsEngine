@@ -8,7 +8,7 @@
 using namespace DirectX;
 
 namespace wilson
-{
+{	
 	class HeapManager;
 	class MatBuffer12
 	{
@@ -18,7 +18,12 @@ namespace wilson
 		void UploadViewMat(ID3D12GraphicsCommandList* pCommandlist);
 		void UploadCombinedMat(ID3D12GraphicsCommandList* pCommandlist, bool bSpotShadowPass);
 		void UpdateCombinedMat(bool bSpotShadowPass);
+		MatrixBuffer GetMatrixBuffer();
 
+		inline void SetDirtyBit()
+		{
+			bDirty = true;
+		}
 		inline void SetProjMatrix(XMMATRIX* projMat)
 		{
 			m_projMat = *projMat;
@@ -49,6 +54,7 @@ namespace wilson
 		~MatBuffer12();
 
 	private:
+		bool bDirty;
 
 		XMMATRIX m_worldMat;
 		XMMATRIX m_projMat;

@@ -278,7 +278,7 @@ namespace wilson
 		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
 		DirectX::XMVECTOR zeroV = DirectX::XMVectorZero();
 		m_pModel = new Model(m_pDevice, m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
-		m_pModels.push_back(m_pModel);
+		m_pMeshes.push_back(m_pModel);
 		++m_objectCount;
 
 		fin.close();
@@ -324,7 +324,7 @@ namespace wilson
 		}
 		fin.close();
 
-		m_pModelGroup = new ModelGroup(m_pModels, m_MaterialInfoV, m_pTexSrvs,
+		m_pModelGroup = new ModelGroup(m_pMeshes, m_MaterialInfoV, m_pTexSrvs,
 			m_fileName, eFileType::OBJ, m_matHash, m_texHash);
 		
 		ClearModel();
@@ -334,7 +334,7 @@ namespace wilson
 		g_normalVecCount = 0;
 		return true;
 	}
-	bool Importer::LoadModel(const char* extension, LPCWSTR fileName, ID3D11Device* pDevice)
+	bool Importer::LoadObject(const char* extension, LPCWSTR fileName, ID3D11Device* pDevice)
 	{
 		GetCurDir(fileName);
 		int len = wcslen(fileName);
@@ -1073,7 +1073,7 @@ namespace wilson
 		std::wstring wName(name.begin(), name.end());
 		m_pModel = new Model(m_pDevice, m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
 			(wchar_t*)wName.c_str(), matNames);
-		m_pModels.push_back(m_pModel);
+		m_pMeshes.push_back(m_pModel);
 	}
 	bool Importer::LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice)
 	{	
@@ -1113,7 +1113,7 @@ namespace wilson
 			{
 				TraverseNode(pFbxRootNode, pDevice, filePath, groupMatSet);
 			}
-			m_pModelGroup = new ModelGroup(m_pModels, m_MaterialInfoV, m_pTexSrvs, (wchar_t*)wfileName.c_str(),
+			m_pModelGroup = new ModelGroup(m_pMeshes, m_MaterialInfoV, m_pTexSrvs, (wchar_t*)wfileName.c_str(),
 				eFileType::FBX, m_matHash, m_texHash);
 			ClearModelGroup();
 		}
@@ -1266,7 +1266,7 @@ namespace wilson
 	void Importer::ClearModelGroup()
 	{
 		m_objectCount = 0;
-		m_pModels.clear();
+		m_pMeshes.clear();
 		m_MaterialInfoV.clear();
 		m_pTexSrvs.clear();
 		m_matHash.clear();

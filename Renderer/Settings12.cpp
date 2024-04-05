@@ -176,10 +176,11 @@ namespace wilson
 		{
 			m_FPS.Frame();
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_FPS.GetFps());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ModelsInScene: %d", m_pFrustum->GetENTTsInTotal());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ModelsInFrustum: %d", m_pFrustum->GetENTTsInFrustum());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ModelsHiZPassed: %d", m_pD3D12->GetModelsHiZPassed());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "ModelsNotOccluded: %d", m_pD3D12->GetModelsNotOccluded());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "DrawCall:%d", m_pD3D12->GetDrawCallCount());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "InScene: %d", m_pFrustum->GetENTTsInTotal());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "InFrustum: %d", m_pFrustum->GetENTTsInFrustum());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "HiZPassed: %d", m_pD3D12->GetSubMeshHiZPassed());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "NotOccluded: %d", m_pD3D12->GetSubMeshNotOccluded());
 			ImGui::Separator();
 
 			ImGuiIO io = ImGui::GetIO();
@@ -239,8 +240,9 @@ namespace wilson
 				if (m_prevPos.x != posFloat.x || m_prevPos.y != posFloat.y || m_prevPos.z != posFloat.z ||
 					angleFloat.x != m_prevAngleFloat.x || angleFloat.y != m_prevAngleFloat.y ||
 					m_prevNearZ != *curNearZ || m_prevFarZ != *curFarZ)
-				{
+				{	
 					m_pCam->Update();
+					m_pCam->SetDirty(true);
 					delete m_pFrustum;
 					m_pFrustum = new Frustum12(m_pCam);
 					m_pD3D12->SetNewFrustum(m_pFrustum);

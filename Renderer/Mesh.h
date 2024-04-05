@@ -9,23 +9,62 @@
 
 #include "AABB.h"
 #include "Sphere.h"
+#include "SubMesh.h"
 #include "typedef.h"
 namespace wilson {
 
 	class HeapManager;
 	class MatBuffer12;
-	class Model12
+	class SubMesh;
+	class Mesh
 	{
-
+	private: 
+		std::vector<std::string> GetMatNames() const
+		{
+			return m_matNames;
+		}
 	public:
+		bool operator==(const Mesh mesh2)
+		{
+			if (this->m_matNames.size()!= mesh2.m_matNames.size())
+			{
+				return false;
+			}
+			else
+			{
+				for (int i = 0; i < mesh2.m_matNames.size(); ++i)
+				{
+					if (m_matNames[i] != mesh2.m_matNames[i])
+					{
+						return false;
+					}
+				}
+			}
 
+			if (this->m_indicesPos.size() != mesh2.m_indicesPos.size())
+			{
+				return false;
+			}
+			else
+			{
+				for (int i = 0; i < mesh2.m_indicesPos.size(); ++i)
+				{
+					if (m_indicesPos[i] != mesh2.m_indicesPos[i])
+					{
+						return false;
+					}
+				}
+			}
+
+			return true;
+		}
+		static bool SortMeshByDepth(const Mesh* pMesh1, const Mesh* pMesh2);
 		void UpdateWorldMatrix();
 		D3D12_GPU_DESCRIPTOR_HANDLE* GetTextureSrv(int matIndex, eTexType texType);
 		void BindMaterial(std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
 			std::unordered_map<std::string, int>& texhash, std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& texSrvs);
-		void UploadBuffers(ID3D12GraphicsCommandList* pCommandList, int i, ePass curPass);
 		AABB GetGlobalAABB();
-
+		void SetVBandIB(ID3D12GraphicsCommandList* pCommandList);
 		inline Sphere* GetSphere() const
 		{
 			return m_pSphere;
@@ -42,6 +81,10 @@ namespace wilson {
 		inline MatBuffer12* GetMatBuffer() const
 		{
 			return m_pMatBuffer;
+		}
+		inline std::vector<SubMesh*>& GetSubMeshes()
+		{
+			return m_pSubMeshs;
 		}
 		inline DirectX::XMMATRIX GetTransformMatrix(bool bOutliner)
 		{
@@ -92,10 +135,6 @@ namespace wilson {
 			return m_Name;
 		}
 
-		inline void SetInstanced(bool bIsInstanced)
-		{
-			m_isInstanced = bIsInstanced;
-		}
 		inline std::vector<unsigned int>& GetNumVertexData()
 		{
 			return m_numVertexData;
@@ -112,29 +151,12 @@ namespace wilson {
 		{
 			return m_indicesPos;
 		}
-		inline bool isInstanced()
-		{
-			return m_isInstanced;
-		}
-		inline int GetNumInstance()
-		{
-			return m_numInstance;
-		}
-		inline void SetNumInstance(UINT n)
-		{
-			m_numInstance = n;
-		}
-		inline void ToggleInstancing()
-		{
-			m_isInstanced = ~m_isInstanced;
-		}
-
-		Model12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, HeapManager* pHeapManager,
+		Mesh(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, HeapManager* pHeapManager,
 			VertexData* pVertices, unsigned long* pIndices,
 			std::vector<unsigned int> vertexDataPos,std::vector<unsigned int> indicesPos,
 			wchar_t* pName, std::vector<std::string> matNames);
-		Model12(const Model12&) = delete;
-		~Model12();
+		Mesh(const Mesh&) = delete;
+		~Mesh();
 
 	private:
 		ID3D12Device* m_pDevice;
@@ -142,8 +164,6 @@ namespace wilson {
 		D3D12_VERTEX_BUFFER_VIEW m_vbV;
 		std::vector<D3D12_INDEX_BUFFER_VIEW> m_subIbVs;
 		D3D12_INDEX_BUFFER_VIEW m_ibV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_materialCBV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_instancePosCBV;
 
 		std::string m_Name;
 		std::vector<std::string>m_matNames;
@@ -173,15 +193,11 @@ namespace wilson {
 		DirectX::XMMATRIX m_invWMat;
 		DirectX::XMVECTOR m_angleVec;
 
-		DirectX::XMMATRIX* m_instancedData;
-		UINT m_numInstance;
-		bool m_isInstanced;
-
 		AABB* m_pAABB;
 		Sphere* m_pSphere;
 		MatBuffer12* m_pMatBuffer;
+		std::vector<SubMesh*> m_pSubMeshs;
 
-		UINT8* m_pMaterialBegin;
-		UINT8* m_pInstancePosBegin;
 	};
+
 }

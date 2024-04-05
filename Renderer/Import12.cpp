@@ -295,9 +295,9 @@ namespace wilson
 		indicesPos.push_back(m_indexCount);
 		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
 		DirectX::XMVECTOR zeroV = DirectX::XMVectorZero();
-		m_pModel = new Model12(m_pDevice, m_pCommandList, m_pHeapManager, 
+		m_pModel = new Mesh(m_pDevice, m_pCommandList, m_pHeapManager, 
 			m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
-		m_pModels.push_back(m_pModel);
+		m_pMeshes.push_back(m_pModel);
 		++m_objectCount;
 
 		fin.close();
@@ -358,7 +358,7 @@ namespace wilson
 			m_pTexSrvs.push_back(m_SRV);
 
 		}
-		m_pModelGroup = new ModelGroup12(m_pModels, m_MaterialInfoV, m_pTexSrvs, m_pTexs, 
+		m_pModelGroup = new Object(m_pMeshes, m_MaterialInfoV, m_pTexSrvs, m_pTexs, 
 			m_fileName, eFileType::OBJ, m_matHash, m_texHash);
 
 		ClearModel();
@@ -368,7 +368,7 @@ namespace wilson
 		g_normalVecCount = 0;
 		return true;
 	}
-	bool Importer12::LoadModel(const char* extension, LPCWSTR fileName, ID3D12Device* pDevice)
+	bool Importer12::LoadObject(const char* extension, LPCWSTR fileName, ID3D12Device* pDevice)
 	{
 		GetCurDir(fileName);
 		int len = wcslen(fileName);
@@ -1166,10 +1166,10 @@ namespace wilson
 
 
 		std::wstring wName(name.begin(), name.end());
-		m_pModel = new Model12(m_pDevice, m_pCommandList, m_pHeapManager, 
+		m_pModel = new Mesh(m_pDevice, m_pCommandList, m_pHeapManager, 
 			m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
 			(wchar_t*)wName.c_str(), matNames);
-		m_pModels.push_back(m_pModel);
+		m_pMeshes.push_back(m_pModel);
 	}
 	bool Importer12::LoadFbx(LPCWSTR fileName, ID3D12Device* pDevice)
 	{
@@ -1232,7 +1232,7 @@ namespace wilson
 				m_pTexSrvs.push_back(m_SRV);
 				m_pHeapManager->IncreaseCbvSrvHandleOffset();
 			}
-			m_pModelGroup = new ModelGroup12(m_pModels, m_MaterialInfoV, m_pTexSrvs, m_pTexs,
+			m_pModelGroup = new Object(m_pMeshes, m_MaterialInfoV, m_pTexSrvs, m_pTexs,
 				(wchar_t*)wfileName.c_str(),
 				eFileType::FBX, m_matHash, m_texHash);
 			ClearModelGroup();
@@ -1398,7 +1398,7 @@ namespace wilson
 	void Importer12::ClearModelGroup()
 	{
 		m_objectCount = 0;
-		m_pModels.clear();
+		m_pMeshes.clear();
 		m_MaterialInfoV.clear();
 		m_pTexSrvs.clear();
 		m_pTexs.clear();

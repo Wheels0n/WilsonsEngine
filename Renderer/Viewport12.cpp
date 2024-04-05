@@ -63,19 +63,19 @@ namespace wilson
 						if (i < 2)
 						{
 							const wchar_t* path = (const wchar_t*)payLoad->Data;
-							m_pImporter12->LoadModel(g_types[i], path, m_pDevice);
-							ModelGroup12* pModelGroup = m_pImporter12->GetModelGroup();
+							m_pImporter12->LoadObject(g_types[i], path, m_pDevice);
+							Object* pModelGroup = m_pImporter12->GetpObject();
 
-							std::vector<Model12*> pModels = pModelGroup->GetModels();
+							std::vector<Mesh*> pModels = pModelGroup->GetMeshes();
 							for (int i = 0; i < pModels.size(); ++i)
 							{
-								Model12* pModel = pModels[i];
+								Mesh* pModel = pModels[i];
 								XMMATRIX* pTrMat = pModel->GetTranslationMatrix();
 								XMMATRIX trMat = XMMatrixTranslationFromVector(pos);
 								*pTrMat = trMat;
 							}
-							int modelIdx = m_pD3D12->GetModelGroupSize();
-							m_pD3D12->AddModelGroup(pModelGroup);
+							int modelIdx = m_pD3D12->GetObjectSize();
+							m_pD3D12->AddObject(pModelGroup);
 							m_pScene12->AddModelEntity(pModelGroup, entityIdx, modelIdx);
 							break;
 						}

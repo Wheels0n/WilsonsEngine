@@ -52,6 +52,17 @@ namespace wilson
 			pPSODesc->PS = psBytecode;
 		}
 
+		void SetHWOcclusionQueryShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		{
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pMatrixTransformVS->GetBufferPointer(),m_pMatrixTransformVS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
+			D3D12_SHADER_BYTECODE psBytecode = { nullptr, 0 };
+
+			pPSODesc->VS = vsBytecode;
+			pPSODesc->GS = gsBytecode;
+			pPSODesc->PS = psBytecode;
+		}
+
 		inline ID3D12RootSignature* GetZpassRootSignature()
 		{
 			return m_pZpassRootSignature;
@@ -438,6 +449,7 @@ namespace wilson
 		ID3DBlob* m_pPBRGeometry12VS;
 		ID3DBlob* m_pPBRGeometryNormal12VS;
 		ID3DBlob* m_pMatrixTransformVS;
+		ID3DBlob* m_pMatrixTransformInstancedVS;
 		ID3DBlob* m_pPosOnly12VS;
 		ID3DBlob* m_pAABB12VS;
 		ID3DBlob* m_pCascadeDir12VS;

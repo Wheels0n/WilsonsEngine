@@ -26,9 +26,9 @@ namespace wilson
 		{
 			return m_type;
 		}
-		inline std::vector<Model*>& GetModels()
+		inline std::vector<Model*>& GetMeshes()
 		{
-			return m_pModels;
+			return m_pMeshes;
 		}
 
 		ModelGroup(std::vector<Model*> pModels, std::vector<MaterialInfo> materials, std::vector<ID3D11ShaderResourceView*> pTextures,
@@ -40,7 +40,7 @@ namespace wilson
 		std::string           m_Name;
 		eFileType             m_type;
 
-		std::vector<Model*>   m_pModels;
+		std::vector<Model*>   m_pMeshes;
 		std::vector<MaterialInfo> m_materials;
 		std::vector<ID3D11ShaderResourceView*> m_texSrvs;
 		std::unordered_map<std::string, int> m_matHash;

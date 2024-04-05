@@ -14,15 +14,15 @@ namespace wilson
 	class Entity
 	{
 	public:
-		inline bool isModel()
+		inline bool isObject()
 		{
-			return m_isModel;
+			return m_isObject;
 		}
 		inline Light* GetLight()
 		{
 			return m_pLight;
 		}
-		inline ModelGroup* GetModelGroup() const
+		inline ModelGroup* GetpObject() const
 		{
 			return m_pModelGroup;
 		}
@@ -38,17 +38,17 @@ namespace wilson
 		{
 			return m_lightIdx;
 		}
-		inline UINT GetModelIndex() const
+		inline UINT GetObjectIndex() const
 		{
-			return m_modelGroupIdx;
+			return m_objectIdx;
 		}
 		inline void DecreaseLightIndex()
 		{
 			--m_lightIdx;
 		}
-		inline void DecreaseModelIndex()
+		inline void DecreaseObjectIndex()
 		{
-			--m_modelGroupIdx;
+			--m_objectIdx;
 		}
 		inline void DecreaseEntityIndex()
 		{
@@ -72,14 +72,14 @@ namespace wilson
 		Entity(const Entity&) = default;
 		~Entity() = default;
 	private:
-		bool m_isModel;
+		bool m_isObject;
 		Light* m_pLight;
 		ModelGroup* m_pModelGroup;
 		Model* m_pSelectedModel;
 		std::string m_Name;
 		UINT m_entityIdx;
 		UINT m_lightIdx;
-		UINT m_modelGroupIdx;
+		UINT m_objectIdx;
 	};
 }
 

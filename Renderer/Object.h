@@ -2,17 +2,14 @@
 
 #include<unordered_map>
 
-#include"Model12.h"
+#include"Mesh.h"
 
 namespace wilson
 {	
 
-	class ModelGroup12
+	class Object
 	{
 	public:
-		void ToggleInstancing();
-		void SetNumInstance(int n);
-
 		inline int GetNumInstance() const
 		{
 			return m_numOfInstances;
@@ -26,22 +23,22 @@ namespace wilson
 		{
 			return m_type;
 		}
-		inline std::vector<Model12*>& GetModels()
+		inline std::vector<Mesh*>& GetMeshes()
 		{
-			return m_pModels;
+			return m_pMeshes;
 		}
 
-		ModelGroup12(std::vector<Model12*> pModels, std::vector<MaterialInfo> materials,
+		Object(std::vector<Mesh*> pMeshes, std::vector<MaterialInfo> materials,
 			std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> pTexSrvs, std::vector<ID3D12Resource*> texs,
 			wchar_t* name, eFileType type,
 			std::unordered_map<std::string, int> matHash,
 			std::unordered_map<std::string, int> texHash);
-		~ModelGroup12();
+		~Object();
 	private:
 		std::string           m_Name;
 		eFileType             m_type;
 
-		std::vector<Model12*>   m_pModels;
+		std::vector<Mesh*>   m_pMeshes;
 		std::vector<MaterialInfo> m_materials;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_texSrvs;
 		std::vector<ID3D12Resource*> m_pTexs;

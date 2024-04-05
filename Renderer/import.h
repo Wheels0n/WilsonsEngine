@@ -15,12 +15,12 @@ namespace wilson {
 	public:
 		void ClearModel();
 		void ClearModelGroup();
-		inline ModelGroup* GetModelGroup()
+		inline ModelGroup* GetpObject()
 		{
 			return m_pModelGroup;
 		};
 		bool LoadTex(LPCWSTR fileName, ID3D11Device* pDevice, bool isDiffuse);
-		bool LoadModel(const char* extension, LPCWSTR fileName, ID3D11Device* pDevice);
+		bool LoadObject(const char* extension, LPCWSTR fileName, ID3D11Device* pDevice);
 
 		Importer()=delete;
 		Importer(ID3D11Device* pDevice);
@@ -54,7 +54,7 @@ namespace wilson {
 		ModelGroup* m_pModelGroup;
 		Model* m_pModel;
 
-		std::vector<Model*> m_pModels;
+		std::vector<Model*> m_pMeshes;
 		std::vector<MaterialInfo>m_MaterialInfoV;
 		std::vector<ID3D11ShaderResourceView*> m_pTexSrvs;
 		std::unordered_map<std::string, int> m_matHash;

@@ -936,15 +936,15 @@ namespace wilson
 			m_pLightingPassBS = nullptr;
 		}
 
-		for (int i = 0; i < m_pModelGroups.size(); ++i)
+		for (int i = 0; i < m_pObjects.size(); ++i)
 		{
-			if (m_pModelGroups[i] != nullptr)
+			if (m_pObjects[i] != nullptr)
 			{
-				delete m_pModelGroups[i];
+				delete m_pObjects[i];
 			}
 		}
-		m_pModelGroups.clear();
-		m_pModelGroups.shrink_to_fit();
+		m_pObjects.clear();
+		m_pObjects.shrink_to_fit();
 
 		#ifdef _DEBUG
 			D3DMemoryLeakCheck();
@@ -1235,7 +1235,7 @@ namespace wilson
 		m_pContext->DrawIndexed(36, 0, 0);
 	
 		//Deferred Shading First Pass
-		if (!m_pModelGroups.empty())
+		if (!m_pObjects.empty())
 		{	
 			m_pCam->UploadCamPos(m_pContext);
 			m_pShader->SetDeferredGeoLayout(m_pContext);
@@ -1336,7 +1336,7 @@ namespace wilson
 		m_pContext->OMSetRenderTargets(1, &m_pSceneRTTV, m_SceneDSV);
 		if (m_selectedModelGroup != -1)
 		{
-			std::vector<Model*> pModels = m_pModelGroups[m_selectedModelGroup]->GetModels();
+			std::vector<Model*> pModels = m_pObjects[m_selectedModelGroup]->GetMeshes();
 			XMMATRIX worldMat = pModels[m_selectedModel]->GetTransformMatrix(true);
 			m_pMatBuffer->SetWorldMatrix(&worldMat);
 			m_pMatBuffer->UploadMatBuffer(m_pContext, bSpotShadowPass);
@@ -1365,7 +1365,7 @@ namespace wilson
 			m_pContext->PSSetConstantBuffers(0, 1, &m_pExposureCB);
 		}
 		
-		m_pContext->PSSetShaderResources(0, 1, m_pModelGroups.empty()||!m_pFrustum->GetENTTsInFrustum() ? &m_pGbufferSRV[2] : &m_pSceneSRV);
+		m_pContext->PSSetShaderResources(0, 1, m_pObjects.empty()||!m_pFrustum->GetENTTsInFrustum() ? &m_pGbufferSRV[2] : &m_pSceneSRV);
 		m_pContext->OMSetRenderTargets(1, &m_pViewportRTTV, nullptr);
 		m_pContext->OMSetDepthStencilState(0, 0);
 		m_pContext->DrawIndexed(6, 0, 0);
@@ -1410,14 +1410,14 @@ namespace wilson
 			m_pLightBuffer->PushSpotLight((SpotLight*)pLight);
 		}
 	}
-	void D3D11::AddModelGroup(ModelGroup* pModelGroup)
+	void D3D11::AddObject(ModelGroup* pModelGroup)
 	{
-		m_pModelGroups.push_back(pModelGroup);
+		m_pObjects.push_back(pModelGroup);
 	}
-	void D3D11::RemoveModelGroup(int i)
+	void D3D11::RemoveObject(int i)
 	{
-		delete m_pModelGroups[i];
-		m_pModelGroups.erase(m_pModelGroups.begin() + i);
+		delete m_pObjects[i];
+		m_pObjects.erase(m_pObjects.begin() + i);
 	}
 	void D3D11::RemoveLight(int i, Light* pLight)
 	{	
@@ -1440,16 +1440,16 @@ namespace wilson
 			break;
 		}
 	}
-	void D3D11::RemoveModel(int modelGroupIdx, int modelIdx)
+	void D3D11::RemoveMesh(int modelGroupIdx, int modelIdx)
 	{
-		std::vector<Model*>& pModels = m_pModelGroups[modelGroupIdx]->GetModels();
+		std::vector<Model*>& pModels = m_pObjects[modelGroupIdx]->GetMeshes();
 		delete pModels[modelIdx];
 		pModels.erase(pModels.begin() + modelIdx);
 		
 	}
-	UINT D3D11::GetModelSize(int i)
+	UINT D3D11::GetNumMesh(int i)
 	{
-		std::vector<Model*>& pModels = m_pModelGroups[i]->GetModels();
+		std::vector<Model*>& pModels = m_pObjects[i]->GetMeshes();
 		return pModels.size();
 	}
 	UINT D3D11::GetLightSize(eLIGHT_TYPE eLType)
@@ -1852,10 +1852,10 @@ namespace wilson
 		UINT ENTTDrawn = 0;
 		Plane* pPlanes = m_pFrustum->GetPlanes();
 		
-		for (int i = 0; i < m_pModelGroups.size(); ++i)
+		for (int i = 0; i < m_pObjects.size(); ++i)
 		{	
 
-			std::vector<Model*> pModels = m_pModelGroups[i]->GetModels();
+			std::vector<Model*> pModels = m_pObjects[i]->GetMeshes();
 			{
 				{
 					for (int j = 0; j < pModels.size(); ++j)

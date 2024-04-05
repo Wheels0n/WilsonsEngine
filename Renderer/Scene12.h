@@ -14,7 +14,7 @@ namespace wilson
 	{
 	public:
 
-		void AddModelEntity(ModelGroup12* pModelGroup, UINT idx, UINT modelIdx);
+		void AddModelEntity(Object* pModelGroup, UINT idx, UINT modelIdx);
 		void AddLightEntity(Light12* pLight, std::string type, UINT idx, UINT lightIdx);
 		void Draw();
 		void DrawVec3Control(const std::string& label, float* vals);
@@ -47,7 +47,7 @@ namespace wilson
 		void DrawSpotLightControl(Light12*);
 		bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float, float*);
 		void RemoveSelectedModel(int, int);
-		void RemoveModelGroup(int, int);
+		void RemoveObject(int, int);
 		void RemoveLight(int, int, Light12*);
 		void RemoveEntity(int);
 		void UnselectModel();
@@ -59,7 +59,7 @@ namespace wilson
 
 		D3D12_GPU_DESCRIPTOR_HANDLE* m_pShadowSrv = nullptr;
 		D3D12_GPU_DESCRIPTOR_HANDLE* m_pTextureSrv = nullptr;
-		bool m_isModel;
+		bool m_isObject;
 		D3D12* m_pD3D12;
 		void* m_pSelectedEntity;
 		Camera12* m_pCam;

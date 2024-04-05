@@ -7,7 +7,7 @@ namespace wilson
 {
 	Scene::Scene(D3D11* pD3D11)
 	{
-		m_isModel = false;
+		m_isObject = false;
 		sceneHandler = this;
 
 		m_pSelectedEntity = nullptr;
@@ -52,12 +52,12 @@ namespace wilson
 				for (int i = 0; i < m_entites.size(); ++i)
 				{	
 					int idx = m_entites[i]->GetEntityIndex();
-					if (m_entites[i]->isModel())
+					if (m_entites[i]->isObject())
 					{
-						ModelGroup* pModelGroup = m_entites[i]->GetModelGroup();
+						ModelGroup* pModelGroup = m_entites[i]->GetpObject();
 						std::string groupName = pModelGroup->GetName();
-						std::vector<Model*>& pModels = pModelGroup->GetModels();
-						UINT modelGroupIdx= m_entites[i]->GetModelIndex();
+						std::vector<Model*>& pModels = pModelGroup->GetMeshes();
+						UINT modelGroupIdx= m_entites[i]->GetObjectIndex();
 						if (ImGui::TreeNode(groupName.c_str()))
 						{
 							if (ImGui::Button(groupName.c_str()))
@@ -71,13 +71,13 @@ namespace wilson
 								ImGui::Separator();
 								if (ImGui::Selectable(actions))
 								{
-									RemoveModelGroup(modelGroupIdx,i);
+									RemoveObject(modelGroupIdx,i);
 									//
 									for (int j = i; j < m_entites.size(); ++j)
 									{
-										if (m_entites[j]->isModel())
+										if (m_entites[j]->isObject())
 										{
-											m_entites[j]->DecreaseModelIndex();
+											m_entites[j]->DecreaseObjectIndex();
 											m_entites[j]->DecreaseEntityIndex();
 										}
 									}
@@ -93,10 +93,10 @@ namespace wilson
 								popUpID += std::to_string(j);
 								if (ImGui::Button(modelName.c_str()))
 								{	
-									m_isModel = true;
+									m_isObject = true;
 									m_pSelectedEntity = pModels[j];
 
-									m_pD3D11->PickModel(modelGroupIdx, j);
+									m_pD3D11->PickSubMesh(modelGroupIdx, j);
 									m_popUpID = popUpID;
 									ImGui::OpenPopup(m_popUpID.c_str());
 								}
@@ -107,15 +107,15 @@ namespace wilson
 									if (ImGui::Selectable(actions))
 									{
 										RemoveSelectedModel(modelGroupIdx, j);
-										if (!m_pD3D11->GetModelSize(modelGroupIdx))
+										if (!m_pD3D11->GetNumMesh(modelGroupIdx))
 										{
-											RemoveModelGroup(modelGroupIdx, idx);
+											RemoveObject(modelGroupIdx, idx);
 											for (int k = i; k < m_entites.size(); ++k)
 											{	
 												m_entites[k]->DecreaseEntityIndex();
-												if (m_entites[k]->isModel())
+												if (m_entites[k]->isObject())
 												{
-													m_entites[k]->DecreaseModelIndex();
+													m_entites[k]->DecreaseObjectIndex();
 													
 												}
 											}
@@ -138,7 +138,7 @@ namespace wilson
 						{	
 							UnselectModel();
 
-							m_isModel = false;
+							m_isObject = false;
 							m_pSelectedEntity = pLight;
 							ImGui::OpenPopup("Edit");
 						}
@@ -154,7 +154,7 @@ namespace wilson
 								for (int j = i; j < m_entites.size(); ++j)
 								{	
 									m_entites[j]->DecreaseEntityIndex();
-									if (!m_entites[j]->isModel()&&
+									if (!m_entites[j]->isObject()&&
 										(m_entites[j]->GetLight()->GetType()) == type)
 									{
 										m_entites[j]->DecreaseLightIndex();
@@ -176,7 +176,7 @@ namespace wilson
 		{
 			if (m_pSelectedEntity != nullptr)
 			{	
-				if (m_isModel)
+				if (m_isObject)
 				{	
 					bool bDirty = false;
 					Model* pModel = (Model*)m_pSelectedEntity;
@@ -389,15 +389,15 @@ namespace wilson
 		float hitDistance;
 
 		m_pSelectedEntity = nullptr;
-		m_pD3D11->PickModel(-1, -1);
+		m_pD3D11->PickSubMesh(-1, -1);
 		for (int i = 0; i < m_entites.size(); ++i)
 		{	
-			if (!m_entites[i]->isModel())
+			if (!m_entites[i]->isObject())
 			{
 				continue;
 			}
-			ModelGroup* pModelGroup = m_entites[i]->GetModelGroup();
-			std::vector<Model*> pModels = pModelGroup->GetModels();
+			ModelGroup* pModelGroup = m_entites[i]->GetpObject();
+			std::vector<Model*> pModels = pModelGroup->GetMeshes();
 			for (int j = 0; j < pModels.size(); ++j)
 			{
 				Model* pModel = pModels[j];
@@ -424,11 +424,11 @@ namespace wilson
 
 				if (RaySphereIntersect(xfO, xfDir, 0.5f, &hitDistance) == true)
 				{	
-					m_isModel = true;
+					m_isObject = true;
 					if (hitDistance < closestDistance)
 					{
 						m_pSelectedEntity = pModel;
-						m_pD3D11->PickModel(i, j);
+						m_pD3D11->PickSubMesh(i, j);
 						closestDistance = hitDistance;
 					}
 				}
@@ -455,7 +455,7 @@ namespace wilson
 	//그룹 단위로 모델이 만들어진다. 고로 하위 모델 삭제시에 RemoveEntity를 호출 해서는 안된다.
 	void Scene::RemoveSelectedModel(int modelGroupIdx, int modelIdx)
 	{   
-		m_pD3D11->RemoveModel(modelGroupIdx, modelIdx);
+		m_pD3D11->RemoveMesh(modelGroupIdx, modelIdx);
 		m_pSelectedEntity = nullptr;
 	}
 	void Scene::DrawLightControl(Light* pLight)
@@ -670,9 +670,9 @@ namespace wilson
 		
 
 	};
-	void Scene::RemoveModelGroup(int modelGroupIdx, int entityIdx)
+	void Scene::RemoveObject(int modelGroupIdx, int entityIdx)
 	{	
-		m_pD3D11->RemoveModelGroup(modelGroupIdx);
+		m_pD3D11->RemoveObject(modelGroupIdx);
 		RemoveEntity(entityIdx);
 	}
 	void Scene::RemoveEntity(int i)
@@ -691,6 +691,6 @@ namespace wilson
 	void Scene::UnselectModel()
 	{
 		m_pSelectedEntity = nullptr;
-		m_pD3D11->PickModel(-1, -1);
+		m_pD3D11->PickSubMesh(-1, -1);
 	}
 }

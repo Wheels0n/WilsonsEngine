@@ -19,6 +19,14 @@ namespace wilson {
 		void ResetTranslation();
 		void UpdateCascadeLevels();
 
+		inline bool GetDirty()
+		{
+			return bDirty;
+		}
+		inline void SetDirty(bool isDirty)
+		{
+			bDirty = isDirty;
+		}
 		inline void ResetRotation()
 		{
 			m_rotation = DirectX::XMVectorZero();
@@ -139,7 +147,7 @@ namespace wilson {
 
 		float m_trSpeed;
 		float m_rtSpeed;
-
+		bool bDirty;
 	};
 
 }

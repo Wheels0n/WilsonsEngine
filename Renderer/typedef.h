@@ -106,11 +106,11 @@ namespace wilson
 	//MatrixBuffer
 	struct MatrixBuffer
 	{
-		DirectX::XMMATRIX m_worldMat;
-		DirectX::XMMATRIX m_viewMat;
-		DirectX::XMMATRIX m_invWorldMat;
-		DirectX::XMMATRIX m_invWVMat;
-		DirectX::XMMATRIX m_wvpMat;
+		DirectX::XMMATRIX worldMat;
+		DirectX::XMMATRIX viewMat;
+		DirectX::XMMATRIX invWorldMat;
+		DirectX::XMMATRIX invWVMat;
+		DirectX::XMMATRIX wvpMat;
 	};
 
 	//Model
@@ -224,7 +224,6 @@ namespace wilson
 		ePbrGeo_ePsAlpha,
 		ePbrGeo_ePsSampler,
 		ePbrGeo_ePsCamPos,
-		ePbrGeo_ePsMaterial,
 		ePbrGeo_ePsHeightScale,
 		ePbrGeo_eCnt
 	};
@@ -353,7 +352,7 @@ namespace wilson
 
 	//DirectX
 	constexpr UINT _WORKER_THREAD_COUNT= 4;
-	constexpr UINT _OBJECT_PER_THREAD = 10;
+	constexpr UINT _OBJECT_PER_THREAD = 50;
 	constexpr float _REFRESH_RATE = 75.f;
 	constexpr UINT  _BUFFER_COUNT = 2;
 	constexpr UINT _SHADOWMAP_SIZE = 1024;
