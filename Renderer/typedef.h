@@ -16,6 +16,30 @@
 
 namespace wilson
 {	 
+	struct Tri
+	{
+		int v[3];
+		int ref=0;
+		bool operator<(const Tri& a)
+		{
+			for (int i = 0; i < 3; ++i)
+			{
+				if (this->v[i] != a.v[i])
+				{
+					return this->v[i] < a.v[i];
+				}
+			}
+			return false;
+		}
+	};
+	struct TriCmp
+	{
+		bool operator()(const std::pair<Tri, int>& a, const std::pair<Tri, int>& b)
+		{
+			return a.first.ref < b.first.ref;
+		}
+	};
+
 	//Cam
 	constexpr float _RAD = 6.28319;
 
@@ -113,14 +137,15 @@ namespace wilson
 		DirectX::XMMATRIX wvpMat;
 	};
 
-	//Model
+	//Mesh
 	enum eTexType
 	{
 		Diffuse,
 		Normal,
 		Specular,
 		Emissive,
-		Alpha
+		Alpha,
+		nTexType
 	};
 	enum class eFileType
 	{
@@ -161,6 +186,12 @@ namespace wilson
 	constexpr UINT _MAX_INSTANCES = 50;
 	
 	//Shader
+	enum eDownSampleRP
+	{
+		eDownSampleRP_eDepthMap,
+		eDownSampleRP_ePsSampler,
+		eDownSampleRP_eCnt
+	};
 	enum eGenHiZRP
 	{
 		eGenHiZRP_ePs_lastResoltion,
@@ -174,8 +205,9 @@ namespace wilson
 		eHiZCullRP_eCs_hiZ,
 		eHiZCullRP_eCs_dst,
 		eHiZCullRP_eCs_matrix,
-		eHiZCullRP_eCs_sphere,
 		eHiZCullRP_eCs_resolution,
+		eHiZCullRP_eCs_bound,
+		eHiZCullRP_eCs_Depth,
 		eHiZCullRP_eCs_border,
 		eHiZCullRP_eCnt
 
@@ -352,10 +384,10 @@ namespace wilson
 
 	//DirectX
 	constexpr UINT _WORKER_THREAD_COUNT= 4;
-	constexpr UINT _OBJECT_PER_THREAD = 50;
+	constexpr UINT _OBJECT_PER_THREAD = 10;
 	constexpr float _REFRESH_RATE = 75.f;
 	constexpr UINT  _BUFFER_COUNT = 2;
-	constexpr UINT _SHADOWMAP_SIZE = 1024;
+	constexpr UINT _SHADOWMAP_SIZE = 512;
 	constexpr float CUBE_SIZE = 0.25;
 	constexpr UINT  _KERNEL_COUNT = 64;
 	constexpr UINT  _NOISE_VEC_COUNT = 16;
@@ -370,7 +402,7 @@ namespace wilson
 	constexpr UINT  _DIFFIRRAD_HEIGHT = 32;
 	constexpr UINT  _QUAD_IDX_COUNT = 6;
 	constexpr UINT  _CUBE_IDX_COUNT = 36;
-	constexpr UINT  _HI_Z_CULL_COUNT = 2048;
+	constexpr UINT  _HI_Z_CULL_COUNT = 4096;
 
 	enum ePass
 	{
@@ -380,7 +412,12 @@ namespace wilson
 		eCubeShadowPass,
 		eOcclusionTestPass,
 		eGeoPass,
-		eDefault
+		eSsaoPass,
+		eSsaoBlurPass,
+		eLightingPass,
+		eSkyBoxPass,
+		ePostProcess,
+		ePassCnt
 	};
 
 	enum eGbuf
@@ -408,8 +445,8 @@ namespace wilson
 	//Renderer11
 	constexpr bool g_bFULL_SCREEN = false;
 	constexpr bool g_bVSYNC_ENABLE = false;
-	constexpr float g_fSCREEN_FAR = 3000.0f;
-	constexpr float g_fSCREEN_NEAR = 0.1f;
+	constexpr float g_fSCREEN_FAR =3000.0f;
+	constexpr float g_fSCREEN_NEAR = 0.01f;
 
 	enum eAPI {
 		DX11,

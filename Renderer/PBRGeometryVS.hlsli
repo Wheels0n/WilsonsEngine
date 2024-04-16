@@ -37,7 +37,6 @@ PixelInputType main(VertexInputType input)
     output.wPosition = mul(output.position, g_worldMat);
     output.vPosition = mul(output.wPosition, g_viewMat);
     output.position = mul(float4(input.position, 1.0f), g_wvpMat);
-    
     output.tex = input.tex;
     
     output.normal = mul(input.normal, (float3x3) transpose(g_invWorldMat));

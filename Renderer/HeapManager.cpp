@@ -55,6 +55,19 @@ namespace wilson
 		m_pCurVbBlockMappedPtr[newIdx] += vbSize;
 	}
 
+	UINT8* HeapManager::GetCurVbBlockPtr(UINT64 vbSize)
+	{
+
+		UINT64 blockSize = (_VB_HEAP_SIZE) / _HEAP_BLOCK_COUNT;
+		UINT idx = m_curVbHeapOffset / blockSize;
+		UINT newIdx = (m_curVbHeapOffset + vbSize) / blockSize;
+		if (newIdx != idx)
+		{
+			m_curVbHeapOffset = CUSTUM_ALIGN(m_curVbHeapOffset, blockSize);
+		}
+		return m_pCurVbBlockMappedPtr[newIdx];
+	}
+
 	void HeapManager::AllocateIndexData(UINT8* pIndexData, UINT64 ibSize)
 	{
 		UINT64 blockSize = (_IB_HEAP_SIZE / _HEAP_BLOCK_COUNT);

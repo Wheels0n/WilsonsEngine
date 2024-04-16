@@ -149,6 +149,7 @@ namespace wilson
 		void IncreaseCbvSrvHandleOffset();
 		void IncreaseSamplerHandleOffset();
 		UINT8* GetCbMappedPtr(UINT64 size);
+		UINT8* GetCurVbBlockPtr(UINT64 vbSize);
 		void AllocateVertexData(UINT8* pVertexData, UINT64 vbSize);
 		void AllocateIndexData(UINT8* pIndexData, UINT64 ibSize);
 		D3D12_VERTEX_BUFFER_VIEW GetVBV(UINT64 size, UINT64 stride);

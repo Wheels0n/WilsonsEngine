@@ -8,18 +8,17 @@
 #include "Object.h"
 #include "typedef.h"
 namespace wilson {
-	
 	class HeapManager;
 	class D3D12;
 	class Importer12
 	{
 
 	public:
-		void ClearModel();
-		void ClearModelGroup();
+		void ClearMesh();
+		void ClearObject();
 		inline Object* GetpObject()
 		{
-			return m_pModelGroup;
+			return m_pObject;
 		};
 		bool LoadTex(LPCWSTR fileName, ID3D12Device* pDevice, bool isDiffuse);
 		bool LoadObject(const char* extension, LPCWSTR fileName, ID3D12Device* pDevice);
@@ -54,8 +53,8 @@ namespace wilson {
 		wchar_t* m_mtlPath;
 		wchar_t* m_fileName;
 
-		Object* m_pModelGroup;
-		Mesh* m_pModel;
+		Object* m_pObject;
+		Mesh* m_pMesh;
 
 		std::vector<Mesh*> m_pMeshes;
 		std::vector<MaterialInfo>m_MaterialInfoV;

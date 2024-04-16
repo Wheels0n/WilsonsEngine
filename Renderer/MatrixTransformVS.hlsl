@@ -9,9 +9,10 @@ struct PixelInputType
     float2 tex : TEXTURE;
 };
 
+
 cbuffer MatrixBuffer
 {
-    matrix g_wvpMatrix;
+    matrix g_wvpMat;
 };
 
 PixelInputType main(VertexInputType input) 
@@ -19,7 +20,7 @@ PixelInputType main(VertexInputType input)
     PixelInputType output;
     
     output.position = float4(input.position, 1.0f);
-    output.position = mul(output.position, g_wvpMatrix);
+    output.position = mul(output.position, g_wvpMat);
     output.tex = input.tex;
     
     return output;

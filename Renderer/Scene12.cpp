@@ -292,6 +292,8 @@ namespace wilson
 						pMesh->UpdateWorldMatrix();
 						MatBuffer12* pMatBuffer = pMesh->GetMatBuffer();
 						pMatBuffer->SetDirtyBit();
+						XMMATRIX w = pMesh->GetTransformMatrix(false);
+						pMatBuffer->SetWorldMatrix(&w);
 					}
 
 					int texType;

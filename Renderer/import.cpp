@@ -19,7 +19,7 @@ namespace wilson
 		m_indexCount = 0;
 		m_objectCount = 0;
 
-		m_pModel = nullptr;
+		m_pMesh = nullptr;
 		m_pVertexVecs = nullptr;
 		m_pNormalVecs = nullptr;
 		m_pTexVecs = nullptr;
@@ -35,7 +35,7 @@ namespace wilson
 		m_curDir = nullptr;
 		m_mtlPath = nullptr;
 		m_fileName = nullptr;
-		m_pModelGroup = nullptr;
+		m_pObject = nullptr;
 		m_pTangentVecs = nullptr;
 
 		m_fbxManager = FbxManager::Create();
@@ -277,8 +277,8 @@ namespace wilson
 		indicesPos.push_back(m_indexCount);
 		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
 		DirectX::XMVECTOR zeroV = DirectX::XMVectorZero();
-		m_pModel = new Model(m_pDevice, m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
-		m_pMeshes.push_back(m_pModel);
+		m_pMesh = new Model(m_pDevice, m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
+		m_pMeshes.push_back(m_pMesh);
 		++m_objectCount;
 
 		fin.close();
@@ -308,7 +308,7 @@ namespace wilson
 				curPos = fin.tellg();
 				nextPos=GetCnts(fileName, curPos, objName);
 				LoadSubOBJ(fileName, curPos, pDevice, objName);
-				ClearModel();
+				ClearMesh();
 				if (nextPos == 0)
 				{
 					break;
@@ -324,11 +324,11 @@ namespace wilson
 		}
 		fin.close();
 
-		m_pModelGroup = new ModelGroup(m_pMeshes, m_MaterialInfoV, m_pTexSrvs,
+		m_pObject = new ModelGroup(m_pMeshes, m_MaterialInfoV, m_pTexSrvs,
 			m_fileName, eFileType::OBJ, m_matHash, m_texHash);
 		
-		ClearModel();
-		ClearModelGroup();
+		ClearMesh();
+		ClearObject();
 		g_vertexVecCount = 0;
 		g_texVecCount    = 0;
 		g_normalVecCount = 0;
@@ -1071,9 +1071,9 @@ namespace wilson
 
 		
 		std::wstring wName(name.begin(), name.end());
-		m_pModel = new Model(m_pDevice, m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
+		m_pMesh = new Model(m_pDevice, m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
 			(wchar_t*)wName.c_str(), matNames);
-		m_pMeshes.push_back(m_pModel);
+		m_pMeshes.push_back(m_pMesh);
 	}
 	bool Importer::LoadFbx(LPCWSTR fileName, ID3D11Device* pDevice)
 	{	
@@ -1113,9 +1113,9 @@ namespace wilson
 			{
 				TraverseNode(pFbxRootNode, pDevice, filePath, groupMatSet);
 			}
-			m_pModelGroup = new ModelGroup(m_pMeshes, m_MaterialInfoV, m_pTexSrvs, (wchar_t*)wfileName.c_str(),
+			m_pObject = new ModelGroup(m_pMeshes, m_MaterialInfoV, m_pTexSrvs, (wchar_t*)wfileName.c_str(),
 				eFileType::FBX, m_matHash, m_texHash);
-			ClearModelGroup();
+			ClearObject();
 		}
 
 		return true;
@@ -1246,14 +1246,14 @@ namespace wilson
 			indicesPos.push_back(0);
 			//FBX가 Map을 담고 있을 경우를 대비하여 LoadFBX는 Loop문으로 LoadSubFbx(subMesh)를 호출하고, ModelGroup을 만들도록한다.
 			LoadSubFbx(pMesh, pVertices, vertexDataPos, indicesPos, submeshStride, matNames, name, wMat);
-			ClearModel();
+			ClearMesh();
 		}
 		return true;
 	}
 
 	Importer::~Importer()
 	{
-		ClearModel();
+		ClearMesh();
 		if (m_curDir != nullptr)
 		{
 			delete m_curDir;
@@ -1263,7 +1263,7 @@ namespace wilson
 		m_fbxIOsettings->Destroy();
 		m_fbxManager->Destroy();
 	}
-	void Importer::ClearModelGroup()
+	void Importer::ClearObject()
 	{
 		m_objectCount = 0;
 		m_pMeshes.clear();
@@ -1272,7 +1272,7 @@ namespace wilson
 		m_matHash.clear();
 		m_texHash.clear();
 	}
-	void Importer::ClearModel()
+	void Importer::ClearMesh()
 	{
 		if (m_pVertexVecs != nullptr)
 		{

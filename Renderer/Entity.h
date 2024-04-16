@@ -24,7 +24,7 @@ namespace wilson
 		}
 		inline ModelGroup* GetpObject() const
 		{
-			return m_pModelGroup;
+			return m_pObject;
 		}
 		inline std::string GetName()
 		{
@@ -56,15 +56,15 @@ namespace wilson
 		}
 		inline void ToggleInstancing()
 		{
-			m_pModelGroup->ToggleInstancing();
+			m_pObject->ToggleInstancing();
 		}
 		inline int GetNumInstance()
 		{
-			return m_pModelGroup->GetNumInstance();
+			return m_pObject->GetNumInstance();
 		}
 		inline void SetNumInstance(int n)
 		{
-			m_pModelGroup->SetNumInstance(n);
+			m_pObject->SetNumInstance(n);
 		}
 
 		Entity(std::string, UINT idx, ModelGroup*, UINT modelIdx);
@@ -74,7 +74,7 @@ namespace wilson
 	private:
 		bool m_isObject;
 		Light* m_pLight;
-		ModelGroup* m_pModelGroup;
+		ModelGroup* m_pObject;
 		Model* m_pSelectedModel;
 		std::string m_Name;
 		UINT m_entityIdx;

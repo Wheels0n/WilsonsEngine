@@ -5,7 +5,7 @@ namespace wilson
 	Entity::Entity(std::string name, UINT idx, ModelGroup* pModelGroup, UINT modelIdx)
 	{
 		m_isObject = true;
-		m_pModelGroup = pModelGroup;
+		m_pObject = pModelGroup;
 		m_Name = name;
 		m_pLight=nullptr;
 		m_objectIdx = modelIdx;
@@ -16,7 +16,7 @@ namespace wilson
 	Entity::Entity(std::string name, UINT idx, Light* pLight, UINT lightIdx)
 	{	
 		m_isObject = false;
-		m_pModelGroup = nullptr;
+		m_pObject = nullptr;
 		m_Name = name;
 		m_pLight=pLight;
 		m_lightIdx = lightIdx;

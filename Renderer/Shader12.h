@@ -395,6 +395,22 @@ namespace wilson
 			return m_pBlurRootSignature;
 		}
 
+		void SetDownSampleShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
+		{
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pTex12VS->GetBufferPointer(), m_pTex12VS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
+			D3D12_SHADER_BYTECODE psBytecode = { m_pDownSamplePS->GetBufferPointer(),m_pDownSamplePS->GetBufferSize() };
+
+			pPSODesc->VS = vsBytecode;
+			pPSODesc->GS = gsBytecode;
+			pPSODesc->PS = psBytecode;
+
+		}
+		inline ID3D12RootSignature* GetDownSampleRootSignature()
+		{
+			return m_pDownSampleRootSignature;
+		}
+
 		void SetOutlinerTestShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pPSODesc)
 		{
 
@@ -483,6 +499,7 @@ namespace wilson
 		ID3DBlob* m_pPostProcess12PS;
 		ID3DBlob* m_pAABB12PS;
 		ID3DBlob* m_pGenHiZPS;
+		ID3DBlob* m_pDownSamplePS;
 
 		ID3DBlob* m_pGenMipCS;
 		ID3DBlob* m_pSSAOCS;
@@ -514,6 +531,7 @@ namespace wilson
 		ID3D12RootSignature* m_pCubeRootsignature;
 		ID3D12RootSignature* m_pGeoRootSignature;
 		ID3D12RootSignature* m_pLightRootSignature;
+		ID3D12RootSignature* m_pDownSampleRootSignature;
 
 		ID3D12RootSignature* m_pGenMipMapRootsignature;
 

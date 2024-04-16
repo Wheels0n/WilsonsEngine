@@ -7,8 +7,6 @@
 #include <vector>
 #include <dxgicommon.h>
 
-#include "AABB.h"
-#include "Sphere.h"
 #include "SubMesh.h"
 #include "typedef.h"
 namespace wilson {
@@ -30,50 +28,40 @@ namespace wilson {
 			{
 				return false;
 			}
-			else
+			
+			for (int i = 0; i < mesh2.m_matNames.size(); ++i)
 			{
-				for (int i = 0; i < mesh2.m_matNames.size(); ++i)
+				if (m_matNames[i] != mesh2.m_matNames[i])
 				{
-					if (m_matNames[i] != mesh2.m_matNames[i])
-					{
-						return false;
-					}
+					return false;
 				}
 			}
+			
 
-			if (this->m_indicesPos.size() != mesh2.m_indicesPos.size())
+			if (this->m_clusterPos.size() != mesh2.m_clusterPos.size())
 			{
 				return false;
 			}
-			else
-			{
-				for (int i = 0; i < mesh2.m_indicesPos.size(); ++i)
+			
+			for (int i = 0; i < mesh2.m_clusterPos.size(); ++i)
+			{	
+				for (int j = 0; j < mesh2.m_clusterPos[0].size(); ++j)
 				{
-					if (m_indicesPos[i] != mesh2.m_indicesPos[i])
+					if (m_clusterPos[i][j] != mesh2.m_clusterPos[i][j])
 					{
 						return false;
 					}
 				}
 			}
+			
 
 			return true;
 		}
-		static bool SortMeshByDepth(const Mesh* pMesh1, const Mesh* pMesh2);
 		void UpdateWorldMatrix();
 		D3D12_GPU_DESCRIPTOR_HANDLE* GetTextureSrv(int matIndex, eTexType texType);
 		void BindMaterial(std::unordered_map<std::string, int>& mathash, std::vector<MaterialInfo>& matInfos,
 			std::unordered_map<std::string, int>& texhash, std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& texSrvs);
-		AABB GetGlobalAABB();
 		void SetVBandIB(ID3D12GraphicsCommandList* pCommandList);
-		inline Sphere* GetSphere() const
-		{
-			return m_pSphere;
-		}
-
-		inline AABB* GetAABB() const
-		{
-			return m_pAABB;
-		}
 		inline UINT GetMatCount() const
 		{
 			return m_matInfos.size();
@@ -122,38 +110,18 @@ namespace wilson {
 		{
 			return m_indexCount;
 		}
-		inline UINT GetIndexCount(UINT i)
-		{
-			return m_indicesPos[i + 1] - m_indicesPos[i];
-		}
-		inline UINT GetIndexOffset(UINT i)
-		{
-			return sizeof(UINT)* m_indicesPos[i];
-		}
 		inline std::string GetName() const
 		{
 			return m_Name;
 		}
 
-		inline std::vector<unsigned int>& GetNumVertexData()
-		{
-			return m_numVertexData;
-		}
-		inline std::vector<unsigned int>& GetNumIndice()
-		{
-			return m_numIndices;
-		}
 		inline std::vector<unsigned int>& GetVertexDataPos()
 		{
-			return m_vertexDataPos;
-		}
-		inline std::vector<unsigned int>& GetIndicesPos()
-		{
-			return m_indicesPos;
+			return m_subMeshPos;
 		}
 		Mesh(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, HeapManager* pHeapManager,
-			VertexData* pVertices, unsigned long* pIndices,
-			std::vector<unsigned int> vertexDataPos,std::vector<unsigned int> indicesPos,
+			VertexData* pVertices, unsigned long* pIndices, UINT nVertex,
+			std::vector<unsigned int> vertexDataPos, std::vector<std::vector<unsigned int>> clusterPos,
 			wchar_t* pName, std::vector<std::string> matNames);
 		Mesh(const Mesh&) = delete;
 		~Mesh();
@@ -162,7 +130,7 @@ namespace wilson {
 		ID3D12Device* m_pDevice;
 
 		D3D12_VERTEX_BUFFER_VIEW m_vbV;
-		std::vector<D3D12_INDEX_BUFFER_VIEW> m_subIbVs;
+		std::vector<std::vector<D3D12_INDEX_BUFFER_VIEW>> m_subIbVs;
 		D3D12_INDEX_BUFFER_VIEW m_ibV;
 
 		std::string m_Name;
@@ -172,10 +140,8 @@ namespace wilson {
 		unsigned long* m_pIndices;
 		unsigned int m_vertexCount;
 		unsigned int m_indexCount;
-		std::vector<unsigned int> m_vertexDataPos;
-		std::vector<unsigned int> m_indicesPos;
-		std::vector<unsigned int> m_numVertexData;
-		std::vector<unsigned int> m_numIndices;
+		std::vector<unsigned int> m_subMeshPos;
+		std::vector<std::vector<unsigned int>> m_clusterPos;
 
 		std::vector<MaterialInfo> m_matInfos;
 		std::vector<PerModel>m_perModels;
@@ -193,9 +159,8 @@ namespace wilson {
 		DirectX::XMMATRIX m_invWMat;
 		DirectX::XMVECTOR m_angleVec;
 
-		AABB* m_pAABB;
-		Sphere* m_pSphere;
 		MatBuffer12* m_pMatBuffer;
+		HeapManager* m_pHeapManager;
 		std::vector<SubMesh*> m_pSubMeshs;
 
 	};

@@ -43,7 +43,7 @@ namespace wilson
 		void DestroySceneDepthTex();
 		void DestroyHDR();
 		void DestroyBackBuffer();
-		void UpdateTotalMeshes();
+		void UpdateDrawLists();
 		void DrawObject(ePass curPass, UINT threadIndex, UINT lightIdx);
 		void HWQueryForOcclusion(UINT threadIdx);
 		void D3DMemoryLeakCheck();
@@ -153,11 +153,11 @@ namespace wilson
 		}
 		inline UINT GetSubMeshHiZPassed() const
 		{
-			return m_numSubMeshHiZPassed;
+			return m_nHiZPassed;
 		}
 		inline UINT GetSubMeshNotOccluded() const
 		{
-			return m_numSubMeshNotOccluded;
+			return m_nNotOccluded;
 		}
 
 		void AddObject(Object*);
@@ -211,6 +211,8 @@ namespace wilson
 		ID3D12GraphicsCommandList* m_pCopyCommandList;
 		ID3D12GraphicsCommandList* m_pImporterCommandList;
 		ID3D12GraphicsCommandList* m_pWorkerCommandList[_WORKER_THREAD_COUNT];
+		ID3D12GraphicsCommandList* m_pBundle[ePassCnt];
+		ID3D12CommandAllocator* m_pBundleAllocator[ePassCnt];
 		ID3D12CommandAllocator* m_pWorkerCommandAllocator[_WORKER_THREAD_COUNT];
 		ID3D12CommandAllocator* m_pMainCommandAllocator;
 		ID3D12CommandAllocator* m_pSSAOCommandAllocator;
@@ -223,6 +225,7 @@ namespace wilson
 		ID3D12Fence* m_pSsaoFence;
 
 		ID3D12PipelineState* m_pZpassPso;
+		ID3D12PipelineState* m_pDownSamplePso;
 		ID3D12PipelineState* m_pGenHiZPassPso;
 		ID3D12PipelineState* m_pHiZCullPassPso;
 		ID3D12PipelineState* m_pHWOcclusionQueryPso;
@@ -241,6 +244,7 @@ namespace wilson
 		ID3D12PipelineState* m_pSSAOBlurPso;
 		ID3D12PipelineState* m_pPbrDeferredLightingPso;
 		ID3D12PipelineState* m_pPostProcessPso;
+		ID3D12PipelineState* m_pAabbPso;
 		ID3D12PipelineState* m_pBRDFPso;
 		ID3D12PipelineState* m_pPrefilterPso;
 		ID3D12PipelineState* m_pDiffuseIrradiancePso;
@@ -254,6 +258,7 @@ namespace wilson
 
 		ID3D12Resource* m_pViewportTex;
 		ID3D12Resource* m_pSceneTex;
+		ID3D12Resource* m_pDownSampleTex;
 		ID3D12Resource* m_pHiZTempTex;
 		ID3D12Resource* m_pHiZCullListTex;
 		ID3D12Resource* m_pSSAOBlurDebugTex;
@@ -280,6 +285,7 @@ namespace wilson
 		D3D12_CPU_DESCRIPTOR_HANDLE m_SkyBoxRTV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_DiffIrradianceRTV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_PrefilterRTV;
+		D3D12_CPU_DESCRIPTOR_HANDLE m_DownSampleRTV;
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_hiZTempRtvs;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE m_ScreenDSV;
@@ -310,7 +316,6 @@ namespace wilson
 
 		D3D12_VERTEX_BUFFER_VIEW m_QuadVBV;
 		D3D12_VERTEX_BUFFER_VIEW m_SkyBoxVBV;
-		D3D12_VERTEX_BUFFER_VIEW m_AABBVBV;
 		D3D12_INDEX_BUFFER_VIEW m_QuadIBV;
 		D3D12_INDEX_BUFFER_VIEW m_SkyBoxIBV;
 		D3D12_INDEX_BUFFER_VIEW m_AABBIBV;
@@ -322,9 +327,9 @@ namespace wilson
 		D3D12_GPU_DESCRIPTOR_HANDLE m_ResolutionCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_HiZCullMatrixCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_HeightScaleCBV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_SphereCBV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_AabbCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_SsaoParameterCBV;
-
+		D3D12_GPU_DESCRIPTOR_HANDLE m_DepthCBV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_ClampSSV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_WrapSSV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_borderSSV;
@@ -339,9 +344,8 @@ namespace wilson
 		static D3D12* g_pD3D12;
 		std::vector<Mesh*>m_pTotalMeshes;
 		std::vector<SubMesh*>m_pTotalSubMeshes;
-		std::queue<Mesh*>m_pMeshQueue;
-		std::queue<Mesh*>m_pHWOcclusionQueue[_WORKER_THREAD_COUNT];
-		std::queue<SubMesh*>m_pSubMeshQueue;
+		std::queue<SubMesh*> m_pSubMeshQueue;
+		std::queue<SubMesh*>m_pHWOcclusionQueue[_WORKER_THREAD_COUNT];
 		std::vector<Object*> m_pObjects;
 		HeapManager* m_pHeapManager;
 		Camera12* m_pCam;
@@ -357,8 +361,8 @@ namespace wilson
 		XMMATRIX* m_pLitMat;
 		BOOL m_bHeightOnOff;
 		UINT m_curFrame;
-		UINT m_numSubMeshHiZPassed;
-		UINT m_numSubMeshNotOccluded;
+		UINT m_nHiZPassed;
+		UINT m_nNotOccluded;
 		UINT m_ssaoSampleCnt;
 		UINT m_drawCallCnt;
 		float m_ssaoBias;
@@ -374,13 +378,15 @@ namespace wilson
 		UINT8* m_pHiZCullReadCbBegin;
 		UINT8* m_pResolutionCbBegin;
 		UINT8* m_pRoughnessCbBegin;
-		UINT8* m_pSphereCbBegin;
+		UINT8* m_pAabbCbBegin;
+		UINT8* m_pDepthCbBegin;
 		UINT8* m_pSSAOKernalCbBegin;
 		UINT8* m_pSSAOParametersCbBegin;
 	
 		UINT m_selectedModelGroup;
 		UINT m_selectedModel;
 		
+		UINT m_nHWOcclusionPassed[_WORKER_THREAD_COUNT];
 		UINT m_fenceValue;
 		UINT m_SsaoFenceValue;
 		UINT m_workerFenceValue[_WORKER_THREAD_COUNT];

@@ -1,3 +1,4 @@
+#pragma	once
 #include <DirectXTex.h>
 #include "ContentBrowser12.h"
 #include "D3D12.h"

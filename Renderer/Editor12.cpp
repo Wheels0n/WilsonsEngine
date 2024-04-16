@@ -1,3 +1,4 @@
+#pragma once
 #include "Editor12.h"
 #include "D3D12.h"
 #include "Scene12.h"

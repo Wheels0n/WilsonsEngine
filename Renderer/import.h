@@ -13,11 +13,11 @@ namespace wilson {
 	{
 
 	public:
-		void ClearModel();
-		void ClearModelGroup();
+		void ClearMesh();
+		void ClearObject();
 		inline ModelGroup* GetpObject()
 		{
-			return m_pModelGroup;
+			return m_pObject;
 		};
 		bool LoadTex(LPCWSTR fileName, ID3D11Device* pDevice, bool isDiffuse);
 		bool LoadObject(const char* extension, LPCWSTR fileName, ID3D11Device* pDevice);
@@ -51,8 +51,8 @@ namespace wilson {
 		wchar_t* m_mtlPath;
 		wchar_t* m_fileName;
 
-		ModelGroup* m_pModelGroup;
-		Model* m_pModel;
+		ModelGroup* m_pObject;
+		Model* m_pMesh;
 
 		std::vector<Model*> m_pMeshes;
 		std::vector<MaterialInfo>m_MaterialInfoV;
