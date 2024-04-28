@@ -1,8 +1,5 @@
 #pragma once
-
-#include <Windows.h>
-#include <unordered_map>
-#include <vector>
+#include "typedef.h"
 #include "../ImGui/imgui.h"
 #include "D3D12.h"
 #include "Entity12.h"
@@ -14,57 +11,57 @@ namespace wilson
 	{
 	public:
 
-		void AddModelEntity(Object* pModelGroup, UINT idx, UINT modelIdx);
-		void AddLightEntity(Light12* pLight, std::string type, UINT idx, UINT lightIdx);
+		void AddLightEntity(Light12* const, const std::string, const UINT, const UINT);
+		void AddMeshEntity(Object12* const, const UINT, const UINT);
 		void Draw();
-		void DrawVec3Control(const std::string& label, float* vals);
-		void Pick(float, float, int, int);
-
-		inline void SetCam(Camera12* pCam)
-		{
-			m_pCam = pCam;
-		}
-		inline void SetSceneName(std::string name)
-		{
-			m_name = name;
-		}
+		void DrawVec3Control(const std::string&, float* const);
 		inline UINT GetEntitySize() const
 		{
 			return m_entites.size();
 		}
 		inline Scene12* GetScene() const
 		{
-			return sceneHandler;
+			return m_pSceneHandler;
 		}
+		inline void SetCam(Camera12* const pCam)
+		{
+			m_pCam = pCam;
+		}
+		inline void SetSceneName(const std::string name)
+		{
+			m_name = name;
+		}
+		void Pick(const float, const float, const int, const int);
 
 		Scene12() = default;
-		Scene12(D3D12* pD3D11);
+		Scene12(D3D12* const);
 		Scene12(const Scene12&) = default;
 		~Scene12();
 	private:
-		void DrawLightControl(Light12*);
-		void DrawCubeLightControl(Light12*);
-		void DrawSpotLightControl(Light12*);
-		bool RaySphereIntersect(XMFLOAT3, XMFLOAT3, float, float*);
-		void RemoveSelectedModel(int, int);
-		void RemoveObject(int, int);
-		void RemoveLight(int, int, Light12*);
-		void RemoveEntity(int);
-		void UnselectModel();
+		void DrawCubeLightControl(Light12* const);
+		void DrawLightControl(Light12* const);
+		void DrawSpotLightControl(Light12* const);
+		bool RaySphereIntersect(const XMFLOAT3, const XMFLOAT3, const float, float* const);
+		void RemoveEntity(const int);
+		void RemoveLight(const int, const int, Light12* const);
+		void RemoveObject(const int, const int);
+		void RemoveSelectedMesh(const int, const int);
+		void UnselectMesh();
 	private:
-		std::unordered_map<std::string, int> m_entityCnt;
+		std::unordered_map<std::string, int> m_nEntity;
 		std::vector<Entity12*> m_entites;
 		std::string m_name;
 		std::string m_popUpID;
 
+		bool m_bObject;
+
+		Camera12* m_pCam;
+		D3D12* m_pD3D12;
 		D3D12_GPU_DESCRIPTOR_HANDLE* m_pShadowSrv = nullptr;
 		D3D12_GPU_DESCRIPTOR_HANDLE* m_pTextureSrv = nullptr;
-		bool m_isObject;
-		D3D12* m_pD3D12;
-		void* m_pSelectedEntity;
-		Camera12* m_pCam;
 		ShadowMap12* m_pShadow;
-		Scene12* sceneHandler;
+		Scene12* m_pSceneHandler;
+		void* m_pSelectedEntity;
 	};
 }
 

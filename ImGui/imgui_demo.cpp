@@ -1391,7 +1391,7 @@ static void ShowDemoWindowWidgets()
             for (int n = 0; n < 5; n++)
             {
                 char buf[32];
-                sprintf(buf, "Object %d", n);
+                sprintf(buf, "Object12 %d", n);
                 if (ImGui::Selectable(buf, selected == n))
                     selected = n;
             }
@@ -1405,7 +1405,7 @@ static void ShowDemoWindowWidgets()
             for (int n = 0; n < 5; n++)
             {
                 char buf[32];
-                sprintf(buf, "Object %d", n);
+                sprintf(buf, "Object12 %d", n);
                 if (ImGui::Selectable(buf, selection[n]))
                 {
                     if (!ImGui::GetIO().KeyCtrl)    // Clear selection when CTRL is not held
@@ -6646,7 +6646,7 @@ void ImGui::ShowStyleEditor(ImGuiStyle* ref)
         ref_saved_style = style;
     ImGui::ShowFontSelector("Fonts##Selector");
 
-    // Simplified Settings (expose floating-pointer border sizes as boolean representing 0.0f or 1.0f)
+    // Simplified Settings11 (expose floating-pointer border sizes as boolean representing 0.0f or 1.0f)
     if (ImGui::SliderFloat("FrameRounding", &style.FrameRounding, 0.0f, 12.0f, "%.0f"))
         style.GrabRounding = style.FrameRounding; // Make GrabRounding always the same value as FrameRounding
     { bool border = (style.WindowBorderSize > 0.0f); if (ImGui::Checkbox("WindowBorder", &border)) { style.WindowBorderSize = border ? 1.0f : 0.0f; } }
@@ -7662,7 +7662,7 @@ static void ShowPlaceholderObject(const char* prefix, int uid)
     ImGui::TableNextRow();
     ImGui::TableSetColumnIndex(0);
     ImGui::AlignTextToFramePadding();
-    bool node_open = ImGui::TreeNode("Object", "%s_%u", prefix, uid);
+    bool node_open = ImGui::TreeNode("Object12", "%s_%u", prefix, uid);
     ImGui::TableSetColumnIndex(1);
     ImGui::Text("my sailor is rich");
 
@@ -7720,13 +7720,13 @@ static void ShowExampleAppPropertyEditor(bool* p_open)
     if (ImGui::BeginTable("##split", 2, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY))
     {
         ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableSetupColumn("Object");
+        ImGui::TableSetupColumn("Object12");
         ImGui::TableSetupColumn("Contents");
         ImGui::TableHeadersRow();
 
         // Iterate placeholder objects (all the same data)
         for (int obj_i = 0; obj_i < 4; obj_i++)
-            ShowPlaceholderObject("Object", obj_i);
+            ShowPlaceholderObject("Object12", obj_i);
 
         ImGui::EndTable();
     }

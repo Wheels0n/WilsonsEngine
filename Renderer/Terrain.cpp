@@ -4,8 +4,8 @@ Terrain::Terrain()
 {
 	m_terrainWidth = 0;
 	m_terrainHeight = 0;
-	m_vertexCount = 0;
-	m_indexCount = 0;
+	m_nVertex = 0;
+	m_nIndex = 0;
 	m_vertexBuffer = nullptr;
 	m_indexBuffer = nullptr;
 }
@@ -31,16 +31,16 @@ bool Terrain::Init(ID3D11Device* pDevice, int tWidth, int tHeight)
 	m_terrainHeight = tHeight;
 
 	//With a line list, every two vertices in the draw call forms an individual line. so 2n vertices induces n lines.
-	m_vertexCount = (m_terrainWidth - 1) * (m_terrainHeight - 1) * 8;
-	m_indexCount = m_vertexCount;
+	m_nVertex = (m_terrainWidth - 1) * (m_terrainHeight - 1) * 8;
+	m_nIndex = m_nVertex;
 
-	GridType* vertices = new GridType[m_vertexCount];
+	GridType* vertices = new GridType[m_nVertex];
 	if (vertices == nullptr)
 	{
 		return false;
 	}
 
-	unsigned long* indices = new unsigned long[m_indexCount];
+	unsigned long* indices = new unsigned long[m_nIndex];
 	if (indices == nullptr)
 	{
 		return false;
@@ -124,7 +124,7 @@ bool Terrain::Init(ID3D11Device* pDevice, int tWidth, int tHeight)
 
 	D3D11_BUFFER_DESC vBufferDSC;
 	vBufferDSC.Usage = D3D11_USAGE_DEFAULT;
-	vBufferDSC.ByteWidth = sizeof(GridType) * m_vertexCount;
+	vBufferDSC.ByteWidth = sizeof(GridType) * m_nVertex;
 	vBufferDSC.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vBufferDSC.CPUAccessFlags = 0;
 	vBufferDSC.MiscFlags = 0;
@@ -143,7 +143,7 @@ bool Terrain::Init(ID3D11Device* pDevice, int tWidth, int tHeight)
 
 	D3D11_BUFFER_DESC idxBufferDSC;
 	idxBufferDSC.Usage = D3D11_USAGE_DEFAULT;
-	idxBufferDSC.ByteWidth = sizeof(unsigned long) * m_indexCount;
+	idxBufferDSC.ByteWidth = sizeof(unsigned long) * m_nIndex;
 	idxBufferDSC.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	idxBufferDSC.CPUAccessFlags = 0;
 	idxBufferDSC.MiscFlags = 0;

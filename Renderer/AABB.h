@@ -1,9 +1,6 @@
 #pragma once
 
-#include <DirectXMath.h>
-#include <vector>
-
-#include "Frustum.h"
+#include "Frustum11.h"
 #include "typedef.h"
 namespace wilson
 {	
@@ -11,24 +8,25 @@ namespace wilson
 	class AABB
 	{
 	public:
-		bool IsOnFrustum(const Plane* pPlanes, const DirectX::XMMATRIX transfrom) const;
-		AABB MultiplyWorldMatrix(const DirectX::XMMATRIX transform);
 		inline DirectX::XMVECTOR GetCenter()const
 		{
 			return m_center;
 		}
-		inline DirectX::XMVECTOR GetExtents()const
+		inline DirectX::XMVECTOR GetExtent()const
 		{
-			return m_extents;
+			return m_extent;
 		}
 		inline DirectX::XMFLOAT3* GetVertices()
 		{
 			return m_cubeVertices;
 		}
 
+		bool IsOnFrustum(const Plane* pPlanes, const DirectX::XMMATRIX transfrom) const;
+		AABB MultiplyWorldMatrix(const DirectX::XMMATRIX transform);
+
 		AABB() = default;
-		AABB(DirectX::XMFLOAT3 minAABB, DirectX::XMFLOAT3 maxAABB);
-		AABB(DirectX::XMFLOAT4 center, float il, float ij, float ik);
+		AABB(const DirectX::XMFLOAT3 minAABB, const DirectX::XMFLOAT3 maxAABB);
+		AABB(const DirectX::XMFLOAT4 center, const float il, const float ij, const float ik);
 		~AABB();
 		
 	private:
@@ -36,8 +34,8 @@ namespace wilson
 		void UpdateVertices();
 	public:
 	private:
-		DirectX::XMFLOAT3 m_cubeVertices[8];
 		DirectX::XMVECTOR m_center;
-		DirectX::XMVECTOR m_extents;
+		DirectX::XMFLOAT3 m_cubeVertices[8];
+		DirectX::XMVECTOR m_extent;
 	};
 }

@@ -1,11 +1,7 @@
 #pragma once
-#include <D3D12.h>
-#include <DirectXMath.h>
-#include <string>
-#include <unordered_map>
-#include <vector>
-#include <dxgicommon.h>
 #include "typedef.h"
+#include <D3D12.h>
+#include <dxgicommon.h>
 #include "AABB.h"
 #include "Sphere.h"
 #include "MatrixBuffer12.h"
@@ -39,7 +35,7 @@ namespace wilson
 			return m_pSpheres[i];
 		}
 
-		inline AABB* GetAABB(UINT i) const
+		inline AABB* GetAabb(UINT i) const
 		{
 			return m_pAABBs[i];
 		}
@@ -53,7 +49,7 @@ namespace wilson
 		}
 		inline MatBuffer12* GetMatBuffer() const
 		{
-			return m_pMatBuffer;
+			return m_pMatricesCb;
 		}
 		inline PerModel* GetPerModel()
 		{
@@ -64,7 +60,7 @@ namespace wilson
 			return m_clusterPos.size()-1;
 		}
 
-		inline UINT GetIndexCount(UINT i)
+		inline UINT GetNumIndex(UINT i)
 		{
 			return m_clusterPos[i+1]- m_clusterPos[i];
 		}
@@ -84,7 +80,7 @@ namespace wilson
 		~SubMesh();
 		void SetVBandIB(ID3D12GraphicsCommandList* pCommandList, UINT k);
 		void SetTexture(ID3D12GraphicsCommandList* pCommandList, ePass curPass);
-		AABB GetGlobalAABB();
+		AABB GetGlobalAabb();
 	private:
 		D3D12_VERTEX_BUFFER_VIEW m_vbV;
 		std::vector<D3D12_VERTEX_BUFFER_VIEW> m_aabbVbvs;
@@ -98,7 +94,7 @@ namespace wilson
 
 		AABB* m_pAABB;
 		Sphere* m_pSphere;
-		MatBuffer12* m_pMatBuffer;
+		MatBuffer12* m_pMatricesCb;
 		PerModel m_PerModel;
 
 	};

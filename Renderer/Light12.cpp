@@ -2,7 +2,7 @@
 
 namespace wilson
 {
-	Light12::Light12(UINT idx)
+	Light12::Light12(const UINT idx)
 	{
 		m_ambient = m_ambient = DirectX::XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
 		m_diffuse = m_ambient;

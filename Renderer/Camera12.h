@@ -1,104 +1,28 @@
 #pragma once
-
-#include<DirectXMath.h>
 #include<d3d12.h>
-#include<vector>
-
 #include "typedef.h"
 namespace wilson {
 
-	class Frustum;
+	class Frustum11;
 	class HeapManager;
 	class Camera12
 	{
 	public:
-
-		void Update();
-		bool UploadCascadeLevels(ID3D12GraphicsCommandList* pCommandlist);
-		bool UploadCamPos(ID3D12GraphicsCommandList* pCommandlist, bool bGeoPass);
-		void ResetTranslation();
-		void UpdateCascadeLevels();
-
-		inline bool GetDirty()
+		inline float GetAspect() const
 		{
-			return bDirty;
-		}
-		inline void SetDirty(bool isDirty)
-		{
-			bDirty = isDirty;
-		}
-		inline void ResetRotation()
-		{
-			m_rotation = DirectX::XMVectorZero();
-		}
-		inline void SetPosition(DirectX::XMVECTOR pos)
-		{
-			m_pos = pos;
-		}
-		inline DirectX::XMVECTOR* GetPosition()
-		{
-			return &m_pos;
-		}
-		inline DirectX::XMVECTOR* GetTarget()
-		{
-			return &m_target;
-		}
-		inline DirectX::XMVECTOR GetRight()
-		{
-			return m_right;
-		}
-		inline DirectX::XMVECTOR GetUp() const
-		{
-			return m_up;
-		}
-		inline DirectX::XMVECTOR GetDir() const
-		{
-			return m_dir;
-		}
-		inline void SetRotation(DirectX::XMVECTOR rot)
-		{
-			m_rotation = rot;
-		}
-		inline DirectX::XMVECTOR* GetRotation()
-		{
-			return &m_rotation;
-		}
-		inline DirectX::XMMATRIX* GetViewMatrix()
-		{
-			return &m_viewMat;
-		}
-		inline DirectX::XMMATRIX* GetProjectionMatrix()
-		{
-			return &m_projMat;
-		}
-		inline DirectX::XMMATRIX* GetViewProjectionMatrix()
-		{
-			return &m_vpMat;
+			return m_fScreenRatio;
 		}
 		inline std::vector<float>& GetCascadeLevels()
 		{
 			return m_shadowCascadeLevels;
 		}
-
-		inline void SetTRSpeed(float speed)
+		inline DirectX::XMVECTOR GetDir() const
 		{
-			m_trSpeed = speed;
+			return m_dir;
 		}
-		inline float* GetTRSpeed()
+		inline bool GetDirty() const
 		{
-			return &m_trSpeed;
-		}
-		inline void SetNearZ(float z)
-		{
-			m_nearZ = z;
-		}
-		inline float* GetNearZ()
-		{
-			return &m_nearZ;
-		}
-		inline void SetFarZ(float z)
-		{
-			m_farZ = z;
+			return bDirty;
 		}
 		inline float* GetFarZ()
 		{
@@ -108,45 +32,116 @@ namespace wilson {
 		{
 			return &m_fFOV;
 		}
-		inline float GetAspect() const
+		inline float* GetNearZ()
 		{
-			return m_fScreenRatio;
+			return &m_nearZ;
 		}
-		void Rotate(int, int);
-		void Translate(DirectX::XMVECTOR);
+		inline DirectX::XMVECTOR* GetPosition()
+		{
+			return &m_pos;
+		}
+		inline DirectX::XMMATRIX* GetProjectionMatrix()
+		{
+			return &m_projMat;
+		}
+		inline DirectX::XMVECTOR GetRight()
+		{
+			return m_right;
+		}
+		inline DirectX::XMVECTOR* GetRotation()
+		{
+			return &m_rotation;
+		}
+		inline DirectX::XMVECTOR* GetTarget()
+		{
+			return &m_target;
+		}
+		inline float* GetTrSpeed()
+		{
+			return &m_trSpeed;
+		}
+		inline DirectX::XMVECTOR GetUp() const
+		{
+			return m_up;
+		}
+		inline DirectX::XMMATRIX* GetViewMatrix()
+		{
+			return &m_viewMat;
+		}
+		inline DirectX::XMMATRIX* GetViewProjectionMatrix()
+		{
+			return &m_vpMat;
+		}
 
-		Camera12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager,
+		void Update();
+		void UpdateCascadeLevels();
+		bool UploadCamPos(ID3D12GraphicsCommandList* const pCommandlist, const bool bGeoPass);
+		bool UploadCascadeLevels(ID3D12GraphicsCommandList* const pCommandlist);
+		inline void ResetRotation()
+		{
+			m_rotation = DirectX::XMVectorZero();
+		}
+		void ResetTranslation();
+		void Rotate(const int, const int);
+		inline void SetDirty(const bool isDirty)
+		{
+			bDirty = isDirty;
+		}
+		inline void SetFarZ(const float z)
+		{
+			m_farZ = z;
+		}
+		inline void SetNearZ(const float z)
+		{
+			m_nearZ = z;
+		}
+		inline void SetPosition(const DirectX::XMVECTOR pos)
+		{
+			m_pos = pos;
+		}
+		inline void SetRotation(const DirectX::XMVECTOR rot)
+		{
+			m_rotation = rot;
+		}
+		inline void SetTrSpeed(const float speed)
+		{
+			m_trSpeed = speed;
+		}
+		void Translate(const DirectX::XMVECTOR);
+
+		Camera12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager,
 			const UINT screenWidth, const UINT screenHeight, float ScreenFar, float ScreenNear);
 		~Camera12()=default;
 	private:
 
 
-		DirectX::XMVECTOR m_pos;
 		DirectX::XMVECTOR m_dir;
-		DirectX::XMVECTOR m_target;
+		DirectX::XMVECTOR m_pos;
 		DirectX::XMVECTOR m_right;
-		DirectX::XMVECTOR m_worldUp;
-		DirectX::XMVECTOR m_up;      //which axis is upward
 		DirectX::XMVECTOR m_rotation;
+		DirectX::XMVECTOR m_target;
+		DirectX::XMVECTOR m_up;      //which axis is upward
+		DirectX::XMVECTOR m_worldUp;
 
-		DirectX::XMMATRIX m_viewMat;
 		DirectX::XMMATRIX m_projMat;// think of the frustum as the lens of our camera, for it controls our view
+		DirectX::XMMATRIX m_viewMat;
 		DirectX::XMMATRIX m_vpMat;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE m_camPosCBV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_cascadeLevelCBV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_frustumInfoCBV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_camPosCbv;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_cascadeLevelCbv;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_frustumInfoCbv;
 
-		std::vector<float> m_shadowCascadeLevels;
 		UINT8* m_pCamPosCbBegin;
 		UINT8* m_pCascadeLevelCbBegin;
+
+		std::vector<float> m_shadowCascadeLevels;
+		float m_farZ;
 		float m_fFOV;
 		float m_fScreenRatio;
 		float m_nearZ;
-		float m_farZ;
-
-		float m_trSpeed;
 		float m_rtSpeed;
+		float m_trSpeed;
+
 		bool bDirty;
 	};
 

@@ -1,7 +1,5 @@
 #pragma once
 
-#include<vector>
-
 #include"DirectionalLight12.h"
 #include"CubeLight12.h"
 #include"SpotLight12.h"
@@ -12,73 +10,72 @@ namespace wilson
 	class LightBuffer12
 	{
 	public:
-		inline void PushDirLight(DirectionalLight12* pDirLight)
+		inline std::vector<CubeLight12*>& GetCubeLights()
 		{
-			m_pDirLights.push_back(pDirLight);
+			return m_pCubeLights;
 		}
-		inline void PushCubeLight(CubeLight12* pCubeLight)
+		inline UINT GetCubeLightsCapacity() const
 		{
-			m_pCubeLights.push_back(pCubeLight);
+			return _MAX_PNT_LIGHTS;
 		}
-		inline void PushSpotLight(SpotLight12* pSpotLight)
+		inline UINT GetCubeLightsSize() const
 		{
-			m_pSpotLights.push_back(pSpotLight);
+			return m_pCubeLights.size();
 		}
 		inline std::vector<DirectionalLight12*>& GetDirLights()
 		{
 			return m_pDirLights;
 		}
-		inline std::vector<CubeLight12*>& GetCubeLights()
+		inline UINT GetDirLightsCapacity() const
 		{
-			return m_pCubeLights;
+			return _MAX_DIR_LIGHTS;
+		}
+		inline UINT GetDirLightsSize() const
+		{
+			return m_pDirLights.size();
 		}
 		inline std::vector<SpotLight12*>& GetSpotLights()
 		{
 			return m_pSpotLights;
 		}
-		inline UINT GetDirLightSize() const
-		{
-			return m_pDirLights.size();
-		}
-		inline UINT GetCubeLightSize() const
-		{
-			return m_pCubeLights.size();
-		}
-		inline UINT GetSpotLightSize() const
-		{
-			return m_pSpotLights.size();
-		}
-		inline UINT GetDirLightCapacity() const
-		{
-			return _MAX_DIR_LIGHTS;
-		}
-		inline UINT GetCubeLightCapacity() const
-		{
-			return _MAX_PNT_LIGHTS;
-		}
-		inline UINT GetSpotLightCapacity() const
+		inline UINT GetSpotLightsCapacity() const
 		{
 			return _MAX_SPT_LIGHTS;
 		}
+		inline UINT GetSpotLightsSize() const
+		{
+			return m_pSpotLights.size();
+		}
+		inline void PushCubeLight(CubeLight12* const pCubeLight)
+		{
+			m_pCubeLights.push_back(pCubeLight);
+		}
+		inline void PushDirLight(DirectionalLight12* const pDirLight)
+		{
+			m_pDirLights.push_back(pDirLight);
+		}
+		inline void PushSpotLight(SpotLight12* const pSpotLight)
+		{
+			m_pSpotLights.push_back(pSpotLight);
+		}
+		void UpdateDirLightMatrices(ID3D12GraphicsCommandList* const pCommandlist);
+		void UpdateLightBuffer(ID3D12GraphicsCommandList* const pCommandlist);
+		void UpdateSpotLightMatrices(ID3D12GraphicsCommandList* const pCommandlist);
 
-		void UpdateDirLightMatrices(ID3D12GraphicsCommandList* pCommandlist);
-		void UpdateSpotLightMatrices(ID3D12GraphicsCommandList* pCommandlist);
-		void UpdateLightBuffer(ID3D12GraphicsCommandList* pCommandlist);
-
-		LightBuffer12(ID3D12Device*, ID3D12GraphicsCommandList*, HeapManager*);
+		LightBuffer12(ID3D12Device* const, ID3D12GraphicsCommandList* const, HeapManager* const);
 		~LightBuffer12();
 	private:
 
-		D3D12_GPU_DESCRIPTOR_HANDLE m_lightPropertyBufferCBV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_dirLitMatrices12BufferCBV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_spotLitMatrices12BufferCBV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_lightPropertyCbv;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_dirLitMatricesCbv;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_spotLitMatricesCbv;
 
-		std::vector<DirectionalLight12*> m_pDirLights;
 		std::vector<CubeLight12*>m_pCubeLights;
+		std::vector<DirectionalLight12*> m_pDirLights;
 		std::vector<SpotLight12*>m_pSpotLights;
 
-		UINT8* m_pLightPropertyCbBegin;
 		UINT8* m_pDirLitMatricesCbBegin;
+		UINT8* m_pLightPropertyCbBegin;
 		UINT8* m_pSpotLitMatricesCbBegin;
 	};
 }

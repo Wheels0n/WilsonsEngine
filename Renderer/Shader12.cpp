@@ -5,71 +5,71 @@
 #pragma comment(lib, "d3dcompiler.lib")
 namespace wilson
 {
-	Shader12::Shader12(ID3D12Device* pDevice)
+	Shader12::Shader12(ID3D12Device* const pDevice)
 	{
 	
 		//Init D3D12Resource
 		{
 
-			m_pForwardVS = nullptr;
-			m_pForwardPS = nullptr;
+			m_pForwardVs = nullptr;
+			m_pForwardPs = nullptr;
 
-			m_pPosOnly12VS = nullptr;
-			m_pCascadeDir12VS = nullptr;
-			m_pCascadeDir12GS = nullptr;
-			m_pCascadeDir12PS = nullptr;
-			m_pEquirect2Cube12GS = nullptr;
-			m_pEquirect2Cube12PS = nullptr;
-			m_pDiffuseIrradiance12PS = nullptr;
-			m_pPrefilter12PS = nullptr;
-			m_pBRDF12PS = nullptr;
+			m_pPosOnlyVs = nullptr;
+			m_pCascadeDirVs = nullptr;
+			m_pCascadeDirGs = nullptr;
+			m_pCascadeDirPs = nullptr;
+			m_pEquirect2CubeGs = nullptr;
+			m_pEquirect2CubePs = nullptr;
+			m_pDiffuseIrradiancePs = nullptr;
+			m_pPrefilterPs = nullptr;
+			m_pBrdfPs = nullptr;
 
-			m_pSkyBox12VS = nullptr;
-			m_pSkyBox12PS = nullptr;
+			m_pSkyBoxVs = nullptr;
+			m_pSkyBoxPs = nullptr;
 
-			m_pShadow12VS = nullptr;
-			m_pShadow12PS = nullptr;
+			m_pShadowVs = nullptr;
+			m_pShadowPs = nullptr;
 
-			m_pCubeShadow12VS = nullptr;
-			m_pCubeShadow12GS = nullptr;
-			m_pCubeShadow12PS = nullptr;
+			m_pCubeShadowVs = nullptr;
+			m_pCubeShadowGs = nullptr;
+			m_pCubeShadowPs = nullptr;
 
-			m_pTex12VS = nullptr;
+			m_pTexVs = nullptr;
 
-			m_pGeometry12VS = nullptr;
-			m_pGeometry12PS = nullptr;
-			m_pSSAO12VS = nullptr;
-			m_pSSAO12PS = nullptr;
-			m_pSSAOBlur12PS = nullptr;
-			m_pDeferred12PS = nullptr;
+			m_pGeometryVs = nullptr;
+			m_pGeometryPs = nullptr;
+			m_pSsaoVs = nullptr;
+			m_pSsaoPs = nullptr;
+			m_pSsaoBlurPs = nullptr;
+			m_pDeferredPs = nullptr;
 
-			m_pPBRGeometry12VS = nullptr;
-			m_pPBRGeometryNormal12VS = nullptr;
-			m_pPBRGeometry12PS = nullptr;
-			m_pPBRGeometryEmissive12PS = nullptr;
-			m_pPBRGeometryNormal12PS = nullptr;
-			m_pPBRGeometryNormalHeight12PS = nullptr;
-			m_pPBRGeometryNormalHeightEmissive12PS = nullptr;
-			m_pPBRDeferred12PS = nullptr;
+			m_pPBRGeometryVs = nullptr;
+			m_pPBRGeometryNormalVs = nullptr;
+			m_pPbrGeometryPs = nullptr;
+			m_pPbrGeometryEmissivePs = nullptr;
+			m_pPbrGeometryNormalPs = nullptr;
+			m_pPbrGeometryNormalHeightPs = nullptr;
+			m_pPbrGeometryNormalHeightEmissivePs = nullptr;
+			m_pPbrDeferredPs = nullptr;
 
-			m_pMatrixTransformVS = nullptr;
-			m_pMatrixTransformInstancedVS = nullptr;
-			m_pConstantPS = nullptr;
+			m_pMatrixTransformVs = nullptr;
+			m_pMatrixTransformInstancedVs = nullptr;
+			m_pConstantPs = nullptr;
 
-			m_pAABB12VS = nullptr;
-			m_pAABB12PS = nullptr;
+			m_pAabbVs = nullptr;
+			m_pAabbPs = nullptr;
 
-			m_pGenHiZPS = nullptr;
-			m_pOutlinerTest12PS = nullptr;
-			m_pBlur12PS = nullptr;
-			m_pPostProcess12PS = nullptr;
-			m_pDownSamplePS = nullptr;
+			m_pGenHiZPs = nullptr;
+			m_pOutlinerTestPs = nullptr;
+			m_pBlurPs = nullptr;
+			m_pPostProcessPs = nullptr;
+			m_pDownSamplePs = nullptr;
 
 			m_pGenMipCS = nullptr;
-			m_pSSAOCS = nullptr;
-			m_pSSAOBlurCS = nullptr;
-			m_pPostProcessCS = nullptr;
-			m_pHiZCullCS = nullptr;
+			m_pSsaoCs = nullptr;
+			m_pSsaoBlurCs = nullptr;
+			m_pPostProcessCs = nullptr;
+			m_pHiZCullCs = nullptr;
 
 			m_pZpassRootSignature = nullptr;
 			m_pGenHiZpassRootSignature = nullptr;
@@ -78,10 +78,10 @@ namespace wilson
 			m_pSpotShadowRootSignature = nullptr;
 			m_pCubeShadowRootSignature = nullptr;
 			m_pSkyboxRootSignature = nullptr;
-			m_pPBRGeoRootSignature = nullptr;
-			m_pSSAORootSignature = nullptr;
-			m_pSSAOBlurRootSignature = nullptr;
-			m_pPBRLightRootSignature = nullptr;
+			m_pPbrGeoRootSignature = nullptr;
+			m_pSsaoRootSignature = nullptr;
+			m_pSsaoBlurRootSignature = nullptr;
+			m_pPbrLightRootSignature = nullptr;
 			m_pOutlinerTestRootSignature = nullptr;
 			m_pPostProcessRootSignature = nullptr;
 			m_pPrefilterRootSignature = nullptr;
@@ -89,7 +89,7 @@ namespace wilson
 			m_pDiffuseIrradianceRootSignature = nullptr;
 			m_pEquirect2cubeRootSignature = nullptr;
 			m_pBlurRootSignature = nullptr;
-			m_pAABBRootSignature = nullptr;
+			m_pAabbRootSignature = nullptr;
 			m_pCubeRootsignature = nullptr;
 			m_pGeoRootSignature = nullptr;
 			m_pLightRootSignature = nullptr;
@@ -101,148 +101,148 @@ namespace wilson
 		{
 			HRESULT hr;
 			ID3DBlob* pErrorBlob;
-			hr = D3DCompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pForwardVS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pForwardVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &m_pForwardPS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &m_pForwardPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PosOnlyVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pPosOnly12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PosOnlyVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pPosOnlyVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CascadeVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pCascadeDir12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CascadeVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pCascadeDirVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CascadeGS.hlsl", nullptr, nullptr, "main", "gs_5_0", 0, 0, &m_pCascadeDir12GS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CascadeGS.hlsl", nullptr, nullptr, "main", "gs_5_0", 0, 0, &m_pCascadeDirGs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CascadePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pCascadeDir12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CascadePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pCascadeDirPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"Equirectangular2CubeMapGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, &m_pEquirect2Cube12GS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"Equirectangular2CubeMapGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, &m_pEquirect2CubeGs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"Equirectangular2CubeMapPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pEquirect2Cube12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"Equirectangular2CubeMapPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pEquirect2CubePs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"DiffuseIrradiancePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDiffuseIrradiance12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"DiffuseIrradiancePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDiffuseIrradiancePs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PrefilterPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPrefilter12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PrefilterPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPrefilterPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"BRDFPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pBRDF12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"BRDFPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pBrdfPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SkyBoxVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSkyBox12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SkyBoxVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSkyBoxVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SkyBoxPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSkyBox12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SkyBoxPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSkyBoxPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"ShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pShadow12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"ShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pShadowVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"ShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pShadow12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"ShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pShadowPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CubeShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadow12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadowVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CubeShadowGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadow12GS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadowGs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CubeShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadow12PS, &pErrorBlob);
-			assert(SUCCEEDED(hr));
-
-
-			hr = D3DCompileFromFile(L"TexVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pTex12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadowPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 
-			hr = D3DCompileFromFile(L"GeometryVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pGeometry12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"TexVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pTexVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"GeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pGeometry12PS, &pErrorBlob);
+
+			hr = D3DCompileFromFile(L"GeometryVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pGeometryVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SSAOVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAO12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"GeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pGeometryPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SSAOPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAO12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SSAOVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSsaoVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SSAOCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAOCS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SSAOPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSsaoPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SSAOBlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAOBlur12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SSAOCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSsaoCs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SSAOBlurCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSSAOBlurCS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SSAOBlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSsaoBlurPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"DeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDeferred12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SSAOBlurCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSsaoBlurCs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryVS.hlsli", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometry12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"DeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDeferredPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryVS_Normal.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryNormal12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryVS.hlsli", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryPS.hlsli", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometry12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryVS_Normal.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryNormalVs, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
+			hr = D3DCompileFromFile(L"PBRGeometryPS.hlsli", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrGeometryPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 		
-			hr = D3DCompileFromFile(L"PBRGeometryPS_Emissive.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryEmissive12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Emissive.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrGeometryEmissivePs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryPS_Normal.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryNormal12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Normal.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrGeometryNormalPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Height.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryNormalHeight12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Height.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrGeometryNormalHeightPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 			
-			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Height_Emissive.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryNormalHeightEmissive12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Height_Emissive.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrGeometryNormalHeightEmissivePs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 			
-			hr = D3DCompileFromFile(L"PBRDeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRDeferred12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRDeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrDeferredPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 
-			hr = D3DCompileFromFile(L"MatrixTransformVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pMatrixTransformVS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"MatrixTransformVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pMatrixTransformVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
-			hr = D3DCompileFromFile(L"MatrixTransformInstancedVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pMatrixTransformInstancedVS, &pErrorBlob);
-			assert(SUCCEEDED(hr));
-
-			hr = D3DCompileFromFile(L"ConstantPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pConstantPS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"MatrixTransformInstancedVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pMatrixTransformInstancedVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"AABBVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pAABB12VS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"ConstantPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pConstantPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"AABBPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pAABB12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"AABBVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pAabbVs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"DownSamplePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDownSamplePS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"AABBPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pAabbPs, &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
+			hr = D3DCompileFromFile(L"DownSamplePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDownSamplePs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 
-			hr = D3DCompileFromFile(L"OutlinerPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pOutlinerTest12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"OutlinerPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pOutlinerTestPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"BlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pBlur12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"BlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pBlurPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"FinPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPostProcess12PS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"FinPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPostProcessPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"Hierarchical-zGenPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pGenHiZPS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"Hierarchical-zGenPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pGenHiZPs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"Hierarchical-zCullCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pHiZCullCS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"Hierarchical-zCullCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pHiZCullCs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PostProcessCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPostProcessCS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PostProcessCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPostProcessCs, &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"GenMipCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pGenMipCS, &pErrorBlob);
@@ -397,1033 +397,1057 @@ namespace wilson
 				featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 			}
 			//Zpass
-			D3D12_DESCRIPTOR_RANGE1 zPassRanges[1] = {};
-			zPassRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			zPassRanges[0].NumDescriptors = 1;
-			zPassRanges[0].BaseShaderRegister = 0;
-			zPassRanges[0].RegisterSpace = 0;
-			zPassRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			{
+				D3D12_DESCRIPTOR_RANGE1 zPassRanges[1] = {};
+				zPassRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				zPassRanges[0].NumDescriptors = 1;
+				zPassRanges[0].BaseShaderRegister = 0;
+				zPassRanges[0].RegisterSpace = 0;
+				zPassRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			D3D12_ROOT_PARAMETER1 zPassRootParameter[1] = {};
+				D3D12_ROOT_PARAMETER1 zPassRootParameter[1] = {};
 
-			zPassRootParameter[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			zPassRootParameter[0].DescriptorTable.NumDescriptorRanges = 1;
-			zPassRootParameter[0].DescriptorTable.pDescriptorRanges = &zPassRanges[0];
-			zPassRootParameter[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+				zPassRootParameter[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				zPassRootParameter[0].DescriptorTable.NumDescriptorRanges = 1;
+				zPassRootParameter[0].DescriptorTable.pDescriptorRanges = &zPassRanges[0];
+				zPassRootParameter[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC zPassRootSignatureDesc;
-			zPassRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			zPassRootSignatureDesc.Desc_1_1.NumParameters = 1;
-			zPassRootSignatureDesc.Desc_1_1.pParameters = zPassRootParameter;
-			zPassRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			zPassRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			zPassRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC zPassRootSignatureDesc;
+				zPassRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				zPassRootSignatureDesc.Desc_1_1.NumParameters = 1;
+				zPassRootSignatureDesc.Desc_1_1.pParameters = zPassRootParameter;
+				zPassRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				zPassRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				zPassRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
 
-			ID3DBlob* signature;
-			ID3DBlob* error;
-			hr = D3D12SerializeVersionedRootSignature(&zPassRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pZpassRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pZpassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pZpassRootSignature") - 1, "Shader12::m_pZpassRootSignature");
-			
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&zPassRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pZpassRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pZpassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pZpassRootSignature") - 1, "Shader12::m_pZpassRootSignature");
+			}		
 			//DownSample
-			D3D12_DESCRIPTOR_RANGE1 DownSampleRanges[eDownSampleRP_eCnt] = {};
-			DownSampleRanges[eDownSampleRP_eDepthMap].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			DownSampleRanges[eDownSampleRP_eDepthMap].NumDescriptors = 1;
-			DownSampleRanges[eDownSampleRP_eDepthMap].BaseShaderRegister = 0;
-			DownSampleRanges[eDownSampleRP_eDepthMap].RegisterSpace = 0;
-			DownSampleRanges[eDownSampleRP_eDepthMap].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			DownSampleRanges[eDownSampleRP_ePsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			DownSampleRanges[eDownSampleRP_ePsSampler].NumDescriptors = 1;
-			DownSampleRanges[eDownSampleRP_ePsSampler].BaseShaderRegister = 0;
-			DownSampleRanges[eDownSampleRP_ePsSampler].RegisterSpace = 0;
-			DownSampleRanges[eDownSampleRP_ePsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			D3D12_ROOT_PARAMETER1 DownSampleRootParameter[eDownSampleRP_eCnt] = {};
-			for (int i = 0; i < eDownSampleRP_eCnt; ++i)
 			{
-				DownSampleRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				DownSampleRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
-				DownSampleRootParameter[i].DescriptorTable.pDescriptorRanges = &DownSampleRanges[i];
-				DownSampleRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				D3D12_DESCRIPTOR_RANGE1 DownSampleRanges[static_cast<UINT>(eDownSampleRP::cnt)] = {};
+				DownSampleRanges[static_cast<UINT>(eDownSampleRP::depthMap)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				DownSampleRanges[static_cast<UINT>(eDownSampleRP::depthMap)].NumDescriptors = 1;
+				DownSampleRanges[static_cast<UINT>(eDownSampleRP::depthMap)].BaseShaderRegister = 0;
+				DownSampleRanges[static_cast<UINT>(eDownSampleRP::depthMap)].RegisterSpace = 0;
+				DownSampleRanges[static_cast<UINT>(eDownSampleRP::depthMap)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				DownSampleRanges[static_cast<UINT>(eDownSampleRP::psSampler)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				DownSampleRanges[static_cast<UINT>(eDownSampleRP::psSampler)].NumDescriptors = 1;
+				DownSampleRanges[static_cast<UINT>(eDownSampleRP::psSampler)].BaseShaderRegister = 0;
+				DownSampleRanges[static_cast<UINT>(eDownSampleRP::psSampler)].RegisterSpace = 0;
+				DownSampleRanges[static_cast<UINT>(eDownSampleRP::psSampler)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				D3D12_ROOT_PARAMETER1 DownSampleRootParameter[static_cast<UINT>(eDownSampleRP::cnt)] = {};
+				for (int i = 0; i < static_cast<UINT>(eDownSampleRP::cnt); ++i)
+				{
+					DownSampleRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					DownSampleRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+					DownSampleRootParameter[i].DescriptorTable.pDescriptorRanges = &DownSampleRanges[i];
+					DownSampleRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				}
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC  DownSampleRootSignatureDesc;
+				DownSampleRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				DownSampleRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eDownSampleRP::cnt);
+				DownSampleRootSignatureDesc.Desc_1_1.pParameters = DownSampleRootParameter;
+				DownSampleRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				DownSampleRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				DownSampleRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&DownSampleRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pDownSampleRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pDownSampleRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pDownSampleRootSignature") - 1, "Shader12::m_pDownSampleRootSignature");
 			}
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC  DownSampleRootSignatureDesc;
-			DownSampleRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			DownSampleRootSignatureDesc.Desc_1_1.NumParameters = eDownSampleRP_eCnt;
-			DownSampleRootSignatureDesc.Desc_1_1.pParameters = DownSampleRootParameter;
-			DownSampleRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			DownSampleRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			DownSampleRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-			hr = D3D12SerializeVersionedRootSignature(&DownSampleRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pDownSampleRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pDownSampleRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pDownSampleRootSignature") - 1, "Shader12::m_pDownSampleRootSignature");
-			//Hi-Z Pass
-			D3D12_DESCRIPTOR_RANGE1 GenHiZPassRanges[eGenHiZRP::eGenHiZRP_eCnt] = {};
-
-			GenHiZPassRanges[eGenHiZRP_ePs_lastResoltion].RangeType= D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			GenHiZPassRanges[eGenHiZRP_ePs_lastResoltion].NumDescriptors = 1;
-			GenHiZPassRanges[eGenHiZRP_ePs_lastResoltion].BaseShaderRegister = 0;
-			GenHiZPassRanges[eGenHiZRP_ePs_lastResoltion].RegisterSpace = 0;
-			GenHiZPassRanges[eGenHiZRP_ePs_lastResoltion].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			GenHiZPassRanges[eGenHiZRP_ePs_lastMip].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			GenHiZPassRanges[eGenHiZRP_ePs_lastMip].NumDescriptors = 1;
-			GenHiZPassRanges[eGenHiZRP_ePs_lastMip].BaseShaderRegister = 0;
-			GenHiZPassRanges[eGenHiZRP_ePs_lastMip].RegisterSpace = 0;
-			GenHiZPassRanges[eGenHiZRP_ePs_lastMip].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			GenHiZPassRanges[eGenHiZRP_ePs_sampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			GenHiZPassRanges[eGenHiZRP_ePs_sampler].NumDescriptors = 1;
-			GenHiZPassRanges[eGenHiZRP_ePs_sampler].BaseShaderRegister = 0;
-			GenHiZPassRanges[eGenHiZRP_ePs_sampler].RegisterSpace = 0;
-			GenHiZPassRanges[eGenHiZRP_ePs_sampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			D3D12_ROOT_PARAMETER1 genHiZPassRootParameter[eGenHiZRP::eGenHiZRP_eCnt] = {};
-			for (int i = 0; i < eGenHiZRP_eCnt; ++i)
+			//Gen Hi-Z Pass
 			{
-				genHiZPassRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				genHiZPassRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
-				genHiZPassRootParameter[i].DescriptorTable.pDescriptorRanges = &GenHiZPassRanges[i];
-				genHiZPassRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				D3D12_DESCRIPTOR_RANGE1 GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::cnt)] = {};
+
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psLastResoltion)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psLastResoltion)].NumDescriptors = 1;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psLastResoltion)].BaseShaderRegister = 0;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psLastResoltion)].RegisterSpace = 0;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psLastResoltion)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psLastMip)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psLastMip)].NumDescriptors = 1;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psLastMip)].BaseShaderRegister = 0;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psLastMip)].RegisterSpace = 0;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psLastMip)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psSampler)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psSampler)].NumDescriptors = 1;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psSampler)].BaseShaderRegister = 0;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psSampler)].RegisterSpace = 0;
+				GenHiZPassRanges[static_cast<UINT>(eGenHiZRP::psSampler)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				D3D12_ROOT_PARAMETER1 genHiZPassRootParameter[static_cast<UINT>(eGenHiZRP::cnt)] = {};
+				for (int i = 0; i < static_cast<UINT>(eGenHiZRP::cnt); ++i)
+				{
+					genHiZPassRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					genHiZPassRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+					genHiZPassRootParameter[i].DescriptorTable.pDescriptorRanges = &GenHiZPassRanges[i];
+					genHiZPassRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				}
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC  genHiZPassRootSignatureDesc;
+				genHiZPassRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				genHiZPassRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eGenHiZRP::cnt);
+				genHiZPassRootSignatureDesc.Desc_1_1.pParameters = genHiZPassRootParameter;
+				genHiZPassRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				genHiZPassRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				genHiZPassRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&genHiZPassRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pGenHiZpassRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pGenHiZpassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pGenHiZpassRootSignature") - 1, "Shader12::m_pGenHiZpassRootSignature");
 			}
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC  genHiZPassRootSignatureDesc;
-			genHiZPassRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			genHiZPassRootSignatureDesc.Desc_1_1.NumParameters = eGenHiZRP_eCnt;
-			genHiZPassRootSignatureDesc.Desc_1_1.pParameters = genHiZPassRootParameter;
-			genHiZPassRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			genHiZPassRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			genHiZPassRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-			hr = D3D12SerializeVersionedRootSignature(&genHiZPassRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pGenHiZpassRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pGenHiZpassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pGenHiZpassRootSignature") - 1, "Shader12::m_pGenHiZpassRootSignature");
-
-
-
-			D3D12_DESCRIPTOR_RANGE1 hiZCullPassRanges[eHiZCullRP_eCnt] = {};
-			hiZCullPassRanges[eHiZCullRP_eCs_hiZ].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			hiZCullPassRanges[eHiZCullRP_eCs_hiZ].NumDescriptors = 1;
-			hiZCullPassRanges[eHiZCullRP_eCs_hiZ].BaseShaderRegister = 0;
-			hiZCullPassRanges[eHiZCullRP_eCs_hiZ].RegisterSpace = 0;
-			hiZCullPassRanges[eHiZCullRP_eCs_hiZ].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			hiZCullPassRanges[eHiZCullRP_eCs_dst].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-			hiZCullPassRanges[eHiZCullRP_eCs_dst].NumDescriptors = 1;
-			hiZCullPassRanges[eHiZCullRP_eCs_dst].BaseShaderRegister = 0;
-			hiZCullPassRanges[eHiZCullRP_eCs_dst].RegisterSpace = 0;
-			hiZCullPassRanges[eHiZCullRP_eCs_dst].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			for (int i = eHiZCullRP_eCs_matrix; i < eHiZCullRP_eCs_border; ++i)
+			//Hi-Z Culling Pass
 			{
-				hiZCullPassRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-				hiZCullPassRanges[i].NumDescriptors = 1;
-				hiZCullPassRanges[i].BaseShaderRegister = i- eHiZCullRP_eCs_matrix;
-				hiZCullPassRanges[i].RegisterSpace = 0;
-				hiZCullPassRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				D3D12_DESCRIPTOR_RANGE1 hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::cnt)] = {};
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csHiZ)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csHiZ)].NumDescriptors = 1;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csHiZ)].BaseShaderRegister = 0;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csHiZ)].RegisterSpace = 0;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csHiZ)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csDst)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csDst)].NumDescriptors = 1;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csDst)].BaseShaderRegister = 0;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csDst)].RegisterSpace = 0;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csDst)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				for (int i = static_cast<UINT>(eHiZCullRP::csMatrix); i < static_cast<UINT>(eHiZCullRP::csBorder); ++i)
+				{
+					hiZCullPassRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+					hiZCullPassRanges[i].NumDescriptors = 1;
+					hiZCullPassRanges[i].BaseShaderRegister = i - static_cast<UINT>(eHiZCullRP::csMatrix);
+					hiZCullPassRanges[i].RegisterSpace = 0;
+					hiZCullPassRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				}
+
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csBorder)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csBorder)].NumDescriptors = 1;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csBorder)].BaseShaderRegister = 0;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csBorder)].RegisterSpace = 0;
+				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csBorder)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				D3D12_ROOT_PARAMETER1 hiZCullPassRootParameter[static_cast<UINT>(eHiZCullRP::cnt)] = {};
+				for (int i = 0; i < static_cast<UINT>(eHiZCullRP::cnt); ++i)
+				{
+					hiZCullPassRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					hiZCullPassRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+					hiZCullPassRootParameter[i].DescriptorTable.pDescriptorRanges = &hiZCullPassRanges[i];
+					hiZCullPassRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+				}
+
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC hiZCullPassRootSignatureDesc = {};
+				hiZCullPassRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				hiZCullPassRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eHiZCullRP::cnt);
+				hiZCullPassRootSignatureDesc.Desc_1_1.pParameters = hiZCullPassRootParameter;
+				hiZCullPassRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				hiZCullPassRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				hiZCullPassRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&hiZCullPassRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pHiZCullPassRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pHiZCullPassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pHiZCullPassRootSignature") - 1, "Shader12::m_pHiZCullPassRootSignature");
 			}
-		
-			hiZCullPassRanges[eHiZCullRP_eCs_border].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			hiZCullPassRanges[eHiZCullRP_eCs_border].NumDescriptors = 1;
-			hiZCullPassRanges[eHiZCullRP_eCs_border].BaseShaderRegister = 0;
-			hiZCullPassRanges[eHiZCullRP_eCs_border].RegisterSpace = 0;
-			hiZCullPassRanges[eHiZCullRP_eCs_border].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			D3D12_ROOT_PARAMETER1 hiZCullPassRootParameter[eHiZCullRP_eCnt] = {};
-			for (int i = 0; i < eHiZCullRP_eCnt; ++i)
-			{
-				hiZCullPassRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				hiZCullPassRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
-				hiZCullPassRootParameter[i].DescriptorTable.pDescriptorRanges = &hiZCullPassRanges[i];
-				hiZCullPassRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-			}
-
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC hiZCullPassRootSignatureDesc = {};
-			hiZCullPassRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			hiZCullPassRootSignatureDesc.Desc_1_1.NumParameters = eHiZCullRP_eCnt;
-			hiZCullPassRootSignatureDesc.Desc_1_1.pParameters = hiZCullPassRootParameter;
-			hiZCullPassRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			hiZCullPassRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			hiZCullPassRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-
-
-			hr = D3D12SerializeVersionedRootSignature(&hiZCullPassRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pHiZCullPassRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pHiZCullPassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pHiZCullPassRootSignature") - 1, "Shader12::m_pHiZCullPassRootSignature");
-
-
 			//CascadeShadow Pass 
-			D3D12_DESCRIPTOR_RANGE1 cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eCnt] = {};
+			{
+				D3D12_DESCRIPTOR_RANGE1 cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::cnt)] = {};
 
-			cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eVsMat].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eVsMat].NumDescriptors = 1;
-			cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eVsMat].BaseShaderRegister = 0;
-			cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eVsMat].RegisterSpace = 0;
-			cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eVsMat].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::vsMat)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::vsMat)].NumDescriptors = 1;
+				cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::vsMat)].BaseShaderRegister = 0;
+				cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::vsMat)].RegisterSpace = 0;
+				cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::vsMat)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eGsMat].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eGsMat].NumDescriptors = 1;
-			cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eGsMat].BaseShaderRegister = 0;
-			cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eGsMat].RegisterSpace = 0;
-			cascadedShadowRanges[eCascadeShadowRP::eCascadeShadow_eGsMat].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::gsMat)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::gsMat)].NumDescriptors = 1;
+				cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::gsMat)].BaseShaderRegister = 0;
+				cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::gsMat)].RegisterSpace = 0;
+				cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::gsMat)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			D3D12_ROOT_PARAMETER1 cascadedShadowRootParameter[eCascadeShadowRP::eCascadeShadow_eCnt] = {};
-			
-			cascadedShadowRootParameter[eCascadeShadowRP::eCascadeShadow_eVsMat].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			cascadedShadowRootParameter[eCascadeShadowRP::eCascadeShadow_eVsMat].DescriptorTable.NumDescriptorRanges = 1;
-			cascadedShadowRootParameter[eCascadeShadowRP::eCascadeShadow_eVsMat].DescriptorTable.pDescriptorRanges = &cascadedShadowRanges[eCascadeShadow_eVsMat];
-			cascadedShadowRootParameter[eCascadeShadowRP::eCascadeShadow_eVsMat].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+				D3D12_ROOT_PARAMETER1 cascadedShadowRootParameter[static_cast<UINT>(eCascadeShadowRP::cnt)] = {};
 
-			cascadedShadowRootParameter[eCascadeShadowRP::eCascadeShadow_eGsMat].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			cascadedShadowRootParameter[eCascadeShadowRP::eCascadeShadow_eGsMat].DescriptorTable.NumDescriptorRanges = 1;
-			cascadedShadowRootParameter[eCascadeShadowRP::eCascadeShadow_eGsMat].DescriptorTable.pDescriptorRanges = &cascadedShadowRanges[eCascadeShadow_eGsMat];
-			cascadedShadowRootParameter[eCascadeShadowRP::eCascadeShadow_eGsMat].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
+				cascadedShadowRootParameter[static_cast<UINT>(eCascadeShadowRP::vsMat)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				cascadedShadowRootParameter[static_cast<UINT>(eCascadeShadowRP::vsMat)].DescriptorTable.NumDescriptorRanges = 1;
+				cascadedShadowRootParameter[static_cast<UINT>(eCascadeShadowRP::vsMat)].DescriptorTable.pDescriptorRanges = &cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::vsMat)];
+				cascadedShadowRootParameter[static_cast<UINT>(eCascadeShadowRP::vsMat)].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC cascadedShadowRootSignatureDesc;
-			cascadedShadowRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			cascadedShadowRootSignatureDesc.Desc_1_1.NumParameters = eCascadeShadowRP::eCascadeShadow_eCnt;
-			cascadedShadowRootSignatureDesc.Desc_1_1.pParameters = cascadedShadowRootParameter;
-			cascadedShadowRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			cascadedShadowRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			cascadedShadowRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+				cascadedShadowRootParameter[static_cast<UINT>(eCascadeShadowRP::gsMat)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				cascadedShadowRootParameter[static_cast<UINT>(eCascadeShadowRP::gsMat)].DescriptorTable.NumDescriptorRanges = 1;
+				cascadedShadowRootParameter[static_cast<UINT>(eCascadeShadowRP::gsMat)].DescriptorTable.pDescriptorRanges = &cascadedShadowRanges[static_cast<UINT>(eCascadeShadowRP::gsMat)];
+				cascadedShadowRootParameter[static_cast<UINT>(eCascadeShadowRP::gsMat)].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
 
-			hr = D3D12SerializeVersionedRootSignature(&cascadedShadowRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pCasacadePassRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pCasacadePassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pCasacadePassRootSignature") - 1, "Shader12::m_pCasacadePassRootSignature");
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC cascadedShadowRootSignatureDesc;
+				cascadedShadowRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				cascadedShadowRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eCascadeShadowRP::cnt);
+				cascadedShadowRootSignatureDesc.Desc_1_1.pParameters = cascadedShadowRootParameter;
+				cascadedShadowRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				cascadedShadowRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				cascadedShadowRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&cascadedShadowRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pCasacadePassRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pCasacadePassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pCasacadePassRootSignature") - 1, "Shader12::m_pCasacadePassRootSignature");
+			}
 			//Spot Shadow
+			{
+				D3D12_DESCRIPTOR_RANGE1 spotShadowRanges[static_cast<UINT>(eSpotShadowRP::cnt)] = {};
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::vsMat)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::vsMat)].NumDescriptors = 1;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::vsMat)].BaseShaderRegister = 0;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::vsMat)].RegisterSpace = 0;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::vsMat)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			D3D12_DESCRIPTOR_RANGE1 spotShadowRanges[eSpotShadowRP::eSpotShadow_eCnt] = {};
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_eVsMat].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_eVsMat].NumDescriptors = 1;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_eVsMat].BaseShaderRegister = 0;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_eVsMat].RegisterSpace = 0;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_eVsMat].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psDiffuseMap)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psDiffuseMap)].NumDescriptors = 1;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psDiffuseMap)].BaseShaderRegister = 0;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psDiffuseMap)].RegisterSpace = 0;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psDiffuseMap)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_ePsDiffuseMap].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_ePsDiffuseMap].NumDescriptors = 1;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_ePsDiffuseMap].BaseShaderRegister = 0;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_ePsDiffuseMap].RegisterSpace = 0;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_ePsDiffuseMap].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_ePsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_ePsSampler].NumDescriptors = 1;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_ePsSampler].BaseShaderRegister = 0;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_ePsSampler].RegisterSpace = 0;
-			spotShadowRanges[eSpotShadowRP::eSpotShadow_ePsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-
-			D3D12_ROOT_PARAMETER1 spotShadowRootParameter[eSpotShadowRP::eSpotShadow_eCnt] = {};
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_eVsMat].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_eVsMat].DescriptorTable.NumDescriptorRanges = 1;
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_eVsMat].DescriptorTable.pDescriptorRanges = &spotShadowRanges[eSpotShadow_eVsMat];
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_eVsMat].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_ePsDiffuseMap].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_ePsDiffuseMap].DescriptorTable.NumDescriptorRanges = 1;
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_ePsDiffuseMap].DescriptorTable.pDescriptorRanges = &spotShadowRanges[eSpotShadow_ePsDiffuseMap];
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_ePsDiffuseMap].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_ePsSampler].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_ePsSampler].DescriptorTable.NumDescriptorRanges = 1;
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_ePsSampler].DescriptorTable.pDescriptorRanges = &spotShadowRanges[eSpotShadowRP::eSpotShadow_ePsSampler];
-			spotShadowRootParameter[eSpotShadowRP::eSpotShadow_ePsSampler].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psSampler)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psSampler)].NumDescriptors = 1;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psSampler)].BaseShaderRegister = 0;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psSampler)].RegisterSpace = 0;
+				spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psSampler)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 
+				D3D12_ROOT_PARAMETER1 spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::cnt)] = {};
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::vsMat)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::vsMat)].DescriptorTable.NumDescriptorRanges = 1;
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::vsMat)].DescriptorTable.pDescriptorRanges = &spotShadowRanges[static_cast<UINT>(eSpotShadowRP::vsMat)];
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::vsMat)].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC spotShadowRootSignatureDesc = {};
-			spotShadowRootSignatureDesc.Version= D3D_ROOT_SIGNATURE_VERSION_1_1;
-			spotShadowRootSignatureDesc.Desc_1_1.NumParameters = eSpotShadowRP::eSpotShadow_eCnt;
-			spotShadowRootSignatureDesc.Desc_1_1.pParameters = spotShadowRootParameter;
-			spotShadowRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			spotShadowRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			spotShadowRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::psDiffuseMap)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::psDiffuseMap)].DescriptorTable.NumDescriptorRanges = 1;
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::psDiffuseMap)].DescriptorTable.pDescriptorRanges = &spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psDiffuseMap)];
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::psDiffuseMap)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::psSampler)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::psSampler)].DescriptorTable.NumDescriptorRanges = 1;
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::psSampler)].DescriptorTable.pDescriptorRanges = &spotShadowRanges[static_cast<UINT>(eSpotShadowRP::psSampler)];
+				spotShadowRootParameter[static_cast<UINT>(eSpotShadowRP::psSampler)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 
-			hr=D3D12SerializeVersionedRootSignature(&spotShadowRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSpotShadowRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pSpotShadowRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pSpotShadowRootSignature") - 1, "Shader12::m_pSpotShadowRootSignature");
 
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC spotShadowRootSignatureDesc = {};
+				spotShadowRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				spotShadowRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eSpotShadowRP::cnt);
+				spotShadowRootSignatureDesc.Desc_1_1.pParameters = spotShadowRootParameter;
+				spotShadowRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				spotShadowRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				spotShadowRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&spotShadowRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSpotShadowRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pSpotShadowRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pSpotShadowRootSignature") - 1, "Shader12::m_pSpotShadowRootSignature");
+
+			}
 			//CubeShadow
-		
-			D3D12_DESCRIPTOR_RANGE1 cubeShadowRanges[eCubeShadowRP::eCubeShadow_eCnt] = {};
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_eVsMat].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_eVsMat].NumDescriptors = 1;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_eVsMat].BaseShaderRegister = 0;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_eVsMat].RegisterSpace = 0;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_eVsMat].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			{
+				D3D12_DESCRIPTOR_RANGE1 cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::cnt)] = {};
+				for (int i = 0; i < static_cast<UINT>(eCubeShadowRP::psDiffuseMap); ++i)
+				{
+					cubeShadowRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+					cubeShadowRanges[i].NumDescriptors = 1;
+					cubeShadowRanges[i].BaseShaderRegister = 0;
+					cubeShadowRanges[i].RegisterSpace = 0;
+					cubeShadowRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				}
+				
+				cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::psDiffuseMap)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::psDiffuseMap)].NumDescriptors = 1;
+				cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::psDiffuseMap)].BaseShaderRegister = 0;
+				cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::psDiffuseMap)].RegisterSpace = 0;
+				cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::psDiffuseMap)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_eGsMat].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_eGsMat].NumDescriptors = 1;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_eGsMat].BaseShaderRegister = 0;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_eGsMat].RegisterSpace = 0;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_eGsMat].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsLightPos].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsLightPos].NumDescriptors = 1;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsLightPos].BaseShaderRegister = 0;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsLightPos].RegisterSpace = 0;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsLightPos].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsDiffuseMap].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsDiffuseMap].NumDescriptors = 1;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsDiffuseMap].BaseShaderRegister = 0;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsDiffuseMap].RegisterSpace = 0;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsDiffuseMap].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsSampler].NumDescriptors = 1;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsSampler].BaseShaderRegister = 0;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsSampler].RegisterSpace = 0;
-			cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::psSampler)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::psSampler)].NumDescriptors = 1;
+				cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::psSampler)].BaseShaderRegister = 0;
+				cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::psSampler)].RegisterSpace = 0;
+				cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::psSampler)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 
-			D3D12_ROOT_PARAMETER1 cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_eCnt] = {};
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_eVsMat].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_eVsMat].DescriptorTable.NumDescriptorRanges = 1;
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_eVsMat].DescriptorTable.pDescriptorRanges = &cubeShadowRanges[eCubeShadowRP::eCubeShadow_eVsMat];
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_eVsMat].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+				D3D12_ROOT_PARAMETER1 cubeShadowRootParameter[static_cast<UINT>(eCubeShadowRP::cnt)] = {};
+				cubeShadowRootParameter[static_cast<UINT>(eCubeShadowRP::vsMat)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				cubeShadowRootParameter[static_cast<UINT>(eCubeShadowRP::vsMat)].DescriptorTable.NumDescriptorRanges = 1;
+				cubeShadowRootParameter[static_cast<UINT>(eCubeShadowRP::vsMat)].DescriptorTable.pDescriptorRanges = &cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::vsMat)];
+				cubeShadowRootParameter[static_cast<UINT>(eCubeShadowRP::vsMat)].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_eGsMat].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_eGsMat].DescriptorTable.NumDescriptorRanges = 1;
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_eGsMat].DescriptorTable.pDescriptorRanges = &cubeShadowRanges[eCubeShadowRP::eCubeShadow_eGsMat];
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_eGsMat].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
+				cubeShadowRootParameter[static_cast<UINT>(eCubeShadowRP::gsMat)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				cubeShadowRootParameter[static_cast<UINT>(eCubeShadowRP::gsMat)].DescriptorTable.NumDescriptorRanges = 1;
+				cubeShadowRootParameter[static_cast<UINT>(eCubeShadowRP::gsMat)].DescriptorTable.pDescriptorRanges = &cubeShadowRanges[static_cast<UINT>(eCubeShadowRP::gsMat)];
+				cubeShadowRootParameter[static_cast<UINT>(eCubeShadowRP::gsMat)].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
 
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsLightPos].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsLightPos].DescriptorTable.NumDescriptorRanges = 1;
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsLightPos].DescriptorTable.pDescriptorRanges = &cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsLightPos];
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsLightPos].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				for (int i = static_cast<UINT>(eCubeShadowRP::psLightPos); i < static_cast<UINT>(eCubeShadowRP::cnt); ++i)
+				{
+					cubeShadowRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					cubeShadowRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+					cubeShadowRootParameter[i].DescriptorTable.pDescriptorRanges = &cubeShadowRanges[i];
+					cubeShadowRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				}
+				
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC cubeShadowRootSignatureDesc = {};
+				cubeShadowRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				cubeShadowRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eCubeShadowRP::cnt);
+				cubeShadowRootSignatureDesc.Desc_1_1.pParameters = cubeShadowRootParameter;
+				cubeShadowRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				cubeShadowRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				cubeShadowRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsDiffuseMap].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsDiffuseMap].DescriptorTable.NumDescriptorRanges = 1;
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsDiffuseMap].DescriptorTable.pDescriptorRanges = &cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsDiffuseMap];
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsDiffuseMap].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&cubeShadowRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pCubeShadowRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pCubeShadowRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pCubeShadowRootSignature") - 1, "Shader12::m_pCubeShadowRootSignature");
 
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsSampler].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsSampler].DescriptorTable.NumDescriptorRanges = 1;
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsSampler].DescriptorTable.pDescriptorRanges = &cubeShadowRanges[eCubeShadowRP::eCubeShadow_ePsSampler];
-			cubeShadowRootParameter[eCubeShadowRP::eCubeShadow_ePsSampler].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-
-
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC cubeShadowRootSignatureDesc = {};
-			cubeShadowRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			cubeShadowRootSignatureDesc.Desc_1_1.NumParameters = eCubeShadowRP::eCubeShadow_eCnt;
-			cubeShadowRootSignatureDesc.Desc_1_1.pParameters = cubeShadowRootParameter;
-			cubeShadowRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			cubeShadowRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			cubeShadowRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-
-			hr = D3D12SerializeVersionedRootSignature(&cubeShadowRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pCubeShadowRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pCubeShadowRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pCubeShadowRootSignature") - 1, "Shader12::m_pCubeShadowRootSignature");
-
-
+			}
 			//SkyBox
-		
-			D3D12_DESCRIPTOR_RANGE1 skyboxRanges[eSkyboxRP::eSkybox_eCnt] = {};
-			skyboxRanges[eSkyboxRP::eSkybox_eVsMat].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			skyboxRanges[eSkyboxRP::eSkybox_eVsMat].NumDescriptors = 1;
-			skyboxRanges[eSkyboxRP::eSkybox_eVsMat].BaseShaderRegister = 0;
-			skyboxRanges[eSkyboxRP::eSkybox_eVsMat].RegisterSpace = 0;
-			skyboxRanges[eSkyboxRP::eSkybox_eVsMat].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			{
+				D3D12_DESCRIPTOR_RANGE1 skyboxRanges[static_cast<UINT>(eSkyboxRP::cnt)] = {};
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::vsMat)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::vsMat)].NumDescriptors = 1;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::vsMat)].BaseShaderRegister = 0;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::vsMat)].RegisterSpace = 0;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::vsMat)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			skyboxRanges[eSkyboxRP::eSkybox_ePsDiffuseMap].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			skyboxRanges[eSkyboxRP::eSkybox_ePsDiffuseMap].NumDescriptors = 1;
-			skyboxRanges[eSkyboxRP::eSkybox_ePsDiffuseMap].BaseShaderRegister = 0;
-			skyboxRanges[eSkyboxRP::eSkybox_ePsDiffuseMap].RegisterSpace = 0;
-			skyboxRanges[eSkyboxRP::eSkybox_ePsDiffuseMap].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::psDiffuseMap)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::psDiffuseMap)].NumDescriptors = 1;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::psDiffuseMap)].BaseShaderRegister = 0;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::psDiffuseMap)].RegisterSpace = 0;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::psDiffuseMap)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			skyboxRanges[eSkyboxRP::eSkybox_ePsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			skyboxRanges[eSkyboxRP::eSkybox_ePsSampler].NumDescriptors = 1;
-			skyboxRanges[eSkyboxRP::eSkybox_ePsSampler].BaseShaderRegister = 0;
-			skyboxRanges[eSkyboxRP::eSkybox_ePsSampler].RegisterSpace = 0;
-			skyboxRanges[eSkyboxRP::eSkybox_ePsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-
-			D3D12_ROOT_PARAMETER1 skyboxRootParameter[eSkyboxRP::eSkybox_eCnt] = {};
-			skyboxRootParameter[eSkyboxRP::eSkybox_eVsMat].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			skyboxRootParameter[eSkyboxRP::eSkybox_eVsMat].DescriptorTable.NumDescriptorRanges = 1;
-			skyboxRootParameter[eSkyboxRP::eSkybox_eVsMat].DescriptorTable.pDescriptorRanges = &skyboxRanges[eSkybox_eVsMat];
-			skyboxRootParameter[eSkyboxRP::eSkybox_eVsMat].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-
-			skyboxRootParameter[eSkyboxRP::eSkybox_ePsDiffuseMap].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			skyboxRootParameter[eSkyboxRP::eSkybox_ePsDiffuseMap].DescriptorTable.NumDescriptorRanges = 1;
-			skyboxRootParameter[eSkyboxRP::eSkybox_ePsDiffuseMap].DescriptorTable.pDescriptorRanges = &skyboxRanges[eSkybox_ePsDiffuseMap];
-			skyboxRootParameter[eSkyboxRP::eSkybox_ePsDiffuseMap].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			skyboxRootParameter[eSkyboxRP::eSkybox_ePsSampler].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			skyboxRootParameter[eSkyboxRP::eSkybox_ePsSampler].DescriptorTable.NumDescriptorRanges = 1;
-			skyboxRootParameter[eSkyboxRP::eSkybox_ePsSampler].DescriptorTable.pDescriptorRanges = &skyboxRanges[eSkyboxRP::eSkybox_ePsSampler];
-			skyboxRootParameter[eSkyboxRP::eSkybox_ePsSampler].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::psSampler)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::psSampler)].NumDescriptors = 1;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::psSampler)].BaseShaderRegister = 0;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::psSampler)].RegisterSpace = 0;
+				skyboxRanges[static_cast<UINT>(eSkyboxRP::psSampler)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 
+				D3D12_ROOT_PARAMETER1 skyboxRootParameter[static_cast<UINT>(eSkyboxRP::cnt)] = {};
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::vsMat)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::vsMat)].DescriptorTable.NumDescriptorRanges = 1;
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::vsMat)].DescriptorTable.pDescriptorRanges = &skyboxRanges[static_cast<UINT>(eSkyboxRP::vsMat)];
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::vsMat)].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC skyboxRootSignature = {};
-			skyboxRootSignature.Version=D3D_ROOT_SIGNATURE_VERSION_1_1;
-			skyboxRootSignature.Desc_1_1.NumParameters = eSkyboxRP::eSkybox_eCnt;
-			skyboxRootSignature.Desc_1_1.pParameters = skyboxRootParameter;
-			skyboxRootSignature.Desc_1_1.NumStaticSamplers = 0;
-			skyboxRootSignature.Desc_1_1.pStaticSamplers = nullptr;
-			skyboxRootSignature.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::psDiffuseMap)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::psDiffuseMap)].DescriptorTable.NumDescriptorRanges = 1;
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::psDiffuseMap)].DescriptorTable.pDescriptorRanges = &skyboxRanges[static_cast<UINT>(eSkyboxRP::psDiffuseMap)];
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::psDiffuseMap)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::psSampler)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::psSampler)].DescriptorTable.NumDescriptorRanges = 1;
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::psSampler)].DescriptorTable.pDescriptorRanges = &skyboxRanges[static_cast<UINT>(eSkyboxRP::psSampler)];
+				skyboxRootParameter[static_cast<UINT>(eSkyboxRP::psSampler)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 
-			hr=D3D12SerializeVersionedRootSignature(&skyboxRootSignature, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSkyboxRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pSkyboxRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pSkyboxRootSignature") - 1, "Shader12::m_pSkyboxRootSignature");
 
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC skyboxRootSignature = {};
+				skyboxRootSignature.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				skyboxRootSignature.Desc_1_1.NumParameters = static_cast<UINT>(eSkyboxRP::cnt);
+				skyboxRootSignature.Desc_1_1.pParameters = skyboxRootParameter;
+				skyboxRootSignature.Desc_1_1.NumStaticSamplers = 0;
+				skyboxRootSignature.Desc_1_1.pStaticSamplers = nullptr;
+				skyboxRootSignature.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&skyboxRootSignature, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSkyboxRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pSkyboxRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pSkyboxRootSignature") - 1, "Shader12::m_pSkyboxRootSignature");
+
+			}
 			//PBR Geometry
-	
-			D3D12_DESCRIPTOR_RANGE1 PbrGeometryRanges[ePbrGeoRP::ePbrGeo_eCnt] = {};
-			for (int i = ePbrGeoRP::ePbrGeo_eVsMat; i < ePbrGeoRP::ePbrGeo_ePsDiffuse; ++i)
-			{	
-				PbrGeometryRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-				PbrGeometryRanges[i].NumDescriptors = 1;
-				PbrGeometryRanges[i].BaseShaderRegister = i;
-				PbrGeometryRanges[i].RegisterSpace = 0;
-				PbrGeometryRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-			}
-
-			for (int i = ePbrGeoRP::ePbrGeo_ePsDiffuse; i < ePbrGeo_ePsSampler; ++i)
 			{
-				PbrGeometryRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-				PbrGeometryRanges[i].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
-				PbrGeometryRanges[i].NumDescriptors = 1;
-				PbrGeometryRanges[i].BaseShaderRegister = i- ePbrGeo_ePsDiffuse;
-				PbrGeometryRanges[i].RegisterSpace = 0;
-				PbrGeometryRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				D3D12_DESCRIPTOR_RANGE1 PbrGeometryRanges[static_cast<UINT>(ePbrGeoRP::cnt)] = {};
+				for (int i = static_cast<UINT>(ePbrGeoRP::vsMat); i < static_cast<UINT>(ePbrGeoRP::psDiffuse); ++i)
+				{
+					PbrGeometryRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+					PbrGeometryRanges[i].NumDescriptors = 1;
+					PbrGeometryRanges[i].BaseShaderRegister = i;
+					PbrGeometryRanges[i].RegisterSpace = 0;
+					PbrGeometryRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				}
+
+				for (int i = static_cast<UINT>(ePbrGeoRP::psDiffuse); i < static_cast<UINT>(ePbrGeoRP::psSampler); ++i)
+				{
+					PbrGeometryRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+					PbrGeometryRanges[i].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+					PbrGeometryRanges[i].NumDescriptors = 1;
+					PbrGeometryRanges[i].BaseShaderRegister = i - static_cast<UINT>(ePbrGeoRP::psDiffuse);
+					PbrGeometryRanges[i].RegisterSpace = 0;
+					PbrGeometryRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				}
+
+				PbrGeometryRanges[static_cast<UINT>(ePbrGeoRP::psSampler)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				PbrGeometryRanges[static_cast<UINT>(ePbrGeoRP::psSampler)].NumDescriptors = 1;
+				PbrGeometryRanges[static_cast<UINT>(ePbrGeoRP::psSampler)].BaseShaderRegister = 0;
+				PbrGeometryRanges[static_cast<UINT>(ePbrGeoRP::psSampler)].RegisterSpace = 0;
+				PbrGeometryRanges[static_cast<UINT>(ePbrGeoRP::psSampler)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				for (int i = static_cast<UINT>(ePbrGeoRP::psCamPos); i < static_cast<UINT>(ePbrGeoRP::cnt); ++i)
+				{
+					PbrGeometryRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+					PbrGeometryRanges[i].NumDescriptors = 1;
+					PbrGeometryRanges[i].BaseShaderRegister = i - static_cast<UINT>(ePbrGeoRP::psCamPos);
+					PbrGeometryRanges[i].RegisterSpace = 0;
+					PbrGeometryRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				}
+
+
+
+				D3D12_ROOT_PARAMETER1 PbrGeometryRootParameter[static_cast<UINT>(ePbrGeoRP::cnt)] = {};
+				for (int i = static_cast<UINT>(ePbrGeoRP::vsMat); i < static_cast<UINT>(ePbrGeoRP::psDiffuse); ++i)
+				{
+					PbrGeometryRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					PbrGeometryRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+					PbrGeometryRootParameter[i].DescriptorTable.pDescriptorRanges = &PbrGeometryRanges[i];
+					PbrGeometryRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+				}
+
+				for (int i = static_cast<UINT>(ePbrGeoRP::psDiffuse); i < static_cast<UINT>(ePbrGeoRP::cnt); ++i)
+				{
+					PbrGeometryRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					PbrGeometryRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+					PbrGeometryRootParameter[i].DescriptorTable.pDescriptorRanges = &PbrGeometryRanges[i];
+					PbrGeometryRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				}
+
+
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC PbrGeometryRootSignatureDesc = {};
+				PbrGeometryRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				PbrGeometryRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(ePbrGeoRP::cnt);
+				PbrGeometryRootSignatureDesc.Desc_1_1.pParameters = PbrGeometryRootParameter;
+				PbrGeometryRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				PbrGeometryRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				PbrGeometryRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&PbrGeometryRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPbrGeoRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pPbrGeoRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pPbrGeoRootSignature") - 1, "Shader12::m_pPbrGeoRootSignature");
 			}
-
-			PbrGeometryRanges[ePbrGeoRP::ePbrGeo_ePsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			PbrGeometryRanges[ePbrGeoRP::ePbrGeo_ePsSampler].NumDescriptors = 1;
-			PbrGeometryRanges[ePbrGeoRP::ePbrGeo_ePsSampler].BaseShaderRegister = 0;
-			PbrGeometryRanges[ePbrGeoRP::ePbrGeo_ePsSampler].RegisterSpace = 0;
-			PbrGeometryRanges[ePbrGeoRP::ePbrGeo_ePsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			for (int i = ePbrGeo_ePsCamPos; i < ePbrGeo_eCnt; ++i)
-			{
-				PbrGeometryRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-				PbrGeometryRanges[i].NumDescriptors = 1;
-				PbrGeometryRanges[i].BaseShaderRegister = i- ePbrGeo_ePsCamPos;
-				PbrGeometryRanges[i].RegisterSpace = 0;
-				PbrGeometryRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-			}
-
-
-
-			D3D12_ROOT_PARAMETER1 PbrGeometryRootParameter[ePbrGeoRP::ePbrGeo_eCnt] = {};
-			for (int i = ePbrGeoRP::ePbrGeo_eVsMat; i < ePbrGeoRP::ePbrGeo_ePsDiffuse; ++i)
-			{
-				PbrGeometryRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				PbrGeometryRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
-				PbrGeometryRootParameter[i].DescriptorTable.pDescriptorRanges = &PbrGeometryRanges[i];
-				PbrGeometryRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-			}
-
-			for (int i = ePbrGeoRP::ePbrGeo_ePsDiffuse; i < ePbrGeo_eCnt; ++i)
-			{
-				PbrGeometryRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				PbrGeometryRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
-				PbrGeometryRootParameter[i].DescriptorTable.pDescriptorRanges = &PbrGeometryRanges[i];
-				PbrGeometryRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-			}
-
-
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC PbrGeometryRootSignatureDesc = {};
-			PbrGeometryRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			PbrGeometryRootSignatureDesc.Desc_1_1.NumParameters = ePbrGeoRP::ePbrGeo_eCnt;
-			PbrGeometryRootSignatureDesc.Desc_1_1.pParameters = PbrGeometryRootParameter;
-			PbrGeometryRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			PbrGeometryRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			PbrGeometryRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-
-			hr=D3D12SerializeVersionedRootSignature(&PbrGeometryRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPBRGeoRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pPBRGeoRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pPBRGeoRootSignature") - 1, "Shader12::m_pPBRGeoRootSignature");
-
-
 			//SSAO 
-			
-			D3D12_DESCRIPTOR_RANGE1 SSAORanges[eSsaoRP::eSsao_eCnt] = {};
-
-			for (int i = eSsao_eCsNoise; i < eSsao_eCsUAV; ++i)
 			{
-				SSAORanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-				SSAORanges[i].NumDescriptors = 1;
-				SSAORanges[i].BaseShaderRegister = i;
-				SSAORanges[i].RegisterSpace = 0;
-				SSAORanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				D3D12_DESCRIPTOR_RANGE1 ssaoRanges[static_cast<UINT>(eSsaoRP::cnt)] = {};
+
+				for (int i = static_cast<UINT>(eSsaoRP::csNoise); i < static_cast<UINT>(eSsaoRP::csUAV); ++i)
+				{
+					ssaoRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+					ssaoRanges[i].NumDescriptors = 1;
+					ssaoRanges[i].BaseShaderRegister = i;
+					ssaoRanges[i].RegisterSpace = 0;
+					ssaoRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				}
+
+				ssaoRanges[static_cast<UINT>(eSsaoRP::csUAV)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+				ssaoRanges[static_cast<UINT>(eSsaoRP::csUAV)].NumDescriptors = 1;
+				ssaoRanges[static_cast<UINT>(eSsaoRP::csUAV)].BaseShaderRegister = 0;
+				ssaoRanges[static_cast<UINT>(eSsaoRP::csUAV)].RegisterSpace = 0;
+				ssaoRanges[static_cast<UINT>(eSsaoRP::csUAV)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				for (int i = static_cast<UINT>(eSsaoRP::csWrap); i < static_cast<UINT>(eSsaoRP::csSamplePoints); ++i)
+				{
+					ssaoRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+					ssaoRanges[i].NumDescriptors = 1;
+					ssaoRanges[i].BaseShaderRegister = i - static_cast<UINT>(eSsaoRP::csWrap);
+					ssaoRanges[i].RegisterSpace = 0;
+					ssaoRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				}
+
+				for (int i = static_cast<UINT>(eSsaoRP::csSamplePoints); i < static_cast<UINT>(eSsaoRP::cnt); ++i)
+				{
+					ssaoRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+					ssaoRanges[i].NumDescriptors = 1;
+					ssaoRanges[i].BaseShaderRegister = i - static_cast<UINT>(eSsaoRP::csSamplePoints);
+					ssaoRanges[i].RegisterSpace = 0;
+					ssaoRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				}
+
+				D3D12_ROOT_PARAMETER1 ssaoRootParameter[static_cast<UINT>(eSsaoRP::cnt)] = {};
+				for (int i = static_cast<UINT>(eSsaoRP::csNoise); i < static_cast<UINT>(eSsaoRP::cnt); ++i)
+				{
+					ssaoRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					ssaoRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+					ssaoRootParameter[i].DescriptorTable.pDescriptorRanges = &ssaoRanges[i];
+					ssaoRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+				}
+
+
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC ssaoRootSignatureDesc = {};
+				ssaoRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				ssaoRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eSsaoRP::cnt);
+				ssaoRootSignatureDesc.Desc_1_1.pParameters = ssaoRootParameter;
+				ssaoRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				ssaoRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				ssaoRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&ssaoRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSsaoRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pSsaoRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pSsaoRootSignature") - 1, "Shader12::m_pSsaoRootSignature");
 
 			}
-
-			SSAORanges[eSsao_eCsUAV].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-			SSAORanges[eSsao_eCsUAV].NumDescriptors = 1;
-			SSAORanges[eSsao_eCsUAV].BaseShaderRegister = 0;
-			SSAORanges[eSsao_eCsUAV].RegisterSpace = 0;
-			SSAORanges[eSsao_eCsUAV].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-			
-			for (int i = eSsao_eCsWrap; i < eSsao_eCsSamplePoints; ++i)
-			{
-				SSAORanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-				SSAORanges[i].NumDescriptors = 1;
-				SSAORanges[i].BaseShaderRegister = i- eSsao_eCsWrap;
-				SSAORanges[i].RegisterSpace = 0;
-				SSAORanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-			}
-			
-			for (int i = eSsao_eCsSamplePoints; i < eSsao_eCnt; ++i)
-			{
-				SSAORanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-				SSAORanges[i].NumDescriptors = 1;
-				SSAORanges[i].BaseShaderRegister = i- eSsao_eCsSamplePoints;
-				SSAORanges[i].RegisterSpace = 0;
-				SSAORanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-			}
-
-			D3D12_ROOT_PARAMETER1 SSAORootParameter[eSsao_eCnt] = {};
-			for (int i = eSsao_eCsNoise; i < eSsao_eCnt; ++i)
-			{
-				SSAORootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				SSAORootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
-				SSAORootParameter[i].DescriptorTable.pDescriptorRanges = &SSAORanges[i];
-				SSAORootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-			}
-
-
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC SSAORootSignatureDesc = {};
-			SSAORootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			SSAORootSignatureDesc.Desc_1_1.NumParameters = eSsaoRP::eSsao_eCnt;
-			SSAORootSignatureDesc.Desc_1_1.pParameters = SSAORootParameter;
-			SSAORootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			SSAORootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			SSAORootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-
-
-			hr=D3D12SerializeVersionedRootSignature(&SSAORootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSSAORootSignature));
-			assert(SUCCEEDED(hr));
-			m_pSSAORootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pSSAORootSignature") - 1, "Shader12::m_pSSAORootSignature");
-
 			//SSAOBlur
-
-			D3D12_DESCRIPTOR_RANGE1 SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCnt] = {};
-
-			for (int i = 0; i < eSsaoBlur_eCsSsao; ++i)
 			{
-				SSAOBlurRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-				SSAOBlurRanges[i].NumDescriptors = 1;
-				SSAOBlurRanges[i].BaseShaderRegister = i;
-				SSAOBlurRanges[i].RegisterSpace = 0;
-				SSAOBlurRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				D3D12_DESCRIPTOR_RANGE1 ssaoBlurRanges[static_cast<UINT>(eSsaoBlurRP::cnt)] = {};
+
+				for (int i = 0; i < static_cast<UINT>(eSsaoBlurRP::csSsao); ++i)
+				{
+					ssaoBlurRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+					ssaoBlurRanges[i].NumDescriptors = 1;
+					ssaoBlurRanges[i].BaseShaderRegister = i;
+					ssaoBlurRanges[i].RegisterSpace = 0;
+					ssaoBlurRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				}
+
+				ssaoBlurRanges[static_cast<UINT>(eSsaoBlurRP::csSsao)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				ssaoBlurRanges[static_cast<UINT>(eSsaoBlurRP::csSsao)].NumDescriptors = 1;
+				ssaoBlurRanges[static_cast<UINT>(eSsaoBlurRP::csSsao)].BaseShaderRegister = 0;
+				ssaoBlurRanges[static_cast<UINT>(eSsaoBlurRP::csSsao)].RegisterSpace = 0;
+				ssaoBlurRanges[static_cast<UINT>(eSsaoBlurRP::csSsao)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				ssaoBlurRanges[static_cast<UINT>(eSsaoBlurRP::csWrap)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				ssaoBlurRanges[static_cast<UINT>(eSsaoBlurRP::csWrap)].NumDescriptors = 1;
+				ssaoBlurRanges[static_cast<UINT>(eSsaoBlurRP::csWrap)].BaseShaderRegister = 0;
+				ssaoBlurRanges[static_cast<UINT>(eSsaoBlurRP::csWrap)].RegisterSpace = 0;
+				ssaoBlurRanges[static_cast<UINT>(eSsaoBlurRP::csWrap)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+
+				D3D12_ROOT_PARAMETER1 ssaoBlurRootParameter[static_cast<UINT>(eSsaoBlurRP::cnt)] = {};
+
+				for (int i = 0; i < static_cast<UINT>(eSsaoBlurRP::cnt); ++i)
+				{
+					ssaoBlurRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					ssaoBlurRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+					ssaoBlurRootParameter[i].DescriptorTable.pDescriptorRanges = &ssaoBlurRanges[i];
+					ssaoBlurRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+				}
+
+
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC ssaoBlurRootSignatureDesc = {};
+				ssaoBlurRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				ssaoBlurRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eSsaoBlurRP::cnt);
+				ssaoBlurRootSignatureDesc.Desc_1_1.pParameters = ssaoBlurRootParameter;
+				ssaoBlurRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				ssaoBlurRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				ssaoBlurRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&ssaoBlurRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSsaoBlurRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pSsaoBlurRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pSsaoBlurRootSignature") - 1, "Shader12::m_pSsaoBlurRootSignature");
+
 			}
-
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsSsao].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsSsao].NumDescriptors = 1;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsSsao].BaseShaderRegister = 0;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsSsao].RegisterSpace = 0;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsSsao].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsWrap].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsWrap].NumDescriptors = 1;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsWrap].BaseShaderRegister = 0;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsWrap].RegisterSpace = 0;
-			SSAOBlurRanges[eSsaoBlurRP::eSsaoBlur_eCsWrap].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-
-			D3D12_ROOT_PARAMETER1 SSAOBlurRootParameter[eSsaoBlurRP::eSsaoBlur_eCnt] = {};
-
-			for (int i = 0; i < eSsaoBlur_eCnt; ++i)
-			{
-				SSAOBlurRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				SSAOBlurRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
-				SSAOBlurRootParameter[i].DescriptorTable.pDescriptorRanges = &SSAOBlurRanges[i];
-				SSAOBlurRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-			}
-
-
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC SSAOBlurRootSignatureDesc = {};
-			SSAOBlurRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			SSAOBlurRootSignatureDesc.Desc_1_1.NumParameters = eSsaoBlurRP::eSsaoBlur_eCnt;
-			SSAOBlurRootSignatureDesc.Desc_1_1.pParameters = SSAOBlurRootParameter;
-			SSAOBlurRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			SSAOBlurRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			SSAOBlurRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-
-
-			hr=D3D12SerializeVersionedRootSignature(&SSAOBlurRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSSAOBlurRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pSSAOBlurRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pSSAOBlurRootSignature") - 1, "Shader12::m_pSSAOBlurRootSignature");
-
 			//PbrLight
-		
-			D3D12_DESCRIPTOR_RANGE1 PbrLightRanges[ePbrLightRP::ePbrLight_eCnt] = {};
-			for (int i = ePbrLight_ePsPos; i < ePbrLight_ePsWrap; ++i)
 			{
-				PbrLightRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-				PbrLightRanges[i].NumDescriptors = 1;
-				PbrLightRanges[i].BaseShaderRegister = i;
-				PbrLightRanges[i].RegisterSpace = 0;
-				PbrLightRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-			}
+				D3D12_DESCRIPTOR_RANGE1 PbrLightRanges[static_cast<UINT>(ePbrLightRP::cnt)] = {};
+				for (int i = static_cast<UINT>(ePbrLightRP::psPos); i < static_cast<UINT>(ePbrLightRP::psWrap); ++i)
+				{
+					PbrLightRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+					PbrLightRanges[i].NumDescriptors = 1;
+					PbrLightRanges[i].BaseShaderRegister = i;
+					PbrLightRanges[i].RegisterSpace = 0;
+					PbrLightRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				}
 
-			for (int i = ePbrLight_ePsWrap; i<ePbrLight_ePsCamPos; ++i)
+				for (int i = static_cast<UINT>(ePbrLightRP::psWrap); i < static_cast<UINT>(ePbrLightRP::psCamPos); ++i)
+				{
+					PbrLightRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+					PbrLightRanges[i].NumDescriptors = 1;
+					PbrLightRanges[i].BaseShaderRegister = i - static_cast<UINT>(ePbrLightRP::psWrap);
+					PbrLightRanges[i].RegisterSpace = 0;
+					PbrLightRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				}
+
+				for (int i = static_cast<UINT>(ePbrLightRP::psCamPos); i < static_cast<UINT>(ePbrLightRP::cnt); ++i)
+				{
+					PbrLightRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+					PbrLightRanges[i].NumDescriptors = 1;
+					PbrLightRanges[i].BaseShaderRegister = i - static_cast<UINT>(ePbrLightRP::psCamPos);
+					PbrLightRanges[i].RegisterSpace = 0;
+					PbrLightRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				}
+
+
+				D3D12_ROOT_PARAMETER1 PbrLightRootParameter[static_cast<UINT>(ePbrLightRP::cnt)] = {};
+				for (int i = static_cast<UINT>(ePbrLightRP::psPos); i < static_cast<UINT>(ePbrLightRP::cnt); ++i)
+				{
+					PbrLightRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					PbrLightRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+					PbrLightRootParameter[i].DescriptorTable.pDescriptorRanges = &PbrLightRanges[i];
+					PbrLightRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				}
+
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC PbrLightRootSignatureDesc = {};
+				PbrLightRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				PbrLightRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(ePbrLightRP::cnt);
+				PbrLightRootSignatureDesc.Desc_1_1.pParameters = PbrLightRootParameter;
+				PbrLightRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				PbrLightRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				PbrLightRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&PbrLightRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPbrLightRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pPbrLightRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pPbrLightRootSignature") - 1, "Shader12::m_pPbrLightRootSignature");
+
+			}
+			//AABB
 			{
-				PbrLightRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-				PbrLightRanges[i].NumDescriptors = 1;
-				PbrLightRanges[i].BaseShaderRegister = i- ePbrLight_ePsWrap;
-				PbrLightRanges[i].RegisterSpace = 0;
-				PbrLightRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				D3D12_DESCRIPTOR_RANGE1 aabbRanges[1] = {};
+				aabbRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				aabbRanges[0].NumDescriptors = 1;
+				aabbRanges[0].BaseShaderRegister = 0;
+				aabbRanges[0].RegisterSpace = 0;
+				aabbRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				D3D12_ROOT_PARAMETER1 aabbRootParameter[1] = {};
+				aabbRootParameter[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				aabbRootParameter[0].DescriptorTable.NumDescriptorRanges = 1;
+				aabbRootParameter[0].DescriptorTable.pDescriptorRanges = &aabbRanges[0];
+				aabbRootParameter[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC aabbRootSignatureDesc = {};
+				aabbRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				aabbRootSignatureDesc.Desc_1_1.NumParameters = 1;
+				aabbRootSignatureDesc.Desc_1_1.pParameters = aabbRootParameter;
+				aabbRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				aabbRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				aabbRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&aabbRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pAabbRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pAabbRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pAabbRootSignature") - 1, "Shader12::m_pAabbRootSignature");
+
+
 			}
-
-			for (int i = ePbrLight_ePsCamPos; i < ePbrLight_eCnt; ++i)
-			{
-				PbrLightRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-				PbrLightRanges[i].NumDescriptors = 1;
-				PbrLightRanges[i].BaseShaderRegister = i- ePbrLight_ePsCamPos;
-				PbrLightRanges[i].RegisterSpace = 0;
-				PbrLightRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-			}
-
-
-			D3D12_ROOT_PARAMETER1 PbrLightRootParameter[ePbrLightRP::ePbrLight_eCnt] = {};
-			for (int i = ePbrLight_ePsPos; i < ePbrLight_eCnt; ++i)
-			{
-				PbrLightRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				PbrLightRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
-				PbrLightRootParameter[i].DescriptorTable.pDescriptorRanges = &PbrLightRanges[i];
-				PbrLightRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-			}
-
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC PbrLightRootSignatureDesc = {};
-			PbrLightRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			PbrLightRootSignatureDesc.Desc_1_1.NumParameters = ePbrLightRP::ePbrLight_eCnt;
-			PbrLightRootSignatureDesc.Desc_1_1.pParameters = PbrLightRootParameter;
-			PbrLightRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			PbrLightRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			PbrLightRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-
-			hr=D3D12SerializeVersionedRootSignature(&PbrLightRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPBRLightRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pPBRLightRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pPBRLightRootSignature") - 1, "Shader12::m_pPBRLightRootSignature");
-
-			//	
-			D3D12_DESCRIPTOR_RANGE1 aabbRanges[1] = {};
-			aabbRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			aabbRanges[0].NumDescriptors = 1;
-			aabbRanges[0].BaseShaderRegister = 0;
-			aabbRanges[0].RegisterSpace = 0;
-			aabbRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-			D3D12_ROOT_PARAMETER1 aabbRootParameter[1] = {};
-			aabbRootParameter[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			aabbRootParameter[0].DescriptorTable.NumDescriptorRanges = 1;
-			aabbRootParameter[0].DescriptorTable.pDescriptorRanges = &aabbRanges[0];
-			aabbRootParameter[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC aabbRootSignatureDesc = {};
-			aabbRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			aabbRootSignatureDesc.Desc_1_1.NumParameters = 1;
-			aabbRootSignatureDesc.Desc_1_1.pParameters = aabbRootParameter;
-			aabbRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			aabbRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			aabbRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-
-			hr = D3D12SerializeVersionedRootSignature(&aabbRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pAABBRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pAABBRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pAABBRootSignature") - 1, "Shader12::m_pAABBRootSignature");
-
-
 			//OutlinerTest
-			
-			D3D12_DESCRIPTOR_RANGE1 OutlinerTestRanges[eOutlinerRP::eOutliner_eCnt] = {};
-			OutlinerTestRanges[eOutlinerRP::eOutliner_eVsMat].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_eVsMat].NumDescriptors = 1;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_eVsMat].BaseShaderRegister = 0;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_eVsMat].RegisterSpace = 0;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_eVsMat].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			{
+				D3D12_DESCRIPTOR_RANGE1 OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::cnt)] = {};
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::vsMat)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::vsMat)].NumDescriptors = 1;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::vsMat)].BaseShaderRegister = 0;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::vsMat)].RegisterSpace = 0;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::vsMat)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			OutlinerTestRanges[eOutlinerRP::eOutliner_ePsAlbedo].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_ePsAlbedo].NumDescriptors = 1;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_ePsAlbedo].BaseShaderRegister = 0;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_ePsAlbedo].RegisterSpace = 0;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_ePsAlbedo].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psAlbedo)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psAlbedo)].NumDescriptors = 1;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psAlbedo)].BaseShaderRegister = 0;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psAlbedo)].RegisterSpace = 0;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psAlbedo)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			OutlinerTestRanges[eOutlinerRP::eOutliner_ePsWrap].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_ePsWrap].NumDescriptors = 1;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_ePsWrap].BaseShaderRegister = 0;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_ePsWrap].RegisterSpace = 0;
-			OutlinerTestRanges[eOutlinerRP::eOutliner_ePsWrap].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psWrap)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psWrap)].NumDescriptors = 1;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psWrap)].BaseShaderRegister = 0;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psWrap)].RegisterSpace = 0;
+				OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psWrap)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			D3D12_ROOT_PARAMETER1 OutlinerTestRootParameter[eOutlinerRP::eOutliner_eCnt] = {};
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_eVsMat].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_eVsMat].DescriptorTable.NumDescriptorRanges = 1;
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_eVsMat].DescriptorTable.pDescriptorRanges = &OutlinerTestRanges[eOutlinerRP::eOutliner_eVsMat];
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_eVsMat].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+				D3D12_ROOT_PARAMETER1 OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::cnt)] = {};
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::vsMat)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::vsMat)].DescriptorTable.NumDescriptorRanges = 1;
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::vsMat)].DescriptorTable.pDescriptorRanges = &OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::vsMat)];
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::vsMat)].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_ePsAlbedo].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_ePsAlbedo].DescriptorTable.NumDescriptorRanges = 1;
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_ePsAlbedo].DescriptorTable.pDescriptorRanges = &OutlinerTestRanges[eOutlinerRP::eOutliner_ePsAlbedo];
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_ePsAlbedo].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::psAlbedo)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::psAlbedo)].DescriptorTable.NumDescriptorRanges = 1;
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::psAlbedo)].DescriptorTable.pDescriptorRanges = &OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psAlbedo)];
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::psAlbedo)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_ePsWrap].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_ePsWrap].DescriptorTable.NumDescriptorRanges =1;
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_ePsWrap].DescriptorTable.pDescriptorRanges = &OutlinerTestRanges[eOutlinerRP::eOutliner_ePsWrap];
-			OutlinerTestRootParameter[eOutlinerRP::eOutliner_ePsWrap].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::psWrap)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::psWrap)].DescriptorTable.NumDescriptorRanges = 1;
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::psWrap)].DescriptorTable.pDescriptorRanges = &OutlinerTestRanges[static_cast<UINT>(eOutlinerRP::psWrap)];
+				OutlinerTestRootParameter[static_cast<UINT>(eOutlinerRP::psWrap)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC outlinerTestRootSignatureDesc = {};
-			outlinerTestRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			outlinerTestRootSignatureDesc.Desc_1_1.NumParameters = eOutlinerRP::eOutliner_eCnt;
-			outlinerTestRootSignatureDesc.Desc_1_1.pParameters = OutlinerTestRootParameter;
-			outlinerTestRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			outlinerTestRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			outlinerTestRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC outlinerTestRootSignatureDesc = {};
+				outlinerTestRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				outlinerTestRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eOutlinerRP::cnt);
+				outlinerTestRootSignatureDesc.Desc_1_1.pParameters = OutlinerTestRootParameter;
+				outlinerTestRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				outlinerTestRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				outlinerTestRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&outlinerTestRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pOutlinerTestRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pOutlinerTestRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pOutlinerTestRootSignature") - 1, "Shader12::m_pOutlinerTestRootSignature");
 
-			hr=D3D12SerializeVersionedRootSignature(&outlinerTestRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pOutlinerTestRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pOutlinerTestRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pOutlinerTestRootSignature") - 1, "Shader12::m_pOutlinerTestRootSignature");
-
+			}
 			//PostProcess
-		
-			D3D12_DESCRIPTOR_RANGE1 PostProcessRanges[ePostProcessRP::ePostProcess_eCnt] = {};
-
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsTex].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsTex].NumDescriptors = 1;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsTex].BaseShaderRegister = 0;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsTex].RegisterSpace = 0;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsTex].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsUav].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsUav].NumDescriptors = 1;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsUav].BaseShaderRegister = 0;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsUav].RegisterSpace = 0;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsUav].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsSampler].NumDescriptors = 1;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsSampler].BaseShaderRegister = 0;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsSampler].RegisterSpace = 0;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsExposure].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsExposure].NumDescriptors = 1;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsExposure].BaseShaderRegister = 0;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsExposure].RegisterSpace = 0;
-			PostProcessRanges[ePostProcessRP::ePostProcess_eCsExposure].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-
-
-			D3D12_ROOT_PARAMETER1 PostProcessRootParameter[ePostProcessRP::ePostProcess_eCnt] = {};
-
-			for (int i = 0; i < ePostProcess_eCnt; ++i)
 			{
-				PostProcessRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				PostProcessRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
-				PostProcessRootParameter[i].DescriptorTable.pDescriptorRanges = &PostProcessRanges[i];
-				PostProcessRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+				D3D12_DESCRIPTOR_RANGE1 PostProcessRanges[static_cast<UINT>(ePostProcessRP::cnt)] = {};
+
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csTex)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csTex)].NumDescriptors = 1;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csTex)].BaseShaderRegister = 0;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csTex)].RegisterSpace = 0;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csTex)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csUav)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csUav)].NumDescriptors = 1;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csUav)].BaseShaderRegister = 0;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csUav)].RegisterSpace = 0;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csUav)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csSampler)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csSampler)].NumDescriptors = 1;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csSampler)].BaseShaderRegister = 0;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csSampler)].RegisterSpace = 0;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csSampler)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csExposure)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csExposure)].NumDescriptors = 1;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csExposure)].BaseShaderRegister = 0;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csExposure)].RegisterSpace = 0;
+				PostProcessRanges[static_cast<UINT>(ePostProcessRP::csExposure)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+
+
+				D3D12_ROOT_PARAMETER1 PostProcessRootParameter[static_cast<UINT>(ePostProcessRP::cnt)] = {};
+
+				for (int i = 0; i < static_cast<UINT>(ePostProcessRP::cnt); ++i)
+				{
+					PostProcessRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					PostProcessRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+					PostProcessRootParameter[i].DescriptorTable.pDescriptorRanges = &PostProcessRanges[i];
+					PostProcessRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+				}
+
+
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC PostProcessRootSignatureDesc = {};
+				PostProcessRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				PostProcessRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(ePostProcessRP::cnt);
+				PostProcessRootSignatureDesc.Desc_1_1.pParameters = PostProcessRootParameter;
+				PostProcessRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				PostProcessRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				PostProcessRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&PostProcessRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPostProcessRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pPostProcessRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pPostProcessRootSignature") - 1, "Shader12::m_pPostProcessRootSignature");
+
 			}
-			
-
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC PostProcessRootSignatureDesc = {};
-			PostProcessRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			PostProcessRootSignatureDesc.Desc_1_1.NumParameters = ePostProcessRP::ePostProcess_eCnt;
-			PostProcessRootSignatureDesc.Desc_1_1.pParameters = PostProcessRootParameter;
-			PostProcessRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			PostProcessRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			PostProcessRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-
-
-			hr=D3D12SerializeVersionedRootSignature(&PostProcessRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPostProcessRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pPostProcessRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pPostProcessRootSignature") - 1, "Shader12::m_pPostProcessRootSignature");
-
 			//BRDF empty
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC emptyRootSignatureDesc = {};
-			emptyRootSignatureDesc.Version= D3D_ROOT_SIGNATURE_VERSION_1_1;
-			emptyRootSignatureDesc.Desc_1_1.NumParameters = 0;
-			emptyRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-			hr=D3D12SerializeVersionedRootSignature(&emptyRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pBrdfRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pBrdfRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pBrdfRootSignature") - 1, "Shader12::m_pBrdfRootSignature");
-
-
-			//DiffuseIrradiance srv, ss
-		
-			D3D12_DESCRIPTOR_RANGE1 diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_eCnt] = {};
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_eGsCb].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_eGsCb].NumDescriptors = 1;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_eGsCb].BaseShaderRegister = 0;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_eGsCb].RegisterSpace = 0;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_eGsCb].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsTex].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsTex].NumDescriptors = 1;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsTex].BaseShaderRegister = 0;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsTex].RegisterSpace = 0;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsTex].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsSampler].NumDescriptors = 1;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsSampler].BaseShaderRegister = 0;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsSampler].RegisterSpace = 0;
-			diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			D3D12_ROOT_PARAMETER1 diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_eCnt] = {};
-
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_eGsCb].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_eGsCb].DescriptorTable.NumDescriptorRanges = 1;
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_eGsCb].DescriptorTable.pDescriptorRanges = &diffuseIrradianceRanges[eDiffuseIrraidiance_eGsCb];
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_eGsCb].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
-
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsTex].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsTex].DescriptorTable.NumDescriptorRanges = 1;
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsTex].DescriptorTable.pDescriptorRanges = &diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsTex];
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsTex].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsSampler].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsSampler].DescriptorTable.NumDescriptorRanges = 1;
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsSampler].DescriptorTable.pDescriptorRanges = &diffuseIrradianceRanges[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsSampler];
-			diffuseIrradianceRootParameter[eDiffuseIrraidianceRP::eDiffuseIrraidiance_ePsSampler].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC diffuseIrradianceRootSignature = {};
-			diffuseIrradianceRootSignature.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			diffuseIrradianceRootSignature.Desc_1_1.NumParameters = eDiffuseIrraidianceRP::eDiffuseIrraidiance_eCnt;
-			diffuseIrradianceRootSignature.Desc_1_1.pParameters = diffuseIrradianceRootParameter;
-			diffuseIrradianceRootSignature.Desc_1_1.NumStaticSamplers = 0;
-			diffuseIrradianceRootSignature.Desc_1_1.pStaticSamplers = nullptr;
-			diffuseIrradianceRootSignature.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-
-			hr=D3D12SerializeVersionedRootSignature(&diffuseIrradianceRootSignature, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pDiffuseIrradianceRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pDiffuseIrradianceRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pDiffuseIrradianceRootSignature") - 1, "Shader12::m_pDiffuseIrradianceRootSignature");
-
-
-			//Prefilter 
-		
-			D3D12_DESCRIPTOR_RANGE1 prefilterRanges[ePrefilterRP::ePrefilter_eCnt] = {};
-			prefilterRanges[ePrefilterRP::ePrefilter_eGsCb].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			prefilterRanges[ePrefilterRP::ePrefilter_eGsCb].NumDescriptors = 1;
-			prefilterRanges[ePrefilterRP::ePrefilter_eGsCb].BaseShaderRegister = 0;
-			prefilterRanges[ePrefilterRP::ePrefilter_eGsCb].RegisterSpace = 0;
-			prefilterRanges[ePrefilterRP::ePrefilter_eGsCb].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsTex].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsTex].NumDescriptors = 1;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsTex].BaseShaderRegister = 0;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsTex].RegisterSpace = 0;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsTex].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsSampler].NumDescriptors = 1;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsSampler].BaseShaderRegister = 0;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsSampler].RegisterSpace = 0;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsCb].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsCb].NumDescriptors = 1;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsCb].BaseShaderRegister = 0;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsCb].RegisterSpace = 0;
-			prefilterRanges[ePrefilterRP::ePrefilter_ePsCb].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			D3D12_ROOT_PARAMETER1 prefilterRootParmeter[ePrefilterRP::ePrefilter_eCnt] = {};
-
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_eGsCb].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_eGsCb].DescriptorTable.NumDescriptorRanges = 1;
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_eGsCb].DescriptorTable.pDescriptorRanges = &prefilterRanges[ePrefilter_eGsCb];
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_eGsCb].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
-
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsTex].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsTex].DescriptorTable.NumDescriptorRanges = 1;
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsTex].DescriptorTable.pDescriptorRanges = &prefilterRanges[ePrefilterRP::ePrefilter_ePsTex];
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsTex].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsSampler].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsSampler].DescriptorTable.NumDescriptorRanges =1;
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsSampler].DescriptorTable.pDescriptorRanges = &prefilterRanges[ePrefilterRP::ePrefilter_ePsSampler];
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsSampler].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsCb].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsCb].DescriptorTable.NumDescriptorRanges = 1;
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsCb].DescriptorTable.pDescriptorRanges = &prefilterRanges[ePrefilterRP::ePrefilter_ePsCb];
-			prefilterRootParmeter[ePrefilterRP::ePrefilter_ePsCb].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC prefilterRootSignatureDesc = {};
-			prefilterRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			prefilterRootSignatureDesc.Desc_1_1.NumParameters = ePrefilterRP::ePrefilter_eCnt;
-			prefilterRootSignatureDesc.Desc_1_1.pParameters = prefilterRootParmeter;
-			prefilterRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			prefilterRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			prefilterRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-
-			hr=D3D12SerializeVersionedRootSignature(&prefilterRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPrefilterRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pPrefilterRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pPrefilterRootSignature") - 1, "Shader12::m_pPrefilterRootSignature");
-
-
-			//Equirect2Cube GS:cb PS:srv,ss
-			
-			D3D12_DESCRIPTOR_RANGE1 equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_eCnt] = {};
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_eGsCb].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_eGsCb].NumDescriptors = 1;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_eGsCb].BaseShaderRegister = 0;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_eGsCb].RegisterSpace = 0;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_eGsCb].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsTex].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsTex].NumDescriptors = 1;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsTex].BaseShaderRegister = 0;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsTex].RegisterSpace = 0;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsTex].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsSampler].NumDescriptors = 1;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsSampler].BaseShaderRegister = 0;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsSampler].RegisterSpace = 0;
-			equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			D3D12_ROOT_PARAMETER1 equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_eCnt] = {};
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_eGsCb].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_eGsCb].DescriptorTable.NumDescriptorRanges = 1;
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_eGsCb].DescriptorTable.pDescriptorRanges = &equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_eGsCb];
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_eGsCb].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
-
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_ePsTex].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_ePsTex].DescriptorTable.NumDescriptorRanges = 1;
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_ePsTex].DescriptorTable.pDescriptorRanges = &equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsTex];
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_ePsTex].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_ePsSampler].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_ePsSampler].DescriptorTable.NumDescriptorRanges = 1;
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_ePsSampler].DescriptorTable.pDescriptorRanges = &equirect2CubeRanges[eEquirect2CubeRP::eEquirect2Cube_ePsSampler];
-			equirect2CubeRootParmeter[eEquirect2CubeRP::eEquirect2Cube_ePsSampler].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC equirect2CubeRootSignatureDesc = {};
-			equirect2CubeRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			equirect2CubeRootSignatureDesc.Desc_1_1.NumParameters = eEquirect2CubeRP::eEquirect2Cube_eCnt;
-			equirect2CubeRootSignatureDesc.Desc_1_1.pParameters = equirect2CubeRootParmeter;
-			equirect2CubeRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			equirect2CubeRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			equirect2CubeRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-			hr=D3D12SerializeVersionedRootSignature(&equirect2CubeRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pEquirect2cubeRootSignature));
-			assert(SUCCEEDED(hr));
-			m_pEquirect2cubeRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12::m_pEquirect2cubeRootSignature") - 1, "Shader12::m_pEquirect2cubeRootSignature");
-
-
-			D3D12_DESCRIPTOR_RANGE1 genMipRanges[eGenMipRP::eGenMipRP_eCnt] = {};
-			genMipRanges[eGenMipRP::eGenMipRP_eCsTex].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsTex].NumDescriptors = 1;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsTex].BaseShaderRegister = 0;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsTex].RegisterSpace = 0;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsTex].OffsetInDescriptorsFromTableStart= D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			genMipRanges[eGenMipRP::eGenMipRP_eCsUAV].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsUAV].NumDescriptors = 1;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsUAV].BaseShaderRegister = 0;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsUAV].RegisterSpace = 0;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsUAV].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			genMipRanges[eGenMipRP::eGenMipRP_eCsSampler].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsSampler].NumDescriptors = 1;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsSampler].BaseShaderRegister = 0;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsSampler].RegisterSpace = 0;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsSampler].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-			genMipRanges[eGenMipRP::eGenMipRP_eCsCb].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsCb].NumDescriptors = 1;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsCb].BaseShaderRegister = 0;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsCb].RegisterSpace = 0;
-			genMipRanges[eGenMipRP::eGenMipRP_eCsCb].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-
-			D3D12_ROOT_PARAMETER1 genMipRootParmeter[eGenMipRP::eGenMipRP_eCnt] = {};
-			for (int i = eGenMipRP_eCsTex; i < eGenMipRP_eCnt; ++i)
 			{
-				genMipRootParmeter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				genMipRootParmeter[i].DescriptorTable.NumDescriptorRanges = 1;
-				genMipRootParmeter[i].DescriptorTable.pDescriptorRanges = &genMipRanges[i];
-				genMipRootParmeter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC emptyRootSignatureDesc = {};
+				emptyRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				emptyRootSignatureDesc.Desc_1_1.NumParameters = 0;
+				emptyRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&emptyRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pBrdfRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pBrdfRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pBrdfRootSignature") - 1, "Shader12::m_pBrdfRootSignature");
 			}
+			//DiffuseIrradiance srv, ss
+			{
+				D3D12_DESCRIPTOR_RANGE1 diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::cnt)] = {};
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::gsCb)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::gsCb)].NumDescriptors = 1;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::gsCb)].BaseShaderRegister = 0;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::gsCb)].RegisterSpace = 0;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::gsCb)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			D3D12_VERSIONED_ROOT_SIGNATURE_DESC genMipRootSignatureDesc = {};
-			genMipRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-			genMipRootSignatureDesc.Desc_1_1.NumParameters = eGenMipRP::eGenMipRP_eCnt;
-			genMipRootSignatureDesc.Desc_1_1.pParameters = genMipRootParmeter;
-			genMipRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
-			genMipRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
-			genMipRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psTex)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psTex)].NumDescriptors = 1;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psTex)].BaseShaderRegister = 0;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psTex)].RegisterSpace = 0;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psTex)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			hr = D3D12SerializeVersionedRootSignature(&genMipRootSignatureDesc, &signature, &error);
-			assert(SUCCEEDED(hr));
-			hr=pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pGenMipMapRootsignature));
-			assert(SUCCEEDED(hr));
-			m_pGenMipMapRootsignature->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("Shader12:m_pGenMipMapRootsignature") - 1, "Shader12::m_pGenMipMapRootsignature");
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psSampler)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psSampler)].NumDescriptors = 1;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psSampler)].BaseShaderRegister = 0;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psSampler)].RegisterSpace = 0;
+				diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psSampler)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
+				D3D12_ROOT_PARAMETER1 diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::cnt)] = {};
+
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::gsCb)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::gsCb)].DescriptorTable.NumDescriptorRanges = 1;
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::gsCb)].DescriptorTable.pDescriptorRanges = &diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::gsCb)];
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::gsCb)].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
+
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::psTex)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::psTex)].DescriptorTable.NumDescriptorRanges = 1;
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::psTex)].DescriptorTable.pDescriptorRanges = &diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psTex)];
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::psTex)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::psSampler)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::psSampler)].DescriptorTable.NumDescriptorRanges = 1;
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::psSampler)].DescriptorTable.pDescriptorRanges = &diffuseIrradianceRanges[static_cast<UINT>(eDiffuseIrraidianceRP::psSampler)];
+				diffuseIrradianceRootParameter[static_cast<UINT>(eDiffuseIrraidianceRP::psSampler)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC diffuseIrradianceRootSignature = {};
+				diffuseIrradianceRootSignature.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				diffuseIrradianceRootSignature.Desc_1_1.NumParameters = static_cast<UINT>(eDiffuseIrraidianceRP::cnt);
+				diffuseIrradianceRootSignature.Desc_1_1.pParameters = diffuseIrradianceRootParameter;
+				diffuseIrradianceRootSignature.Desc_1_1.NumStaticSamplers = 0;
+				diffuseIrradianceRootSignature.Desc_1_1.pStaticSamplers = nullptr;
+				diffuseIrradianceRootSignature.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&diffuseIrradianceRootSignature, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pDiffuseIrradianceRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pDiffuseIrradianceRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pDiffuseIrradianceRootSignature") - 1, "Shader12::m_pDiffuseIrradianceRootSignature");
+
+
+			}
+			//Prefilter 
+			{
+				D3D12_DESCRIPTOR_RANGE1 prefilterRanges[static_cast<UINT>(ePrefilterRP::cnt)] = {};
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::gsCb)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::gsCb)].NumDescriptors = 1;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::gsCb)].BaseShaderRegister = 0;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::gsCb)].RegisterSpace = 0;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::gsCb)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psTex)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psTex)].NumDescriptors = 1;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psTex)].BaseShaderRegister = 0;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psTex)].RegisterSpace = 0;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psTex)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psSampler)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psSampler)].NumDescriptors = 1;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psSampler)].BaseShaderRegister = 0;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psSampler)].RegisterSpace = 0;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psSampler)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psCb)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psCb)].NumDescriptors = 1;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psCb)].BaseShaderRegister = 0;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psCb)].RegisterSpace = 0;
+				prefilterRanges[static_cast<UINT>(ePrefilterRP::psCb)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				D3D12_ROOT_PARAMETER1 prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::cnt)] = {};
+
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::gsCb)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::gsCb)].DescriptorTable.NumDescriptorRanges = 1;
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::gsCb)].DescriptorTable.pDescriptorRanges = &prefilterRanges[static_cast<UINT>(ePrefilterRP::gsCb)];
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::gsCb)].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
+
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psTex)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psTex)].DescriptorTable.NumDescriptorRanges = 1;
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psTex)].DescriptorTable.pDescriptorRanges = &prefilterRanges[static_cast<UINT>(ePrefilterRP::psTex)];
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psTex)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psSampler)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psSampler)].DescriptorTable.NumDescriptorRanges = 1;
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psSampler)].DescriptorTable.pDescriptorRanges = &prefilterRanges[static_cast<UINT>(ePrefilterRP::psSampler)];
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psSampler)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psCb)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psCb)].DescriptorTable.NumDescriptorRanges = 1;
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psCb)].DescriptorTable.pDescriptorRanges = &prefilterRanges[static_cast<UINT>(ePrefilterRP::psCb)];
+				prefilterRootParmeter[static_cast<UINT>(ePrefilterRP::psCb)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC prefilterRootSignatureDesc = {};
+				prefilterRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				prefilterRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(ePrefilterRP::cnt);
+				prefilterRootSignatureDesc.Desc_1_1.pParameters = prefilterRootParmeter;
+				prefilterRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				prefilterRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				prefilterRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&prefilterRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPrefilterRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pPrefilterRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pPrefilterRootSignature") - 1, "Shader12::m_pPrefilterRootSignature");
+			}
+			//Equirect2Cube GS:cb PS:srv,ss
+			{
+				D3D12_DESCRIPTOR_RANGE1 equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::cnt)] = {};
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::gsCb)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::gsCb)].NumDescriptors = 1;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::gsCb)].BaseShaderRegister = 0;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::gsCb)].RegisterSpace = 0;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::gsCb)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psTex)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psTex)].NumDescriptors = 1;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psTex)].BaseShaderRegister = 0;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psTex)].RegisterSpace = 0;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psTex)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psSampler)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psSampler)].NumDescriptors = 1;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psSampler)].BaseShaderRegister = 0;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psSampler)].RegisterSpace = 0;
+				equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psSampler)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				D3D12_ROOT_PARAMETER1 equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::cnt)] = {};
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::gsCb)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::gsCb)].DescriptorTable.NumDescriptorRanges = 1;
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::gsCb)].DescriptorTable.pDescriptorRanges = &equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::gsCb)];
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::gsCb)].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
+
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::psTex)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::psTex)].DescriptorTable.NumDescriptorRanges = 1;
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::psTex)].DescriptorTable.pDescriptorRanges = &equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psTex)];
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::psTex)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::psSampler)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::psSampler)].DescriptorTable.NumDescriptorRanges = 1;
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::psSampler)].DescriptorTable.pDescriptorRanges = &equirect2CubeRanges[static_cast<UINT>(eEquirect2CubeRP::psSampler)];
+				equirect2CubeRootParmeter[static_cast<UINT>(eEquirect2CubeRP::psSampler)].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC equirect2CubeRootSignatureDesc = {};
+				equirect2CubeRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				equirect2CubeRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eEquirect2CubeRP::cnt);
+				equirect2CubeRootSignatureDesc.Desc_1_1.pParameters = equirect2CubeRootParmeter;
+				equirect2CubeRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				equirect2CubeRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				equirect2CubeRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&equirect2CubeRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pEquirect2cubeRootSignature));
+				assert(SUCCEEDED(hr));
+				m_pEquirect2cubeRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12::m_pEquirect2cubeRootSignature") - 1, "Shader12::m_pEquirect2cubeRootSignature");
+
+			}
+			//GenMip
+			{
+				D3D12_DESCRIPTOR_RANGE1 genMipRanges[static_cast<UINT>(eGenMipRP::cnt)] = {};
+				genMipRanges[static_cast<UINT>(eGenMipRP::csTex)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csTex)].NumDescriptors = 1;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csTex)].BaseShaderRegister = 0;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csTex)].RegisterSpace = 0;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csTex)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				genMipRanges[static_cast<UINT>(eGenMipRP::csUAV)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csUAV)].NumDescriptors = 1;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csUAV)].BaseShaderRegister = 0;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csUAV)].RegisterSpace = 0;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csUAV)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				genMipRanges[static_cast<UINT>(eGenMipRP::csSampler)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csSampler)].NumDescriptors = 1;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csSampler)].BaseShaderRegister = 0;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csSampler)].RegisterSpace = 0;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csSampler)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				genMipRanges[static_cast<UINT>(eGenMipRP::csCb)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csCb)].NumDescriptors = 1;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csCb)].BaseShaderRegister = 0;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csCb)].RegisterSpace = 0;
+				genMipRanges[static_cast<UINT>(eGenMipRP::csCb)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+
+				D3D12_ROOT_PARAMETER1 genMipRootParmeter[static_cast<UINT>(eGenMipRP::cnt)] = {};
+				for (int i = static_cast<UINT>(eGenMipRP::csTex); i < static_cast<UINT>(eGenMipRP::cnt); ++i)
+				{
+					genMipRootParmeter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					genMipRootParmeter[i].DescriptorTable.NumDescriptorRanges = 1;
+					genMipRootParmeter[i].DescriptorTable.pDescriptorRanges = &genMipRanges[i];
+					genMipRootParmeter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+				}
+
+				D3D12_VERSIONED_ROOT_SIGNATURE_DESC genMipRootSignatureDesc = {};
+				genMipRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+				genMipRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eGenMipRP::cnt);
+				genMipRootSignatureDesc.Desc_1_1.pParameters = genMipRootParmeter;
+				genMipRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+				genMipRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+				genMipRootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
+				ID3DBlob* signature;
+				ID3DBlob* error;
+				hr = D3D12SerializeVersionedRootSignature(&genMipRootSignatureDesc, &signature, &error);
+				assert(SUCCEEDED(hr));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pGenMipMapRootsignature));
+				assert(SUCCEEDED(hr));
+				m_pGenMipMapRootsignature->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Shader12:m_pGenMipMapRootsignature") - 1, "Shader12::m_pGenMipMapRootsignature");
+
+			}
 		}
+
 	}
 
 	Shader12::~Shader12()
@@ -1431,251 +1455,251 @@ namespace wilson
 
 		//Delete D3D12Resources
 		{
-			if (m_pForwardVS != nullptr)
+			if (m_pForwardVs != nullptr)
 			{
-				m_pForwardVS->Release();
-				m_pForwardVS = nullptr;
+				m_pForwardVs->Release();
+				m_pForwardVs = nullptr;
 			}
 
-			if (m_pForwardPS != nullptr)
+			if (m_pForwardPs != nullptr)
 			{
-				m_pForwardPS->Release();
-				m_pForwardPS = nullptr;
+				m_pForwardPs->Release();
+				m_pForwardPs = nullptr;
 			}
 
-			if (m_pSkyBox12VS != nullptr)
+			if (m_pSkyBoxVs != nullptr)
 			{
-				m_pSkyBox12VS->Release();
-				m_pSkyBox12VS = nullptr;
+				m_pSkyBoxVs->Release();
+				m_pSkyBoxVs = nullptr;
 			}
 
-			if (m_pSkyBox12PS != nullptr)
+			if (m_pSkyBoxPs != nullptr)
 			{
-				m_pSkyBox12PS->Release();
-				m_pSkyBox12PS = nullptr;
-			}
-
-
-
-			if (m_pShadow12VS != nullptr)
-			{
-				m_pShadow12VS->Release();
-				m_pShadow12VS = nullptr;
-			}
-			if (m_pShadow12PS != nullptr)
-			{
-				m_pShadow12PS->Release();
-				m_pShadow12PS = nullptr;
+				m_pSkyBoxPs->Release();
+				m_pSkyBoxPs = nullptr;
 			}
 
 
 
-			if (m_pPosOnly12VS != nullptr)
+			if (m_pShadowVs != nullptr)
 			{
-				m_pPosOnly12VS->Release();
-				m_pPosOnly12VS = nullptr;
+				m_pShadowVs->Release();
+				m_pShadowVs = nullptr;
 			}
-			if (m_pEquirect2Cube12GS != nullptr)
+			if (m_pShadowPs != nullptr)
 			{
-				m_pEquirect2Cube12GS->Release();
-				m_pEquirect2Cube12GS = nullptr;
-			}
-			if (m_pEquirect2Cube12PS != nullptr)
-			{
-				m_pEquirect2Cube12PS->Release();
-				m_pEquirect2Cube12PS = nullptr;
-			}
-			if (m_pDiffuseIrradiance12PS != nullptr)
-			{
-				m_pDiffuseIrradiance12PS->Release();
-				m_pDiffuseIrradiance12PS = nullptr;
-			}
-			if (m_pPrefilter12PS != nullptr)
-			{
-				m_pPrefilter12PS->Release();
-				m_pPrefilter12PS = nullptr;
-			}
-			if (m_pBRDF12PS != nullptr)
-			{
-				m_pBRDF12PS->Release();
-				m_pBRDF12PS = nullptr;
-			}
-			if (m_pCascadeDir12VS != nullptr)
-			{
-				m_pCascadeDir12VS->Release();
-				m_pCascadeDir12VS = nullptr;
-			}
-
-			if (m_pCascadeDir12GS != nullptr)
-			{
-				m_pCascadeDir12GS->Release();
-				m_pCascadeDir12GS = nullptr;
-			}
-
-			if (m_pCascadeDir12PS != nullptr)
-			{
-				m_pCascadeDir12PS->Release();
-				m_pCascadeDir12PS = nullptr;
-			}
-
-			if (m_pCubeShadow12VS != nullptr)
-			{
-				m_pCubeShadow12VS->Release();
-				m_pCubeShadow12VS = nullptr;
-			}
-
-			if (m_pCubeShadow12GS != nullptr)
-			{
-				m_pCubeShadow12GS->Release();
-				m_pCubeShadow12GS = nullptr;
-			}
-
-			if (m_pCubeShadow12PS != nullptr)
-			{
-				m_pCubeShadow12PS->Release();
-				m_pCubeShadow12PS = nullptr;
-			}
-
-			if (m_pTex12VS != nullptr)
-			{
-				m_pTex12VS->Release();
-				m_pTex12VS = nullptr;
-			}
-
-			if (m_pGeometry12VS != nullptr)
-			{
-				m_pGeometry12VS->Release();
-				m_pGeometry12VS = nullptr;
-			}
-			if (m_pGeometry12PS != nullptr)
-			{
-				m_pGeometry12PS->Release();
-				m_pGeometry12PS = nullptr;
-			}
-
-			if (m_pSSAO12VS != nullptr)
-			{
-				m_pSSAO12VS->Release();
-				m_pSSAO12VS = nullptr;
-			}
-
-			if (m_pSSAO12PS != nullptr)
-			{
-				m_pSSAO12PS->Release();
-				m_pSSAO12PS = nullptr;
-			}
-			if (m_pSSAOBlur12PS != nullptr)
-			{
-				m_pSSAOBlur12PS->Release();
-				m_pSSAOBlur12PS = nullptr;
-			}
-
-			if (m_pDeferred12PS != nullptr)
-			{
-				m_pDeferred12PS->Release();
-				m_pDeferred12PS = nullptr;
-			}
-
-			if (m_pPBRGeometry12VS != nullptr)
-			{
-				m_pPBRGeometry12VS->Release();
-				m_pPBRGeometry12VS = nullptr;
-			}
-			if (m_pPBRGeometryNormal12VS != nullptr)
-			{
-				m_pPBRGeometryNormal12VS->Release();
-				m_pPBRGeometryNormal12VS = nullptr;
-			}
-			if (m_pPBRGeometry12PS != nullptr)
-			{
-				m_pPBRGeometry12PS->Release();
-				m_pPBRGeometry12PS = nullptr;
-			}
-			if (m_pPBRGeometryEmissive12PS != nullptr)
-			{
-				m_pPBRGeometryEmissive12PS->Release();
-				m_pPBRGeometryEmissive12PS = nullptr;
-			}
-			if (m_pPBRGeometryNormal12PS != nullptr)
-			{
-				m_pPBRGeometryNormal12PS->Release();
-				m_pPBRGeometryNormal12PS = nullptr;
-			}
-			if (m_pPBRGeometryNormalHeight12PS != nullptr)
-			{
-				m_pPBRGeometryNormalHeight12PS->Release();
-				m_pPBRGeometryNormalHeight12PS = nullptr;
-			}
-			if (m_pPBRGeometryNormalHeightEmissive12PS != nullptr)
-			{
-				m_pPBRGeometryNormalHeightEmissive12PS->Release();
-				m_pPBRGeometryNormalHeightEmissive12PS = nullptr;
-			}
-			if (m_pPBRDeferred12PS != nullptr)
-			{
-				m_pPBRDeferred12PS->Release();
-				m_pPBRDeferred12PS = nullptr;
+				m_pShadowPs->Release();
+				m_pShadowPs = nullptr;
 			}
 
 
 
-			if (m_pMatrixTransformVS != nullptr)
+			if (m_pPosOnlyVs != nullptr)
 			{
-				m_pMatrixTransformVS->Release();
-				m_pMatrixTransformVS = nullptr;
+				m_pPosOnlyVs->Release();
+				m_pPosOnlyVs = nullptr;
+			}
+			if (m_pEquirect2CubeGs != nullptr)
+			{
+				m_pEquirect2CubeGs->Release();
+				m_pEquirect2CubeGs = nullptr;
+			}
+			if (m_pEquirect2CubePs != nullptr)
+			{
+				m_pEquirect2CubePs->Release();
+				m_pEquirect2CubePs = nullptr;
+			}
+			if (m_pDiffuseIrradiancePs != nullptr)
+			{
+				m_pDiffuseIrradiancePs->Release();
+				m_pDiffuseIrradiancePs = nullptr;
+			}
+			if (m_pPrefilterPs != nullptr)
+			{
+				m_pPrefilterPs->Release();
+				m_pPrefilterPs = nullptr;
+			}
+			if (m_pBrdfPs != nullptr)
+			{
+				m_pBrdfPs->Release();
+				m_pBrdfPs = nullptr;
+			}
+			if (m_pCascadeDirVs != nullptr)
+			{
+				m_pCascadeDirVs->Release();
+				m_pCascadeDirVs = nullptr;
 			}
 
-			if (m_pMatrixTransformInstancedVS != nullptr)
+			if (m_pCascadeDirGs != nullptr)
 			{
-				m_pMatrixTransformInstancedVS->Release();
-				m_pMatrixTransformInstancedVS = nullptr;
+				m_pCascadeDirGs->Release();
+				m_pCascadeDirGs = nullptr;
 			}
 
-			if (m_pConstantPS != nullptr)
+			if (m_pCascadeDirPs != nullptr)
 			{
-				m_pConstantPS->Release();
-				m_pConstantPS = nullptr;
+				m_pCascadeDirPs->Release();
+				m_pCascadeDirPs = nullptr;
 			}
 
-			if (m_pOutlinerTest12PS != nullptr)
+			if (m_pCubeShadowVs != nullptr)
 			{
-				m_pOutlinerTest12PS->Release();
-				m_pOutlinerTest12PS = nullptr;
+				m_pCubeShadowVs->Release();
+				m_pCubeShadowVs = nullptr;
 			}
 
-			if (m_pBlur12PS != nullptr)
+			if (m_pCubeShadowGs != nullptr)
 			{
-				m_pBlur12PS->Release();
-				m_pBlur12PS = nullptr;
+				m_pCubeShadowGs->Release();
+				m_pCubeShadowGs = nullptr;
 			}
 
-			if (m_pPostProcess12PS != nullptr)
+			if (m_pCubeShadowPs != nullptr)
 			{
-				m_pPostProcess12PS->Release();
-				m_pPostProcess12PS = nullptr;
+				m_pCubeShadowPs->Release();
+				m_pCubeShadowPs = nullptr;
 			}
 
-			if (m_pGenHiZPS != nullptr)
+			if (m_pTexVs != nullptr)
 			{
-				m_pGenHiZPS->Release();
-				m_pGenHiZPS = nullptr;
+				m_pTexVs->Release();
+				m_pTexVs = nullptr;
 			}
 
-			if (m_pDownSamplePS != nullptr)
+			if (m_pGeometryVs != nullptr)
 			{
-				m_pDownSamplePS->Release();
-				m_pDownSamplePS = nullptr;
+				m_pGeometryVs->Release();
+				m_pGeometryVs = nullptr;
+			}
+			if (m_pGeometryPs != nullptr)
+			{
+				m_pGeometryPs->Release();
+				m_pGeometryPs = nullptr;
 			}
 
-			if (m_pAABB12VS != nullptr)
+			if (m_pSsaoVs != nullptr)
 			{
-				m_pAABB12VS->Release();
-				m_pAABB12VS = nullptr;
+				m_pSsaoVs->Release();
+				m_pSsaoVs = nullptr;
 			}
-			if (m_pAABB12PS != nullptr)
+
+			if (m_pSsaoPs != nullptr)
 			{
-				m_pAABB12PS->Release();
-				m_pAABB12PS = nullptr;
+				m_pSsaoPs->Release();
+				m_pSsaoPs = nullptr;
+			}
+			if (m_pSsaoBlurPs != nullptr)
+			{
+				m_pSsaoBlurPs->Release();
+				m_pSsaoBlurPs = nullptr;
+			}
+
+			if (m_pDeferredPs != nullptr)
+			{
+				m_pDeferredPs->Release();
+				m_pDeferredPs = nullptr;
+			}
+
+			if (m_pPBRGeometryVs != nullptr)
+			{
+				m_pPBRGeometryVs->Release();
+				m_pPBRGeometryVs = nullptr;
+			}
+			if (m_pPBRGeometryNormalVs != nullptr)
+			{
+				m_pPBRGeometryNormalVs->Release();
+				m_pPBRGeometryNormalVs = nullptr;
+			}
+			if (m_pPbrGeometryPs != nullptr)
+			{
+				m_pPbrGeometryPs->Release();
+				m_pPbrGeometryPs = nullptr;
+			}
+			if (m_pPbrGeometryEmissivePs != nullptr)
+			{
+				m_pPbrGeometryEmissivePs->Release();
+				m_pPbrGeometryEmissivePs = nullptr;
+			}
+			if (m_pPbrGeometryNormalPs != nullptr)
+			{
+				m_pPbrGeometryNormalPs->Release();
+				m_pPbrGeometryNormalPs = nullptr;
+			}
+			if (m_pPbrGeometryNormalHeightPs != nullptr)
+			{
+				m_pPbrGeometryNormalHeightPs->Release();
+				m_pPbrGeometryNormalHeightPs = nullptr;
+			}
+			if (m_pPbrGeometryNormalHeightEmissivePs != nullptr)
+			{
+				m_pPbrGeometryNormalHeightEmissivePs->Release();
+				m_pPbrGeometryNormalHeightEmissivePs = nullptr;
+			}
+			if (m_pPbrDeferredPs != nullptr)
+			{
+				m_pPbrDeferredPs->Release();
+				m_pPbrDeferredPs = nullptr;
+			}
+
+
+
+			if (m_pMatrixTransformVs != nullptr)
+			{
+				m_pMatrixTransformVs->Release();
+				m_pMatrixTransformVs = nullptr;
+			}
+
+			if (m_pMatrixTransformInstancedVs != nullptr)
+			{
+				m_pMatrixTransformInstancedVs->Release();
+				m_pMatrixTransformInstancedVs = nullptr;
+			}
+
+			if (m_pConstantPs != nullptr)
+			{
+				m_pConstantPs->Release();
+				m_pConstantPs = nullptr;
+			}
+
+			if (m_pOutlinerTestPs != nullptr)
+			{
+				m_pOutlinerTestPs->Release();
+				m_pOutlinerTestPs = nullptr;
+			}
+
+			if (m_pBlurPs != nullptr)
+			{
+				m_pBlurPs->Release();
+				m_pBlurPs = nullptr;
+			}
+
+			if (m_pPostProcessPs != nullptr)
+			{
+				m_pPostProcessPs->Release();
+				m_pPostProcessPs = nullptr;
+			}
+
+			if (m_pGenHiZPs != nullptr)
+			{
+				m_pGenHiZPs->Release();
+				m_pGenHiZPs = nullptr;
+			}
+
+			if (m_pDownSamplePs != nullptr)
+			{
+				m_pDownSamplePs->Release();
+				m_pDownSamplePs = nullptr;
+			}
+
+			if (m_pAabbVs != nullptr)
+			{
+				m_pAabbVs->Release();
+				m_pAabbVs = nullptr;
+			}
+			if (m_pAabbPs != nullptr)
+			{
+				m_pAabbPs->Release();
+				m_pAabbPs = nullptr;
 			}
 
 			if (m_pGenMipCS != nullptr)
@@ -1684,28 +1708,28 @@ namespace wilson
 				m_pGenMipCS = nullptr;
 			}
 
-			if (m_pSSAOCS != nullptr)
+			if (m_pSsaoCs != nullptr)
 			{
-				m_pSSAOCS->Release();
-				m_pSSAOCS = nullptr;
+				m_pSsaoCs->Release();
+				m_pSsaoCs = nullptr;
 			}
 
-			if (m_pSSAOBlurCS != nullptr)
+			if (m_pSsaoBlurCs != nullptr)
 			{
-				m_pSSAOBlurCS->Release();
-				m_pSSAOBlurCS = nullptr;
+				m_pSsaoBlurCs->Release();
+				m_pSsaoBlurCs = nullptr;
 			}
 
-			if (m_pPostProcessCS != nullptr)
+			if (m_pPostProcessCs != nullptr)
 			{
-				m_pPostProcessCS->Release();
-				m_pPostProcessCS = nullptr;
+				m_pPostProcessCs->Release();
+				m_pPostProcessCs = nullptr;
 			}
 
-			if (m_pHiZCullCS != nullptr)
+			if (m_pHiZCullCs != nullptr)
 			{
-				m_pHiZCullCS->Release();
-				m_pHiZCullCS = nullptr;
+				m_pHiZCullCs->Release();
+				m_pHiZCullCs = nullptr;
 			}
 
 			if (m_pZpassRootSignature != nullptr)
@@ -1740,25 +1764,25 @@ namespace wilson
 				m_pSkyboxRootSignature->Release();
 				m_pSkyboxRootSignature = nullptr;
 			}
-			if (m_pPBRGeoRootSignature != nullptr)
+			if (m_pPbrGeoRootSignature != nullptr)
 			{
-				m_pPBRGeoRootSignature->Release();
-				m_pPBRGeoRootSignature = nullptr;
+				m_pPbrGeoRootSignature->Release();
+				m_pPbrGeoRootSignature = nullptr;
 			}
-			if (m_pSSAORootSignature != nullptr)
+			if (m_pSsaoRootSignature != nullptr)
 			{
-				m_pSSAORootSignature->Release();
-				m_pSSAORootSignature = nullptr;
+				m_pSsaoRootSignature->Release();
+				m_pSsaoRootSignature = nullptr;
 			}
-			if (m_pSSAOBlurRootSignature != nullptr)
+			if (m_pSsaoBlurRootSignature != nullptr)
 			{
-				m_pSSAOBlurRootSignature->Release();
-				m_pSSAOBlurRootSignature = nullptr;
+				m_pSsaoBlurRootSignature->Release();
+				m_pSsaoBlurRootSignature = nullptr;
 			}
-			if (m_pPBRLightRootSignature != nullptr)
+			if (m_pPbrLightRootSignature != nullptr)
 			{
-				m_pPBRLightRootSignature->Release();
-				m_pPBRLightRootSignature = nullptr;
+				m_pPbrLightRootSignature->Release();
+				m_pPbrLightRootSignature = nullptr;
 			}
 			if (m_pOutlinerTestRootSignature != nullptr)
 			{
@@ -1807,10 +1831,10 @@ namespace wilson
 				m_pBlurRootSignature = nullptr;
 			}
 
-			if (m_pAABBRootSignature != nullptr)
+			if (m_pAabbRootSignature != nullptr)
 			{
-				m_pAABBRootSignature->Release();
-				m_pAABBRootSignature = nullptr;
+				m_pAabbRootSignature->Release();
+				m_pAabbRootSignature = nullptr;
 			}
 
 			if (m_pCubeRootsignature != nullptr)
@@ -1845,5 +1869,4 @@ namespace wilson
 		}
 
 	}
-
 }

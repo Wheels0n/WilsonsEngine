@@ -3,7 +3,7 @@
 #include "typedef.h"
 namespace wilson {
 
-	Camera12::Camera12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager,
+	Camera12::Camera12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager,
 		const UINT screenWidth, const UINT screenHeight, float screenFar, float screenNear)
 	{
 		m_nearZ = screenNear;
@@ -32,12 +32,12 @@ namespace wilson {
 		
 		UINT cbSize = sizeof(DirectX::XMVECTOR);
 		m_pCamPosCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-		m_camPosCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		m_camPosCbv = pHeapManager->GetCbv(cbSize, pDevice);
 		
 		
 		cbSize = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;
 		m_pCascadeLevelCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-		m_cascadeLevelCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		m_cascadeLevelCbv = pHeapManager->GetCbv(cbSize, pDevice);
 		
 	
 	}
@@ -54,7 +54,7 @@ namespace wilson {
 	}
 
 
-	void Camera12::Rotate(int dpitch, int dyaw)
+	void Camera12::Rotate(const int dpitch, const int dyaw)
 	{
 		DirectX::XMFLOAT4 float4;
 		DirectX::XMStoreFloat4(&float4, m_rotation);
@@ -75,13 +75,12 @@ namespace wilson {
 		m_rotation = DirectX::XMVectorSet(pitch, yaw, 0.0f, 0.0f);
 	}
 
-	void Camera12::Translate(DirectX::XMVECTOR dv)
+	void Camera12::Translate(const DirectX::XMVECTOR dv)
 	{
 		DirectX::XMMATRIX rtMat = DirectX::XMMatrixRotationRollPitchYawFromVector(m_rotation);
-		dv = DirectX::XMVector3Transform(dv, rtMat);
-		dv = DirectX::XMVectorScale(dv, m_trSpeed);
-
-		m_pos = DirectX::XMVectorAdd(m_pos, dv);
+		DirectX::XMVECTOR displacemenst = DirectX::XMVector3Transform(dv, rtMat);
+		displacemenst = DirectX::XMVectorScale(displacemenst, m_trSpeed);
+		m_pos = DirectX::XMVectorAdd(m_pos, displacemenst);
 	}
 
 	void Camera12::Update()
@@ -106,7 +105,7 @@ namespace wilson {
 		UpdateCascadeLevels();
 	}
 
-	bool Camera12::UploadCascadeLevels(ID3D12GraphicsCommandList* pCommandlist)
+	bool Camera12::UploadCascadeLevels(ID3D12GraphicsCommandList* const pCommandlist)
 	{
 		std::vector<DirectX::XMVECTOR> FarZs(_CASCADE_LEVELS);
 		for (int i = 0; i < _CASCADE_LEVELS; ++i)
@@ -115,17 +114,18 @@ namespace wilson {
 		}
 
 		memcpy(m_pCascadeLevelCbBegin, &FarZs[0], sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS);
-		pCommandlist->SetGraphicsRootDescriptorTable(ePbrLightRP::ePbrLight_ePsCasCadeLevels, m_cascadeLevelCBV);
+		pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psCasCadeLevels), m_cascadeLevelCbv);
 		return true;
 	}
 
 
-	bool Camera12::UploadCamPos(ID3D12GraphicsCommandList* pCommandlist, bool bGeoPass)
+	bool Camera12::UploadCamPos(ID3D12GraphicsCommandList* const pCommandlist, const bool bGeoPass)
 	{
 		
 		memcpy(m_pCamPosCbBegin, &m_pos, sizeof(DirectX::XMVECTOR));
-		pCommandlist->SetGraphicsRootDescriptorTable(bGeoPass?ePbrGeoRP::ePbrGeo_ePsCamPos: ePbrLightRP::ePbrLight_ePsCamPos,
-			m_camPosCBV);
+		pCommandlist->SetGraphicsRootDescriptorTable(bGeoPass? static_cast<UINT>(ePbrGeoRP::psCamPos)
+			: static_cast<UINT>(ePbrLightRP::psCamPos),
+			m_camPosCbv);
 		return true;
 
 	}

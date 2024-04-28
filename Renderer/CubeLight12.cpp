@@ -1,4 +1,4 @@
-#include<DirectXMath.h>
+
 #include "CubeLight12.h"
 #include "HeapManager.h"
 namespace wilson
@@ -29,12 +29,12 @@ namespace wilson
 
     void CubeLight12::UpdateProperty()
     {
-        m_CubeLightProperty.ambient = m_ambient;
-        m_CubeLightProperty.attenuation = m_attenuation;
-        m_CubeLightProperty.diffuse = m_diffuse;
-        m_CubeLightProperty.position = m_position;
-        m_CubeLightProperty.range = m_range;
-        m_CubeLightProperty.specular = m_specular;
+        m_cubeLightProperty.ambient = m_ambient;
+        m_cubeLightProperty.attenuation = m_attenuation;
+        m_cubeLightProperty.diffuse = m_diffuse;
+        m_cubeLightProperty.position = m_position;
+        m_cubeLightProperty.range = m_range;
+        m_cubeLightProperty.specular = m_specular;
     }
     void CubeLight12::CreateShadowMatrices()
     {
@@ -49,7 +49,7 @@ namespace wilson
         }
     }
    
-    void CubeLight12::UploadShadowMatrices(ID3D12GraphicsCommandList* pCommandlist)
+    void CubeLight12::UploadShadowMatrices(ID3D12GraphicsCommandList* const pCommandlist)
     {
         std::vector<DirectX::XMMATRIX> matrices(6);
         for (int i = 0; i < 6; ++i)
@@ -58,21 +58,21 @@ namespace wilson
         }
 
         memcpy(m_pMatricesCbBegin, &matrices[0], sizeof(DirectX::XMMATRIX) * 6);
-        pCommandlist->SetGraphicsRootDescriptorTable(eCubeShadowRP::eCubeShadow_eGsMat , m_matriceCBV);
+        pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(eCubeShadowRP::gsMat) , m_matriceCbv);
         return;
     }
    
-    void CubeLight12::UploadLightPos(ID3D12GraphicsCommandList* pCommandlist)
+    void CubeLight12::UploadLightPos(ID3D12GraphicsCommandList* const pCommandlist)
     {
         DirectX::XMVECTOR pos = DirectX::XMVectorSet(m_position.x, m_position.y, m_position.z, g_far);
 
         memcpy(m_pPosCbBegin, &pos, sizeof(DirectX::XMVECTOR));
-        pCommandlist->SetGraphicsRootDescriptorTable(eCubeShadowRP::eCubeShadow_ePsLightPos, m_posCBV);
+        pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(eCubeShadowRP::psLightPos), m_posCbv);
         return;
     }
 
 
-    CubeLight12::CubeLight12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager, UINT idx)
+    CubeLight12::CubeLight12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager, const UINT idx)
         :Light12(idx)
     {
         m_pMatricesCbBegin = nullptr;
@@ -80,11 +80,11 @@ namespace wilson
 
         UINT cbSize = sizeof(DirectX::XMMATRIX) * 7;
         m_pMatricesCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-        m_matriceCBV = pHeapManager->GetCBV(cbSize, pDevice);
+        m_matriceCbv = pHeapManager->GetCbv(cbSize, pDevice);
                 
         cbSize = sizeof(DirectX::XMVECTOR);
         m_pPosCbBegin= pHeapManager->GetCbMappedPtr(cbSize);
-        m_posCBV = pHeapManager->GetCBV(cbSize, pDevice);
+        m_posCbv = pHeapManager->GetCbv(cbSize, pDevice);
  
         m_cubeMats.resize(6);
         CreateShadowMatrices();

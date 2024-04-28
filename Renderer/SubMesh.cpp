@@ -17,7 +17,7 @@ namespace wilson
 		m_vbV = vbv;
 		m_ibVs = ibvs;
 		m_pTextures = textures;
-		m_pMatBuffer = pMatBuffer;
+		m_pMatricesCb = pMatBuffer;
 		m_PerModel = perModel;
 		m_clusterPos = clusterPos;
 		m_matName = matName;
@@ -77,7 +77,7 @@ namespace wilson
 				m_pAABBs[i] = new AABB(minAABB, maxAABB);
 
 				pHeapManager->AllocateVertexData((UINT8*)(m_pAABBs[i]->GetVertices()), sizeof(XMFLOAT3) * 8);
-				m_aabbVbvs[i] = pHeapManager->GetVBV(sizeof(XMFLOAT3) * 8, sizeof(XMFLOAT3));
+				m_aabbVbvs[i] = pHeapManager->GetVbv(sizeof(XMFLOAT3) * 8, sizeof(XMFLOAT3));
 
 				DirectX::XMFLOAT3 center((maxAABB.x + minAABB.x) * 0.5f,
 					(maxAABB.y + minAABB.y) * 0.5f, (maxAABB.z + minAABB.z) * 0.5f);
@@ -115,7 +115,7 @@ namespace wilson
 	void SubMesh::SetTexture(ID3D12GraphicsCommandList* pCommandList, ePass curPass)
 	{
 		//Upload CBV
-		if (curPass == eGeoPass)
+		if (curPass == ePass::geoPass)
 		{
 			//Set SRV
 			{
@@ -127,15 +127,15 @@ namespace wilson
 
 			}
 		}
-		else if (curPass == eCubeShadowPass)
+		else if (curPass == ePass::cubeShadowPass)
 		{
-			pCommandList->SetGraphicsRootDescriptorTable(eCubeShadow_ePsDiffuseMap, m_pTextures[Diffuse]);
+			pCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eCubeShadowRP::psDiffuseMap), m_pTextures[static_cast<UINT>(eTexType::diffuse)]);
 		}
 
 	}
-	AABB SubMesh::GetGlobalAABB()
+	AABB SubMesh::GetGlobalAabb()
 	{
-		MatrixBuffer matBuffer = m_pMatBuffer->GetMatrixBuffer();
+		MatrixBuffer matBuffer = m_pMatricesCb->GetMatrixBuffer();
 		DirectX::XMMATRIX transform = matBuffer.worldMat;
 
 		DirectX::XMVECTOR centerV = m_pAABB->GetCenter();
@@ -143,7 +143,7 @@ namespace wilson
 		DirectX::XMFLOAT4 globalCenter;
 		DirectX::XMStoreFloat4(&globalCenter, globalCenterV);
 
-		DirectX::XMVECTOR extentsV = m_pAABB->GetExtents();
+		DirectX::XMVECTOR extentsV = m_pAABB->GetExtent();
 		DirectX::XMFLOAT3 extents;
 		DirectX::XMStoreFloat3(&extents, extentsV);
 

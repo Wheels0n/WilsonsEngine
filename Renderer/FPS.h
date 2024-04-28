@@ -1,30 +1,26 @@
 #pragma once 
 
 #pragma comment(lib, "winmm.lib")
-
-#include<windows.h>
-#include<mmsyscom.h>
-
+#include "typedef.h"
 namespace wilson
 {
 	class FPS
 	{
 	public:
-		void Init();
-		void Frame();
-		
 		inline int GetFps()
 		{
 			return m_fps;
 		}
-
+		void Frame();
+		void Init();
+		
 		FPS() = default;
 		FPS(const FPS&) = delete;
 		~FPS() = default;
 
 	private:
-		UINT m_fps;
 		UINT m_count;
+		UINT m_fps;
 		ULONG m_startTime;
 	};
 }

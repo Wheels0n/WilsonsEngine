@@ -1,29 +1,24 @@
 #pragma once
-#include <cwchar>
-#include <filesystem>
 #include <d3d12.h>
 #include <DirectXTex.h>
-#include <utility>
-#include <map>
-#include <queue>
 #include "D3D12.h"
 #include "Import12.h"
 #include "HeapManager.h"
 
 namespace wilson
 {
-	ULONG Importer12::g_vertexVecCount = 0;
-	ULONG Importer12::g_texVecCount = 0;
-	ULONG Importer12::g_normalVecCount = 0;
+	ULONG Importer12::g_nVertexVec = 0;
+	ULONG Importer12::g_nTexVec = 0;
+	ULONG Importer12::g_nNormalVec = 0;
 
-	Importer12::Importer12(D3D12* pD3D12)
+	Importer12::Importer12(D3D12*const pD3D12)
 	{
-		m_vertexCount = 0;
-		m_vertexVecCount = 0;
-		m_texVecCount = 0;
-		m_normalVecCount = 0;
-		m_indexCount = 0;
-		m_objectCount = 0;
+		m_nVertex = 0;
+		m_nVertexVec = 0;
+		m_nTexVec = 0;
+		m_nNormalVec = 0;
+		m_nIndex = 0;
+		m_nObject = 0;
 
 		m_pMesh = nullptr;
 		m_pVertexVecs = nullptr;
@@ -37,9 +32,9 @@ namespace wilson
 		m_texTypeHash["Bump"] = eTEX::Bump;
 		m_texTypeHash["d"] = eTEX::d;
 
-		m_curDir = nullptr;
-		m_mtlPath = nullptr;
-		m_fileName = nullptr;
+		m_pCurDir = nullptr;
+		m_pMtlPath = nullptr;
+		m_pFileName = nullptr;
 		m_pObject = nullptr;
 		m_pTangentVecs = nullptr;
 
@@ -65,13 +60,13 @@ namespace wilson
 		m_pImporterCommandList->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pImporterCommandList") - 1, "D3D12::m_pImporterCommandList");
 	}
-	void Importer12::GetExtension(char* dst, const char* src)
+	void Importer12::GetExtension(char* pDst, const char* pSrc)
 	{
 		int i = 0;
 		while (true)
 		{
 			++i;
-			if (src[i] == '.')
+			if (pSrc[i] == '.')
 			{
 				++i;
 				break;
@@ -80,19 +75,19 @@ namespace wilson
 
 		for (int j = 0; j < 3; ++j, ++i)
 		{
-			dst[j] = src[i];
+			pDst[j] = pSrc[i];
 		}
-		dst[3] = '\0';
+		pDst[3] = '\0';
 		return;
 	}
-	std::streampos Importer12::GetCnts(LPCWSTR fileName, std::streampos pos, std::string& objName)
+	std::streampos Importer12::GetCnts(LPCWSTR pFileName, const std::streampos pos, std::string& objName)
 	{
 		std::string line;
 		std::ifstream fin;
 		std::streampos lastPos;
 		char ch;
 
-		fin.open(fileName, std::ios_base::binary);
+		fin.open(pFileName, std::ios_base::binary);
 		if (fin.fail())
 		{
 			return pos;
@@ -108,27 +103,27 @@ namespace wilson
 
 			if (line.compare("v") == 0)
 			{
-				++m_vertexVecCount;
+				++m_nVertexVec;
 			}
 			else if (line.compare("vt") == 0)
 			{
-				++m_texVecCount;
+				++m_nTexVec;
 			}
 
 			else if (line.compare("vn") == 0)
 			{
-				++m_normalVecCount;
+				++m_nNormalVec;
 			}
 
 			else if (line.compare("f") == 0)
 			{
 				fin.get(ch);
-				++m_vertexCount;
+				++m_nVertex;
 				while (ch != '\n')
 				{
 					if (ch == ' ')
 					{
-						++m_vertexCount;
+						++m_nVertex;
 					}
 					fin.get(ch);
 
@@ -149,12 +144,12 @@ namespace wilson
 		fin.close();
 		return lastPos;
 	}
-	void Importer12::LoadSubOBJ(LPCWSTR fileName, std::streampos pos, ID3D12Device* pDevice, std::string& objName)
+	void Importer12::LoadSubOBJ(LPCWSTR pFileName, const std::streampos pos, ID3D12Device* const pDevice, const std::string& objName)
 	{
 		char ch = ' ';
 		std::string line;
 		std::ifstream fin;
-		fin.open(fileName, std::ios_base::binary);
+		fin.open(pFileName, std::ios_base::binary);
 		if (fin.fail())
 		{
 			return;
@@ -168,20 +163,20 @@ namespace wilson
 		fin.seekg(pos);
 		std::getline(fin, line);
 
-		m_pVertexVecs = new DirectX::XMFLOAT3[m_vertexVecCount];
-		m_pTexVecs = new DirectX::XMFLOAT2[m_texVecCount];
-		m_pNormalVecs = new DirectX::XMFLOAT3[m_normalVecCount];
+		m_pVertexVecs = new DirectX::XMFLOAT3[m_nVertexVec];
+		m_pTexVecs = new DirectX::XMFLOAT2[m_nTexVec];
+		m_pNormalVecs = new DirectX::XMFLOAT3[m_nNormalVec];
 
-		m_pVertexData = new VertexData[m_vertexCount];
-		m_pIndices = new unsigned long[m_vertexCount];
+		m_pVertexData = new VertexData[m_nVertex];
+		m_pIndices = new unsigned long[m_nVertex];
 
-		ZeroMemory(m_pVertexVecs, sizeof(DirectX::XMFLOAT3) * m_vertexVecCount);
-		ZeroMemory(m_pTexVecs, sizeof(DirectX::XMFLOAT2) * m_texVecCount);
-		ZeroMemory(m_pNormalVecs, sizeof(DirectX::XMFLOAT3) * m_normalVecCount);
-		ZeroMemory(m_pVertexData, sizeof(VertexData) * m_vertexCount);
+		ZeroMemory(m_pVertexVecs, sizeof(DirectX::XMFLOAT3) * m_nVertexVec);
+		ZeroMemory(m_pTexVecs, sizeof(DirectX::XMFLOAT2) * m_nTexVec);
+		ZeroMemory(m_pNormalVecs, sizeof(DirectX::XMFLOAT3) * m_nNormalVec);
+		ZeroMemory(m_pVertexData, sizeof(VertexData) * m_nVertex);
 
 		char type;
-		int vCnt = 0, vtCnt = 0, vnCnt = 0;
+		UINT vCnt = 0, vtCnt = 0, vnCnt = 0;
 		while (!fin.eof())
 		{
 			fin.get(type);
@@ -233,22 +228,22 @@ namespace wilson
 						if (!fin.fail())
 						{
 
-							m_pVertexData[m_indexCount].position = m_pVertexVecs[v - g_vertexVecCount - 1];
-							m_pVertexData[m_indexCount].uv = m_pTexVecs[vt - g_texVecCount - 1];
-							m_pVertexData[m_indexCount].norm = m_pNormalVecs[vn - g_normalVecCount - 1];
+							m_pVertexData[m_nIndex].position = m_pVertexVecs[v - g_nVertexVec - 1];
+							m_pVertexData[m_nIndex].uv = m_pTexVecs[vt - g_nTexVec - 1];
+							m_pVertexData[m_nIndex].norm = m_pNormalVecs[vn - g_nNormalVec - 1];
 							//오른손좌표계에서 왼손좌표계로
-							m_pIndices[m_indexCount] = m_indexCount;
-							++m_indexCount;
+							m_pIndices[m_nIndex] = m_nIndex;
+							++m_nIndex;
 						}
 					}
 					if (hasNormal)
 					{
-						DirectX::XMVECTOR pos1 = DirectX::XMLoadFloat3(&m_pVertexData[m_indexCount - 3].position);
-						DirectX::XMVECTOR uv1 = DirectX::XMLoadFloat2(&m_pVertexData[m_indexCount - 3].uv);
-						DirectX::XMVECTOR pos2 = DirectX::XMLoadFloat3(&m_pVertexData[m_indexCount - 2].position);
-						DirectX::XMVECTOR uv2 = DirectX::XMLoadFloat2(&m_pVertexData[m_indexCount - 2].uv);
-						DirectX::XMVECTOR pos3 = DirectX::XMLoadFloat3(&m_pVertexData[m_indexCount - 1].position);
-						DirectX::XMVECTOR uv3 = DirectX::XMLoadFloat2(&m_pVertexData[m_indexCount - 1].uv);
+						DirectX::XMVECTOR pos1 = DirectX::XMLoadFloat3(&m_pVertexData[m_nIndex - 3].position);
+						DirectX::XMVECTOR uv1 = DirectX::XMLoadFloat2(&m_pVertexData[m_nIndex - 3].uv);
+						DirectX::XMVECTOR pos2 = DirectX::XMLoadFloat3(&m_pVertexData[m_nIndex - 2].position);
+						DirectX::XMVECTOR uv2 = DirectX::XMLoadFloat2(&m_pVertexData[m_nIndex - 2].uv);
+						DirectX::XMVECTOR pos3 = DirectX::XMLoadFloat3(&m_pVertexData[m_nIndex - 1].position);
+						DirectX::XMVECTOR uv3 = DirectX::XMLoadFloat2(&m_pVertexData[m_nIndex - 1].uv);
 
 						DirectX::XMFLOAT3 e1;
 						DirectX::XMStoreFloat3(&e1, DirectX::XMVectorSubtract(pos2, pos1));
@@ -265,9 +260,9 @@ namespace wilson
 						tangent.y = det * (dUV2.y * e1.y - dUV1.y * e2.y);
 						tangent.z = det * (dUV2.y * e1.z - dUV1.y * e2.z);
 
-						m_pVertexData[m_indexCount - 1].tangent = tangent;
-						m_pVertexData[m_indexCount - 2].tangent = tangent;
-						m_pVertexData[m_indexCount - 3].tangent = tangent;
+						m_pVertexData[m_nIndex - 1].tangent = tangent;
+						m_pVertexData[m_nIndex - 2].tangent = tangent;
+						m_pVertexData[m_nIndex - 3].tangent = tangent;
 					}
 					fin.clear();
 				}
@@ -280,9 +275,9 @@ namespace wilson
 				matNames.push_back(line);
 
 				int idx = m_matHash[line];
-				hasNormal = !m_MaterialInfoV[idx].normalMap.empty();
-				vertexDataPos.push_back(m_indexCount);
-				indicesPos.push_back(m_indexCount);
+				hasNormal = !m_materialInfos[idx].normalMap.empty();
+				vertexDataPos.push_back(m_nIndex);
+				indicesPos.push_back(m_nIndex);
 			}
 			else if (type == 's')
 			{
@@ -290,33 +285,33 @@ namespace wilson
 			}
 		}
 
-		g_vertexVecCount += m_vertexVecCount;
-		g_texVecCount += m_texVecCount;
-		g_normalVecCount += m_normalVecCount;
+		g_nVertexVec += m_nVertexVec;
+		g_nTexVec += m_nTexVec;
+		g_nNormalVec += m_nNormalVec;
 
-		vertexDataPos.push_back(m_vertexCount);
-		indicesPos.push_back(m_indexCount);
+		vertexDataPos.push_back(m_nVertex);
+		indicesPos.push_back(m_nIndex);
 		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
 		DirectX::XMVECTOR zeroV = DirectX::XMVectorZero();
-	/*	m_pMesh = new Mesh(m_pDevice, m_pCommandList, m_pHeapManager, 
+	/*	m_pMesh = new Mesh12(m_pDevice, m_pCommandList, m_pHeapManager, 
 			m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);*/
 		m_pMeshes.push_back(m_pMesh);
-		++m_objectCount;
+		++m_nObject;
 
 		fin.close();
 
 	}
-	bool Importer12::LoadOBJ(LPCWSTR fileName, ID3D12Device* pDevice)
+	bool Importer12::LoadOBJ(LPCWSTR pFileName, ID3D12Device* const pDevice)
 	{
 		std::ifstream fin;
-		fin.open(fileName, std::ios::binary);
+		fin.open(pFileName, std::ios::binary);
 
 		if (fin.fail())
 		{
 			return false;
 		}
 
-		LoadMTL(m_mtlPath, pDevice);
+		LoadMTL(m_pMtlPath, pDevice);
 
 		std::string line;
 		std::string objName;
@@ -327,8 +322,8 @@ namespace wilson
 			if (line.compare("o") == 0)
 			{
 				curPos = fin.tellg();
-				nextPos = GetCnts(fileName, curPos, objName);
-				LoadSubOBJ(fileName, curPos, pDevice, objName);
+				nextPos = GetCnts(pFileName, curPos, objName);
+				LoadSubOBJ(pFileName, curPos, pDevice, objName);
 				ClearMesh();
 				if (nextPos == 0)
 				{
@@ -357,43 +352,43 @@ namespace wilson
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			
-			m_SRV = m_pHeapManager->GetSRV(srvDesc, m_pTexs[i], pDevice);
-			m_pTexSrvs.push_back(m_SRV);
+			m_Srv = m_pHeapManager->GetSrv(srvDesc, m_pTexs[i], pDevice);
+			m_pTexSrvs.push_back(m_Srv);
 
 		}
-		m_pObject = new Object(m_pMeshes, m_MaterialInfoV, m_pTexSrvs, m_pTexs, 
-			m_fileName, eFileType::OBJ, m_matHash, m_texHash);
+		m_pObject = new Object12(m_pMeshes, m_materialInfos, m_pTexSrvs, m_pTexs, 
+			m_pFileName, eFileType::OBJ, m_matHash, m_texHash);
 
 		ClearMesh();
 		ClearObject();
-		g_vertexVecCount = 0;
-		g_texVecCount = 0;
-		g_normalVecCount = 0;
+		g_nVertexVec = 0;
+		g_nTexVec = 0;
+		g_nNormalVec = 0;
 		return true;
 	}
-	bool Importer12::LoadObject(const char* extension, LPCWSTR fileName, ID3D12Device* pDevice)
+	bool Importer12::LoadObject(const char* pExtension, LPCWSTR pFileName, ID3D12Device* const pDevice)
 	{
-		GetCurDir(fileName);
-		int len = wcslen(fileName);
-		m_fileName = new wchar_t[len + 1];
-		wcscpy(m_fileName, fileName);
-		m_fileName[len] = L'\0';
-		m_fileName = GetFileName(m_fileName);
-		m_mtlPath = GetMTLPath(m_curDir, m_fileName);//파일명과 subMesh명이 반드시 일치x
-		if (!strcmp(extension, "obj"))
+		GetCurDir(pFileName);
+		int len = wcslen(pFileName);
+		m_pFileName = new wchar_t[len + 1];
+		wcscpy(m_pFileName, pFileName);
+		m_pFileName[len] = L'\0';
+		m_pFileName = GetFileName(m_pFileName);
+		m_pMtlPath = GetMTLPath(m_pCurDir, m_pFileName);//파일명과 subMesh명이 반드시 일치x
+		if (!strcmp(pExtension, "obj"))
 		{
-			return LoadOBJ(fileName, pDevice);
+			return LoadOBJ(pFileName, pDevice);
 		}
-		else if (!strcmp(extension, "fbx"))
+		else if (!strcmp(pExtension, "fbx"))
 		{
-			return LoadFbx(fileName, pDevice);
+			return LoadFbx(pFileName, pDevice);
 		}
-		delete[] m_fileName;
+		delete[] m_pFileName;
 	}
-	bool Importer12::LoadMTL(wchar_t* fileName, ID3D12Device* pDevice)
+	bool Importer12::LoadMTL(wchar_t* pFileName, ID3D12Device* const pDevice)
 	{
 		std::ifstream fin;
-		fin.open(fileName);
+		fin.open(pFileName);
 		if (fin.fail())
 		{
 			return false;
@@ -406,7 +401,7 @@ namespace wilson
 		std::getline(fin, line, ':');//두 번째 행에 머티리얼 개수가 표시됨
 		std::getline(fin, line);
 		int matCnt = atoi(line.c_str());
-		m_MaterialInfoV.reserve(matCnt);
+		m_materialInfos.reserve(matCnt);
 		std::getline(fin, line);
 
 
@@ -419,7 +414,7 @@ namespace wilson
 				MaterialInfo mat = { "","","","",{0,} };
 				std::getline(fin, line);
 				std::string matName = line;
-				m_matHash[matName] = m_MaterialInfoV.size();
+				m_matHash[matName] = m_materialInfos.size();
 				{
 					float shininess = 1.0f;
 					while (!fin.eof())
@@ -486,9 +481,9 @@ namespace wilson
 							wstr = wstr.substr(pos + 1, std::string::npos);
 
 
-							int len = wcslen(m_curDir) + wstr.length() + 2;
+							int len = wcslen(m_pCurDir) + wstr.length() + 2;
 							wchar_t* mapPath = new wchar_t[len];
-							wcscpy(mapPath, m_curDir);
+							wcscpy(mapPath, m_pCurDir);
 							mapPath = wcsncat(mapPath, L"\\", 2);
 							mapPath = wcsncat(mapPath, wstr.c_str(), wstr.size());
 
@@ -515,7 +510,7 @@ namespace wilson
 						}
 
 					}
-					m_MaterialInfoV.push_back(mat);
+					m_materialInfos.push_back(mat);
 				}
 			}
 			else
@@ -530,7 +525,7 @@ namespace wilson
 		fin.close();
 	}
 
-	FbxAMatrix Importer12::GetNodeTransfrom(FbxNode* pNode)
+	FbxAMatrix Importer12::GetNodeTransfrom(FbxNode* const pNode)
 	{
 		FbxAMatrix trM, scM, scPM, scOM,
 			rtPM, rtOM, preRM, rtM, postRtM, wM;
@@ -626,54 +621,54 @@ namespace wilson
 		return wM;
 	}
 
-	void Importer12::GetCurDir(LPCWSTR fileName)
+	void Importer12::GetCurDir(LPCWSTR pFileName)
 	{
-		std::wstring::size_type pos = std::wstring(fileName).find_last_of(L"\\");
-		std::wstring curDirWStr = std::wstring(fileName).substr(0, pos);
-		m_curDir = new wchar_t[curDirWStr.size() + 1];
-		m_curDir = wcscpy(m_curDir, curDirWStr.c_str());
+		std::wstring::size_type pos = std::wstring(pFileName).find_last_of(L"\\");
+		std::wstring curDirWStr = std::wstring(pFileName).substr(0, pos);
+		m_pCurDir = new wchar_t[curDirWStr.size() + 1];
+		m_pCurDir = wcscpy(m_pCurDir, curDirWStr.c_str());
 		//널문자 만나면 끝나니까 직접 추가
-		m_curDir[curDirWStr.size()] = L'\0';
+		m_pCurDir[curDirWStr.size()] = L'\0';
 	}
-	wchar_t* Importer12::GetMTLPath(LPCWSTR filePath, wchar_t* tok)
+	wchar_t* Importer12::GetMTLPath(LPCWSTR pFilePath, wchar_t* pTok)
 	{
-		int len = wcslen(filePath);
-		len += wcslen(tok);
+		UINT len = wcslen(pFilePath);
+		len += wcslen(pTok);
 		len += 7; //.mtl\0 + // + 
 		wchar_t* ptr = nullptr;
-		wchar_t* tmp = new wchar_t[len];
-		tmp = wcscpy(tmp, filePath);
-		tmp = wcstok(tmp, L".", &ptr);
-		tmp = wcsncat(tmp, L"\\", 2);
+		wchar_t* pTmp = new wchar_t[len];
+		pTmp = wcscpy(pTmp, pFilePath);
+		pTmp = wcstok(pTmp, L".", &ptr);
+		pTmp = wcsncat(pTmp, L"\\", 2);
 		//strcat은 null문자 있는 곳에 그냥 이어쓰기! 메모리 초과 쓰기 주의
-		wchar_t* mtlPath = wcsncat(tmp, tok, wcslen(tok));
-		mtlPath = wcsncat(mtlPath, L".mtl\0", 5);
-		return mtlPath;
+		wchar_t* pMtlPath = wcsncat(pTmp, pTok, wcslen(pTok));
+		pMtlPath = wcsncat(pMtlPath, L".mtl\0", 5);
+		return pMtlPath;
 	}
-	wchar_t* Importer12::GetFileName(LPCWSTR fileName)
+	wchar_t* Importer12::GetFileName(LPCWSTR pFileName)
 	{
-		wchar_t* tok = nullptr;
+		wchar_t* pTok = nullptr;
 		wchar_t* ptr = nullptr;
-		wchar_t* temp = wcstok((wchar_t*)fileName, (const wchar_t*)L"\\", &ptr);
+		wchar_t* pTemp = wcstok((wchar_t*)pFileName, (const wchar_t*)L"\\", &ptr);
 		while (true)
 		{
-			temp = wcstok(nullptr, (const wchar_t*)L"\\", &ptr);
-			if (temp == nullptr)
+			pTemp = wcstok(nullptr, (const wchar_t*)L"\\", &ptr);
+			if (pTemp == nullptr)
 			{
 				break;
 			}
 			else
 			{
-				tok = temp;
+				pTok = pTemp;
 			}
 
 		}
 
-		tok = wcstok(tok, L".", &ptr);
-		return tok;
+		pTok = wcstok(pTok, L".", &ptr);
+		return pTok;
 	}
-	bool Importer12::LoadFbxTex(std::string fileName, FbxSurfaceMaterial* pSurfaceMaterial,
-		MaterialInfo* pMatInfo, std::vector<std::string>& matNames, ID3D12Device* pDevice)
+	bool Importer12::LoadFbxTex(const std::string fileName, FbxSurfaceMaterial* const pSurfaceMaterial,
+		MaterialInfo* const pMatInfo, std::vector<std::string>& matNames, ID3D12Device* const pDevice)
 	{
 		std::filesystem::path fbxPath = fileName.c_str();
 		std::string texturesPath = fbxPath.parent_path().string() + "\\";
@@ -810,14 +805,14 @@ namespace wilson
 				}
 			}
 		}
-		m_MaterialInfoV.push_back(*pMatInfo);
+		m_materialInfos.push_back(*pMatInfo);
 		FbxString nameFStr = pSurfaceMaterial->GetNameOnly();
 		std::string name(nameFStr.Buffer());
 		matNames.push_back(name);
-		m_matHash[name] = m_MaterialInfoV.size() - 1;
+		m_matHash[name] = m_materialInfos.size() - 1;
 		return true;
 	}
-	Material Importer12::LoadFbxMaterial(FbxSurfaceMaterial* pSurfaceMaterial)
+	Material Importer12::LoadFbxMaterial(FbxSurfaceMaterial* const pSurfaceMaterial)
 	{
 		Material mat = { 0, };
 		const char* pProperties[4] = { FbxSurfaceMaterial::sAmbient, FbxSurfaceMaterial::sDiffuse, FbxSurfaceMaterial::sSpecular,  FbxSurfaceMaterial::sReflection };
@@ -851,7 +846,7 @@ namespace wilson
 		}
 		return mat;
 	}
-	bool Importer12::LoadTex(LPCWSTR fileName, ID3D12Device* pDevice, bool isDiffuse)
+	bool Importer12::LoadTex(LPCWSTR pFileName, ID3D12Device* const pDevice, bool bDiffuse)
 	{
 		
 		ID3D12Resource* pTex;
@@ -861,7 +856,7 @@ namespace wilson
 			//Gen IconTexFromFile 
 
 			DirectX::ScratchImage image;
-			hr = DirectX::LoadFromWICFile(fileName, DirectX::WIC_FLAGS_NONE, nullptr, image);
+			hr = DirectX::LoadFromWICFile(pFileName, DirectX::WIC_FLAGS_NONE, nullptr, image);
 			D3D12_RESOURCE_DESC	texDesc = {};
 			texDesc.Width = image.GetMetadata().width;
 			texDesc.Height = image.GetMetadata().height;
@@ -882,9 +877,10 @@ namespace wilson
 		m_pTexs.push_back(pTex);
 		return true;
 	}
-	void Importer12::LoadSubFbx(FbxMesh* pMesh, FbxVector4* pVertices,
-		std::vector<UINT>& subMeshPos, std::vector<UINT>& indicesPos, std::vector<UINT>& submeshStride, std::vector<std::string>& matNames, std::string& name,
-		FbxAMatrix& wMat)
+	void Importer12::LoadSubFbx(FbxMesh* const pMesh, FbxVector4* const pVertices,
+		std::vector<UINT>& subMeshPos, std::vector<UINT>& indicesPos,
+		const std::vector<UINT>& submeshStride, const std::vector<std::string>& matNames, const std::string& name,
+		const FbxAMatrix& wMat)
 	{
 		//pos를 나눈 이유는 화분처럼 여러 재질로 이루어져있을 경우 나눠서 DrawCall을 하기 위함
 		int submeshCount = 0;
@@ -900,8 +896,8 @@ namespace wilson
 			}
 
 			int verticesCnt = pMesh->GetPolygonSize(j);
-			m_vertexCount += verticesCnt;
-			m_indexCount += verticesCnt;
+			m_nVertex += verticesCnt;
+			m_nIndex += verticesCnt;
 
 		}
 		subMeshPos.push_back(pMesh->GetPolygonCount());
@@ -911,8 +907,8 @@ namespace wilson
 			clusterPos[i].push_back(subMeshPos[i]);
 		}
 
-		m_pIndices = new unsigned long[m_indexCount*2];
-		m_pVertexData = new VertexData[m_vertexCount];
+		m_pIndices = new unsigned long[m_nIndex*2];
+		m_pVertexData = new VertexData[m_nVertex];
 		FbxVector4 tan;
 
 		int idx = -1;
@@ -1301,20 +1297,20 @@ namespace wilson
 		}
 
 		std::wstring wName(name.begin(), name.end());
-		m_pMesh = new Mesh(m_pDevice, m_pCommandList, m_pHeapManager, 
-			m_pVertexData, m_pIndices, m_vertexCount,
+		m_pMesh = new Mesh12(m_pDevice, m_pCommandList, m_pHeapManager, 
+			m_pVertexData, m_pIndices, m_nVertex,
 			subMeshPos, clusterPos,
 			(wchar_t*)wName.c_str(), matNames);
 		m_pMeshes.push_back(m_pMesh);
 	}
-	bool Importer12::LoadFbx(LPCWSTR fileName, ID3D12Device* pDevice)
+	bool Importer12::LoadFbx(LPCWSTR pFileName, ID3D12Device* const pDevice)
 	{
-		std::unordered_set<FbxSurfaceMaterial*> groupMatSet;
+		std::unordered_set<FbxSurfaceMaterial*> objectMatSet;
 
-		std::wstring wfilePath(fileName);
+		std::wstring wfilePath(pFileName);
 		std::string filePath = std::string(wfilePath.begin(), wfilePath.end());
-		wchar_t* wchFileName = GetFileName(fileName);
-		std::wstring wfileName(wchFileName);
+		wchar_t* pWchFileName = GetFileName(pFileName);
+		std::wstring wfileName(pWchFileName);
 
 		m_fbxImporter = FbxImporter::Create(m_fbxManager, "");
 		bool result = m_fbxImporter->Initialize(filePath.c_str(), -1, m_fbxManager->GetIOSettings());
@@ -1339,11 +1335,11 @@ namespace wilson
 			if (AttributType == FbxNodeAttribute::eNull)
 			{
 
-				TraverseNode(pFbxChildNode, pDevice, filePath, groupMatSet);
+				TraverseNode(pFbxChildNode, pDevice, filePath, objectMatSet);
 			}
 			else
 			{
-				TraverseNode(pFbxRootNode, pDevice, filePath, groupMatSet);
+				TraverseNode(pFbxRootNode, pDevice, filePath, objectMatSet);
 			}
 			
 			m_pTexSrvs.reserve(m_pTexs.size());
@@ -1364,11 +1360,11 @@ namespace wilson
 				D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHandle = m_pHeapManager->GetCurCbvSrvCpuHandle();
 				D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = m_pHeapManager->GetCurCbvSrvGpuHandle();
 				pDevice->CreateShaderResourceView(m_pTexs[i], &srvDesc, srvCpuHandle);
-				m_SRV = srvGpuHandle;
-				m_pTexSrvs.push_back(m_SRV);
+				m_Srv = srvGpuHandle;
+				m_pTexSrvs.push_back(m_Srv);
 				m_pHeapManager->IncreaseCbvSrvHandleOffset();
 			}
-			m_pObject = new Object(m_pMeshes, m_MaterialInfoV, m_pTexSrvs, m_pTexs,
+			m_pObject = new Object12(m_pMeshes, m_materialInfos, m_pTexSrvs, m_pTexs,
 				(wchar_t*)wfileName.c_str(),
 				eFileType::FBX, m_matHash, m_texHash);
 			ClearObject();
@@ -1377,7 +1373,8 @@ namespace wilson
 		return true;
 	}
 
-	bool Importer12::TraverseNode(FbxNode* pFbxNode, ID3D12Device* pDevice, std::string& filePath, std::unordered_set<FbxSurfaceMaterial*>& objectMatSet)
+	bool Importer12::TraverseNode(FbxNode* const pFbxNode, ID3D12Device* const pDevice, const std::string& filePath, 
+		std::unordered_set<FbxSurfaceMaterial*>& objectMatSet)
 	{
 		for (int i = 0; i < pFbxNode->GetChildCount(); ++i)
 		{
@@ -1510,10 +1507,10 @@ namespace wilson
 	Importer12::~Importer12()
 	{
 		ClearMesh();
-		if (m_curDir != nullptr)
+		if (m_pCurDir != nullptr)
 		{
-			delete m_curDir;
-			m_curDir = nullptr;
+			delete m_pCurDir;
+			m_pCurDir = nullptr;
 		}
 
 		if (m_pImporterCommandAllocator != nullptr)
@@ -1533,9 +1530,9 @@ namespace wilson
 	}
 	void Importer12::ClearObject()
 	{
-		m_objectCount = 0;
+		m_nObject = 0;
 		m_pMeshes.clear();
-		m_MaterialInfoV.clear();
+		m_materialInfos.clear();
 		m_pTexSrvs.clear();
 		m_pTexs.clear();
 		m_matHash.clear();
@@ -1571,11 +1568,11 @@ namespace wilson
 			m_pIndices = nullptr;
 		}
 
-		m_vertexCount = 0;
-		m_indexCount = 0;
-		m_vertexVecCount = 0;
-		m_texVecCount = 0;
-		m_normalVecCount = 0;
+		m_nVertex = 0;
+		m_nIndex = 0;
+		m_nVertexVec = 0;
+		m_nTexVec = 0;
+		m_nNormalVec = 0;
 
 	}
 }

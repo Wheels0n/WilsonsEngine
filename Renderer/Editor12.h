@@ -10,18 +10,18 @@ namespace wilson {
 	class Editor12 : public Editor
 	{
 	public:
+		bool CheckRange(int, int);
 		void Draw();
 		void Pick();
-		bool CheckRange(int, int);
 
 		Editor12() = default;
-		Editor12(D3D12*);
+		Editor12(D3D12*const);
 		~Editor12();
 	private:
+		ContentBrowser12* m_pContentBrowser;
 		D3D12* m_pD3D12;
-		ContentBrowser12* m_pContentBrowser12;
-		Scene12* m_pScene12;
-		Viewport12* m_pViewport12;
-		Settings12* m_pSettings12;
+		Scene12* m_pScene;
+		Settings12* m_pSettings;
+		Viewport12* m_pViewport;
 	};
 }

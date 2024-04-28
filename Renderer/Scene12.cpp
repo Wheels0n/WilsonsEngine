@@ -1,15 +1,14 @@
-#include <cmath>
-#include <string>
-
 #include "Scene12.h"
 
 namespace wilson
 {
-	Scene12::Scene12(D3D12* pD3D12)
+	Scene12::Scene12(D3D12*const pD3D12)
 	{
-		m_isObject = false;
-		sceneHandler = this;
+		m_bObject = false;
+		m_pSceneHandler = this;
 
+		m_pShadowSrv = nullptr;
+		m_pTextureSrv = nullptr;
 		m_pSelectedEntity = nullptr;
 		m_pCam = nullptr;
 
@@ -26,44 +25,44 @@ namespace wilson
 		m_entites.shrink_to_fit();
 	}
 
-	void Scene12::AddModelEntity(Object* pModelGroup, UINT entityIdx, UINT modelIdx)
+	void Scene12::AddMeshEntity(Object12* const pObject, const UINT entityIdx, const UINT meshIdx)
 	{
-		std::string name = pModelGroup->GetName();
+		std::string name = pObject->GetName();
 
-		Entity12* ENTT = new Entity12(name, entityIdx, pModelGroup, modelIdx);
-		m_entites.push_back(ENTT);
+		Entity12* entity = new Entity12(name, entityIdx, pObject, meshIdx);
+		m_entites.push_back(entity);
 	}
-	void Scene12::AddLightEntity(Light12* pLight, std::string type, UINT entityIdx, UINT lightIdx)
+	void Scene12::AddLightEntity(Light12* const pLight, const std::string type, const UINT entityIdx, const UINT lightIdx)
 	{
 		std::string name = type;
 
-		Entity12* ENTT = new Entity12(type, entityIdx, pLight, lightIdx);
-		m_entites.push_back(ENTT);
+		Entity12* entity = new Entity12(type, entityIdx, pLight, lightIdx);
+		m_entites.push_back(entity);
 	}
 	void Scene12::Draw()
 	{
 		const char* actions = "Remove";
-		if (ImGui::Begin("Scene Hierarchy"))
+		if (ImGui::Begin("Scene11 Hierarchy"))
 		{
 			if (ImGui::TreeNode(m_name.c_str()))
 			{
 				ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-				//i:Entitiy배열, j:모델 그룹 내 하위 모델 배열
+				//i:Entitiy배열, j:모델 그룹 내 하위 mesh 배열
 				for (int i = 0; i < m_entites.size(); ++i)
 				{
 					int entityIdx = m_entites[i]->GetEntityIndex();
-					if (m_entites[i]->isObject())
+					if (m_entites[i]->IsObject())
 					{
-						Object* pModelGroup = m_entites[i]->GetpObject();
-						std::string groupName = pModelGroup->GetName();
-						std::vector<Mesh*>& pModels = pModelGroup->GetMeshes();
-						UINT modelGroupIdx = m_entites[i]->GetObjectIndex();
-						if (ImGui::TreeNode(groupName.c_str()))
+						Object12* pObject = m_entites[i]->GetpObject();
+						std::string objectName = pObject->GetName();
+						std::vector<Mesh12*>& pMeshes = pObject->GetMeshes();
+						UINT objectIdx = m_entites[i]->GetObjectIndex();
+						if (ImGui::TreeNode(objectName.c_str()))
 						{
-							if (ImGui::Button(groupName.c_str()))
+							if (ImGui::Button(objectName.c_str()))
 							{
 								//모델이 아닌 모델그룹이므로 관련 변수들 초기화.
-								UnselectModel();
+								UnselectMesh();
 								ImGui::OpenPopup("Edit");
 							}
 							if (ImGui::BeginPopup("Edit"))
@@ -72,12 +71,12 @@ namespace wilson
 								ImGui::Separator();
 								if (ImGui::Selectable(actions))
 								{	
-									RemoveObject(modelGroupIdx, i);
+									RemoveObject(objectIdx, i);
 									
 									//뒤에 있던 entity와 model의 인덱스를 감소
 									for (int j = i; j < m_entites.size(); ++j)
 									{
-										if (m_entites[j]->isObject())
+										if (m_entites[j]->IsObject())
 										{
 											m_entites[j]->DecreaseObjectIndex();
 											m_entites[j]->DecreaseEntityIndex();
@@ -86,19 +85,19 @@ namespace wilson
 								}
 								ImGui::EndPopup();
 							}
-							for (int j = 0; j < pModels.size(); ++j)
+							for (int j = 0; j < pMeshes.size(); ++j)
 							{
 								ImGui::PushID(i);
-								std::string modelName = pModels[j]->GetName();
+								std::string meshName = pMeshes[j]->GetName();
 								std::string popUpID = std::to_string(i);
 								popUpID += '-';
 								popUpID += std::to_string(j);
-								if (ImGui::Button(modelName.c_str()))
+								if (ImGui::Button(meshName.c_str()))
 								{
-									m_isObject = true;
-									m_pSelectedEntity = pModels[j];
+									m_bObject = true;
+									m_pSelectedEntity = pMeshes[j];
 
-									m_pD3D12->PickSubMesh(modelGroupIdx, j);
+									m_pD3D12->PickSubMesh(objectIdx, j);
 									m_popUpID = popUpID;
 									ImGui::OpenPopup(m_popUpID.c_str());
 								}
@@ -108,14 +107,14 @@ namespace wilson
 									ImGui::Separator();
 									if (ImGui::Selectable(actions))
 									{
-										RemoveSelectedModel(modelGroupIdx, j);
-										if (!m_pD3D12->GetNumMesh(modelGroupIdx))
+										RemoveSelectedMesh(objectIdx, j);
+										if (!m_pD3D12->GetNumMesh(objectIdx))
 										{
-											RemoveObject(modelGroupIdx, entityIdx);
+											RemoveObject(objectIdx, entityIdx);
 											for (int k = i; k < m_entites.size(); ++k)
 											{
 												m_entites[k]->DecreaseEntityIndex();
-												if (m_entites[k]->isObject())
+												if (m_entites[k]->IsObject())
 												{
 													m_entites[k]->DecreaseObjectIndex();
 
@@ -138,9 +137,9 @@ namespace wilson
 						std::string type = m_entites[i]->GetName();
 						if (ImGui::Button(type.c_str()))
 						{
-							UnselectModel();
+							UnselectMesh();
 
-							m_isObject = false;
+							m_bObject = false;
 							m_pSelectedEntity = pLight;
 							ImGui::OpenPopup("Edit");
 						}
@@ -156,7 +155,7 @@ namespace wilson
 								for (int j = i; j < m_entites.size(); ++j)
 								{
 									m_entites[j]->DecreaseEntityIndex();
-									if (!m_entites[j]->isObject() &&
+									if (!m_entites[j]->IsObject() &&
 										(m_entites[j]->GetLight()->GetType()) == type)
 									{
 										m_entites[j]->DecreaseLightIndex();
@@ -178,10 +177,10 @@ namespace wilson
 		{
 			if (m_pSelectedEntity != nullptr)
 			{
-				if (m_isObject)
+				if (m_bObject)
 				{
 					bool bDirty = false;
-					Mesh* pMesh = (Mesh*)m_pSelectedEntity;
+					Mesh12* pMesh = reinterpret_cast<Mesh12*>(m_pSelectedEntity);
 					std::string name = pMesh->GetName();
 					ImGui::Text(name.c_str());
 
@@ -387,7 +386,7 @@ namespace wilson
 
 		ImGui::PopID();
 	}
-	void Scene12::Pick(float sx, float sy, int width, int height)
+	void Scene12::Pick(const float sx, const float sy, const int width, const int height)
 	{
 		using namespace DirectX;
 		XMMATRIX projMat = *(m_pCam->GetProjectionMatrix());
@@ -407,20 +406,20 @@ namespace wilson
 		float hitDistance;
 
 		m_pSelectedEntity = nullptr;
-		m_pD3D12->PickSubMesh(-1, -1);
+		m_pD3D12->PickSubMesh(_UNSELECT, _UNSELECT);
 		for (int i = 0; i < m_entites.size(); ++i)
 		{
-			if (!m_entites[i]->isObject())
+			if (!m_entites[i]->IsObject())
 			{
 				continue;
 			}
-			Object* pModelGroup = m_entites[i]->GetpObject();
-			std::vector<Mesh*> pModels = pModelGroup->GetMeshes();
-			for (int j = 0; j < pModels.size(); ++j)
+			Object12* pObject = m_entites[i]->GetpObject();
+			std::vector<Mesh12*> pMeshes = pObject->GetMeshes();
+			for (int j = 0; j < pMeshes.size(); ++j)
 			{
-				Mesh* pModel = pModels[j];
+				Mesh12* pMesh = pMeshes[j];
 
-				XMMATRIX m_worldMat = pModel->GetTransformMatrix(false);
+				XMMATRIX m_worldMat = pMesh->GetTransformMatrix(false);
 				m_worldMat = DirectX::XMMatrixTranspose(m_worldMat);
 				XMMATRIX invWorldMat = XMMatrixInverse(nullptr, m_worldMat);
 				XMMATRIX toLocal = XMMatrixMultiply(invViewMat, invWorldMat);
@@ -442,10 +441,10 @@ namespace wilson
 
 				if (RaySphereIntersect(xfO, xfDir, 0.5f, &hitDistance) == true)
 				{
-					m_isObject = true;
+					m_bObject = true;
 					if (hitDistance < closestDistance)
 					{
-						m_pSelectedEntity = pModel;
+						m_pSelectedEntity = pMesh;
 						m_pD3D12->PickSubMesh(i, j);
 						closestDistance = hitDistance;
 					}
@@ -455,7 +454,7 @@ namespace wilson
 
 
 	}
-	bool Scene12::RaySphereIntersect(XMFLOAT3 o, XMFLOAT3 dir, float r, float* hitDistance)
+	bool Scene12::RaySphereIntersect(const XMFLOAT3 o, const XMFLOAT3 dir, const float r, float*const hitDistance)
 	{
 		float a = (dir.x * dir.x) + (dir.y * dir.y) + (dir.z * dir.z);
 		float b = ((dir.x * o.x) + (dir.y * o.y) + (dir.z * o.z)) * 2.0f;
@@ -471,12 +470,12 @@ namespace wilson
 		return true;
 	}
 	//그룹 단위로 모델이 만들어진다. 고로 하위 모델 삭제시에 RemoveEntity를 호출 해서는 안된다.
-	void Scene12::RemoveSelectedModel(int modelGroupIdx, int modelIdx)
+	void Scene12::RemoveSelectedMesh(const int objectIdx, const int meshIdx)
 	{
-		m_pD3D12->RemoveMesh(modelGroupIdx, modelIdx);
+		m_pD3D12->RemoveMesh(objectIdx, meshIdx);
 		m_pSelectedEntity = nullptr;
 	}
-	void Scene12::DrawLightControl(Light12* pLight)
+	void Scene12::DrawLightControl(Light12*const pLight)
 	{
 		DirectX::XMFLOAT3* pos3 = pLight->GetPos();
 		DirectX::XMFLOAT3 copyPos3 = *pos3;
@@ -513,12 +512,12 @@ namespace wilson
 			ImGui::DragFloat("##Z", &(dir3->z), 0.01f, -1.0f, 1.0f);
 			if (dir3->x != copyDir3.x || dir3->y != copyDir3.y || dir3->z != copyDir3.z)
 			{
-				((DirectionalLight12*)pLight)->UpdateLightSpaceMatrices();
+				(reinterpret_cast<DirectionalLight12*>(pLight))->UpdateLightSpaceMatrices();
 			}
 
 			if (ImGui::Combo("mipLevel", &mipLevel, " 0\0 1\0 2\0 3\0 4\0"))
 			{
-				m_pShadowSrv = m_pShadow->GetDirDebugSRV(pCommandlist, lightIdx, mipLevel);
+				m_pShadowSrv = m_pShadow->GetDirDebugSrv(pCommandlist, lightIdx, mipLevel);
 
 			}
 
@@ -550,10 +549,10 @@ namespace wilson
 				switch (pLight->GetType())
 				{
 				case eLIGHT_TYPE::CUBE:
-					((CubeLight12*)pLight)->CreateShadowMatrices();
+					(reinterpret_cast<CubeLight12*>(pLight))->CreateShadowMatrices();
 					break;
 				case eLIGHT_TYPE::SPT:
-					((SpotLight12*)pLight)->UpdateViewMat();
+					(reinterpret_cast<SpotLight12*>(pLight))->UpdateViewMat();
 				}
 
 			}
@@ -563,12 +562,12 @@ namespace wilson
 			case eLIGHT_TYPE::CUBE:
 				if (ImGui::Combo("ShadowMap", &mipLevel, " right\0 left\0 up\0 down\0 front\0 back\0"))
 				{
-					m_pShadowSrv = m_pShadow->GetCubeDebugSRV(pCommandlist, lightIdx, mipLevel);
+					m_pShadowSrv = m_pShadow->GetCubeDebugSrv(pCommandlist, lightIdx, mipLevel);
 				}
 				break;
 			case eLIGHT_TYPE::SPT:
 				ImGui::Text("ShadowMap");
-				m_pShadowSrv = m_pShadow->GetSpotDebugSRV(pCommandlist, lightIdx);
+				m_pShadowSrv = m_pShadow->GetSpotDebugSrv(pCommandlist, lightIdx);
 			}
 
 			break;
@@ -606,9 +605,9 @@ namespace wilson
 
 
 	}
-	void Scene12::DrawCubeLightControl(Light12* pLight)
+	void Scene12::DrawCubeLightControl(Light12*const pLight)
 	{
-		CubeLight12* pCubeLight = (CubeLight12*)pLight;
+		CubeLight12* pCubeLight = reinterpret_cast<CubeLight12*>(pLight);
 		DirectX::XMFLOAT3 attenuation3 = *(pCubeLight->GetAttenuation());
 		float attenuation[3] = { attenuation3.x, attenuation3.y, attenuation3.z };
 		ImGui::DragFloat3("Attenuation", attenuation, 0.0f, 1.0f);
@@ -624,10 +623,10 @@ namespace wilson
 		*(pCubeLight->GetRange()) = range;
 
 	};
-	void Scene12::DrawSpotLightControl(Light12* pLight)
+	void Scene12::DrawSpotLightControl(Light12*const pLight)
 	{
 
-		SpotLight12* pSpotLight = (SpotLight12*)pLight;
+		SpotLight12* pSpotLight = reinterpret_cast<SpotLight12*>(pLight);
 		DirectX::XMFLOAT3 attenuation3 = *(pSpotLight->GetAttenuation());
 		float attenuation[3] = { attenuation3.x, attenuation3.y, attenuation3.z };
 		ImGui::DragFloat3("Attenuation", attenuation, 0.0f, 1.0f);
@@ -688,28 +687,28 @@ namespace wilson
 
 
 	};
-	void Scene12::RemoveObject(int modelGroupIdx, int entityIdx)
+	void Scene12::RemoveObject(const int objectIdx, const int entityIdx)
 	{
-		m_pD3D12->RemoveObject(modelGroupIdx);
+		m_pD3D12->RemoveObject(objectIdx);
 		RemoveEntity(entityIdx);
 
 	}
-	void Scene12::RemoveEntity(int i)
+	void Scene12::RemoveEntity(const int i)
 	{
 		std::string name = m_entites[i]->GetName();
-		--m_entityCnt[name];
+		--m_nEntity[name];
 		delete m_entites[i];
 		m_entites.erase(m_entites.begin() + i);
-		UnselectModel();
+		UnselectMesh();
 	}
-	void Scene12::RemoveLight(int lightIdx, int entityIdx, Light12* pLight)
+	void Scene12::RemoveLight(const int lightIdx, const int entityIdx, Light12*const pLight)
 	{
 		m_pD3D12->RemoveLight(lightIdx, pLight);
 		RemoveEntity(entityIdx);
 	}
-	void Scene12::UnselectModel()
+	void Scene12::UnselectMesh()
 	{
 		m_pSelectedEntity = nullptr;
-		m_pD3D12->PickSubMesh(-1, -1);
+		m_pD3D12->PickSubMesh(_UNSELECT, _UNSELECT);
 	}
 }

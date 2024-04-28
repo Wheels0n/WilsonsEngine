@@ -21,15 +21,15 @@ public:
 	bool Init(ID3D11Device*, int, int);
 	void UploadBuffers(ID3D11DeviceContext*);
 
-	int GetIndexCount()
+	int GetNumIndex()
 	{
-		return m_indexCount;
+		return m_nIndex;
 	}
 private:
 	int m_terrainWidth;
 	int m_terrainHeight;
-	int m_vertexCount;
-	int m_indexCount;
+	int m_nVertex;
+	int m_nIndex;
 	ID3D11Buffer* m_vertexBuffer;
 	ID3D11Buffer* m_indexBuffer;
 

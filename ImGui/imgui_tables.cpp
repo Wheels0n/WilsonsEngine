@@ -16,7 +16,7 @@ Index of this file:
 // [SECTION] Tables: Sorting
 // [SECTION] Tables: Headers
 // [SECTION] Tables: Context Menu
-// [SECTION] Tables: Settings (.ini data)
+// [SECTION] Tables: Settings11 (.ini data)
 // [SECTION] Tables: Garbage Collection
 // [SECTION] Tables: Debugging
 // [SECTION] Columns, BeginColumns, EndColumns, etc.
@@ -3399,7 +3399,7 @@ void ImGui::TableDrawDefaultContextMenu(ImGuiTable* table, ImGuiTableFlags flags
 }
 
 //-------------------------------------------------------------------------
-// [SECTION] Tables: Settings (.ini data)
+// [SECTION] Tables: Settings11 (.ini data)
 //-------------------------------------------------------------------------
 // FIXME: The binding/finding/creating flow are too confusing.
 //-------------------------------------------------------------------------
@@ -3880,7 +3880,7 @@ void ImGui::DebugNodeTable(ImGuiTable* table)
 
 void ImGui::DebugNodeTableSettings(ImGuiTableSettings* settings)
 {
-    if (!TreeNode((void*)(intptr_t)settings->ID, "Settings 0x%08X (%d columns)", settings->ID, settings->ColumnsCount))
+    if (!TreeNode((void*)(intptr_t)settings->ID, "Settings11 0x%08X (%d columns)", settings->ID, settings->ColumnsCount))
         return;
     BulletText("SaveFlags: 0x%08X", settings->SaveFlags);
     BulletText("ColumnsCount: %d (max %d)", settings->ColumnsCount, settings->ColumnsCountMax);

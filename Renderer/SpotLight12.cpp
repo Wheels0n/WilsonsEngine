@@ -3,7 +3,7 @@
 namespace wilson
 {
 
-    SpotLight12::SpotLight12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager, UINT idx)
+    SpotLight12::SpotLight12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager, const UINT idx)
         :Light12(idx)
     {
        

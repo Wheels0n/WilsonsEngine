@@ -22,8 +22,8 @@ Index of this file:
 // [SECTION] Columns support
 // [SECTION] Multi-select support
 // [SECTION] Docking support
-// [SECTION] Viewport support
-// [SECTION] Settings support
+// [SECTION] Viewport11 support
+// [SECTION] Settings11 support
 // [SECTION] Localization support
 // [SECTION] Metrics, Debug tools
 // [SECTION] Generic context hooks
@@ -707,7 +707,7 @@ struct ImPool
 
 // Helper: ImChunkStream<>
 // Build and iterate a contiguous stream of variable-sized structures.
-// This is used by Settings to store persistent data while reducing allocation count.
+// This is used by Settings11 to store persistent data while reducing allocation count.
 // We store the chunk size first, and align the final size on 4 bytes boundaries.
 // The tedious/zealous amount of casting is to avoid -Wcast-align warnings.
 template<typename T>
@@ -1851,7 +1851,7 @@ struct ImGuiDockContext
 #endif // #ifdef IMGUI_HAS_DOCK
 
 //-----------------------------------------------------------------------------
-// [SECTION] Viewport support
+// [SECTION] Viewport11 support
 //-----------------------------------------------------------------------------
 
 // ImGuiViewport Private/Internals fields (cardinal sin: we are using inheritance!)
@@ -1896,7 +1896,7 @@ struct ImGuiViewportP : public ImGuiViewport
 };
 
 //-----------------------------------------------------------------------------
-// [SECTION] Settings support
+// [SECTION] Settings11 support
 //-----------------------------------------------------------------------------
 
 // Windows data saved in imgui.ini file
@@ -1905,7 +1905,7 @@ struct ImGuiViewportP : public ImGuiViewport
 struct ImGuiWindowSettings
 {
     ImGuiID     ID;
-    ImVec2ih    Pos;            // NB: Settings position are stored RELATIVE to the viewport! Whereas runtime ones are absolute positions.
+    ImVec2ih    Pos;            // NB: Settings11 position are stored RELATIVE to the viewport! Whereas runtime ones are absolute positions.
     ImVec2ih    Size;
     ImVec2ih    ViewportPos;
     ImGuiID     ViewportId;
@@ -2351,9 +2351,9 @@ struct ImGuiContext
     ImGuiDockContext        DockContext;
     void                    (*DockNodeWindowMenuHandler)(ImGuiContext* ctx, ImGuiDockNode* node, ImGuiTabBar* tab_bar);
 
-    // Settings
+    // Settings11
     bool                    SettingsLoaded;
-    float                   SettingsDirtyTimer;                 // Save .ini Settings to memory when time reaches zero
+    float                   SettingsDirtyTimer;                 // Save .ini Settings11 to memory when time reaches zero
     ImGuiTextBuffer         SettingsIniData;                    // In memory .ini settings
     ImVector<ImGuiSettingsHandler>      SettingsHandlers;       // List of .ini settings handlers
     ImChunkStream<ImGuiWindowSettings>  SettingsWindows;        // ImGuiWindow .ini settings entries
@@ -2672,7 +2672,7 @@ struct IMGUI_API ImGuiWindow
     ImGuiWindowFlags        Flags, FlagsPreviousFrame;          // See enum ImGuiWindowFlags_
     ImGuiChildFlags         ChildFlags;                         // Set when window is a child window. See enum ImGuiChildFlags_
     ImGuiWindowClass        WindowClass;                        // Advanced users only. Set with SetNextWindowClass()
-    ImGuiViewportP*         Viewport;                           // Always set in Begin(). Inactive windows may have a NULL value here if their viewport was discarded.
+    ImGuiViewportP*         Viewport11;                           // Always set in Begin(). Inactive windows may have a NULL value here if their viewport was discarded.
     ImGuiID                 ViewportId;                         // We backup the viewport id (since the viewport may disappear or never be created if the window is inactive)
     ImVec2                  ViewportPos;                        // We backup the viewport position (since the viewport may disappear or never be created if the window is inactive)
     int                     ViewportAllowPlatformMonitorExtend; // Reset to -1 every frame (index is guaranteed to be valid between NewFrame..EndFrame), only used in the Appearing frame of a tooltip/popup to enforce clamping to a given monitor
@@ -2819,7 +2819,7 @@ enum ImGuiTabBarFlagsPrivate_
 {
     ImGuiTabBarFlags_DockNode                   = 1 << 20,  // Part of a dock node [we don't use this in the master branch but it facilitate branch syncing to keep this around]
     ImGuiTabBarFlags_IsFocused                  = 1 << 21,
-    ImGuiTabBarFlags_SaveSettings               = 1 << 22,  // FIXME: Settings are handled by the docking system, this only request the tab bar to mark settings dirty when reordering tabs
+    ImGuiTabBarFlags_SaveSettings               = 1 << 22,  // FIXME: Settings11 are handled by the docking system, this only request the tab bar to mark settings dirty when reordering tabs
 };
 
 // Extend ImGuiTabItemFlags_
@@ -3214,7 +3214,7 @@ namespace ImGui
     // Fonts, drawing
     IMGUI_API void          SetCurrentFont(ImFont* font);
     inline ImFont*          GetDefaultFont() { ImGuiContext& g = *GImGui; return g.IO.FontDefault ? g.IO.FontDefault : g.IO.Fonts->Fonts[0]; }
-    inline ImDrawList*      GetForegroundDrawList(ImGuiWindow* window) { return GetForegroundDrawList(window->Viewport); }
+    inline ImDrawList*      GetForegroundDrawList(ImGuiWindow* window) { return GetForegroundDrawList(window->Viewport11); }
     IMGUI_API void          AddDrawListToDrawDataEx(ImDrawData* draw_data, ImVector<ImDrawList*>* out_list, ImDrawList* draw_list);
 
     // Init
@@ -3243,7 +3243,7 @@ namespace ImGui
     IMGUI_API const ImGuiPlatformMonitor*   GetViewportPlatformMonitor(ImGuiViewport* viewport);
     IMGUI_API ImGuiViewportP*               FindHoveredViewportFromPlatformWindowStack(const ImVec2& mouse_platform_pos);
 
-    // Settings
+    // Settings11
     IMGUI_API void                  MarkIniSettingsDirty();
     IMGUI_API void                  MarkIniSettingsDirty(ImGuiWindow* window);
     IMGUI_API void                  ClearIniSettings();
@@ -3251,7 +3251,7 @@ namespace ImGui
     IMGUI_API void                  RemoveSettingsHandler(const char* type_name);
     IMGUI_API ImGuiSettingsHandler* FindSettingsHandler(const char* type_name);
 
-    // Settings - Windows
+    // Settings11 - Windows
     IMGUI_API ImGuiWindowSettings*  CreateNewWindowSettings(const char* name);
     IMGUI_API ImGuiWindowSettings*  FindWindowSettingsByID(ImGuiID id);
     IMGUI_API ImGuiWindowSettings*  FindWindowSettingsByWindow(ImGuiWindow* window);
@@ -3593,7 +3593,7 @@ namespace ImGui
     IMGUI_API void          TableGcCompactTransientBuffers(ImGuiTableTempData* table);
     IMGUI_API void          TableGcCompactSettings();
 
-    // Tables: Settings
+    // Tables: Settings11
     IMGUI_API void                  TableLoadSettings(ImGuiTable* table);
     IMGUI_API void                  TableSaveSettings(ImGuiTable* table);
     IMGUI_API void                  TableResetSettings(ImGuiTable* table);

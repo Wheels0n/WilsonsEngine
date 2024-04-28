@@ -1,6 +1,5 @@
 #pragma once
 
-#include<Windows.h>
 #include "Renderer.h"
 #include "typedef.h"
 
@@ -12,25 +11,23 @@ namespace wilson
 	{
 	public:
 
-		static bool CheckDx12Support();
 		void BeginFrame();
+		static bool CheckDx12Support();
 		void EndFrame();
-
 		inline D3D12* GetD3D12()
 		{
 			return m_pD3D12;
 		};
-		void UpdateResolution(int, int);
-		void Translate(DirectX::XMVECTOR);
 		void Rotate(int dx, int dy);
+		void Translate(const DirectX::XMVECTOR);
+		void UpdateResolution(const UINT, const UINT);
 
 		Renderer12() = default;
-		Renderer12(int, int, HWND);
+		Renderer12(const UINT, const UINT, HWND);
 		Renderer12(Renderer12&) = delete;
 		~Renderer12();
 	private:
-		D3D12* m_pD3D12;
 		Camera12* m_pCam;
+		D3D12* m_pD3D12;
 	};
 }
-#pragma once

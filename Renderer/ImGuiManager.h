@@ -5,10 +5,11 @@ namespace wilson {
 	{
 	public:
 		void Update();
+
 		ImGuiManager();
 		~ImGuiManager();
 	private:
-		void SetMenuBar();
 		void SetDockspace();
+		void SetMenuBar();
 	};
 }

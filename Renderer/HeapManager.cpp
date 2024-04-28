@@ -21,7 +21,7 @@ namespace wilson
 		m_curSamplerGpuHandle.ptr += m_samplerHandleSize;
 	}
 
-	UINT8* HeapManager::GetCbMappedPtr(UINT64 size)
+	UINT8* HeapManager::GetCbMappedPtr(const UINT64 size)
 	{
 		//Get Block Idx
 		//현재 Offset+size가 64kb경계를 넘기면 
@@ -40,7 +40,7 @@ namespace wilson
 		return pMappedPtr;
 	}
 
-	void HeapManager::AllocateVertexData(UINT8* pVertexData, UINT64 vbSize)
+	void HeapManager::AllocateVertexData(UINT8* const pVertexData, const UINT64 vbSize)
 	{
 		UINT64 blockSize = (_VB_HEAP_SIZE )/ _HEAP_BLOCK_COUNT;
 		UINT idx = m_curVbHeapOffset / blockSize;
@@ -55,7 +55,7 @@ namespace wilson
 		m_pCurVbBlockMappedPtr[newIdx] += vbSize;
 	}
 
-	UINT8* HeapManager::GetCurVbBlockPtr(UINT64 vbSize)
+	UINT8* HeapManager::GetCurVbBlockPtr(const UINT64 vbSize)
 	{
 
 		UINT64 blockSize = (_VB_HEAP_SIZE) / _HEAP_BLOCK_COUNT;
@@ -68,7 +68,7 @@ namespace wilson
 		return m_pCurVbBlockMappedPtr[newIdx];
 	}
 
-	void HeapManager::AllocateIndexData(UINT8* pIndexData, UINT64 ibSize)
+	void HeapManager::AllocateIndexData(UINT8* const pIndexData, const UINT64 ibSize)
 	{
 		UINT64 blockSize = (_IB_HEAP_SIZE / _HEAP_BLOCK_COUNT);
 		UINT idx = m_curIbHeapOffset / blockSize;
@@ -83,7 +83,7 @@ namespace wilson
 		m_pCurIbBlockMappedPtr[newIdx] += ibSize;
 	}
 
-	D3D12_VERTEX_BUFFER_VIEW HeapManager::GetVBV(UINT64 size, UINT64 stride)
+	D3D12_VERTEX_BUFFER_VIEW HeapManager::GetVbv(const UINT64 size, const UINT64 stride)
 	{
 		UINT64 blockSize = (_VB_HEAP_SIZE / _HEAP_BLOCK_COUNT);
 		UINT idx = m_curVbHeapOffset / blockSize;
@@ -96,7 +96,7 @@ namespace wilson
 		return vbv;
 	}
 
-	D3D12_INDEX_BUFFER_VIEW HeapManager::GetIBV(UINT64 size, UINT64 offset)
+	D3D12_INDEX_BUFFER_VIEW HeapManager::GetIbv(const UINT64 size, const UINT64 offset)
 	{
 		UINT64 blockSize = (_IB_HEAP_SIZE / _HEAP_BLOCK_COUNT);
 		UINT idx = m_curIbHeapOffset / blockSize;
@@ -108,7 +108,7 @@ namespace wilson
 		return ibv;
 	}
 
-	D3D12_GPU_DESCRIPTOR_HANDLE HeapManager::GetCBV(UINT64 size, ID3D12Device* pDevice)
+	D3D12_GPU_DESCRIPTOR_HANDLE HeapManager::GetCbv(const UINT64 size, ID3D12Device* const  pDevice)
 	{	
 		D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = m_curCbvSrvUavCpuHandle;
 		D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = m_curCbvSrvUavGpuHandle;
@@ -125,7 +125,7 @@ namespace wilson
 		return cbvSrvGpuHandle;
 	}
 
-	D3D12_GPU_DESCRIPTOR_HANDLE HeapManager::GetSRV(D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc, ID3D12Resource* pTex, ID3D12Device* pDevice)
+	D3D12_GPU_DESCRIPTOR_HANDLE HeapManager::GetSrv(const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc, ID3D12Resource* const pTex, ID3D12Device* const pDevice)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = m_curCbvSrvUavCpuHandle;
 		D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = m_curCbvSrvUavGpuHandle;
@@ -135,7 +135,7 @@ namespace wilson
 		return cbvSrvGpuHandle;
 	}
 
-	D3D12_CPU_DESCRIPTOR_HANDLE HeapManager::GetRTV(D3D12_RENDER_TARGET_VIEW_DESC rtvDesc, ID3D12Resource* pTex, ID3D12Device* pDevice)
+	D3D12_CPU_DESCRIPTOR_HANDLE HeapManager::GetRtv(const D3D12_RENDER_TARGET_VIEW_DESC rtvDesc, ID3D12Resource* const pTex, ID3D12Device* const pDevice)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvCpuHandle = m_curRtvHandle;
 		pDevice->CreateRenderTargetView(pTex, &rtvDesc, rtvCpuHandle);
@@ -144,7 +144,7 @@ namespace wilson
 		return rtvCpuHandle;
 	}
 
-	D3D12_CPU_DESCRIPTOR_HANDLE HeapManager::GetDSV(D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc, ID3D12Resource* pTex, ID3D12Device* pDevice)
+	D3D12_CPU_DESCRIPTOR_HANDLE HeapManager::GetDsv(const D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc, ID3D12Resource* const pTex, ID3D12Device* const pDevice)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE dsvCpuHandle = m_curDsvHandle;
 		pDevice->CreateDepthStencilView(pTex, &dsvDesc, dsvCpuHandle);
@@ -153,7 +153,7 @@ namespace wilson
 		return dsvCpuHandle;
 	}
 
-	D3D12_GPU_DESCRIPTOR_HANDLE HeapManager::GetUAV(D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc, ID3D12Resource* pTex, ID3D12Device* pDevice)
+	D3D12_GPU_DESCRIPTOR_HANDLE HeapManager::GetUav(const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc, ID3D12Resource* const pTex, ID3D12Device* const pDevice)
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE cbvSrvCpuHandle = m_curCbvSrvUavCpuHandle;
 		D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvGpuHandle = m_curCbvSrvUavGpuHandle;
@@ -162,7 +162,7 @@ namespace wilson
 		return cbvSrvGpuHandle;
 	}
 
-	void HeapManager::CreateTexture(D3D12_RESOURCE_DESC& texDesc, D3D12_RESOURCE_STATES state, ID3D12Resource** ppTex, ID3D12Device* pDevice)
+	void HeapManager::CreateTexture(const D3D12_RESOURCE_DESC& texDesc, const D3D12_RESOURCE_STATES state, ID3D12Resource** const  ppTex, ID3D12Device* const  pDevice)
 	{
 		D3D12_CLEAR_VALUE clearVal = {};
 		if (texDesc.Flags == D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
@@ -191,7 +191,7 @@ namespace wilson
 		m_curTexHeapOffset += CUSTUM_ALIGN(info.SizeInBytes,_64KB);
 	}
 
-	HeapManager::HeapManager(ID3D12Device* pDevice)
+	HeapManager::HeapManager(ID3D12Device* const pDevice)
 	{
 		m_pVbHeap = nullptr;
 		m_pIbHeap = nullptr;

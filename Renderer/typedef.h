@@ -1,19 +1,37 @@
 #pragma once
-#include <DirectXMath.h>
-#include <string>
 #include <Windows.h>
+#include <cwchar>
+#include <cmath>
+#include <cassert>
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <mmsyscom.h>
+#include <random>
+#include <utility>
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <string>
+#include <map>
+#include <queue>
+#include <unordered_map>
+#include <unordered_set>
+#include <process.h>
 #include <pix.h>
+#include <DirectXMath.h>
+#include <fbxsdk.h>
 
-#define _4KB 4*1024
-#define _64KB 64*1024
-#define _CB_HEAP_SIZE 256ull*1024*1024
-#define _VB_HEAP_SIZE 1024ull*1024*1024
-#define _IB_HEAP_SIZE 1024ull*1024*1024
-#define _TEX_HEAP_SIZE 3*1024ull*1024*1024
-#define _CBV_READ_SIZE 256;
 #define CUSTUM_ALIGN(LEN, ALIGN) (LEN+ALIGN-1u)&~(ALIGN-1u)
-#define _HEAP_BLOCK_COUNT 8
-
+constexpr UINT _4KB = 4 * 1024;
+constexpr UINT _64KB = 64 * 1024;
+constexpr UINT _CB_HEAP_SIZE = 256ull * 1024 * 1024;
+constexpr UINT _VB_HEAP_SIZE = 1024ull * 1024 * 1024;
+constexpr UINT _IB_HEAP_SIZE = 1024ull * 1024 * 1024;
+constexpr UINT _TEX_HEAP_SIZE = 3 * 1024ull * 1024 * 1024;
+constexpr UINT _CBV_READ_SIZE = 256;
+constexpr UINT _HEAP_BLOCK_COUNT = 8;
+constexpr INT _UNSELECT = -1;
 namespace wilson
 {	 
 	struct Tri
@@ -43,7 +61,7 @@ namespace wilson
 	//Cam
 	constexpr float _RAD = 6.28319;
 
-	//Frustum
+	//Frustum11
 	struct Plane
 	{
 		DirectX::XMVECTOR norm;
@@ -92,7 +110,7 @@ namespace wilson
 		DirectX::XMFLOAT3 attenuation;
 		float outerCutoff;
 	};
-	//Light
+	//Light11
 	enum class eLIGHT_TYPE
 	{
 		DIR,
@@ -100,7 +118,7 @@ namespace wilson
 		SPT
 	};
 
-	//LightBuffer
+	//LightBuffer11
 	constexpr UINT _MAX_DIR_LIGHTS = 5;
 	constexpr UINT _MAX_PNT_LIGHTS = 24;
 	constexpr UINT _MAX_SPT_LIGHTS = 10;
@@ -138,14 +156,14 @@ namespace wilson
 	};
 
 	//Mesh
-	enum eTexType
+	enum class eTexType
 	{
-		Diffuse,
-		Normal,
-		Specular,
-		Emissive,
-		Alpha,
-		nTexType
+		diffuse,
+		normal,
+		specular,
+		emissive,
+		alpha,
+		cnt
 	};
 	enum class eFileType
 	{
@@ -185,186 +203,186 @@ namespace wilson
 	};
 	constexpr UINT _MAX_INSTANCES = 50;
 	
-	//Shader
-	enum eDownSampleRP
+	//Shader11
+	enum class eDownSampleRP
 	{
-		eDownSampleRP_eDepthMap,
-		eDownSampleRP_ePsSampler,
-		eDownSampleRP_eCnt
+		depthMap,
+		psSampler,
+		cnt
 	};
-	enum eGenHiZRP
+	enum class eGenHiZRP
 	{
-		eGenHiZRP_ePs_lastResoltion,
-		eGenHiZRP_ePs_lastMip,
-		eGenHiZRP_ePs_sampler,
-		eGenHiZRP_eCnt
+		psLastResoltion,
+		psLastMip,
+		psSampler,
+		cnt
 	};
 
-	enum eHiZCullRP
+	enum class eHiZCullRP
 	{
-		eHiZCullRP_eCs_hiZ,
-		eHiZCullRP_eCs_dst,
-		eHiZCullRP_eCs_matrix,
-		eHiZCullRP_eCs_resolution,
-		eHiZCullRP_eCs_bound,
-		eHiZCullRP_eCs_Depth,
-		eHiZCullRP_eCs_border,
-		eHiZCullRP_eCnt
+		csHiZ,
+		csDst,
+		csMatrix,
+		csResolution,
+		csBound,
+		csDepth,
+		csBorder,
+		cnt
 
 	};
 	
-	enum eCascadeShadowRP
+	enum class eCascadeShadowRP
 	{
-		eCascadeShadow_eVsMat,
-		eCascadeShadow_eGsMat,
-		eCascadeShadow_eCnt
+		vsMat,
+		gsMat,
+		cnt
 	};
 
-	enum eSpotShadowRP
+	enum class eSpotShadowRP
 	{
-		eSpotShadow_eVsMat,
-		eSpotShadow_ePsDiffuseMap,
-		eSpotShadow_ePsSampler,
-		eSpotShadow_eCnt
+		vsMat,
+		psDiffuseMap,
+		psSampler,
+		cnt
 	};
 
-	enum eCubeShadowRP
+	enum class eCubeShadowRP
 	{
-		eCubeShadow_eVsMat,
-		eCubeShadow_eGsMat,
-		eCubeShadow_ePsLightPos,
-		eCubeShadow_ePsDiffuseMap,
-		eCubeShadow_ePsSampler,
-		eCubeShadow_eCnt
+		vsMat,
+		gsMat,
+		psLightPos,
+		psDiffuseMap,
+		psSampler,
+		cnt
 	};
 
-	enum eSkyboxRP
+	enum class eSkyboxRP
 	{
-		eSkybox_eVsMat,
-		eSkybox_ePsDiffuseMap,
-		eSkybox_ePsSampler,
-		eSkybox_eCnt
+		vsMat,
+		psDiffuseMap,
+		psSampler,
+		cnt
 	};
 
-	enum ePbrGeoRP
+	enum class ePbrGeoRP
 	{
-		ePbrGeo_eVsMat,
-		ePbrGeo_ePsDiffuse,
-		ePbrGeo_ePsNormal,
-		ePbrGeo_ePsSpecular,
-		ePbrGeo_ePsEmissive,
-		ePbrGeo_ePsAlpha,
-		ePbrGeo_ePsSampler,
-		ePbrGeo_ePsCamPos,
-		ePbrGeo_ePsHeightScale,
-		ePbrGeo_eCnt
+		vsMat,
+		psDiffuse,
+		psNormal,
+		psSpecular,
+		psEmissive,
+		psAlpha,
+		psSampler,
+		psCamPos,
+		psHeightScale,
+		cnt
 	};
 
-	enum eSsaoRP
+	enum class eSsaoRP
 	{
-		eSsao_eCsNoise,
-		eSsao_eCsVpos,
-		eSsao_eCsVnomral,
-		eSsao_eCsUAV,
-		eSsao_eCsWrap,
-		eSsao_eCsClamp,
-		eSsao_eCsSamplePoints,
-		eSsao_eCsProj,
-		eSsao_eCsParameters,
-		eSsao_eCnt
+		csNoise,
+		csVpos,
+		csVnomral,
+		csUAV,
+		csWrap,
+		csClamp,
+		csSamplePoints,
+		csProj,
+		csParameters,
+		cnt
 	};
 
-	enum eSsaoBlurRP
+	enum class eSsaoBlurRP
 	{
-		eSsaoBlur_eCsDst,
-		eSsaoBlur_eCsDebug,
-		eSsaoBlur_eCsSsao,
-		eSsaoBlur_eCsWrap,
-		eSsaoBlur_eCnt
+		csDst,
+		csDebug,
+		csSsao,
+		csWrap,
+		cnt
 	};
 
-	enum ePbrLightRP
+	enum class ePbrLightRP
 	{
-		ePbrLight_ePsPos,
-		ePbrLight_ePsNormal,
-		ePbrLight_ePsAlbedo,
-		ePbrLight_ePsSpecular,
-		ePbrLight_ePsEmissive,
-		ePbrLight_ePsAO,
-		ePbrLight_ePsIrradiance,
-		ePbrLight_ePsPrefilter,
-		ePbrLight_ePsBrdf,
-		ePbrLight_ePsDirShadow,
-		ePbrLight_ePsSpotShadow,
-		ePbrLight_ePsCubeShadow,
-		ePbrLight_ePsWrap,
-		ePbrLight_ePsCubeShadowSampler,
-		ePbrLight_ePsShadowSampler,
-		ePbrLight_ePsCamPos,
-		ePbrLight_ePsCasCadeLevels,
-		ePbrLight_ePsProjMat,
-		ePbrLight_ePsViewMat,
-		ePbrLight_ePsLight,
-		ePbrLight_ePsDirLitMat,
-		ePbrLight_ePsSpotLitMat,
-		ePbrLight_eCnt
+		psPos,
+		psNormal,
+		psAlbedo,
+		psSpecular,
+		psEmissive,
+		psAO,
+		psIrradiance,
+		psPrefilter,
+		psBrdf,
+		psDirShadow,
+		psSpotShadow,
+		psCubeShadow,
+		psWrap,
+		psCubeShadowSampler,
+		psShadowSampler,
+		psCamPos,
+		psCasCadeLevels,
+		psProjMat,
+		psViewMat,
+		psLight,
+		psDirLitMat,
+		psSpotLitMat,
+		cnt
 	};
 
-	enum eOutlinerRP
+	enum class eOutlinerRP
 	{	
-		eOutliner_eVsMat,
-		eOutliner_ePsAlbedo,
-		eOutliner_ePsWrap,
-		eOutliner_eCnt
+		vsMat,
+		psAlbedo,
+		psWrap,
+		cnt
 	};
 
-	enum ePostProcessRP
+	enum class ePostProcessRP
 	{
-		ePostProcess_eCsTex,
-		ePostProcess_eCsUav,
-		ePostProcess_eCsSampler,
-		ePostProcess_eCsExposure,
-		ePostProcess_eCnt
+		csTex,
+		csUav,
+		csSampler,
+		csExposure,
+		cnt
 	};
 
-	enum eDiffuseIrraidianceRP
+	enum class eDiffuseIrraidianceRP
 	{	
-		eDiffuseIrraidiance_eGsCb,
-		eDiffuseIrraidiance_ePsTex,
-		eDiffuseIrraidiance_ePsSampler,
-		eDiffuseIrraidiance_eCnt
+		gsCb,
+		psTex,
+		psSampler,
+		cnt
 	};
 
-	enum ePrefilterRP
+	enum class ePrefilterRP
 	{	
-		ePrefilter_eGsCb,
-		ePrefilter_ePsTex,
-		ePrefilter_ePsSampler,
-		ePrefilter_ePsCb,
-		ePrefilter_eCnt
+		gsCb,
+		psTex,
+		psSampler,
+		psCb,
+		cnt
 	};
 
-	enum eEquirect2CubeRP
+	enum class eEquirect2CubeRP
 	{
-		eEquirect2Cube_eGsCb,
-		eEquirect2Cube_ePsTex,
-		eEquirect2Cube_ePsSampler,
-		eEquirect2Cube_eCnt
+		gsCb,
+		psTex,
+		psSampler,
+		cnt
 	};
 
-	enum eGenMipRP
+	enum class eGenMipRP
 	{
-		eGenMipRP_eCsTex,
-		eGenMipRP_eCsUAV,
-		eGenMipRP_eCsSampler,
-		eGenMipRP_eCsCb,
-		eGenMipRP_eCnt
+		csTex,
+		csUAV,
+		csSampler,
+		csCb,
+		cnt
 	};
 	//Engine
 	static constexpr float _DRAG_THRESHOLD = 6.0f;
 	static bool g_bShutdown = false;
 
-	//Importer
+	//Importer11
 	enum class eTEX
 	{
 		Kd,
@@ -373,7 +391,7 @@ namespace wilson
 		d
 	};
 
-	//Viewport
+	//Viewport11
 	static const char* g_types[] =
 	{
 		"obj", "fbx", "dir", "pnt", "spt"
@@ -388,7 +406,7 @@ namespace wilson
 	constexpr float _REFRESH_RATE = 75.f;
 	constexpr UINT  _BUFFER_COUNT = 2;
 	constexpr UINT _SHADOWMAP_SIZE = 512;
-	constexpr float CUBE_SIZE = 0.25;
+	constexpr float _CUBE_SIZE = 0.25;
 	constexpr UINT  _KERNEL_COUNT = 64;
 	constexpr UINT  _NOISE_VEC_COUNT = 16;
 	constexpr UINT  _NOISE_TEX_SIZE = 4;
@@ -404,32 +422,32 @@ namespace wilson
 	constexpr UINT  _CUBE_IDX_COUNT = 36;
 	constexpr UINT  _HI_Z_CULL_COUNT = 4096;
 
-	enum ePass
+	enum class ePass
 	{
-		eZpass,
-		eCascadeDirShadowPass,
-		eSpotShadowPass,
-		eCubeShadowPass,
-		eOcclusionTestPass,
-		eGeoPass,
-		eSsaoPass,
-		eSsaoBlurPass,
-		eLightingPass,
-		eSkyBoxPass,
-		ePostProcess,
-		ePassCnt
+		zPass,
+		cascadeDirShadowPass,
+		spotShadowPass,
+		cubeShadowPass,
+		occlusionTestPass,
+		geoPass,
+		ssaoPass,
+		ssaoBlurPass,
+		lightingPass,
+		skyBoxPass,
+		postProcess,
+		cnt
 	};
 
-	enum eGbuf
+	enum class eGbuf
 	{
-		eGbuf_pos,
-		eGbuf_normal,
-		eGbuf_albedo,
-		eGbuf_specular,
-		eGbuf_emissive,
-		eGbuf_vPos,
-		eGbuf_vNormal,
-		eGbuf_cnt
+		pos,
+		normal,
+		albedo,
+		specular,
+		emissive,
+		vPos,
+		vNormal,
+		cnt
 	};
 
 	struct QUAD
@@ -445,10 +463,10 @@ namespace wilson
 	//Renderer11
 	constexpr bool g_bFULL_SCREEN = false;
 	constexpr bool g_bVSYNC_ENABLE = false;
-	constexpr float g_fSCREEN_FAR =3000.0f;
+	constexpr float g_fSCREEN_FAR = 3000.0f;
 	constexpr float g_fSCREEN_NEAR = 0.01f;
 
-	enum eAPI {
+	enum class eAPI {
 		DX11,
 		DX12
 	};

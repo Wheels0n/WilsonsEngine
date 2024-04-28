@@ -1,11 +1,11 @@
 #include "Editor11.h"
 #include"D3D11.h"
-#include"Scene.h"
-#include"ContentBrowser.h"
-#include"Viewport.h"
-#include"Settings.h"
+#include"Scene11.h"
+#include"ContentBrowser11.h"
+#include"Viewport11.h"
+#include"Settings11.h"
 namespace wilson {
-	Editor11::Editor11(D3D11* pD3D11)
+	Editor11::Editor11(D3D11*const pD3D11)
 	{
 		m_pD3D11 = pD3D11;
 		m_pContentBrowser = nullptr;
@@ -13,11 +13,11 @@ namespace wilson {
 		m_pScene = nullptr;
 		m_pSettings = nullptr;
 
-		m_pContentBrowser = new ContentBrowser(m_pD3D11->GetDevice());
-		m_pScene = new Scene(pD3D11);
-		m_pViewport = new Viewport(pD3D11, m_pScene->GetScene());
-		m_pSettings = new Settings(m_pD3D11);
-		std::string str = "Scene";
+		m_pContentBrowser = new ContentBrowser11(m_pD3D11->GetDevice());
+		m_pScene = new Scene11(pD3D11);
+		m_pViewport = new Viewport11(pD3D11, m_pScene->GetScene());
+		m_pSettings = new Settings11(m_pD3D11);
+		std::string str = "Scene11";
 		m_pScene->SetCam(m_pD3D11->GetCam());
 		m_pScene->SetSceneName(str);
 	}

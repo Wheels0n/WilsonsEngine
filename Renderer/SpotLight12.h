@@ -8,25 +8,21 @@ namespace wilson
 	class SpotLight12 :public Light12
 	{
 	public:
-		inline DirectX::XMMATRIX* GetLightSpaceMat()
-		{
-			return &m_lightSpaceMat;
-		}
 		inline DirectX::XMFLOAT3* GetAttenuation()
 		{
 			return &m_attenuation;
+		}
+		inline float* GetCutoff()
+		{
+			return &m_cutoff;
 		}
 		inline DirectX::XMFLOAT3* GetDirection()
 		{
 			return &m_direction;
 		}
-		inline float* GetRange()
+		inline DirectX::XMMATRIX* GetLightSpaceMat()
 		{
-			return &m_range;
-		}
-		inline float* GetCutoff()
-		{
-			return &m_cutoff;
+			return &m_lightSpaceMat;
 		}
 		inline float* GetOuterCutoff()
 		{
@@ -36,27 +32,30 @@ namespace wilson
 		{
 			return &m_spotLightProperty;
 		}
-
-		void UpdateViewMat();
-		void UpdateProjMat();
-		void UpdateLitMat();
-		void UpdateProperty();
+		inline float* GetRange()
+		{
+			return &m_range;
+		}
 		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::SPT; };
+		void UpdateLitMat();
+		void UpdateProjMat();
+		void UpdateProperty();
+		void UpdateViewMat();
 
 		SpotLight12() = default;
-		SpotLight12(ID3D12Device*, ID3D12GraphicsCommandList*, HeapManager*, UINT);
+		SpotLight12(ID3D12Device* const, ID3D12GraphicsCommandList* const, HeapManager* const, const UINT);
 		SpotLight12(const SpotLight12&) = default;
 		~SpotLight12() { Light12::~Light12(); };
 	private:
 		SpotLightProperty m_spotLightProperty;
 
-		float m_range;
 		float m_cutoff;
 		float m_outerCutoff;
+		float m_range;
 
 		DirectX::XMFLOAT3 m_attenuation;
+		DirectX::XMMATRIX m_lightSpaceMat;
 		DirectX::XMMATRIX m_perspectiveMat;
 		DirectX::XMMATRIX m_viewMat;
-		DirectX::XMMATRIX m_lightSpaceMat;
 	};
 }

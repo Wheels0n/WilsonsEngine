@@ -2,10 +2,10 @@
 
 namespace wilson {
 
-	Frustum12::Frustum12(Camera12* pCam)
+	Frustum12::Frustum12(Camera12* const pCam)
 	{
-		m_ENTTsInFrustum = 0;
-		m_ENTTsInTotal = 0;
+		m_subMeshesInFrustum = 0;
+		m_subMeshesInScene = 0;
 		
 		DirectX::XMMATRIX toNDC = *(pCam->GetViewProjectionMatrix());
 		toNDC = DirectX::XMMatrixTranspose(toNDC);

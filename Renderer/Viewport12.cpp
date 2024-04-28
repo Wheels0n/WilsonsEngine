@@ -2,7 +2,7 @@
 
 namespace wilson
 {
-	Viewport12::Viewport12(D3D12* pD3D12, Scene12* pScene)
+	Viewport12::Viewport12(D3D12*const pD3D12, Scene12*const pScene)
 	{
 		m_IsFocused = false;
 
@@ -14,28 +14,28 @@ namespace wilson
 		m_pD3D12 = pD3D12;
 		m_pDevice = pD3D12->GetDevice();
 		m_pCam = pD3D12->GetCam();
-		m_pDescripotrHeapManager = pD3D12->GetHeapManager();
-		m_pScene12 = pScene;
-		m_pImporter12 = new Importer12(m_pD3D12);
+		m_pHeapManager = pD3D12->GetHeapManager();
+		m_pScene = pScene;
+		m_pImporter = new Importer12(m_pD3D12);
 
 	}
 
 	Viewport12::~Viewport12()
 	{
-		if (m_pImporter12 != nullptr)
+		if (m_pImporter != nullptr)
 		{
-			delete m_pImporter12;
-			m_pImporter12 = nullptr;
+			delete m_pImporter;
+			m_pImporter = nullptr;
 		}
 	}
 
 	void Viewport12::Draw()
 	{
-		m_pFinalSRV = m_pD3D12->GetFinalSRV();
-		m_pSceneDepthSRV = m_pD3D12->GetDepthSRV();
-		m_pSSAOBlurredSRV = m_pD3D12->GetSSAOBlurredSRV();
-		m_pGbufferSRVs = m_pD3D12->GetGbufferSRV();
-		m_GbufferCount = m_pD3D12->GetGbufferCount();
+		m_pPostProcessSrv = m_pD3D12->GetPostProcessSrv();
+		m_pSceneDepthSrv = m_pD3D12->GetDepthSrv();
+		m_pSsaoBlurredSrv = m_pD3D12->GetSsaoBlurredSrv();
+		m_pGbufferSrvs = m_pD3D12->GetpGbufferSrvs();
+		m_nGbuffer = m_pD3D12->GetNumGBuffer();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -48,7 +48,7 @@ namespace wilson
 			m_top = pos.y;
 			m_IsFocused = ImGui::IsWindowFocused();
 
-			ImGui::Image((ImTextureID)m_pFinalSRV->ptr, ImVec2(m_width, m_height));
+			ImGui::Image((ImTextureID)m_pPostProcessSrv->ptr, ImVec2(m_width, m_height));
 			if (ImGui::BeginDragDropTarget())
 			{
 				const ImGuiPayload* payLoad;
@@ -58,25 +58,25 @@ namespace wilson
 					if (payLoad != nullptr)
 					{	
 						//엔티티와 별개로 모델과 광원의 인덱스를 따로 구성함에 유의
-						int entityIdx = m_pScene12->GetEntitySize();
+						int entityIdx = m_pScene->GetEntitySize();
 						XMVECTOR pos = CalEntityPos();
 						if (i < 2)
 						{
-							const wchar_t* path = (const wchar_t*)payLoad->Data;
-							m_pImporter12->LoadObject(g_types[i], path, m_pDevice);
-							Object* pModelGroup = m_pImporter12->GetpObject();
+							const wchar_t* path = reinterpret_cast<const wchar_t*>(payLoad->Data);
+							m_pImporter->LoadObject(g_types[i], path, m_pDevice);
+							Object12* pObject = m_pImporter->GetpObject();
 
-							std::vector<Mesh*> pModels = pModelGroup->GetMeshes();
-							for (int i = 0; i < pModels.size(); ++i)
+							std::vector<Mesh12*> pMeshes = pObject->GetMeshes();
+							for (int i = 0; i < pMeshes.size(); ++i)
 							{
-								Mesh* pModel = pModels[i];
-								XMMATRIX* pTrMat = pModel->GetTranslationMatrix();
+								Mesh12* pMesh = pMeshes[i];
+								XMMATRIX* pTrMat = pMesh->GetTranslationMatrix();
 								XMMATRIX trMat = XMMatrixTranslationFromVector(pos);
 								*pTrMat = trMat;
 							}
-							int modelIdx = m_pD3D12->GetObjectSize();
-							m_pD3D12->AddObject(pModelGroup);
-							m_pScene12->AddModelEntity(pModelGroup, entityIdx, modelIdx);
+							int meshIdx = m_pD3D12->GetNumObject();
+							m_pD3D12->AddObject(pObject);
+							m_pScene->AddMeshEntity(pObject, entityIdx, meshIdx);
 							break;
 						}
 						else
@@ -88,24 +88,24 @@ namespace wilson
 							switch (i)
 							{
 							case 2:
-								lightIdx = m_pD3D12->GetLightSize(eLIGHT_TYPE::DIR);
-								pLight = new DirectionalLight12(pDevice, m_pD3D12->GetCommandList(), m_pDescripotrHeapManager, lightIdx, m_pCam);
-								type = "DirectionalLight";
+								lightIdx = m_pD3D12->GetNumLight(eLIGHT_TYPE::DIR);
+								pLight = new DirectionalLight12(pDevice, m_pD3D12->GetCommandList(), m_pHeapManager, lightIdx, m_pCam);
+								type = "DirectionalLight11";
 								break;
 							case 3:
-								lightIdx = m_pD3D12->GetLightSize(eLIGHT_TYPE::CUBE);
-								pLight = new CubeLight12(pDevice, m_pD3D12->GetCommandList(), m_pDescripotrHeapManager, lightIdx);
-								type = "CubeLight";
+								lightIdx = m_pD3D12->GetNumLight(eLIGHT_TYPE::CUBE);
+								pLight = new CubeLight12(pDevice, m_pD3D12->GetCommandList(), m_pHeapManager, lightIdx);
+								type = "CubeLight11";
 								break;
 							case 4:
-								lightIdx = m_pD3D12->GetLightSize(eLIGHT_TYPE::SPT);
-								pLight = new SpotLight12(pDevice, m_pD3D12->GetCommandList(), m_pDescripotrHeapManager, lightIdx);
-								type = "SpotLight";
+								lightIdx = m_pD3D12->GetNumLight(eLIGHT_TYPE::SPT);
+								pLight = new SpotLight12(pDevice, m_pD3D12->GetCommandList(), m_pHeapManager, lightIdx);
+								type = "SpotLight11";
 							}
 							DirectX::XMFLOAT3* pPos = pLight->GetPos();
 							DirectX::XMStoreFloat3(pPos, pos);
 							m_pD3D12->AddLight(pLight);
-							m_pScene12->AddLightEntity(pLight, type, entityIdx, lightIdx);
+							m_pScene->AddLightEntity(pLight, type, entityIdx, lightIdx);
 						}
 					}
 				}
@@ -118,12 +118,12 @@ namespace wilson
 		ImGui::PopStyleVar(2);
 		if (ImGui::Begin("Deferred"))
 		{
-			for (int i = 0; i < m_GbufferCount; ++i)
+			for (int i = 0; i < m_nGbuffer; ++i)
 			{
-				ImGui::Image((ImTextureID)m_pGbufferSRVs[i].ptr, ImVec2(m_width, m_height));
+				ImGui::Image((ImTextureID)m_pGbufferSrvs[i].ptr, ImVec2(m_width, m_height));
 			}
-			ImGui::Image((ImTextureID)m_pSSAOBlurredSRV->ptr, ImVec2(m_width, m_height));
-			ImGui::Image((ImTextureID)m_pSceneDepthSRV->ptr, ImVec2(m_width, m_height));
+			ImGui::Image((ImTextureID)m_pSsaoBlurredSrv->ptr, ImVec2(m_width, m_height));
+			ImGui::Image((ImTextureID)m_pSceneDepthSrv->ptr, ImVec2(m_width, m_height));
 
 		}
 		ImGui::End();
@@ -140,7 +140,7 @@ namespace wilson
 		}
 	}
 
-	bool Viewport12::CheckRange(int x, int y)
+	bool Viewport12::CheckRange(const int x, const int y)
 	{
 		//ImGui는 사용자 모니터 해상도를 기준으로 좌표 계산.
 		if (m_IsFocused == false ||
@@ -155,27 +155,27 @@ namespace wilson
 		return true;
 	}
 
-	float Viewport12::GetNDCX(int x)
+	float Viewport12::GetNDCX(const int x)
 	{
 		int viewportX = m_left;
 		int viewportWidth = m_width;
 
-		return (float)(x - viewportX) / viewportWidth;
+		return (static_cast<float>(x - viewportX) / viewportWidth);
 	}
 
-	float Viewport12::GetNDCY(int y)
+	float Viewport12::GetNDCY(const int y)
 	{
 		int viewportY = m_top;
 		int viewportHeight = m_height;
 
-		return (float)(y - viewportY) / viewportHeight;
+		return (static_cast<float>(y - viewportY) / viewportHeight);
 	}
 
 	XMVECTOR Viewport12::CalEntityPos()
 	{
 		ImGuiIO io = ImGui::GetIO();
-		int width = m_pD3D12->GetClientWidth();
-		int height = m_pD3D12->GetClientHeight();
+		UINT width = m_pD3D12->GetClientWidth();
+		UINT height = m_pD3D12->GetClientHeight();
 		float x = GetNDCX(io.MousePos.x) * width;
 		float y = GetNDCY(io.MousePos.y) * height;
 
@@ -186,7 +186,7 @@ namespace wilson
 		XMMATRIX projMat = *(m_pCam->GetProjectionMatrix());
 		XMFLOAT4X4 projMat4;
 		XMStoreFloat4x4(&projMat4, projMat);
-		float ratio = width / (float)height;
+		float ratio = width / static_cast<float>(height);
 
 		float dx = (x / (width * 0.5f) - 1.0f) / (projMat4._22 * ratio);
 		float dy = (1.0f - y / (height * 0.5f)) / projMat4._22;

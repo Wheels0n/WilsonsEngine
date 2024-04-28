@@ -1,23 +1,23 @@
-#include "Model.h"
+#include "Mesh11.h"
 #include "AABB.h"
 
 namespace wilson
 {
-	AABB::AABB(DirectX::XMFLOAT3 minAABB, DirectX::XMFLOAT3 maxAABB)
+	AABB::AABB(const DirectX::XMFLOAT3 minAABB, const DirectX::XMFLOAT3 maxAABB)
 	{	
 		DirectX::XMFLOAT4 center((minAABB.x + maxAABB.x) * 0.5f, (minAABB.y + maxAABB.y) * 0.5f, (minAABB.z + maxAABB.z) * 0.5f, 1.0f);
 		m_center = DirectX::XMLoadFloat4(&center);
 
 		DirectX::XMFLOAT3 extents((maxAABB.x-center.x), (maxAABB.y-center.y) , (maxAABB.z-center.z));
-		m_extents = DirectX::XMLoadFloat3(&extents);
+		m_extent = DirectX::XMLoadFloat3(&extents);
 		UpdateVertices();
 	}
-	AABB::AABB(DirectX::XMFLOAT4 center, float il, float ij, float ik)
+	AABB::AABB(const DirectX::XMFLOAT4 center, const float il, const float ij, const float ik)
 	{	
 
 		m_center = DirectX::XMLoadFloat4(&center);
 		DirectX::XMFLOAT3 extents(il, ij, ik);
-		m_extents = DirectX::XMLoadFloat3(&extents);
+		m_extent = DirectX::XMLoadFloat3(&extents);
 		UpdateVertices();
 
 	}
@@ -31,7 +31,7 @@ namespace wilson
 		DirectX::XMStoreFloat3(&center, m_center);
 
 		DirectX::XMFLOAT3 extents;
-		DirectX::XMStoreFloat3(&extents, m_extents);
+		DirectX::XMStoreFloat3(&extents, m_extent);
 		m_cubeVertices[0] = { center.x - extents.x, center.y - extents.y, center.z - extents.z }; //ÁÂ, ÇÏ, Àü 
 		m_cubeVertices[1] = { center.x - extents.x, center.y - extents.y, center.z + extents.z };//ÁÂ ÇÏ ÈÄ
 		m_cubeVertices[2] = { center.x + extents.x, center.y - extents.y, center.z + extents.z };//¿ì ÇÏ ÈÄ
@@ -45,7 +45,7 @@ namespace wilson
 	bool AABB::IsOnOrForwardPlane(const Plane& plane) const
 	{	
 		DirectX::XMFLOAT3 extents;
-		DirectX::XMStoreFloat3(&extents, m_extents);
+		DirectX::XMStoreFloat3(&extents, m_extent);
 		DirectX::XMFLOAT3 norm;
 		DirectX::XMStoreFloat3(&norm, plane.norm);
 
@@ -65,7 +65,7 @@ namespace wilson
 		DirectX::XMStoreFloat4(&globalCenter, globalCenterV);
 
 		DirectX::XMFLOAT3 extents;
-		DirectX::XMStoreFloat3(&extents, m_extents);
+		DirectX::XMStoreFloat3(&extents, m_extent);
 		
 		
 		DirectX::XMVECTOR right = DirectX::XMVectorScale(transform.r[0], extents.x);
@@ -117,7 +117,7 @@ namespace wilson
 		DirectX::XMStoreFloat4(&globalCenter, globalCenterV);
 
 		DirectX::XMFLOAT3 extents;
-		DirectX::XMStoreFloat3(&extents, m_extents);
+		DirectX::XMStoreFloat3(&extents, m_extent);
 
 
 		DirectX::XMVECTOR right = DirectX::XMVectorScale(transform.r[0], extents.x);

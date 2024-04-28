@@ -4963,7 +4963,7 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
                 g.PlatformImeData.WantVisible = true;
                 g.PlatformImeData.InputPos = ImVec2(cursor_screen_pos.x - 1.0f, cursor_screen_pos.y - g.FontSize);
                 g.PlatformImeData.InputLineHeight = g.FontSize;
-                g.PlatformImeViewport = window->Viewport->ID;
+                g.PlatformImeViewport = window->Viewport11->ID;
             }
         }
     }

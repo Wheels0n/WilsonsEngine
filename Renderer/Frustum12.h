@@ -5,36 +5,37 @@ namespace wilson {
 	class Frustum12
 	{
 	public:
-		inline void SetENTTsInFrustum(UINT cnt)
-		{
-			m_ENTTsInFrustum = cnt;
-		}
-		inline void SetENTTsInTotal(UINT cnt)
-		{
-			m_ENTTsInTotal = cnt;
-		}
-		inline int GetENTTsInFrustum() const
-		{
-			return m_ENTTsInFrustum;
-		}
-		inline int GetENTTsInTotal() const
-		{
-			return m_ENTTsInTotal;
-		}
 		inline DirectX::XMVECTOR* GetPlanes()
 		{
 			return m_planes;
 		}
+		inline void SetSubMeshesInFrustum(const UINT cnt)
+		{
+			m_subMeshesInFrustum = cnt;
+		}
+		inline void SetSubMeshesInScene(const UINT cnt)
+		{
+			m_subMeshesInScene = cnt;
+		}
+		inline UINT GetSubMeshesInFrustum() const
+		{
+			return m_subMeshesInFrustum;
+		}
+		inline UINT GetSubMeshesInScene() const
+		{
+			return m_subMeshesInScene;
+		}
 
 
 		Frustum12() = default;
-		Frustum12(Camera12*);
+		Frustum12(Camera12* const);
 		~Frustum12() = default;
 
 	private:
-		UINT m_ENTTsInFrustum;
-		UINT m_ENTTsInTotal;
+		Frustum12* m_pFrustum;
 		DirectX::XMVECTOR m_planes[6];
-		Frustum* m_pFrustum;
+
+		UINT m_subMeshesInFrustum;
+		UINT m_subMeshesInScene;
 	};
 }

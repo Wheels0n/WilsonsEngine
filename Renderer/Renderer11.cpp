@@ -5,11 +5,11 @@
 
 namespace wilson
 {
-	Renderer11::Renderer11(int m_screenWidth, int m_screenHeight, HWND hWnd)
+	Renderer11::Renderer11(const UINT m_screenWidth, const UINT m_screenHeight, HWND hWnd)
 	{
 		m_pD3D11 = nullptr;
 		m_pCam = nullptr;
-		m_eAPI = DX11;
+		m_eAPI = eAPI::DX11;
 
 		m_pD3D11 = new D3D11(m_screenWidth, m_screenHeight, g_bVSYNC_ENABLE, hWnd, g_bFULL_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
 		m_pCam = m_pD3D11->GetCam();
@@ -39,12 +39,12 @@ namespace wilson
 		m_pD3D11->DrawScene();
 	}
 
-	void Renderer11::UpdateResolution(int newWidth, int newHeight)
+	void Renderer11::UpdateResolution(const UINT newWidth, const UINT newHeight)
 	{
 		m_pD3D11->ResizeBackBuffer(newWidth, newHeight);
 	}
 
-	void Renderer11::Translate(XMVECTOR tr)
+	void Renderer11::Translate(const XMVECTOR tr)
 	{
 		m_pCam->Translate(tr);
 	}

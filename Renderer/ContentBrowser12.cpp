@@ -11,39 +11,39 @@ namespace wilson {
 	ContentBrowser12::~ContentBrowser12()
 	{
 
-		if (m_pDirIcon12Tex != nullptr)
+		if (m_pDirIconTex != nullptr)
 		{
-			m_pDirIcon12Tex->Release();
-			m_pDirIcon12Tex = nullptr;
+			m_pDirIconTex->Release();
+			m_pDirIconTex = nullptr;
 		}
 
-		if (m_pFileIcon12Tex != nullptr)
+		if (m_pFileIconTex != nullptr)
 		{
-			m_pFileIcon12Tex->Release();
-			m_pFileIcon12Tex = nullptr;
+			m_pFileIconTex->Release();
+			m_pFileIconTex = nullptr;
 		}
 
-		if (m_pDirIcon12UploadCB != nullptr)
+		if (m_pDirIconUploadCb != nullptr)
 		{
-			m_pDirIcon12UploadCB->Release();
-			m_pDirIcon12UploadCB = nullptr;
+			m_pDirIconUploadCb->Release();
+			m_pDirIconUploadCb = nullptr;
 		}
 
-		if (m_pFileIcon12UploadCB != nullptr)
+		if (m_pFileIconUploadCB != nullptr)
 		{
-			m_pFileIcon12UploadCB->Release();
-			m_pFileIcon12UploadCB = nullptr;
+			m_pFileIconUploadCB->Release();
+			m_pFileIconUploadCB = nullptr;
 		}
 
 	}
 
-	ContentBrowser12::ContentBrowser12(D3D12* pD3D12)
+	ContentBrowser12::ContentBrowser12(D3D12*const pD3D12)
 	{
 		//D3D12
-		m_pDirIcon12Tex = nullptr;
-		m_pFileIcon12Tex = nullptr;
-		m_pDirIcon12UploadCB = nullptr;
-		m_pFileIcon12UploadCB = nullptr;
+		m_pDirIconTex = nullptr;
+		m_pFileIconTex = nullptr;
+		m_pDirIconUploadCb = nullptr;
+		m_pFileIconUploadCB = nullptr;
 
 		ID3D12Device* pDevice = pD3D12->GetDevice();
 		ID3D12GraphicsCommandList* pCommandlist = pD3D12->GetCommandList();
@@ -76,11 +76,11 @@ namespace wilson {
 			texDesc.SampleDesc.Quality = 0;
 
 			pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
-				&m_pDirIcon12Tex, pDevice);
-			m_pDirIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("ContentBrowser12::m_pDirIcon12Tex") - 1, "ContentBrowser12::m_pDirIcon12Tex");
+				&m_pDirIconTex, pDevice);
+			m_pDirIconTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("ContentBrowser12::m_pDirIconTex") - 1, "ContentBrowser12::m_pDirIconTex");
 			
-			pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pDirIcon12Tex, &m_pDirIcon12UploadCB, pCommandlist);
+			pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pDirIconTex, &m_pDirIconUploadCb, pCommandlist);
 
 			//Gen SRV
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -91,7 +91,7 @@ namespace wilson {
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-			m_dirIcon12SRV = pHeapManager->GetSRV(srvDesc, m_pDirIcon12Tex, pDevice);
+			m_dirIcon12SRV = pHeapManager->GetSrv(srvDesc, m_pDirIconTex, pDevice);
 			
 		}
 
@@ -124,11 +124,11 @@ namespace wilson {
 			texDesc.SampleDesc.Quality = 0;
 
 			pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
-				&m_pFileIcon12Tex, pDevice);
-			m_pFileIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("ContentBrowser12::m_pFileIcon12Tex") - 1, "ContentBrowser12::m_pFileIcon12Tex");
+				&m_pFileIconTex, pDevice);
+			m_pFileIconTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("ContentBrowser12::m_pFileIconTex") - 1, "ContentBrowser12::m_pFileIconTex");
 
-			pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pFileIcon12Tex, &m_pFileIcon12UploadCB, pCommandlist);
+			pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pFileIconTex, &m_pFileIconUploadCB, pCommandlist);
 
 			//Gen SRV
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -139,7 +139,7 @@ namespace wilson {
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-			m_fileIcon12SRV = pHeapManager->GetSRV(srvDesc, m_pFileIcon12Tex, pDevice);
+			m_fileIcon12SRV = pHeapManager->GetSrv(srvDesc, m_pFileIconTex, pDevice);
 		}
 
 
@@ -148,18 +148,18 @@ namespace wilson {
 	void ContentBrowser12::List()
 	{
 		ImGui::Begin("Content Browser");
-		ImGui::Text("%s", m_curDir.string().c_str());
+		ImGui::Text("%s", m_pCurDir.string().c_str());
 
-		if (m_curDir != std::filesystem::path(assetsPath))
+		if (m_pCurDir != std::filesystem::path(assetsPath))
 		{
 			if (ImGui::Button("<-"))
 			{
-				m_curDir = m_curDir.parent_path();
+				m_pCurDir = m_pCurDir.parent_path();
 			}
 		}
 
 		float panelWidth = ImGui::GetContentRegionAvail().x;
-		unsigned int colCount = (int)(panelWidth / (_ICON_SZ + _PAD));
+		unsigned int colCount = static_cast<UINT>(panelWidth / (_ICON_SZ + _PAD));
 		if (colCount < 1)
 		{
 			colCount = 1;
@@ -167,7 +167,7 @@ namespace wilson {
 		ImGui::Columns(colCount, 0, false);
 
 		int id = 0;
-		for (auto const& item : std::filesystem::directory_iterator(m_curDir))
+		for (auto const& item : std::filesystem::directory_iterator(m_pCurDir))
 		{
 			ImGui::PushID(++id);//이미지가 다 같아서 구분 할 기준이 필요함
 
@@ -193,7 +193,7 @@ namespace wilson {
 			{
 				if (item.is_directory())
 				{
-					m_curDir /= item.path().filename();
+					m_pCurDir /= item.path().filename();
 				}
 			}
 			ImGui::TextWrapped(fileName.c_str());

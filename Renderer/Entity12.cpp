@@ -3,21 +3,21 @@
 namespace wilson
 {
 
-	Entity12::Entity12(std::string name, UINT entityIdx, Object* pModelGroup, UINT modelIdx)
+	Entity12::Entity12(const std::string name, const UINT entityIdx, Object12* const pObject, const UINT meshIdx)
 	{
-		m_isObject = true;
-		m_pObject = pModelGroup;
-		m_Name = name;
+		m_bObject = true;
+		m_pObject = pObject;
+		m_name = name;
 		m_pLight = nullptr;
-		m_objectIdx = modelIdx;
+		m_objectIdx = meshIdx;
 		m_entityIdx = entityIdx;
 		m_lightIdx = -1;
 	}
-	Entity12::Entity12(std::string name, UINT entityIdx, Light12* pLight, UINT lightIdx)
+	Entity12::Entity12(const std::string name, const UINT entityIdx, Light12* const pLight, const UINT lightIdx)
 	{
-		m_isObject = false;
+		m_bObject = false;
 		m_pObject = nullptr;
-		m_Name = name;
+		m_name = name;
 		m_pLight = pLight;
 		m_lightIdx = lightIdx;
 		m_entityIdx = entityIdx;

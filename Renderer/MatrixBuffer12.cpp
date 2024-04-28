@@ -2,8 +2,8 @@
 #include "HeapManager.h"
 namespace wilson
 {
-	MatBuffer12::MatBuffer12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager,
-		XMMATRIX* pViewMat, XMMATRIX* pProjMat)
+	MatBuffer12::MatBuffer12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager,
+		XMMATRIX* const pViewMat, XMMATRIX* const pProjMat)
 	{
 
 		m_pMatricesCbBegin = nullptr;
@@ -24,19 +24,19 @@ namespace wilson
 		
 		UINT cbSize = sizeof(MatrixBuffer);
 		m_pMatricesCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-		m_matCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		m_matCbv = pHeapManager->GetCbv(cbSize, pDevice);
 		
 		cbSize = sizeof(DirectX::XMMATRIX);
 		m_pProjMatCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-		m_projMatCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		m_projMatCbv = pHeapManager->GetCbv(cbSize, pDevice);
 		
 		cbSize = sizeof(DirectX::XMMATRIX);
 		m_pViewMatCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-		m_viewMatCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		m_viewMatCbv = pHeapManager->GetCbv(cbSize, pDevice);
 
 		cbSize = sizeof(DirectX::XMMATRIX);
 		m_pCombinedMatCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-		m_combinedMatCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		m_combinedMatCbv = pHeapManager->GetCbv(cbSize, pDevice);
 	
 	}
 
@@ -44,7 +44,7 @@ namespace wilson
 	{
 	}
 
-	void MatBuffer12::UploadMatBuffer(ID3D12GraphicsCommandList* pCommandlist)
+	void MatBuffer12::UploadMatBuffer(ID3D12GraphicsCommandList* const pCommandlist)
 	{	
 		if (bDirty)
 		{
@@ -65,38 +65,38 @@ namespace wilson
 
 
 		memcpy(m_pMatricesCbBegin, &matBuffer, sizeof(matBuffer));
-		pCommandlist->SetGraphicsRootDescriptorTable(0, m_matCBV);
+		pCommandlist->SetGraphicsRootDescriptorTable(0, m_matCbv);
 		return;
 	}
 
-	void MatBuffer12::UploadProjMat(ID3D12GraphicsCommandList* pCommandlist, bool bSSAO)
+	void MatBuffer12::UploadProjMat(ID3D12GraphicsCommandList* const pCommandlist, const bool bSsao)
 	{	
 		memcpy(m_pProjMatCbBegin, &m_projMat, sizeof(XMMATRIX));
-		if (bSSAO)
+		if (bSsao)
 		{
-			pCommandlist->SetComputeRootDescriptorTable(eSsao_eCsProj,  m_projMatCBV);
+			pCommandlist->SetComputeRootDescriptorTable(static_cast<UINT>(eSsaoRP::csProj),  m_projMatCbv);
 		}
 		else
 		{
-			pCommandlist->SetGraphicsRootDescriptorTable( ePbrLight_ePsProjMat, m_projMatCBV);
+			pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psProjMat), m_projMatCbv);
 		}
 		return;
 	}
-	void MatBuffer12::UploadViewMat(ID3D12GraphicsCommandList* pCommandlist)
+	void MatBuffer12::UploadViewMat(ID3D12GraphicsCommandList* const pCommandlist)
 	{
 		memcpy(m_pViewMatCbBegin, &m_viewMat, sizeof(XMMATRIX));
-		pCommandlist->SetGraphicsRootDescriptorTable(ePbrLight_ePsViewMat, m_viewMatCBV);
+		pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psViewMat), m_viewMatCbv);
 		
 	}
-	void MatBuffer12::UploadCombinedMat(ID3D12GraphicsCommandList* pCommandlist, bool bSpotShadowPass)
+	void MatBuffer12::UploadCombinedMat(ID3D12GraphicsCommandList* const pCommandlist, const bool bSpotShadowPass)
 	{
 		const void* pSrc = bSpotShadowPass ? &m_wvpLitMat : &m_wvpMat;
 		memcpy(m_pCombinedMatCbBegin, pSrc, sizeof(XMMATRIX));
 		//Zpass, Skybox, SpotShadow, OutlinerTest Pass¿¡ ÀÌ¿ëµÊ 
-		pCommandlist->SetGraphicsRootDescriptorTable(0, m_combinedMatCBV);
+		pCommandlist->SetGraphicsRootDescriptorTable(0, m_combinedMatCbv);
 		return;
 	}
-	void MatBuffer12::UpdateCombinedMat(bool bSpotShadowPass)
+	void MatBuffer12::UpdateCombinedMat(const bool bSpotShadowPass)
 	{
 		if (bSpotShadowPass)
 		{

@@ -6,26 +6,26 @@ namespace wilson
 {
 	const static float _ICON_SZ = 16.0f;
 	const static float _PAD = 32.0f;
-	Settings12::Settings12(D3D12* pD3D12)
+	Settings12::Settings12(D3D12*const pD3D12)
 	{
 		//D3D12
-		m_pDirLitIcon12Tex=nullptr;
-		m_pCubeLitIcon12Tex=nullptr;
-		m_pSpotLitIcon12Tex=nullptr;
-		m_pDirLitIcon12UploadCB=nullptr;
-		m_pPntLitIcon12UploadCB=nullptr;
-		m_pSpotLitIcon12UploadCB = nullptr;
+		m_pDirLitIconTex=nullptr;
+		m_pCubeLitIconTex=nullptr;
+		m_pSpotLitIconTex=nullptr;
+		m_pDirLitIconUploadCb=nullptr;
+		m_pCubeLitIconUploadCb=nullptr;
+		m_pSpotLitIconUploadCb = nullptr;
 
 		m_FPS.Init();
 		m_pD3D12 = pD3D12;
 		m_pCam = m_pD3D12->GetCam();
 		m_pFrustum = m_pD3D12->GetFrustum();
 		m_pExposure = m_pD3D12->GetExposure();
-		m_pHeightScale = m_pD3D12->GetHeightScale();
-		m_pHeightOnOFF = m_pD3D12->GetHeighOnOFF();
+		m_pHeightScale = m_pD3D12->GetpHeightScale();
+		m_pbHeightOn = m_pD3D12->GetpbHeightOn();
 		m_pSsaoRadius = m_pD3D12->GetSsaoRadius();
 		m_pSsaoBias = m_pD3D12->GetSsaoBias();
-		m_pSsaoSampleCount = m_pD3D12->GetSsaoSampleCnt();
+		m_pnSsaoSample = m_pD3D12->GetNumSsaoSample();
 
 		ID3D12GraphicsCommandList* pCommandlist = m_pD3D12->GetCommandList();
 		ID3D12Device* pDevice = pD3D12->GetDevice();
@@ -59,11 +59,11 @@ namespace wilson
 				texDesc.SampleDesc.Quality = 0;
 
 				pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-					&m_pDirLitIcon12Tex, pDevice);
-				m_pDirLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("Settings12::m_pDirLitIcon12Tex") - 1, "Settings12::m_pDirLitIcon12Tex");
+					&m_pDirLitIconTex, pDevice);
+				m_pDirLitIconTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Settings12::m_pDirLitIconTex") - 1, "Settings12::m_pDirLitIconTex");
 				
-				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pDirLitIcon12Tex, &m_pDirLitIcon12UploadCB, pCommandlist);
+				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pDirLitIconTex, &m_pDirLitIconUploadCb, pCommandlist);
 
 				//Gen SRV
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -74,7 +74,7 @@ namespace wilson
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-				m_dirLitIcon12SRV = pHeapManager->GetSRV(srvDesc, m_pDirLitIcon12Tex, pDevice);
+				m_dirLitIconSrv = pHeapManager->GetSrv(srvDesc, m_pDirLitIconTex, pDevice);
 			}
 		}
 
@@ -104,11 +104,11 @@ namespace wilson
 				texDesc.SampleDesc.Quality = 0;
 
 				pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
-					&m_pCubeLitIcon12Tex, pDevice);
-				m_pCubeLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("Settings12::m_pCubeLitIcon12Tex") - 1, "Settings12::m_pCubeLitIcon12Tex");
+					&m_pCubeLitIconTex, pDevice);
+				m_pCubeLitIconTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Settings12::m_pCubeLitIconTex") - 1, "Settings12::m_pCubeLitIconTex");
 
-				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pCubeLitIcon12Tex, &m_pPntLitIcon12UploadCB, pCommandlist);
+				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pCubeLitIconTex, &m_pCubeLitIconUploadCb, pCommandlist);
 
 				//Gen SRV
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -119,7 +119,7 @@ namespace wilson
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-				m_cubeLitIcon12SRV = pHeapManager->GetSRV(srvDesc, m_pCubeLitIcon12Tex, pDevice);
+				m_cubeLitIconSrv = pHeapManager->GetSrv(srvDesc, m_pCubeLitIconTex, pDevice);
 			}
 		}
 
@@ -149,11 +149,11 @@ namespace wilson
 				texDesc.SampleDesc.Quality = 0;
 
 				pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
-					&m_pSpotLitIcon12Tex, pDevice);
-				m_pSpotLitIcon12Tex->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("Settings12::m_pSpotLitIcon12Tex") - 1, "Settings12::m_pSpotLitIcon12Tex");
+					&m_pSpotLitIconTex, pDevice);
+				m_pSpotLitIconTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("Settings12::m_pSpotLitIconTex") - 1, "Settings12::m_pSpotLitIconTex");
 
-				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pSpotLitIcon12Tex, &m_pSpotLitIcon12UploadCB, pCommandlist);
+				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pSpotLitIconTex, &m_pSpotLitIconUploadCb, pCommandlist);
 
 				//Gen SRV
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -164,7 +164,7 @@ namespace wilson
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-				m_spotLitIcon12SRV = pHeapManager->GetSRV(srvDesc, m_pSpotLitIcon12Tex, pDevice);
+				m_spotLitIconSrv = pHeapManager->GetSrv(srvDesc, m_pSpotLitIconTex, pDevice);
 			}
 		}
 
@@ -172,26 +172,26 @@ namespace wilson
 
 	void Settings12::Draw()
 	{
-		if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_MenuBar))
+		if (ImGui::Begin("Settings11", nullptr, ImGuiWindowFlags_MenuBar))
 		{
 			m_FPS.Frame();
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_FPS.GetFps());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "DrawCall:%d", m_pD3D12->GetDrawCallCount());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "InScene: %d", m_pFrustum->GetENTTsInTotal());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "InFrustum: %d", m_pFrustum->GetENTTsInFrustum());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "HiZPassed: %d", m_pD3D12->GetSubMeshHiZPassed());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "NotOccluded: %d", m_pD3D12->GetSubMeshNotOccluded());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "DrawCall:%d", m_pD3D12->GetNumDrawCall());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "InScene: %d", m_pFrustum->GetSubMeshesInScene());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "InFrustum: %d", m_pFrustum->GetSubMeshesInFrustum());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "HiZPassed: %d", m_pD3D12->GetNumSubMeshHiZPassed());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "NotOccluded: %d", m_pD3D12->GetNumSubMeshNotOccluded());
 			ImGui::Separator();
 
 			ImGuiIO io = ImGui::GetIO();
 			ImGui::Text("Mouse Pos: %g, %g", io.MousePos.x, io.MousePos.y);
 			ImGui::Separator();
-			if (ImGui::TreeNode("Camera"))
+			if (ImGui::TreeNode("Camera11"))
 			{
 				using namespace DirectX;
 				static float DragFactor = 0.1f;
 
-				float* curSpeed = m_pCam->GetTRSpeed();
+				float* curSpeed = m_pCam->GetTrSpeed();
 				float* curNearZ = m_pCam->GetNearZ();
 				float* curFarZ = m_pCam->GetFarZ();
 
@@ -261,29 +261,29 @@ namespace wilson
 		}
 		ImGui::End();
 
-		if (ImGui::Begin("Light"))
+		if (ImGui::Begin("Light11"))
 		{
-			ImGui::Image((ImTextureID)m_dirLitIcon12SRV.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
+			ImGui::Image((ImTextureID)m_dirLitIconSrv.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
-			ImGui::Text("DirectionalLight");
+			ImGui::Text("DirectionalLight11");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{
 				ImGui::SetDragDropPayload("dir", nullptr, 0, ImGuiCond_Once);
 				ImGui::EndDragDropSource();
 			}
 
-			ImGui::Image((ImTextureID)m_cubeLitIcon12SRV.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
+			ImGui::Image((ImTextureID)m_cubeLitIconSrv.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
-			ImGui::Text("CubeLight");
+			ImGui::Text("CubeLight11");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{
 				ImGui::SetDragDropPayload("pnt", nullptr, 0, ImGuiCond_Once);
 				ImGui::EndDragDropSource();
 			}
 
-			ImGui::Image((ImTextureID)m_spotLitIcon12SRV.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
+			ImGui::Image((ImTextureID)m_spotLitIconSrv.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
-			ImGui::Text("SpotLight");
+			ImGui::Text("SpotLight11");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{
 				ImGui::SetDragDropPayload("spt", nullptr, 0, ImGuiCond_Once);
@@ -297,7 +297,7 @@ namespace wilson
 		{
 			if (ImGui::Button("ToggleParallaxMapping"))
 			{
-				*m_pHeightOnOFF = !(*m_pHeightOnOFF);
+				*m_pbHeightOn = !(*m_pbHeightOn);
 			}
 		}
 		ImGui::End();
@@ -310,7 +310,7 @@ namespace wilson
 		ImGui::End();
 		if (ImGui::Begin("SSAO"))
 		{
-			ImGui::DragInt("SampleCount", (INT*)m_pSsaoSampleCount, 1, 1, 64);
+			ImGui::DragInt("SampleCount", reinterpret_cast<INT*>(m_pnSsaoSample), 1, 1, 64);
 			ImGui::DragFloat("Bias", m_pSsaoBias, 0.01f, 0.1f, 5.0f);
 			ImGui::DragFloat("Radius", m_pSsaoRadius, 0.01f, 0.1f, 5.0f);
 		}
@@ -320,40 +320,40 @@ namespace wilson
 	Settings12::~Settings12()
 	{
 
-		if (m_pDirLitIcon12Tex != nullptr)
+		if (m_pDirLitIconTex != nullptr)
 		{
-			m_pDirLitIcon12Tex->Release();
-			m_pDirLitIcon12Tex = nullptr;
+			m_pDirLitIconTex->Release();
+			m_pDirLitIconTex = nullptr;
 		}
 		
-		if (m_pCubeLitIcon12Tex != nullptr)
+		if (m_pCubeLitIconTex != nullptr)
 		{
-			m_pCubeLitIcon12Tex->Release();
-			m_pCubeLitIcon12Tex = nullptr;
+			m_pCubeLitIconTex->Release();
+			m_pCubeLitIconTex = nullptr;
 		}
 
-		if (m_pSpotLitIcon12Tex != nullptr)
+		if (m_pSpotLitIconTex != nullptr)
 		{
-			m_pSpotLitIcon12Tex->Release();
-			m_pSpotLitIcon12Tex = nullptr;
+			m_pSpotLitIconTex->Release();
+			m_pSpotLitIconTex = nullptr;
 		}
 		
-		if (m_pDirLitIcon12UploadCB != nullptr)
+		if (m_pDirLitIconUploadCb != nullptr)
 		{
-			m_pDirLitIcon12UploadCB->Release();
-			m_pDirLitIcon12UploadCB = nullptr;	
+			m_pDirLitIconUploadCb->Release();
+			m_pDirLitIconUploadCb = nullptr;	
 		}
 
-		if (m_pPntLitIcon12UploadCB != nullptr)
+		if (m_pCubeLitIconUploadCb != nullptr)
 		{
-			m_pPntLitIcon12UploadCB->Release();
-			m_pPntLitIcon12UploadCB = nullptr;
+			m_pCubeLitIconUploadCb->Release();
+			m_pCubeLitIconUploadCb = nullptr;
 		}
 
-		if (m_pSpotLitIcon12UploadCB != nullptr)
+		if (m_pSpotLitIconUploadCb != nullptr)
 		{
-			m_pSpotLitIcon12UploadCB->Release();
-			m_pSpotLitIcon12UploadCB = nullptr;
+			m_pSpotLitIconUploadCb->Release();
+			m_pSpotLitIconUploadCb = nullptr;
 		}
 
 	}

@@ -1,12 +1,11 @@
-#include<cmath>
 
 #include"DirectionalLight12.h"
 #include"HeapManager.h"
 namespace wilson
 {
  
-    DirectionalLight12::DirectionalLight12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandlist, HeapManager* pHeapManager, 
-        UINT idx, Camera12* pCam)
+    DirectionalLight12::DirectionalLight12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager,
+        const UINT idx, Camera12* const pCam)
         :Light12(idx)
     {
         m_pCam = pCam;
@@ -17,7 +16,7 @@ namespace wilson
 
         UINT cbSize = sizeof(DirectX::XMMATRIX) * _CASCADE_LEVELS;
         m_pMatricesCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-        m_matriceCBV = pHeapManager->GetCBV(cbSize, pDevice);
+        m_matriceCbv = pHeapManager->GetCbv(cbSize, pDevice);
 
     }
     DirectionalLight12::~DirectionalLight12()
@@ -34,7 +33,7 @@ namespace wilson
     }
 
 
-    void DirectionalLight12::UploadShadowMatrices(ID3D12GraphicsCommandList* pCommandlist)
+    void DirectionalLight12::UploadShadowMatrices(ID3D12GraphicsCommandList* const pCommandlist)
     {
         std::vector<DirectX::XMMATRIX> matrices(m_lightSpaceMat.size());
         for (int i = 0; i < m_lightSpaceMat.size(); ++i)
@@ -44,7 +43,7 @@ namespace wilson
 
         memcpy(m_pMatricesCbBegin, &matrices[0], sizeof(DirectX::XMMATRIX) * m_lightSpaceMat.size());
    
-        pCommandlist->SetGraphicsRootDescriptorTable(eCascadeShadowRP::eCascadeShadow_eGsMat, m_matriceCBV);
+        pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(eCascadeShadowRP::gsMat), m_matriceCbv);
         return;
 
     }
@@ -70,7 +69,7 @@ namespace wilson
         }
     }
 
-    std::vector<DirectX::XMVECTOR> DirectionalLight12::GetFrustumCornersWorldSpace(DirectX::XMMATRIX viewMat, DirectX::XMMATRIX projMat)
+    std::vector<DirectX::XMVECTOR> DirectionalLight12::GetFrustumCornersWorldSpace(const DirectX::XMMATRIX viewMat, const DirectX::XMMATRIX projMat)
     {
         DirectX::XMMATRIX viewProMat = DirectX::XMMatrixMultiply(viewMat, projMat);
         DirectX::XMMATRIX invVPMat = DirectX::XMMatrixInverse(nullptr, viewProMat);

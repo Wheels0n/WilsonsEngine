@@ -1,6 +1,5 @@
 #pragma once
 #include <d3d12.h>
-#include <vector>
 #include "typedef.h"
 namespace wilson
 {	
@@ -9,51 +8,48 @@ namespace wilson
 	{
 
 	public:
-		void BindDirDSV(ID3D12GraphicsCommandList* pCommandlist, const UINT i);
-		void BindCubeDSV(ID3D12GraphicsCommandList* pCommandlist, const UINT i);
-		void BindSpotDSV(ID3D12GraphicsCommandList* pCommandlist, const UINT i);
-		void ClearDSV(ID3D12GraphicsCommandList* pCommandlist, UINT litCounts[]);
-		void ClearRTV(ID3D12GraphicsCommandList* pCommandlist, UINT litCounts[]);
-		inline void BindDirSRV(ID3D12GraphicsCommandList* pCommandlist)
+		void BindCubeDsv(ID3D12GraphicsCommandList* const pCommandlist, const UINT i);
+		inline void BindCubeSrv(ID3D12GraphicsCommandList* const pCommandlist)
 		{
-			pCommandlist->SetGraphicsRootDescriptorTable(ePbrLight_ePsDirShadow, m_dir12SRVs[0]);
+			pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psCubeShadow), m_cubeSrvs[0]);
 		};
-		inline void BindCubeSRV(ID3D12GraphicsCommandList* pCommandlist)
+		void BindDirDsv(ID3D12GraphicsCommandList* const pCommandlist, const UINT i);
+		inline void BindDirSrv(ID3D12GraphicsCommandList* const pCommandlist)
 		{
-			pCommandlist->SetGraphicsRootDescriptorTable(ePbrLight_ePsCubeShadow, m_cube12SRVs[0]);
+			pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psDirShadow), m_dirSrvs[0]);
 		};
-		inline void BindSpotSRV(ID3D12GraphicsCommandList* pCommandlist)
+		void BindSpotDsv(ID3D12GraphicsCommandList* const pCommandlist, const UINT i);
+		inline void BindSpotSrv(ID3D12GraphicsCommandList* const pCommandlist)
 		{
-			pCommandlist->SetGraphicsRootDescriptorTable(ePbrLight_ePsSpotShadow, m_spot12SRVs[0]);
+			pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psSpotShadow), m_spotSrvs[0]);
 		};
-		void SetResourceBarrier(ID3D12GraphicsCommandList*, UINT litCnts[], 
-			D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState, bool bRTV);
-		D3D12_GPU_DESCRIPTOR_HANDLE* GetDirDebugSRV(ID3D12GraphicsCommandList* pCommandlist, UINT i, UINT lod);
-		D3D12_GPU_DESCRIPTOR_HANDLE* GetCubeDebugSRV(ID3D12GraphicsCommandList* pCommandlist, UINT i, UINT face);
-		D3D12_GPU_DESCRIPTOR_HANDLE* GetSpotDebugSRV(ID3D12GraphicsCommandList* pCommandlist, UINT i);
-
-		
-		inline D3D12_GPU_DESCRIPTOR_HANDLE& GetDirShadowSamplerView()
-		{
-			return m_dirShadowSSV;
-		}
+		void ClearDsv(ID3D12GraphicsCommandList* const pCommandlist, const UINT litCounts[]);
+		void ClearRtv(ID3D12GraphicsCommandList* const pCommandlist, const UINT litCounts[]);
+		D3D12_GPU_DESCRIPTOR_HANDLE* GetCubeDebugSrv(ID3D12GraphicsCommandList* const pCommandlist, const UINT i, const UINT face);
 		inline D3D12_GPU_DESCRIPTOR_HANDLE& GetCubeShadowSamplerView()
 		{
 			return m_cubeShadowSSV;
 		}
-	
-		inline D3D12_VIEWPORT* GetViewport12()
+		D3D12_GPU_DESCRIPTOR_HANDLE* GetDirDebugSrv(ID3D12GraphicsCommandList* const pCommandlist, const UINT i, const UINT lod);
+		inline D3D12_GPU_DESCRIPTOR_HANDLE& GetDirShadowSamplerView()
 		{
-			return &m_viewport12;
+			return m_dirShadowSSV;
 		}
-
 		inline D3D12_RECT* GetScissorRect()
 		{
 			return &m_rect;
 		}
+		D3D12_GPU_DESCRIPTOR_HANDLE* GetSpotDebugSrv(ID3D12GraphicsCommandList* const pCommandlist, const UINT i);
+		inline D3D12_VIEWPORT* GetViewport()
+		{
+			return &m_viewport;
+		}
+		void SetResourceBarrier(ID3D12GraphicsCommandList* const, const UINT litCnts[],
+			const D3D12_RESOURCE_STATES beforeState, const D3D12_RESOURCE_STATES afterState, const bool bRTV);
+
 		ShadowMap12() = default;
-		ShadowMap12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList,
-			HeapManager* pHeapManager,
+		ShadowMap12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandList,
+			HeapManager* const pHeapManager,
 			const UINT width, const UINT height, const UINT cascadeLevel,
 			const UINT dirLightCap, const UINT pntLightCap, const UINT spotLightCap);
 		~ShadowMap12();
@@ -64,34 +60,34 @@ namespace wilson
 		FLOAT m_clear[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 		//D3D12
-		std::vector<ID3D12Resource*> m_dir12Tex;
-		std::vector<ID3D12Resource*> m_dirDebug12Tex;
-		std::vector<ID3D12Resource*> m_cube12Tex;
-		std::vector<ID3D12Resource*> m_cubeDebug12Tex;
-		std::vector<ID3D12Resource*> m_spot12Tex;
-		std::vector<ID3D12Resource*> m_spotDebug12Tex;
-		std::vector<ID3D12Resource*> m_debug12Tex;
+		std::vector<ID3D12Resource*> m_cubeTexes;
+		std::vector<ID3D12Resource*> m_cubeDebugTexes;
+		std::vector<ID3D12Resource*> m_debugTexes;
+		std::vector<ID3D12Resource*> m_dirTexes;
+		std::vector<ID3D12Resource*> m_dirDebugTexes;
+		std::vector<ID3D12Resource*> m_spotTexes;
+		std::vector<ID3D12Resource*> m_spotDebugTexes;
 
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_dirDebug12RTVs;
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_cubeDebug12RTVs;
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_spotDebug12RTVs;
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_cubeDebugRtvs;
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_dirDebugRtvs;
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_spotDebugRtvs;
 
-		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_dir12SRVs;
-		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_dirDebug12SRVs;
-		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_cube12SRVs;
-		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_cubeDebug12SRVs;
-		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_spot12SRVs;
-		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_spotDebug12SRVs;
-		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_debug12SRVs;
+		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_cubeSrvs;
+		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_cubeDebugSrvs;
+		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_debugSrvs;
+		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_dirSrvs;
+		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_dirDebugSrvs;
+		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_spotSrvs;
+		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_spotDebugSrvs;
 
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_dir12DSVs;
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_cube12DSVs;
-		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_spot12DSVs;
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_cubeDsvs;
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_dirDsvs;
+		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_spotDsvs;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE m_dirShadowSSV;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_cubeShadowSSV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_dirShadowSSV;
 
-		D3D12_VIEWPORT m_viewport12;
+		D3D12_VIEWPORT m_viewport;
 		D3D12_RECT m_rect = { 0, };
 	};
 };

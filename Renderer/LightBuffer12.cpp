@@ -2,12 +2,12 @@
 #include "HeapManager.h"
 namespace wilson
 {
-	void LightBuffer12::UpdateDirLightMatrices(ID3D12GraphicsCommandList* pCommandlist)
+	void LightBuffer12::UpdateDirLightMatrices(ID3D12GraphicsCommandList* const pCommandlist)
 	{
 
 		UINT offset = 0;
 		UINT len = sizeof(DirectX::XMMATRIX)*_CASCADE_LEVELS;
-		UINT numOfLights = m_pDirLights.size();
+		UINT nLights = m_pDirLights.size();
 		for (int i = 0; i < m_pDirLights.size(); ++i)
 		{
 			std::vector<DirectX::XMMATRIX> cascadeMat = m_pDirLights[i]->GetLightSpaceMat();
@@ -15,13 +15,13 @@ namespace wilson
 			offset += len;
 		}
 		offset = len * _MAX_DIR_LIGHTS;
-		memcpy(m_pDirLitMatricesCbBegin + offset, &numOfLights, sizeof(UINT));
+		memcpy(m_pDirLitMatricesCbBegin + offset, &nLights, sizeof(UINT));
 	
-		pCommandlist->SetGraphicsRootDescriptorTable(ePbrLightRP::ePbrLight_ePsDirLitMat, m_dirLitMatrices12BufferCBV);
+		pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psDirLitMat), m_dirLitMatricesCbv);
 		return;
 	}
 
-	void LightBuffer12::UpdateSpotLightMatrices(ID3D12GraphicsCommandList* pCommandlist)
+	void LightBuffer12::UpdateSpotLightMatrices(ID3D12GraphicsCommandList* const pCommandlist)
 	{
 		UINT offset = 0;
 		UINT len = sizeof(DirectX::XMMATRIX);
@@ -33,11 +33,11 @@ namespace wilson
 		}
 		offset = len * _MAX_SPT_LIGHTS;
 		memcpy(m_pSpotLitMatricesCbBegin + offset, &numOfLights, sizeof(UINT));
-		pCommandlist->SetGraphicsRootDescriptorTable(ePbrLightRP::ePbrLight_ePsSpotLitMat, m_spotLitMatrices12BufferCBV);
+		pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psSpotLitMat), m_spotLitMatricesCbv);
 		return;
 	}
 	
-	void LightBuffer12::UpdateLightBuffer(ID3D12GraphicsCommandList* pCommandlist)
+	void LightBuffer12::UpdateLightBuffer(ID3D12GraphicsCommandList* const pCommandlist)
 	{
 		UINT dirLightOffset = 0;
 		UINT len = sizeof(DirLightProperty);
@@ -77,13 +77,13 @@ namespace wilson
 		sptLightOffset = pntLightOffset+len * _MAX_SPT_LIGHTS;
 		memcpy(m_pLightPropertyCbBegin + sptLightOffset, &numOfLights, sizeof(UINT));
 
-		pCommandlist->SetGraphicsRootDescriptorTable(ePbrLightRP::ePbrLight_ePsLight, m_lightPropertyBufferCBV);
+		pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psLight), m_lightPropertyCbv);
 		return;
 
 
 	}
 	
-	LightBuffer12::LightBuffer12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, HeapManager* pHeapManager)
+	LightBuffer12::LightBuffer12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandList, HeapManager* const pHeapManager)
 	{
 		m_pLightPropertyCbBegin = nullptr;
 		m_pDirLitMatricesCbBegin = nullptr;
@@ -116,17 +116,17 @@ namespace wilson
 		
 		UINT cbSize = sizeof(DirLightMatrices);
 		m_pLightPropertyCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-		m_lightPropertyBufferCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		m_lightPropertyCbv = pHeapManager->GetCbv(cbSize, pDevice);
 		
 		cbSize = sizeof(DirLightMatrices);
 		m_pDirLitMatricesCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-		m_dirLitMatrices12BufferCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		m_dirLitMatricesCbv = pHeapManager->GetCbv(cbSize, pDevice);
 
 
 		
 		cbSize = sizeof(SpotLightMatrices);
 		m_pSpotLitMatricesCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-		m_spotLitMatrices12BufferCBV = pHeapManager->GetCBV(cbSize, pDevice);
+		m_spotLitMatricesCbv = pHeapManager->GetCbv(cbSize, pDevice);
 		
 
 	}
