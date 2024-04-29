@@ -10,7 +10,6 @@
 #include "MatrixBuffer11.h"
 #include "LightBuffer11.h"
 #include "Shader11.h"
-#include "Terrain.h"
 #include "Import11.h"
 #include "ShadowMap11.h"
 #include "typedef.h"
@@ -227,7 +226,6 @@ namespace wilson
 		D3D11_VIEWPORT m_prefilterViewport;
 
 		std::vector<Object11*> m_pObjects;
-		Terrain* m_pTerrain;
 		Camera11* m_pCam;
 		Frustum11* m_pFrustum;
 		LightBuffer11* m_pLightCb;

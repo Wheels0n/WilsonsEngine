@@ -3,8 +3,8 @@
 #include <D3D12.h>
 
 #include <dxgicommon.h>
-
-#include "SubMesh.h"
+#include "AABB.h"
+#include "Sphere.h"
 #include "typedef.h"
 namespace wilson {
 
@@ -21,37 +21,35 @@ namespace wilson {
 	public:
 		bool operator==(const Mesh12 mesh2)
 		{
-			if (this->m_matNames.size()!= mesh2.m_matNames.size())
+			if (this->m_matNames.size() != mesh2.m_matNames.size())
 			{
 				return false;
 			}
-			
-			for (int i = 0; i < mesh2.m_matNames.size(); ++i)
+			else
 			{
-				if (m_matNames[i] != mesh2.m_matNames[i])
+				for (int i = 0; i < mesh2.m_matNames.size(); ++i)
 				{
-					return false;
-				}
-			}
-			
-
-			if (this->m_clusterPos.size() != mesh2.m_clusterPos.size())
-			{
-				return false;
-			}
-			
-			for (int i = 0; i < mesh2.m_clusterPos.size(); ++i)
-			{	
-				for (int j = 0; j < mesh2.m_clusterPos[0].size(); ++j)
-				{
-					if (m_clusterPos[i][j] != mesh2.m_clusterPos[i][j])
+					if (m_matNames[i] != mesh2.m_matNames[i])
 					{
 						return false;
 					}
 				}
 			}
-			
 
+			if (this->m_indicesPos.size() != mesh2.m_indicesPos.size())
+			{
+				return false;
+			}
+			else
+			{
+				for (int i = 0; i < mesh2.m_indicesPos.size(); ++i)
+				{
+					if (m_indicesPos[i] != mesh2.m_indicesPos[i])
+					{
+						return false;
+					}
+				}
+			}
 			return true;
 		}
 		void BindMaterial(const std::unordered_map<std::string, int>& mathash, const std::vector<MaterialInfo>& matInfos,
@@ -59,6 +57,15 @@ namespace wilson {
 		inline DirectX::XMVECTOR* GetAngle()
 		{
 			return &m_angleVec;
+		}
+		AABB GetGlobalAABB();
+		inline UINT GetIndexCount(UINT i)
+		{
+			return m_indicesPos[i + 1] - m_indicesPos[i];
+		}
+		inline UINT GetIndexOffset(UINT i)
+		{
+			return sizeof(UINT) * m_indicesPos[i];
 		}
 		inline DirectX::XMMATRIX GetInverseWorldMatrix()
 		{
@@ -76,6 +83,14 @@ namespace wilson {
 		{
 			return m_matInfos.size();
 		}
+		inline std::vector<unsigned int>& GetNumIndice()
+		{
+			return m_nIndices;
+		}
+		inline std::vector<unsigned int>& GetNumVertexData()
+		{
+			return m_nVertexData;
+		}
 		inline DirectX::XMMATRIX* GetOutlinerScaleMatrix()
 		{
 			return &m_outlinerScaleMat;
@@ -92,9 +107,17 @@ namespace wilson {
 		{
 			return &m_scMat;
 		}
-		inline std::vector<SubMesh*>& GetSubMeshes()
+		inline Sphere* GetSphere() const
 		{
-			return m_pSubMeshs;
+			return m_pSphere;
+		}
+		inline std::vector<unsigned int>& GetVertexDataPos()
+		{
+			return m_vertexDataPos;
+		}
+		inline std::vector<unsigned int>& GetIndicesPos()
+		{
+			return m_indicesPos;
 		}
 		D3D12_GPU_DESCRIPTOR_HANDLE* GetTextureSrv(const UINT matIndex, const eTexType texType);
 		inline UINT GetTotalIndexCount()
@@ -109,16 +132,13 @@ namespace wilson {
 		{
 			return &m_trMat;
 		}
-		inline std::vector<unsigned int>& GetVertexDataPos()
-		{
-			return m_subMeshPos;
-		}
 		void SetVBandIB(ID3D12GraphicsCommandList* const pCommandList);
 		void UpdateWorldMatrix();
+		void UploadBuffers(ID3D12GraphicsCommandList* pCommandlist, UINT i, ePass curPass);
 
 		Mesh12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandList, HeapManager* const pHeapManager,
-			VertexData* const pVertices, unsigned long* const pIndices, const UINT nVertex,
-			const std::vector<unsigned int> vertexDataPos, const std::vector<std::vector<unsigned int>> clusterPos,
+			VertexData* const pVertices, unsigned long* const pIndices,
+			const std::vector<unsigned int> vertexDataPos, const std::vector<unsigned int> indicesPos,
 			wchar_t* const pName, const std::vector<std::string> matNames);
 		Mesh12(const Mesh12&) = delete;
 		~Mesh12();
@@ -127,7 +147,7 @@ namespace wilson {
 		ID3D12Device* m_pDevice;
 
 		D3D12_VERTEX_BUFFER_VIEW m_vbV;
-		std::vector<std::vector<D3D12_INDEX_BUFFER_VIEW>> m_subIbVs;
+		std::vector<D3D12_INDEX_BUFFER_VIEW> m_subIbVs;
 		D3D12_INDEX_BUFFER_VIEW m_ibV;
 
 		std::string m_name;
@@ -137,14 +157,15 @@ namespace wilson {
 		unsigned long* m_pIndices;
 		unsigned int m_nIndex;
 		unsigned int m_nVertex;
-		std::vector<unsigned int> m_subMeshPos;
-		std::vector<std::vector<unsigned int>> m_clusterPos;
+		std::vector<unsigned int> m_vertexDataPos;
+		std::vector<unsigned int> m_indicesPos;
+		std::vector<unsigned int> m_nVertexData;
+		std::vector<unsigned int> m_nIndices;
 
 		std::vector<MaterialInfo> m_matInfos;
 		std::vector<PerModel>m_perModels;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_nullSrvs;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_texSrvs;
-		std::vector<SubMesh*> m_pSubMeshs;
 		std::vector<ID3D12Resource*> m_pTexs;
 		std::unordered_map<std::string, int> m_texHash;
 
@@ -157,6 +178,8 @@ namespace wilson {
 		DirectX::XMMATRIX m_trMat;
 		DirectX::XMMATRIX m_wMat;
 
+		AABB* m_pAABB;
+		Sphere* m_pSphere;
 		MatBuffer12* m_pMatricesCb;
 		HeapManager* m_pHeapManager;
 

@@ -12,7 +12,6 @@
 #include "MatrixBuffer12.h"
 #include "LightBuffer12.h"
 #include "Shader12.h"
-#include "Terrain.h"
 #include "Import12.h"
 #include "ShadowMap12.h"
 #include "HeapManager.h"
@@ -41,7 +40,6 @@ namespace wilson
 		void D3DMemoryLeakCheck();
 		void HWQueryForOcclusion(const UINT threadIdx);
 		void SsaoThread();
-		void UpdateDrawLists();
 		void WaitForGpu();
 		void WorkerThread(const UINT threadIndex);
 		static UINT WINAPI WrapperSsaoThreadFun(LPVOID pParameter);
@@ -163,6 +161,7 @@ namespace wilson
 		{
 			m_pFrustum = pFrustum;
 		}
+		void UpdateDrawLists();
 		void UpdateScene();
 		void UploadTexThroughCB(const D3D12_RESOURCE_DESC texDesc, const UINT rowPitch,
 			const UINT8* pData, ID3D12Resource* const pDst, ID3D12Resource** const ppUploadCB, ID3D12GraphicsCommandList* const pCommandList);
@@ -348,9 +347,8 @@ namespace wilson
 		Shader12* m_pShader;
 		ShadowMap12* m_pShadowMap;
 		std::vector<Mesh12*>m_pTotalMeshes;
-		std::vector<SubMesh*>m_pTotalSubMeshes;
-		std::queue<SubMesh*>m_pHWOcclusionQueue[_WORKER_THREAD_COUNT];
-		std::queue<SubMesh*> m_pSubMeshQueue;
+		std::queue<Mesh12*>m_pHWOcclusionQueue[_WORKER_THREAD_COUNT];
+		std::queue<Mesh12*> m_pMeshQueue;
 
 
 

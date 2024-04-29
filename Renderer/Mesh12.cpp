@@ -1,41 +1,31 @@
-
-#include "Mesh12.h"
-#include "SubMesh.h"
-#include "MatrixBuffer12.h"
 #include "HeapManager.h"
+#include "MatrixBuffer12.h"
+#include "Mesh12.h"
+
 namespace wilson 
 {
 	//Pos를 담는 변수들은 가장 끝 원소로 전체 크기를 담고 있음에 유의
-	Mesh12::Mesh12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandList, HeapManager* const pHeapManager,
-		VertexData* const pVertices,
-		unsigned long* const pIndices,
-		const UINT nVertex,
-		const std::vector<unsigned int> subMeshPos,
-		const std::vector<std::vector<unsigned int>> clusterPos,
-		wchar_t* const pName,
-		const std::vector<std::string> matNames)
+	Mesh12::Mesh12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, HeapManager* pHeapManager,
+		VertexData* pVertices,
+		unsigned long* pIndices,
+		std::vector<unsigned int> vertexDataPos,
+		std::vector<unsigned int> indicesPos,
+		wchar_t* pName,
+		std::vector<std::string> matNames)
 	{
 		HRESULT hr;
 		//Init Variables
+		//Init Variables
 		{
 			m_pDevice = pDevice;
-			m_pHeapManager = pHeapManager;
+
 			m_pVertexData = pVertices;
 			m_pIndices = pIndices;
-			
-			m_subMeshPos = subMeshPos;
-			m_subIbVs.resize(clusterPos.size());
-
-			for (int i = 0; i < clusterPos.size(); ++i)
-			{	
-				m_subIbVs[i].resize(clusterPos[i].size());
-			}
-			
-			m_nVertex = nVertex;
-			UINT lastR = clusterPos.size() - 1;
-			UINT lastC = clusterPos[lastR].size() - 1;
-			m_nIndex = clusterPos[lastR][lastC];
-			m_clusterPos = clusterPos;
+			m_vertexDataPos = vertexDataPos;
+			m_indicesPos = indicesPos;
+			m_subIbVs.resize(indicesPos.size() - 1);
+			m_nVertex = vertexDataPos[vertexDataPos.size() - 1];
+			m_nIndex = indicesPos[indicesPos.size() - 1];
 
 			m_matNames = matNames;
 
@@ -50,13 +40,38 @@ namespace wilson
 			m_outlinerMat = m_outlinerScaleMat;
 
 			m_angleVec = DirectX::XMVectorZero();
+
+			m_pAABB = nullptr;
 			m_pMatricesCb = nullptr;
 		}
 
-		//Gen MatBuffer11
+		//Gen MatBuffer12
 		DirectX::XMMATRIX iMat =  DirectX::XMMatrixIdentity();
 		m_pMatricesCb = new MatBuffer12(pDevice, pCommandList, pHeapManager, &iMat, &iMat);
-	
+		//Gen AABB
+		{
+			DirectX::XMFLOAT3 minAABB(FLT_MAX, FLT_MAX, FLT_MAX);
+			DirectX::XMFLOAT3 maxAABB(FLT_MIN, FLT_MIN, FLT_MIN);
+			for (UINT i = 0; i < m_nVertex; ++i)
+			{
+				minAABB.x = min(minAABB.x, m_pVertexData[i].position.x);
+				minAABB.y = min(minAABB.y, m_pVertexData[i].position.y);
+				minAABB.z = min(minAABB.z, m_pVertexData[i].position.z);
+
+				maxAABB.x = max(maxAABB.x, m_pVertexData[i].position.x);
+				maxAABB.y = max(maxAABB.y, m_pVertexData[i].position.y);
+				maxAABB.z = max(maxAABB.z, m_pVertexData[i].position.z);
+			}
+			m_pAABB = new AABB(minAABB, maxAABB);
+
+			DirectX::XMFLOAT3 center((maxAABB.x + minAABB.x) * 0.5f,
+				(maxAABB.y + minAABB.y) * 0.5f, (maxAABB.z + minAABB.z) * 0.5f);
+			DirectX::XMFLOAT3 len((minAABB.x - maxAABB.x),
+				(minAABB.y - maxAABB.y), (minAABB.z - maxAABB.z));
+			DirectX::XMVECTOR lenV = DirectX::XMLoadFloat3(&len);
+			lenV = DirectX::XMVector4Length(lenV);
+			m_pSphere = new Sphere(center, lenV.m128_f32[0]);
+		}
 		//Gen Name;
 		{
 			int len = wcslen(pName);
@@ -80,20 +95,13 @@ namespace wilson
 			const UINT ibSize = sizeof(UINT) * m_nIndex;
 			pHeapManager->AllocateIndexData((UINT8*)m_pIndices, ibSize);
 
-			//SubMesh루프
 			for (int i = 0; i < m_subIbVs.size(); ++i)
 			{
-				//Cluster루프
-				for (int j = 0; j < m_subIbVs[i].size()-1; ++j)
-				{
-			
-					m_subIbVs[i][j] = pHeapManager->GetIbv(
-						sizeof(UINT) * (clusterPos[i][j+1] - clusterPos[i][j]),
-						sizeof(UINT) * clusterPos[i][j]);
-				}
-				
+				m_subIbVs[i] = pHeapManager->GetIbv(
+					sizeof(UINT) * (indicesPos[i + 1] - indicesPos[i]),
+					sizeof(UINT) * indicesPos[i]);
 			}
-			m_ibV = pHeapManager->GetIbv(sizeof(UINT) * m_nIndex, 0);
+			m_ibV = pHeapManager->GetIbv(sizeof(UINT) * indicesPos[indicesPos.size() - 1], 0);
 			UINT   idx = pHeapManager->GetIbHeapOffset();
 			idx /= _IB_HEAP_SIZE;
 			UINT64 curBlockOffset = pHeapManager->GetIbBlockOffset(idx);
@@ -123,16 +131,10 @@ namespace wilson
 			
 		}
 
-		m_pSubMeshs.resize(m_matNames.size());
-
 	}
 
 	Mesh12::~Mesh12()
 	{
-		for (int i = 0; i < m_pSubMeshs.size(); ++i)
-		{
-			delete m_pSubMeshs[i];
-		}
 
 		if (m_pVertexData != nullptr)
 		{
@@ -145,7 +147,7 @@ namespace wilson
 			delete m_pIndices;
 			m_pIndices = nullptr;
 		}
-		m_subMeshPos.clear();
+		
 		m_texSrvs.clear();
 		m_texHash.clear();
 		m_matInfos.clear();
@@ -155,6 +157,14 @@ namespace wilson
 		if (m_pMatricesCb != nullptr)
 		{
 			delete m_pMatricesCb;
+		}
+		if (m_pAABB != nullptr)
+		{
+			delete m_pAABB;
+		}
+		if (m_pSphere != nullptr)
+		{
+			delete m_pAABB;
 		}
 
 	}
@@ -166,32 +176,14 @@ namespace wilson
 		m_perModels.reserve(m_matNames.size());
 		for (int i = 0; i < m_matNames.size(); ++i)
 		{
-			std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> texSrvs;
 			PerModel perModel = { false, };
-
 			int idx = mathash.at(m_matNames[i]);
 			MaterialInfo matInfo = matInfos[idx];
 			m_matInfos.push_back(matInfo);
 
-			UINT nullCount = 0;
-			//Diffuse
 			idx = texhash.at(matInfo.diffuseMap);
 			m_texHash[matInfo.diffuseMap] = m_texSrvs.size();
 			m_texSrvs.push_back(textures[idx]);
-			texSrvs.push_back(textures[idx]);
-
-			if (!matInfo.normalMap.empty())
-			{
-				idx = texhash.at(matInfo.normalMap);
-				m_texHash[matInfo.normalMap] = m_texSrvs.size();
-				m_texSrvs.push_back(textures[idx]);
-				texSrvs.push_back(textures[idx]);
-				perModel.hasNormal = true;
-			}
-			else
-			{
-				texSrvs.push_back(m_nullSrvs[nullCount++]);
-			}
 
 			if (!matInfo.specularMap.empty())
 			{
@@ -199,24 +191,14 @@ namespace wilson
 				m_texHash[matInfo.specularMap] = m_texSrvs.size();
 				m_texSrvs.push_back(textures[idx]);
 				perModel.hasSpecular = true;
-				texSrvs.push_back(textures[idx]);
-			}
-			else
-			{
-				texSrvs.push_back(m_nullSrvs[nullCount++]);
 			}
 
-			if (!matInfo.emissiveMap.empty())
+			if (!matInfo.normalMap.empty())
 			{
-				idx = texhash.at(matInfo.emissiveMap);
-				m_texHash[matInfo.emissiveMap] = m_texSrvs.size();
+				idx = texhash.at(matInfo.normalMap);
+				m_texHash[matInfo.normalMap] = m_texSrvs.size();
 				m_texSrvs.push_back(textures[idx]);
-				texSrvs.push_back(textures[idx]);
-				perModel.hasEmissive = true;
-			}
-			else
-			{
-				texSrvs.push_back(m_nullSrvs[nullCount++]);
+				perModel.hasNormal = true;
 			}
 
 			if (!matInfo.alphaMap.empty())
@@ -224,30 +206,155 @@ namespace wilson
 				idx = texhash.at(matInfo.alphaMap);
 				m_texHash[matInfo.alphaMap] = m_texSrvs.size();
 				m_texSrvs.push_back(textures[idx]);
-				texSrvs.push_back(textures[idx]);
 				perModel.hasAlpha = true;
 			}
-			else
+			if (!matInfo.emissiveMap.empty())
 			{
-				texSrvs.push_back(m_nullSrvs[nullCount++]);
+				idx = texhash.at(matInfo.emissiveMap);
+				m_texHash[matInfo.emissiveMap] = m_texSrvs.size();
+				m_texSrvs.push_back(textures[idx]);
+				perModel.hasEmissive = true;
 			}
-
-
 			m_perModels.push_back(perModel);
-			m_pSubMeshs[i] = new SubMesh(m_pHeapManager, 
-				m_vbV, m_subIbVs[i], m_clusterPos[i],
-				m_pVertexData, m_pIndices,
-				texSrvs, m_pMatricesCb, perModel, m_matNames[i]);
 		}
 
 	}
-
-	void Mesh12::SetVBandIB(ID3D12GraphicsCommandList* const pCommandList)
+	void Mesh12::UploadBuffers(ID3D12GraphicsCommandList* pCommandlist, UINT i, ePass curPass)
 	{
-		pCommandList->IASetVertexBuffers(0, 1, &m_vbV);
-		pCommandList->IASetIndexBuffer(&m_ibV);
+		HRESULT hr;
+		//Upload CBV
+		if (curPass == ePass::geoPass)
+		{
+			//SetVB&IB
+			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
+			pCommandlist->IASetIndexBuffer(&m_subIbVs[i]);
+
+			MaterialInfo matInfo = m_matInfos[i];
+			//Set SRV
+			{
+				const UINT srvDescriptorSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				UINT texCnt = 0;
+				UINT idx = m_texHash[matInfo.diffuseMap];
+				UINT nIdx = 0;
+				//SetDiffuseMap //GPU핸들이 필요하다
+				pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psDiffuse), m_texSrvs[idx]);
+
+
+				if (m_perModels[i].hasNormal)
+				{
+					idx = m_texHash[matInfo.normalMap];
+					pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psNormal), m_texSrvs[idx]);
+				}
+				else
+				{
+					pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psNormal), m_nullSrvs[nIdx++]);
+				}
+
+				if (m_perModels[i].hasSpecular)
+				{
+					idx = m_texHash[matInfo.specularMap];
+					pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psSpecular), m_texSrvs[idx]);
+				}
+				else
+				{
+					pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psSpecular), m_nullSrvs[nIdx++]);
+				}
+
+				if (m_perModels[i].hasEmissive)
+				{
+					idx = m_texHash[matInfo.emissiveMap];
+					pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psEmissive), m_texSrvs[idx]);
+				}
+				else
+				{
+					pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psEmissive), m_nullSrvs[nIdx++]);
+				}
+
+
+				if (m_perModels[i].hasAlpha)
+				{
+					idx = m_texHash[matInfo.alphaMap];
+					pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psAlpha), m_texSrvs[idx]);
+				}
+				else
+				{
+					pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psAlpha), m_nullSrvs[nIdx++]);
+				}
+
+			}
+		}
+		else if (curPass == ePass::cubeShadowPass)
+		{
+			MaterialInfo matInfo = m_matInfos[i];
+			const UINT srvDescriptorSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			UINT texCnt = 0;
+			UINT idx = m_texHash[matInfo.diffuseMap];
+			UINT nIdx = 0;
+			pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(eCubeShadowRP::psDiffuseMap), m_texSrvs[idx]);
+			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
+			pCommandlist->IASetIndexBuffer(&m_ibV);
+		}
+		else
+		{
+			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
+			pCommandlist->IASetIndexBuffer(&m_ibV);
+		}
+
+		return;
 	}
 
+	AABB Mesh12::GetGlobalAABB()
+	{
+		DirectX::XMMATRIX transform = GetTransformMatrix(false);
+
+
+		DirectX::XMVECTOR centerV = m_pAABB->GetCenter();
+		DirectX::XMVECTOR globalCenterV = DirectX::XMVector3Transform(centerV, transform);
+		DirectX::XMFLOAT4 globalCenter;
+		DirectX::XMStoreFloat4(&globalCenter, globalCenterV);
+
+		DirectX::XMVECTOR extentsV = m_pAABB->GetExtent();
+		DirectX::XMFLOAT3 extents;
+		DirectX::XMStoreFloat3(&extents, extentsV);
+
+		transform = DirectX::XMMatrixTranspose(transform);
+		DirectX::XMVECTOR right = DirectX::XMVectorScale(transform.r[0], extents.x);
+		DirectX::XMVECTOR up = DirectX::XMVectorScale(transform.r[1], extents.y);
+		DirectX::XMVECTOR forward = DirectX::XMVectorScale(transform.r[2], extents.z);
+
+
+		DirectX::XMVECTOR x = DirectX::XMVectorSet(1.0, 0.0f, 0.0f, 0.f);
+		DirectX::XMVECTOR y = DirectX::XMVectorSet(0.0, 1.0f, 0.0f, 0.f);
+		DirectX::XMVECTOR z = DirectX::XMVectorSet(0.0, 0.0f, 1.0f, 0.f);
+
+		float dotRight;
+		float dotUp;
+		float dotForward;
+
+		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(x, right));
+		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(x, up));
+		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(x, up));
+
+		const float newli = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
+
+		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(y, right));
+		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(y, up));
+		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(y, up));
+
+		const float newlj = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
+
+		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(z, right));
+		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(z, up));
+		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(z, up));
+
+		const float newlk = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
+
+
+		const AABB globalAABB(globalCenter, newli, newlj, newlk);
+
+
+		return globalAABB;
+	}
 	void Mesh12::UpdateWorldMatrix()
 	{
 		DirectX::XMMATRIX srMat, osrMat;

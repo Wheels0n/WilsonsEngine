@@ -878,216 +878,52 @@ namespace wilson
 		return true;
 	}
 	void Importer12::LoadSubFbx(FbxMesh* const pMesh, FbxVector4* const pVertices,
-		std::vector<UINT>& subMeshPos, std::vector<UINT>& indicesPos,
+		std::vector<UINT>& vertexDataPos, std::vector<UINT>& indicesPos,
 		const std::vector<UINT>& submeshStride, const std::vector<std::string>& matNames, const std::string& name,
 		const FbxAMatrix& wMat)
 	{
 		//pos를 나눈 이유는 화분처럼 여러 재질로 이루어져있을 경우 나눠서 DrawCall을 하기 위함
 		int submeshCount = 0;
-		//폴리곤을 순서대로 하나씩 검사하다가 다른 재질이 나오면 기록을 하기때문에
-		
-		//몇번쨰 삼각형부터 재질이 달라지는 지를 subMeshPos에 기록
 		for (int j = 0; j < pMesh->GetPolygonCount(); ++j)
 		{
 			if (submeshStride.size() > 1 && submeshStride[submeshCount + 1] == j)
 			{
 				++submeshCount;
-				subMeshPos.push_back(j); 
+				vertexDataPos.push_back(m_nVertex);
+				indicesPos.push_back(m_nIndex);
 			}
 
 			int verticesCnt = pMesh->GetPolygonSize(j);
 			m_nVertex += verticesCnt;
-			m_nIndex += verticesCnt;
+			if (verticesCnt == 3)
+			{
+				m_nIndex += 3;
+			}
+			else
+			{
+				m_nIndex += 6;
+			}
 
 		}
-		subMeshPos.push_back(pMesh->GetPolygonCount());
-		std::vector<std::vector<unsigned int>> clusterPos(submeshCount+1);
-		for (int i = 0; i < subMeshPos.size()-1; ++i)
-		{
-			clusterPos[i].push_back(subMeshPos[i]);
-		}
-
-		m_pIndices = new unsigned long[m_nIndex*2];
+		vertexDataPos.push_back(m_nVertex);
+		indicesPos.push_back(m_nIndex);
+		m_pIndices = new unsigned long[m_nIndex];
 		m_pVertexData = new VertexData[m_nVertex];
 		FbxVector4 tan;
 
 		int idx = -1;
 		int idxCnt = 0;
 		int vCnt = 0;
-		
-		//Parse Tri;
-		std::vector<int> indices(pMesh->GetPolygonVertexCount());
-		std::vector<Tri> tri(ceil(indices.size() / (float)3));
-		std::map<std::pair<int,int>, std::vector<int>> hash;
-		memcpy(&indices[0], pMesh->GetPolygonVertices(), sizeof(int) * indices.size());
-		for (int i = 0; i < indices.size(); i+=3)
-		{
-			for (int j = 0; j < 3&&i+j<indices.size(); ++j)
-			{
-				tri[i/3].v[j] = indices[i+j];	
-			}
-
-			//edgeRef생성
-			if (i+1 <indices.size())
-			{
-				hash[std::make_pair(indices[i], indices[i + 1])].push_back(i / 3);
-				hash[std::make_pair(indices[i + 1], indices[i])].push_back(i / 3);
-			}
-			if (i + 2 < indices.size())
-			{
-				hash[std::make_pair(indices[i + 2], indices[i])].push_back(i / 3);
-				hash[std::make_pair(indices[i], indices[i + 2])].push_back(i / 3);
-				hash[std::make_pair(indices[i + 1], indices[i + 2])].push_back(i / 3);
-				hash[std::make_pair(indices[i + 2], indices[i + 1])].push_back(i / 3);
-			}
-			
-			
-		}
-		
-		std::queue<std::pair<Tri,int>> pq;
-		std::vector<bool> visitedT(tri.size());
-		for (int i = 0; i < tri.size(); ++i)
-		{	
-			tri[i].ref = -3;
-
-			tri[i].ref += hash[std::make_pair(tri[i].v[0], tri[i].v[1])].size();
-			tri[i].ref += hash[std::make_pair(tri[i].v[1], tri[i].v[2])].size();
-			tri[i].ref += hash[std::make_pair(tri[i].v[2], tri[i].v[0])].size();
-			pq.push(std::make_pair(tri[i],i));
-		}
-
-		//GenStrip
-		bool start = true;
-		int nTri = 0;
-		int nVertex = 0;
-		int nIdx = 0;
-		int nSubMesh = 0;
-		int curTidx=0;
-		std::pair<int,int> lastE = std::make_pair(-1,-1);
-		Tri cur;
-
-		while (!pq.empty())
-		{
-			
-			if (start)
-			{  
-				//시작 + 재시작
-				{
-					cur = pq.front().first;
-					curTidx = pq.front().second;
-					pq.pop();
-					while (visitedT[curTidx])
-					{
-						if (pq.empty())
-						{
-							break;
-						}
-						cur = pq.front().first;
-						curTidx = pq.front().second;
-						pq.pop();
-					}
-
-					//재시작시 degenerate Tri삽입
-					if (lastE.first != -1)
-					{
-						nIdx+=2;
-						nVertex += 2;
-						m_pIndices[idxCnt++] = lastE.second;
-						m_pIndices[idxCnt++] = cur.v[0];
-					}
-					
-					{
-						nIdx+=3;
-						nVertex += 3;
-						m_pIndices[idxCnt++] = cur.v[0];
-						m_pIndices[idxCnt++] = cur.v[1];
-						m_pIndices[idxCnt++] = cur.v[2];
-					}
-
-
-					if (pq.empty())
-					{
-						break;
-					}
-
-
-					lastE.first = cur.v[1];
-					lastE.second = cur.v[2];
-
-				}
-				start = false;
-			}
-			else
-			{
-				for (int i = 0; i < 3; ++i)
-				{
-					int v = cur.v[i];
-					if (lastE.first != v && lastE.second != v)
-					{
-						nIdx++;
-						nVertex++;
-
-						m_pIndices[idxCnt++] = v;
-						lastE.first = lastE.second;
-						lastE.second = v;
-						break;
-					}
-				}
-			}
-			visitedT[curTidx] = true;
-			//에지 갱신
-
-			int ref = INT_MAX;
-			Tri next;
-			std::vector<int>& triIdx=hash[lastE];
-			for (int j = 0; j < triIdx.size(); ++j)
-			{	
-				int idx = triIdx[j];
-				if (!visitedT[idx] &&tri[idx].ref < ref)
-				{
-					next = tri[idx];
-					ref = tri[idx].ref;
-					curTidx = idx;
-				}
-			}
-			
-			//0부터니까..
-			//subMesh갱신
-			if (nTri++== subMeshPos[nSubMesh+1])
-			{
-				clusterPos[nSubMesh].push_back(idxCnt);
-				nSubMesh++;
-			}
-			
-			if (nVertex >=256||ref == INT_MAX)
-			{
-				start = true;
-				if (nVertex >= 256)
-				{
-					nVertex = 0;
-					clusterPos[nSubMesh].push_back(idxCnt);
-				}
-				
-			}
-			else
-			{	
-				cur = next;
-			}
-		}
-		clusterPos[nSubMesh].push_back(idxCnt);
-
-		//Fill VertexData
-		std::unordered_set<int> ihash;
-		int nv = pMesh->GetControlPointsCount();
 		for (int j = 0; j < pMesh->GetPolygonCount(); ++j)
 		{
 			int verticesCnt = pMesh->GetPolygonSize(j);
 
-			for (int k = verticesCnt-1; k >=0 ; --k)
+			for (int k = 0; k < verticesCnt; ++k)
 			{
 				//인덱스를 참조하여 나온 정점데이터를 순서대로 저장하니까, 인덱스버퍼는 오름차순이 된다. 
 				int polygonV = pMesh->GetPolygonVertex(j, k);
-				
+				m_pIndices[idxCnt] = idxCnt;
+				++idxCnt;
 
 				VertexData v;
 				FbxVector4 pos = pVertices[polygonV].mData;
@@ -1101,7 +937,7 @@ namespace wilson
 
 				FbxGeometryElementNormal* pNormal = pMesh->GetElementNormal();
 				FbxVector4 norm;
-				
+				//vertex != controlPoint
 				switch (pNormal->GetMappingMode())
 				{
 				case FbxGeometryElement::eByControlPoint:
@@ -1154,52 +990,51 @@ namespace wilson
 				int uvIndx = pMesh->GetTextureUVIndex(j, k);
 				switch (pUV->GetMappingMode())
 				{
-					case FbxGeometryElement::eByControlPoint:
-						switch (pUV->GetReferenceMode())
-						{
-						case FbxGeometryElement::eDirect:
-
-							v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(polygonV).mData[0]);
-							v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(polygonV).mData[1]);
-							break;
-
-						case FbxGeometryElement::eIndexToDirect:
-
-							idx = pUV->GetIndexArray().GetAt(polygonV);
-							v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[0]);
-							v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[1]);
-							break;
-
-						default:
-							break;
-						}
-						break;
-					case FbxGeometryElement::eByPolygonVertex:
+				case FbxGeometryElement::eByControlPoint:
+					switch (pUV->GetReferenceMode())
 					{
-						switch (pUV->GetReferenceMode())
-						{
-						case FbxGeometryElement::eDirect:
+					case FbxGeometryElement::eDirect:
 
-							v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
-							v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
-							break;
+						v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(polygonV).mData[0]);
+						v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(polygonV).mData[1]);
+						break;
 
-						case FbxGeometryElement::eIndexToDirect:
+					case FbxGeometryElement::eIndexToDirect:
 
-							v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
-							v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
-							break;
+						idx = pUV->GetIndexArray().GetAt(polygonV);
+						v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[0]);
+						v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(idx).mData[1]);
+						break;
 
-						default:
-							break;
-						}
+					default:
+						break;
+					}
+					break;
+				case FbxGeometryElement::eByPolygonVertex:
+				{
+					switch (pUV->GetReferenceMode())
+					{
+					case FbxGeometryElement::eDirect:
 
+						v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
+						v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
+						break;
+
+					case FbxGeometryElement::eIndexToDirect:
+
+						v.uv.x = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[0]);
+						v.uv.y = static_cast<float>(pUV->GetDirectArray().GetAt(uvIndx).mData[1]);
+						break;
+
+					default:
+						break;
 					}
 
-				if (!k)
+				}
+
+				if (vCnt && vCnt % 3 == 0)
 				{
-					int pre2 = pMesh->GetPolygonVertex(j, k + 2);
-					int pre1 = pMesh->GetPolygonVertex(j, k + 1);
+
 					if (pMesh->GetElementTangentCount())
 					{
 						FbxGeometryElementTangent* pTangent = pMesh->GetElementTangent();
@@ -1250,15 +1085,14 @@ namespace wilson
 						}
 
 					}
-					//없으면 수동으로 생성
 					else
 					{
-						DirectX::XMVECTOR pos1 = DirectX::XMLoadFloat3(&m_pVertexData[pre2].position);
-						DirectX::XMVECTOR uv1 = DirectX::XMLoadFloat2(&m_pVertexData[pre2].uv);
-						DirectX::XMVECTOR pos2 = DirectX::XMLoadFloat3(&m_pVertexData[pre1].position);
-						DirectX::XMVECTOR uv2 = DirectX::XMLoadFloat2(&m_pVertexData[pre1].uv);
-						DirectX::XMVECTOR pos3 = DirectX::XMLoadFloat3(&m_pVertexData[polygonV].position);
-						DirectX::XMVECTOR uv3 = DirectX::XMLoadFloat2(&m_pVertexData[polygonV].uv);
+						DirectX::XMVECTOR pos1 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 3].position);
+						DirectX::XMVECTOR uv1 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 3].uv);
+						DirectX::XMVECTOR pos2 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 2].position);
+						DirectX::XMVECTOR uv2 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 2].uv);
+						DirectX::XMVECTOR pos3 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 1].position);
+						DirectX::XMVECTOR uv3 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 1].uv);
 
 						DirectX::XMFLOAT3 e1;
 						DirectX::XMStoreFloat3(&e1, DirectX::XMVectorSubtract(pos2, pos1));
@@ -1278,28 +1112,61 @@ namespace wilson
 						tan = FbxVector4(tangent.x, tangent.y, tangent.z);
 					}
 					tan.Normalize();
-					int polygonVs[3] = { polygonV, pre1,pre2 };
-					for (int i = 0; i < 3; ++i)
+					for (int i = 1; i < 4; ++i)
 					{
-						m_pVertexData[i].tangent.x = tan.mData[0];
-						m_pVertexData[i].tangent.y = tan.mData[1];
-						m_pVertexData[i].tangent.z = tan.mData[2];
+						m_pVertexData[vCnt - i].tangent.x = tan.mData[0];
+						m_pVertexData[vCnt - i].tangent.y = tan.mData[1];
+						m_pVertexData[vCnt - i].tangent.z = tan.mData[2];
 					}
 				}
 				}
 
 				v.uv.y = 1 - v.uv.y;
-				m_pVertexData[polygonV] = v;
+				m_pVertexData[vCnt] = v;
 				++vCnt;
+
 
 			}
 
+			{
+				DirectX::XMVECTOR pos1 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 3].position);
+				DirectX::XMVECTOR uv1 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 3].uv);
+				DirectX::XMVECTOR pos2 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 2].position);
+				DirectX::XMVECTOR uv2 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 2].uv);
+				DirectX::XMVECTOR pos3 = DirectX::XMLoadFloat3(&m_pVertexData[vCnt - 1].position);
+				DirectX::XMVECTOR uv3 = DirectX::XMLoadFloat2(&m_pVertexData[vCnt - 1].uv);
+
+				DirectX::XMFLOAT3 e1;
+				DirectX::XMStoreFloat3(&e1, DirectX::XMVectorSubtract(pos2, pos1));
+				DirectX::XMFLOAT3 e2;
+				DirectX::XMStoreFloat3(&e2, DirectX::XMVectorSubtract(pos3, pos1));
+				DirectX::XMFLOAT2 dUV1;
+				DirectX::XMStoreFloat2(&dUV1, DirectX::XMVectorSubtract(uv2, uv1));
+				DirectX::XMFLOAT2 dUV2;
+				DirectX::XMStoreFloat2(&dUV2, DirectX::XMVectorSubtract(uv3, uv1));
+
+				float det = 1.0f / (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
+				DirectX::XMFLOAT3 tangent;
+				tangent.x = det * (dUV2.y * e1.x - dUV1.y * e2.x);
+				tangent.y = det * (dUV2.y * e1.y - dUV1.y * e2.y);
+				tangent.z = det * (dUV2.y * e1.z - dUV1.y * e2.z);
+
+				tan = FbxVector4(tangent.x, tangent.y, tangent.z);
+
+				tan.Normalize();
+				for (int i = 1; i < 4; ++i)
+				{
+					m_pVertexData[vCnt - i].tangent.x = tan.mData[0];
+					m_pVertexData[vCnt - i].tangent.y = tan.mData[1];
+					m_pVertexData[vCnt - i].tangent.z = tan.mData[2];
+				}
+			}
 		}
 
+
 		std::wstring wName(name.begin(), name.end());
-		m_pMesh = new Mesh12(m_pDevice, m_pCommandList, m_pHeapManager, 
-			m_pVertexData, m_pIndices, m_nVertex,
-			subMeshPos, clusterPos,
+		m_pMesh = new Mesh12(m_pDevice, m_pCommandList, m_pHeapManager,
+			m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
 			(wchar_t*)wName.c_str(), matNames);
 		m_pMeshes.push_back(m_pMesh);
 	}
@@ -1413,7 +1280,7 @@ namespace wilson
 			std::vector<unsigned int> vertexDataPos;
 			std::vector<unsigned int> indicesPos;
 
-			FbxMesh* pMesh = (FbxMesh*)pFbxChildNode->GetNodeAttribute();
+			FbxMesh* pMesh = reinterpret_cast<FbxMesh*>(pFbxChildNode->GetNodeAttribute());
 			FbxLayerElementMaterial* pMaterial = pMesh->GetLayer(0)->GetMaterials();
 			if (pMaterial != nullptr)
 			{

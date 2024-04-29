@@ -895,12 +895,6 @@ namespace wilson
 			m_pMatricesCb = nullptr;
 		}
 
-		if (m_pTerrain != nullptr)
-		{
-			delete m_pTerrain;
-			m_pTerrain = nullptr;
-		}
-
 		if (m_pCam != nullptr)
 		{
 			delete m_pCam;
