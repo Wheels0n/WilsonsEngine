@@ -15,7 +15,8 @@ namespace wilson
 			m_pMeshes[i]->SetNumInstance(n);
 		}
 	}
-	Object11::Object11(const std::vector<Mesh11*> pModels, const std::vector<MaterialInfo> materials, const std::vector<ID3D11ShaderResourceView*> pDiffMaps,
+	Object11::Object11(const std::vector<Mesh11*> pMeshes, const std::vector<MaterialInfo> materials, 
+		const std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> pDiffMaps,
 		wchar_t* const pName, const eFileType eType,
 		const std::unordered_map<std::string, int> matHash,
 		const std::unordered_map<std::string, int> diffuseHash)
@@ -24,7 +25,7 @@ namespace wilson
 		m_name = std::string(wstr.begin(), wstr.end());
 
 		m_type = eType;
-		m_pMeshes = pModels;
+		m_pMeshes = pMeshes;
 		m_materials = materials;
 		m_texSrvs = pDiffMaps;
 		m_matHash = matHash;
@@ -42,11 +43,6 @@ namespace wilson
 			delete m_pMeshes[i];
 		}
 		m_pMeshes.clear();
-
-		for (int i = 0; i < m_texSrvs.size(); ++i)
-		{
-			m_texSrvs[i]->Release();
-		}
 		m_texSrvs.clear();
 		m_materials.clear();
 		m_matHash.clear();

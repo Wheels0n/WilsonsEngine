@@ -32,8 +32,8 @@ namespace wilson
 		
 	private:
 		CubeLightProperty m_cubeLightProperty;
-		ID3D11Buffer* m_pMatricesCb;
-		ID3D11Buffer* m_pPosCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pMatricesCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pPosCb;
 
 		DirectX::XMFLOAT3 m_attenuation;
 		float m_range;

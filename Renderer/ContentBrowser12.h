@@ -22,11 +22,11 @@ namespace wilson
 	private:
 		std::filesystem::path m_pCurDir = "Assets";
 		//D3D12
-		ID3D12Resource* m_pDirIconTex;
-		ID3D12Resource* m_pDirIconUploadCb;
-		ID3D12Resource* m_pFileIconTex;
-		ID3D12Resource* m_pFileIconUploadCB;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_dirIcon12SRV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_fileIcon12SRV;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDirIconTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDirIconUploadCb;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pFileIconTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pFileIconUploadCb;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_dirIconSrv;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_fileIcon12Srv;
 	};
 }

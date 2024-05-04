@@ -5,16 +5,16 @@ namespace wilson
 	ShadowMap::ShadowMap(ID3D11Device* const pDevice, const UINT width, const UINT height, const UINT cascadeLevel,
 		const UINT dirLightCap, const UINT pntLightCap, const UINT spotLightCap)
 	{
-		m_dirTex.resize(dirLightCap);
-		m_dirDebugTex.resize(dirLightCap);
+		m_dirTexs.resize(dirLightCap);
+		m_dirDebugTexs.resize(dirLightCap);
 		m_dirDebugRtvs.resize(dirLightCap);
 
-		m_cubeTex.resize(pntLightCap);
-		m_cubeDebugTex.resize(pntLightCap);
+		m_cubeTexs.resize(pntLightCap);
+		m_cubeDebugTexs.resize(pntLightCap);
 		m_cubeDebugRtvs.resize(pntLightCap);
 
-		m_spotTex.resize(spotLightCap);
-		m_spotDebugTex.resize(spotLightCap);
+		m_spotTexs.resize(spotLightCap);
+		m_spotDebugTexs.resize(spotLightCap);
 		m_spotDebugRtvs.resize(spotLightCap);
 
 		m_dirSrvs.resize(dirLightCap);
@@ -32,10 +32,6 @@ namespace wilson
 		m_dirDsvs.resize(dirLightCap);
 		m_cubeDsvs.resize(pntLightCap);
 		m_spotDsvs.resize(spotLightCap);
-	
-		m_pDirShadowSamplerState = nullptr;
-		m_pCubeShadowSamplerState = nullptr;
-	
 
 		HRESULT hr;
 		FLOAT borderColor[4] = { 0.0f, };
@@ -84,20 +80,20 @@ namespace wilson
 				srvDesc.Texture2DArray.MipLevels = texDesc.MipLevels;
 				srvDesc.Texture2DArray.MostDetailedMip = 0;
 
-				for (int i = 0; i < m_dirTex.size(); ++i)
+				for (int i = 0; i < m_dirTexs.size(); ++i)
 				{
-					hr = pDevice->CreateTexture2D(&texDesc, 0, &m_dirTex[i]);
+					hr = pDevice->CreateTexture2D(&texDesc, 0, m_dirTexs[i].GetAddressOf());
 					assert(SUCCEEDED(hr));
-					m_dirTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
-						sizeof("ShadowMap::m_dirTex[i]") - 1, "ShadowMap::m_dirTex[i]");
+					m_dirTexs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+						sizeof("ShadowMap::m_dirTexs[i]") - 1, "ShadowMap::m_dirTexs[i]");
 
 
-					hr = pDevice->CreateDepthStencilView(m_dirTex[i], &dsvDesc, &m_dirDsvs[i]);
+					hr = pDevice->CreateDepthStencilView(m_dirTexs[i].Get(), &dsvDesc, m_dirDsvs[i].GetAddressOf());
 					assert(SUCCEEDED(hr));
 					m_dirDsvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 						sizeof("ShadowMap::m_dirDsvs[i]") - 1, "ShadowMap::m_dirDsvs[i]");
 
-					hr = pDevice->CreateShaderResourceView(m_dirTex[i], &srvDesc, &m_dirSrvs[i]);
+					hr = pDevice->CreateShaderResourceView(m_dirTexs[i].Get(), &srvDesc, m_dirSrvs[i].GetAddressOf());
 					assert(SUCCEEDED(hr));
 					m_dirSrvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 						sizeof("ShadowMap::m_dirSrvs[i]") - 1, "ShadowMap::m_dirSrvs[i]");
@@ -115,20 +111,20 @@ namespace wilson
 				srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 				srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
 				srvDesc.Texture2D.MostDetailedMip = 0;
-				for (int i = 0; i < m_spotTex.size(); ++i)
+				for (int i = 0; i < m_spotTexs.size(); ++i)
 				{
-					hr = pDevice->CreateTexture2D(&texDesc, 0, &m_spotTex[i]);
+					hr = pDevice->CreateTexture2D(&texDesc, 0, m_spotTexs[i].GetAddressOf());
 					assert(SUCCEEDED(hr));
-					m_spotTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
-						sizeof("ShadowMap::m_spotTex[i]") - 1, "ShadowMap::m_spotTex[i]");
+					m_spotTexs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+						sizeof("ShadowMap::m_spotTexs[i]") - 1, "ShadowMap::m_spotTexs[i]");
 
 
-					hr = pDevice->CreateDepthStencilView(m_spotTex[i], &dsvDesc, &m_spotDsvs[i]);
+					hr = pDevice->CreateDepthStencilView(m_spotTexs[i].Get(), &dsvDesc, m_spotDsvs[i].GetAddressOf());
 					assert(SUCCEEDED(hr));
 					m_spotDsvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 						sizeof("ShadowMap::m_spotDsvs[i]") - 1, "ShadowMap::m_spotDsvs[i]");
 
-					hr = pDevice->CreateShaderResourceView(m_spotTex[i], &srvDesc, &m_spotSrvs[i]);
+					hr = pDevice->CreateShaderResourceView(m_spotTexs[i].Get(), &srvDesc, m_spotSrvs[i].GetAddressOf());
 					assert(SUCCEEDED(hr));
 					m_spotSrvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 						sizeof("ShadowMap::m_spotSrvs[i]") - 1, "ShadowMap::m_spotSrvs[i]");
@@ -153,19 +149,19 @@ namespace wilson
 				srvDesc.Texture2DArray.FirstArraySlice = 0;
 				srvDesc.Texture2DArray.MipLevels = texDesc.MipLevels;
 				srvDesc.Texture2DArray.MostDetailedMip = 0;
-				for (int i = 0; i < m_cubeTex.size(); ++i)
+				for (int i = 0; i < m_cubeTexs.size(); ++i)
 				{
-					hr = pDevice->CreateTexture2D(&texDesc, 0, &m_cubeTex[i]);
+					hr = pDevice->CreateTexture2D(&texDesc, 0, m_cubeTexs[i].GetAddressOf());
 					assert(SUCCEEDED(hr));
-					m_cubeTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
-						sizeof("ShadowMap::m_cubeTex[i]") - 1, "ShadowMap::m_cubeTex[i]");
+					m_cubeTexs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+						sizeof("ShadowMap::m_cubeTexs[i]") - 1, "ShadowMap::m_cubeTexs[i]");
 
-					hr = pDevice->CreateDepthStencilView(m_cubeTex[i], &dsvDesc, &m_cubeDsvs[i]);
+					hr = pDevice->CreateDepthStencilView(m_cubeTexs[i].Get(), &dsvDesc, m_cubeDsvs[i].GetAddressOf());
 					assert(SUCCEEDED(hr));
 					m_cubeDsvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 						sizeof("ShadowMap::m_cubeDsvs[i]") - 1, "ShadowMap::m_cubeDsvs[i]");
 
-					hr = pDevice->CreateShaderResourceView(m_cubeTex[i], &srvDesc, &m_cubeSrvs[i]);
+					hr = pDevice->CreateShaderResourceView(m_cubeTexs[i].Get(), &srvDesc, m_cubeSrvs[i].GetAddressOf());
 					assert(SUCCEEDED(hr));
 					m_cubeSrvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 						sizeof("ShadowMap::m_cubeSrvs[i]") - 1, "ShadowMap::m_cubeSrvs[i]");
@@ -196,18 +192,18 @@ namespace wilson
 			srvDesc.Texture2DArray.MostDetailedMip = 0;
 			for (int i = 0; i < dirLightCap; ++i)
 			{
-				hr = pDevice->CreateTexture2D(&texDesc, 0, &m_dirDebugTex[i]);
+				hr = pDevice->CreateTexture2D(&texDesc, 0, m_dirDebugTexs[i].GetAddressOf());
 				assert(SUCCEEDED(hr));
-				m_dirDebugTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("ShadowMap::m_dirDebugTex[i]") - 1, "ShadowMap::m_dirDebugTex[i]");
+				m_dirDebugTexs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_dirDebugTexs[i]") - 1, "ShadowMap::m_dirDebugTexs[i]");
 
-				hr = pDevice->CreateRenderTargetView(m_dirDebugTex[i], &RTVDesc, &m_dirDebugRtvs[i]);
+				hr = pDevice->CreateRenderTargetView(m_dirDebugTexs[i].Get(), &RTVDesc, m_dirDebugRtvs[i].GetAddressOf());
 				assert(SUCCEEDED(hr));
 				m_dirDebugRtvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("ShadowMap::m_dirDebugRtvs[i]") - 1, "ShadowMap::m_dirDebugRtvs[i]");
 
 
-				hr = pDevice->CreateShaderResourceView(m_dirDebugTex[i], &srvDesc, &m_dirDebugSrvs[i]);
+				hr = pDevice->CreateShaderResourceView(m_dirDebugTexs[i].Get(), &srvDesc, m_dirDebugSrvs[i].GetAddressOf());
 				assert(SUCCEEDED(hr));
 				m_dirDebugSrvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("ShadowMap::m_dirDebugSrvs[i]") - 1, "ShadowMap::m_dirDebugSrvs[i]");
@@ -217,18 +213,18 @@ namespace wilson
 			RTVDesc.Texture2DArray.ArraySize = 6;
 			for (int i = 0; i < pntLightCap; ++i)
 			{
-				hr = pDevice->CreateTexture2D(&texDesc, 0, &m_cubeDebugTex[i]);
+				hr = pDevice->CreateTexture2D(&texDesc, 0, m_cubeDebugTexs[i].GetAddressOf());
 				assert(SUCCEEDED(hr));
-				m_cubeDebugTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("ShadowMap::m_cubeDebugTex[i]") - 1, "ShadowMap::m_cubeDebugTex[i]");
+				m_cubeDebugTexs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_cubeDebugTexs[i]") - 1, "ShadowMap::m_cubeDebugTexs[i]");
 
-				hr = pDevice->CreateRenderTargetView(m_cubeDebugTex[i], &RTVDesc, &m_cubeDebugRtvs[i]);
+				hr = pDevice->CreateRenderTargetView(m_cubeDebugTexs[i].Get(), &RTVDesc, m_cubeDebugRtvs[i].GetAddressOf());
 				assert(SUCCEEDED(hr));
 				m_cubeDebugRtvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("ShadowMap::m_cubeDebugRtvs[i]") - 1, "ShadowMap::m_cubeDebugRtvs[i]");
 
 
-				hr = pDevice->CreateShaderResourceView(m_cubeDebugTex[i], &srvDesc, &m_cubeDebugSrvs[i]);
+				hr = pDevice->CreateShaderResourceView(m_cubeDebugTexs[i].Get(), &srvDesc, m_cubeDebugSrvs[i].GetAddressOf());
 				assert(SUCCEEDED(hr));
 				m_cubeDebugSrvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("ShadowMap::m_cubeDebugSrvs[i]") - 1, "ShadowMap::m_cubeDebugSrvs[i]");
@@ -245,18 +241,18 @@ namespace wilson
 			srvDesc.Texture2D.MostDetailedMip = 0;
 			for (int i = 0; i < spotLightCap; ++i)
 			{
-				hr = pDevice->CreateTexture2D(&texDesc, 0, &m_spotDebugTex[i]);
+				hr = pDevice->CreateTexture2D(&texDesc, 0, m_spotDebugTexs[i].GetAddressOf());
 				assert(SUCCEEDED(hr));
-				m_spotDebugTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
-					sizeof("ShadowMap::m_spotDebugTex[i]") - 1, "ShadowMap::m_spotDebugTex[i]");
+				m_spotDebugTexs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("ShadowMap::m_spotDebugTexs[i]") - 1, "ShadowMap::m_spotDebugTexs[i]");
 
 
-				hr = pDevice->CreateRenderTargetView(m_spotDebugTex[i], &RTVDesc, &m_spotDebugRtvs[i]);
+				hr = pDevice->CreateRenderTargetView(m_spotDebugTexs[i].Get(), &RTVDesc, m_spotDebugRtvs[i].GetAddressOf());
 				assert(SUCCEEDED(hr));
 				m_spotDebugRtvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("ShadowMap::m_spotDebugRtvs[i]") - 1, "ShadowMap::m_spotDebugRtvs[i]");
 
-				hr = pDevice->CreateShaderResourceView(m_spotDebugTex[i], &srvDesc, &m_spotDebugSrvs[i]);
+				hr = pDevice->CreateShaderResourceView(m_spotDebugTexs[i].Get(), &srvDesc, m_spotDebugSrvs[i].GetAddressOf());
 				assert(SUCCEEDED(hr));
 				m_spotDebugSrvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("ShadowMap::m_spotDebugSrvs[i]") - 1, "ShadowMap::m_spotDebugSrvs[i]");
@@ -266,12 +262,12 @@ namespace wilson
 		//Create Textures for Display
 		for (int i = 0; i < 6; ++i)
 		{
-			hr = pDevice->CreateTexture2D(&texDesc, 0, &m_debugTexs[i]);
+			hr = pDevice->CreateTexture2D(&texDesc, 0, m_debugTexs[i].GetAddressOf());
 			assert(SUCCEEDED(hr));
 			m_debugTexs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ShadowMap::m_debugTexs[i]") - 1, "ShadowMap::m_debugTexs[i]");
 
-			hr = pDevice->CreateShaderResourceView(m_debugTexs[i], &srvDesc, &m_debugSrvs[i]);
+			hr = pDevice->CreateShaderResourceView(m_debugTexs[i].Get(), &srvDesc, m_debugSrvs[i].GetAddressOf());
 			assert(SUCCEEDED(hr));
 			m_debugSrvs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ShadowMap::m_debugSrvs[i]") - 1, "ShadowMap::m_debugSrvs[i]");
@@ -288,7 +284,7 @@ namespace wilson
 			samDesc.BorderColor[3] = 1.0f;
 			samDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
 			samDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
-			hr = pDevice->CreateSamplerState(&samDesc, &m_pDirShadowSamplerState);
+			hr = pDevice->CreateSamplerState(&samDesc, m_pDirShadowSamplerState.GetAddressOf());
 			assert(SUCCEEDED(hr));
 			m_pDirShadowSamplerState->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ShadowMap::m_pDirShadowSamplerState") - 1, "ShadowMap::m_pDirShadowSamplerState");
@@ -296,7 +292,7 @@ namespace wilson
 
 			samDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
 			samDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-			hr = pDevice->CreateSamplerState(&samDesc, &m_pCubeShadowSamplerState);
+			hr = pDevice->CreateSamplerState(&samDesc, m_pCubeShadowSamplerState.GetAddressOf());
 			assert(SUCCEEDED(hr));
 			m_pCubeShadowSamplerState->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ShadowMap::m_pCubeShadowSamplerState") - 1, "ShadowMap::m_pCubeShadowSamplerState");
@@ -306,207 +302,58 @@ namespace wilson
 
 	void ShadowMap::BindDirDsv(ID3D11DeviceContext* const pContext, const UINT i)
 	{	
-		ID3D11RenderTargetView* renderTargets[1] = { m_dirDebugRtvs[i] };
-		pContext->ClearRenderTargetView(m_dirDebugRtvs[i], m_clear);
-		pContext->ClearDepthStencilView(m_dirDsvs[i], D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
-		pContext->OMSetRenderTargets(1, renderTargets, m_dirDsvs[i]);
+		ID3D11RenderTargetView* renderTargets[1] = { m_dirDebugRtvs[i].Get() };
+		pContext->ClearRenderTargetView(m_dirDebugRtvs[i].Get(), m_clear);
+		pContext->ClearDepthStencilView(m_dirDsvs[i].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+		pContext->OMSetRenderTargets(1, renderTargets, m_dirDsvs[i].Get());
 	}
 
 	void ShadowMap::BindCubeDsv(ID3D11DeviceContext* const pContext, const UINT i)
 	{	
-		ID3D11RenderTargetView* renderTargets[1] = { m_cubeDebugRtvs[i] };
-		pContext->ClearRenderTargetView(m_cubeDebugRtvs[i], m_clear);
-		pContext->ClearDepthStencilView(m_cubeDsvs[i], D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
-		pContext->OMSetRenderTargets(1, renderTargets, m_cubeDsvs[i]);
+		ID3D11RenderTargetView* renderTargets[1] = { m_cubeDebugRtvs[i].Get() };
+		pContext->ClearRenderTargetView(m_cubeDebugRtvs[i].Get(), m_clear);
+		pContext->ClearDepthStencilView(m_cubeDsvs[i].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+		pContext->OMSetRenderTargets(1, renderTargets, m_cubeDsvs[i].Get());
 	}
 
 	void ShadowMap::BindSpotDsv(ID3D11DeviceContext* const pContext, const UINT i)
 	{	
-		ID3D11RenderTargetView* renderTargets[1] = { m_spotDebugRtvs[i] };
-		pContext->ClearRenderTargetView(m_spotDebugRtvs[i], m_clear);
-		pContext->ClearDepthStencilView(m_spotDsvs[i], D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
-		pContext->OMSetRenderTargets(1, renderTargets, m_spotDsvs[i]);
+		ID3D11RenderTargetView* renderTargets[1] = { m_spotDebugRtvs[i].Get() };
+		pContext->ClearRenderTargetView(m_spotDebugRtvs[i].Get(), m_clear);
+		pContext->ClearDepthStencilView(m_spotDsvs[i].Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+		pContext->OMSetRenderTargets(1, renderTargets, m_spotDsvs[i].Get());
 	}
 
 	ID3D11ShaderResourceView* ShadowMap::GetDirDebugSrv(ID3D11DeviceContext* const pContext, const UINT i, const UINT lod)
 	{	
-		pContext->CopySubresourceRegion(m_debugTexs[lod], 0, 0, 0, 0,
-			m_dirDebugTex[i], lod, NULL);
-		return m_debugSrvs[lod];
+		pContext->CopySubresourceRegion(m_debugTexs[lod].Get(), 0, 0, 0, 0,
+			m_dirDebugTexs[i].Get(), lod, NULL);
+		return m_debugSrvs[lod].Get();
 	}
 
 	ID3D11ShaderResourceView* ShadowMap::GetCubeDebugSrv(ID3D11DeviceContext* const pContext, const UINT i, const UINT face)
 	{
-		pContext->CopySubresourceRegion(m_debugTexs[face], 0, 0, 0, 0,
-			m_cubeDebugTex[i], face, NULL);
-		return m_debugSrvs[face];
+		pContext->CopySubresourceRegion(m_debugTexs[face].Get(), 0, 0, 0, 0,
+			m_cubeDebugTexs[i].Get(), face, NULL);
+		return m_debugSrvs[face].Get();
 	}
 
 	ID3D11ShaderResourceView* ShadowMap::GetSpotDebugSrv(ID3D11DeviceContext* const pContext, const UINT i)
 	{	
-		pContext->CopySubresourceRegion(m_debugTexs[0], 0, 0, 0, 0,
-			m_spotDebugTex[i], 0, NULL);
-		return m_debugSrvs[0];
+		pContext->CopySubresourceRegion(m_debugTexs[0].Get(), 0, 0, 0, 0,
+			m_spotDebugTexs[i].Get(), 0, NULL);
+		return m_debugSrvs[0].Get();
 	}
 
 	ShadowMap::~ShadowMap()
 	{	
-		for (int i = 0; i < m_dirTex.size(); ++i)
-		{
-			if (m_dirTex[i] != nullptr)
-			{
-				m_dirTex[i]->Release();
-				m_dirTex[i] = nullptr;
-			}
-
-			if (m_dirDebugTex[i] != nullptr)
-			{
-				m_dirDebugTex[i]->Release();
-				m_dirDebugTex[i] = nullptr;
-			}
-
-			if (m_dirDsvs[i] != nullptr)
-			{
-				m_dirDsvs[i]->Release();
-				m_dirDsvs[i] = nullptr;
-			}
-
-			if (m_dirDebugRtvs[i] != nullptr)
-			{
-				m_dirDebugRtvs[i]->Release();
-				m_dirDebugRtvs[i] = nullptr;
-			}
-
-
-			if (m_dirSrvs[i] != nullptr)
-			{
-				m_dirSrvs[i]->Release();
-				m_dirSrvs[i] = nullptr;
-			}
-
-		
-			if (m_dirDebugSrvs[i] != nullptr)
-			{
-				m_dirDebugSrvs[i]->Release();
-				m_dirDebugSrvs[i] = nullptr;
-			}
-			
-		}
-
-		for (int i = 0; i < m_cubeTex.size(); ++i)
-		{
-			if (m_cubeTex[i] != nullptr)
-			{
-				m_cubeTex[i]->Release();
-				m_cubeTex[i] = nullptr;
-			}
-			if (m_cubeDebugTex[i] != nullptr)
-			{
-				m_cubeDebugTex[i]->Release();
-				m_cubeDebugTex[i] = nullptr;
-			}
-
-			if (m_cubeDsvs[i] != nullptr)
-			{
-				m_cubeDsvs[i]->Release();
-				m_cubeDsvs[i] = nullptr;
-			}
-
-			if (m_cubeDebugRtvs[i] != nullptr)
-			{
-				m_cubeDebugRtvs[i]->Release();
-				m_cubeDebugRtvs[i] = nullptr;
-			}
-
-			if (m_cubeSrvs[i] != nullptr)
-			{
-				m_cubeSrvs[i]->Release();
-				m_cubeSrvs[i] = nullptr;
-			}
-
-			
-			if (m_cubeDebugSrvs[i] != nullptr)
-			{
-				m_cubeDebugSrvs[i]->Release();
-				m_cubeDebugSrvs[i] = nullptr;
-			}
-			
-		}
-
-		for (int i = 0; i < m_spotTex.size(); ++i)
-		{
-			if (m_spotTex[i] != nullptr)
-			{
-				m_spotTex[i]->Release();
-				m_spotTex[i] = nullptr;
-			}
-
-			if (m_spotDebugTex[i] != nullptr)
-			{
-				m_spotDebugTex[i]->Release();
-				m_spotDebugTex[i] = nullptr;
-			}
-
-			if (m_spotDsvs[i] != nullptr)
-			{
-				m_spotDsvs[i]->Release();
-				m_spotDsvs[i] = nullptr;
-			}
-
-			if (m_spotDebugRtvs[i] != nullptr)
-			{
-				m_spotDebugRtvs[i]->Release();
-				m_spotDebugRtvs[i] = nullptr;
-			}
-
-			if (m_spotSrvs[i] != nullptr)
-			{
-				m_spotSrvs[i]->Release();
-				m_spotSrvs[i] = nullptr;
-			}
-
-			if (m_spotDebugSrvs[i] != nullptr)
-			{
-				m_spotDebugSrvs[i]->Release();
-				m_spotDebugSrvs[i] = nullptr;
-			}
-		}
-
-		for (int i = 0; i < 6; ++i)
-		{
-			if (m_debugTexs[i]!=nullptr)
-			{
-				m_debugTexs[i]->Release();
-				m_debugTexs[i] = nullptr;
-			}
-
-			if (m_debugSrvs[i] != nullptr)
-			{
-				m_debugSrvs[i]->Release();
-				m_debugSrvs[i] = nullptr;
-			}
-		}
-
-		if (m_pDirShadowSamplerState != nullptr)
-		{
-			m_pDirShadowSamplerState->Release();
-			m_pDirShadowSamplerState = nullptr;
-		}
-
-		if (m_pCubeShadowSamplerState != nullptr)
-		{
-			m_pCubeShadowSamplerState->Release();
-			m_pCubeShadowSamplerState = nullptr;
-		}
-
-
-		m_dirTex.clear();
+		m_dirTexs.clear();
 		m_dirDsvs.clear();
 		m_dirSrvs.clear();
-		m_cubeTex.clear();
+		m_cubeTexs.clear();
 		m_cubeDsvs.clear();
 		m_cubeSrvs.clear();
-		m_spotTex.clear();
+		m_spotTexs.clear();
 		m_spotDsvs.clear();
 		m_spotSrvs.clear();
 	}

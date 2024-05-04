@@ -27,7 +27,7 @@ namespace wilson
 
 		CubeLight12() = default;
 		CubeLight12(ID3D12Device* const, ID3D12GraphicsCommandList* const, HeapManager* const, const UINT idx);
-		CubeLight12(const CubeLight12&) = default;
+		CubeLight12(const CubeLight12&)=default;
 		~CubeLight12();
 
 	private:

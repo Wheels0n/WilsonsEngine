@@ -11,39 +11,11 @@ namespace wilson {
 	ContentBrowser12::~ContentBrowser12()
 	{
 
-		if (m_pDirIconTex != nullptr)
-		{
-			m_pDirIconTex->Release();
-			m_pDirIconTex = nullptr;
-		}
-
-		if (m_pFileIconTex != nullptr)
-		{
-			m_pFileIconTex->Release();
-			m_pFileIconTex = nullptr;
-		}
-
-		if (m_pDirIconUploadCb != nullptr)
-		{
-			m_pDirIconUploadCb->Release();
-			m_pDirIconUploadCb = nullptr;
-		}
-
-		if (m_pFileIconUploadCB != nullptr)
-		{
-			m_pFileIconUploadCB->Release();
-			m_pFileIconUploadCB = nullptr;
-		}
-
 	}
 
 	ContentBrowser12::ContentBrowser12(D3D12*const pD3D12)
 	{
 		//D3D12
-		m_pDirIconTex = nullptr;
-		m_pFileIconTex = nullptr;
-		m_pDirIconUploadCb = nullptr;
-		m_pFileIconUploadCB = nullptr;
 
 		ID3D12Device* pDevice = pD3D12->GetDevice();
 		ID3D12GraphicsCommandList* pCommandlist = pD3D12->GetCommandList();
@@ -76,11 +48,11 @@ namespace wilson {
 			texDesc.SampleDesc.Quality = 0;
 
 			pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
-				&m_pDirIconTex, pDevice);
+				m_pDirIconTex.GetAddressOf(), pDevice);
 			m_pDirIconTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ContentBrowser12::m_pDirIconTex") - 1, "ContentBrowser12::m_pDirIconTex");
 			
-			pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pDirIconTex, &m_pDirIconUploadCb, pCommandlist);
+			pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pDirIconTex.Get(), m_pDirIconUploadCb.GetAddressOf(), pCommandlist);
 
 			//Gen SRV
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -91,7 +63,7 @@ namespace wilson {
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-			m_dirIcon12SRV = pHeapManager->GetSrv(srvDesc, m_pDirIconTex, pDevice);
+			m_dirIconSrv = pHeapManager->GetSrv(srvDesc, m_pDirIconTex.Get(), pDevice);
 			
 		}
 
@@ -124,11 +96,11 @@ namespace wilson {
 			texDesc.SampleDesc.Quality = 0;
 
 			pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
-				&m_pFileIconTex, pDevice);
+				m_pFileIconTex.GetAddressOf(), pDevice);
 			m_pFileIconTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("ContentBrowser12::m_pFileIconTex") - 1, "ContentBrowser12::m_pFileIconTex");
 
-			pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pFileIconTex, &m_pFileIconUploadCB, pCommandlist);
+			pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pFileIconTex.Get(), m_pFileIconUploadCb.GetAddressOf(), pCommandlist);
 
 			//Gen SRV
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -139,7 +111,7 @@ namespace wilson {
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-			m_fileIcon12SRV = pHeapManager->GetSrv(srvDesc, m_pFileIconTex, pDevice);
+			m_fileIcon12Srv = pHeapManager->GetSrv(srvDesc, m_pFileIconTex.Get(), pDevice);
 		}
 
 
@@ -172,7 +144,7 @@ namespace wilson {
 			ImGui::PushID(++id);//이미지가 다 같아서 구분 할 기준이 필요함
 
 			std::string fileName = item.path().filename().string();
-			UINT64 icon12 = item.is_directory() ? m_dirIcon12SRV.ptr : m_fileIcon12SRV.ptr;
+			UINT64 icon12 = item.is_directory() ? m_dirIconSrv.ptr : m_fileIcon12Srv.ptr;
 			
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 			ImGui::ImageButton((ImTextureID)icon12, ImVec2(_ICON_SZ, _ICON_SZ));

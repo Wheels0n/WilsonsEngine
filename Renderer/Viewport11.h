@@ -53,14 +53,14 @@ namespace wilson
 		D3D11* m_pD3D11;
 		Camera11* m_pCam;
 		Scene11* m_pScene;
-		Importer11* m_pImporter;
-		IDXGISwapChain* m_pSwapChain;
+		std::unique_ptr<Importer11> m_pImporter;
+		Microsoft::WRL::ComPtr<IDXGISwapChain> m_pSwapChain;
 
-		ID3D11ShaderResourceView* m_pPostProcessSrv;
-		ID3D11ShaderResourceView* m_pSsaoBlurredSrv;
-		ID3D11ShaderResourceView** m_ppGbufferSrvs;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pPostProcessSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>m_pSsaoBlurredSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_ppGbufferSrvs[static_cast<UINT>(eGbuf::cnt)];
 
-		ID3D11Device* m_pDevice;
+		Microsoft::WRL::ComPtr<ID3D11Device> m_pDevice;
 	};
 }
 

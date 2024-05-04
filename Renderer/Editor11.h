@@ -17,12 +17,12 @@ namespace wilson {
 
 		Editor11() = default;
 		Editor11(D3D11*const);
-		~Editor11();
+		~Editor11() override;
 	private:
-		ContentBrowser11* m_pContentBrowser;
 		D3D11* m_pD3D11;
-		Scene11* m_pScene;
 		Settings11* m_pSettings;
 		Viewport11* m_pViewport;
+		Scene11* m_pScene;
+		ContentBrowser11* m_pContentBrowser;
 	};
 }

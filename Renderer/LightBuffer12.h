@@ -10,7 +10,7 @@ namespace wilson
 	class LightBuffer12
 	{
 	public:
-		inline std::vector<CubeLight12*>& GetCubeLights()
+		inline std::vector<std::unique_ptr<CubeLight12>>& GetCubeLights()
 		{
 			return m_pCubeLights;
 		}
@@ -22,7 +22,7 @@ namespace wilson
 		{
 			return m_pCubeLights.size();
 		}
-		inline std::vector<DirectionalLight12*>& GetDirLights()
+		inline std::vector<std::unique_ptr<DirectionalLight12>>& GetDirLights()
 		{
 			return m_pDirLights;
 		}
@@ -34,7 +34,7 @@ namespace wilson
 		{
 			return m_pDirLights.size();
 		}
-		inline std::vector<SpotLight12*>& GetSpotLights()
+		inline std::vector<std::unique_ptr<SpotLight12>>& GetSpotLights()
 		{
 			return m_pSpotLights;
 		}
@@ -48,15 +48,21 @@ namespace wilson
 		}
 		inline void PushCubeLight(CubeLight12* const pCubeLight)
 		{
-			m_pCubeLights.push_back(pCubeLight);
+			std::unique_ptr<CubeLight12> uptr;
+			uptr.reset(pCubeLight);
+			m_pCubeLights.push_back(std::move(uptr));
 		}
 		inline void PushDirLight(DirectionalLight12* const pDirLight)
 		{
-			m_pDirLights.push_back(pDirLight);
+			std::unique_ptr<DirectionalLight12> uptr;
+			uptr.reset(pDirLight);
+			m_pDirLights.push_back(std::move(uptr));
 		}
 		inline void PushSpotLight(SpotLight12* const pSpotLight)
 		{
-			m_pSpotLights.push_back(pSpotLight);
+			std::unique_ptr<SpotLight12> uptr;
+			uptr.reset(pSpotLight);
+			m_pSpotLights.push_back(std::move(uptr));
 		}
 		void UpdateDirLightMatrices(ID3D12GraphicsCommandList* const pCommandlist);
 		void UpdateLightBuffer(ID3D12GraphicsCommandList* const pCommandlist);
@@ -70,9 +76,9 @@ namespace wilson
 		D3D12_GPU_DESCRIPTOR_HANDLE m_dirLitMatricesCbv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_spotLitMatricesCbv;
 
-		std::vector<CubeLight12*>m_pCubeLights;
-		std::vector<DirectionalLight12*> m_pDirLights;
-		std::vector<SpotLight12*>m_pSpotLights;
+		std::vector<std::unique_ptr<CubeLight12>>m_pCubeLights;
+		std::vector<std::unique_ptr<DirectionalLight12>> m_pDirLights;
+		std::vector<std::unique_ptr<SpotLight12>>m_pSpotLights;
 
 		UINT8* m_pDirLitMatricesCbBegin;
 		UINT8* m_pLightPropertyCbBegin;

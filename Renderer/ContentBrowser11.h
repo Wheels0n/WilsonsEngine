@@ -19,7 +19,7 @@ namespace wilson
 		void GetExtension(char*, const char*);
 	private:
 		std::filesystem::path m_pCurDir = "Assets";
-		ID3D11ShaderResourceView* m_pDirIconSRV;
-		ID3D11ShaderResourceView* m_pFileIconSRV;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pDirIconSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pFileIconSrv;
 	};
 }

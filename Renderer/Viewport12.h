@@ -53,7 +53,7 @@ namespace wilson
 		Camera12* m_pCam;
 		D3D12* m_pD3D12;
 		HeapManager* m_pHeapManager;
-		Importer12* m_pImporter;
+		std::unique_ptr<Importer12>m_pImporter;
 		Scene12* m_pScene;
 
 		D3D12_GPU_DESCRIPTOR_HANDLE* m_pGbufferSrvs;

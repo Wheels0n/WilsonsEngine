@@ -32,7 +32,6 @@ namespace wilson {
 		~Frustum12() = default;
 
 	private:
-		Frustum12* m_pFrustum;
 		DirectX::XMVECTOR m_planes[6];
 
 		UINT m_subMeshesInFrustum;

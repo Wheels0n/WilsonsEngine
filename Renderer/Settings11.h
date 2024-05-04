@@ -17,7 +17,7 @@ namespace wilson
 		Settings11(const Settings11&) = default;
 		virtual ~Settings11();
 	private:
-		ID3D11ShaderResourceView* m_icons[3];//dir, point, spot;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_icons[3];//dir, point, spot;
 		FPS m_FPS;
 		Camera11* m_pCam;
 		D3D11* m_pD3D11;

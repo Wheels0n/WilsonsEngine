@@ -1,4 +1,5 @@
 #include "Camera12.h"
+#include "Frustum12.h"
 #include "HeapManager.h"
 #include "typedef.h"
 namespace wilson {
@@ -39,7 +40,12 @@ namespace wilson {
 		m_pCascadeLevelCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
 		m_cascadeLevelCbv = pHeapManager->GetCbv(cbSize, pDevice);
 		
-	
+		m_pFrustum = new Frustum12(this);
+	}
+
+	Camera12::~Camera12()
+	{
+		delete m_pFrustum;
 	}
 
 	void Camera12::ResetTranslation()
@@ -103,6 +109,9 @@ namespace wilson {
 		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
 		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
 		UpdateCascadeLevels();
+
+		delete m_pFrustum;
+		m_pFrustum = new Frustum12(this);
 	}
 
 	bool Camera12::UploadCascadeLevels(ID3D12GraphicsCommandList* const pCommandlist)

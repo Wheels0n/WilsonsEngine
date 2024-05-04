@@ -35,7 +35,7 @@ namespace wilson
 		}
 		inline ID3D11ShaderResourceView** GetNullSRVs()
 		{
-			return &m_pNullSRVs[0];
+			return m_pNullSrvs[0].GetAddressOf();
 		}
 		inline std::vector<SpotLight11*>& GetSpotLights() 
 		{
@@ -68,13 +68,13 @@ namespace wilson
 		LightBuffer11(ID3D11Device* const);
 		~LightBuffer11();
 	private:
-		ID3D11Buffer* m_pDirLitMatricesCb;
-		ID3D11Buffer* m_pLightPropertyCb;
-		ID3D11Buffer* m_pSpotLitMatricesCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pDirLitMatricesCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pLightPropertyCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pSpotLitMatricesCb;
 
 		std::vector<CubeLight11*>m_pCubeLights;
 		std::vector<DirectionalLight11*> m_pDirLights;
-		std::vector<ID3D11ShaderResourceView*> m_pNullSRVs;
+		std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_pNullSrvs;
 		std::vector<SpotLight11*>m_pSpotLights;
 	};
 }

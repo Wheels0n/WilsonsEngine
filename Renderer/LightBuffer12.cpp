@@ -134,26 +134,5 @@ namespace wilson
 	LightBuffer12::~LightBuffer12()
 	{
 
-		for (int i = 0; i < m_pDirLights.size(); ++i)
-		{
-			if (m_pDirLights[i] != nullptr)
-			{
-				delete m_pDirLights[i];
-			}
-		}
-		for (int i = 0; i < m_pCubeLights.size(); ++i)
-		{
-			if (m_pCubeLights[i] != nullptr)
-			{
-				delete m_pCubeLights[i];
-			}
-		}
-		for (int i = 0; i < m_pSpotLights.size(); ++i)
-		{
-			if (m_pSpotLights[i] != nullptr)
-			{
-				delete m_pSpotLights[i];
-			}
-		}
 	}
 }

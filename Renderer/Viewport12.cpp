@@ -16,17 +16,12 @@ namespace wilson
 		m_pCam = pD3D12->GetCam();
 		m_pHeapManager = pD3D12->GetHeapManager();
 		m_pScene = pScene;
-		m_pImporter = new Importer12(m_pD3D12);
+		m_pImporter = std::make_unique<Importer12>(m_pD3D12);
 
 	}
 
 	Viewport12::~Viewport12()
 	{
-		if (m_pImporter != nullptr)
-		{
-			delete m_pImporter;
-			m_pImporter = nullptr;
-		}
 	}
 
 	void Viewport12::Draw()
@@ -66,10 +61,10 @@ namespace wilson
 							m_pImporter->LoadObject(g_types[i], path, m_pDevice);
 							Object12* pObject = m_pImporter->GetpObject();
 
-							std::vector<Mesh12*> pMeshes = pObject->GetMeshes();
+							std::vector<std::unique_ptr<Mesh12>>& pMeshes = pObject->GetMeshes();
 							for (int i = 0; i < pMeshes.size(); ++i)
 							{
-								Mesh12* pMesh = pMeshes[i];
+								Mesh12* pMesh = pMeshes[i].get();
 								XMMATRIX* pTrMat = pMesh->GetTranslationMatrix();
 								XMMATRIX trMat = XMMatrixTranslationFromVector(pos);
 								*pTrMat = trMat;

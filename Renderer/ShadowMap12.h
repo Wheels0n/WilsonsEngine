@@ -28,12 +28,12 @@ namespace wilson
 		D3D12_GPU_DESCRIPTOR_HANDLE* GetCubeDebugSrv(ID3D12GraphicsCommandList* const pCommandlist, const UINT i, const UINT face);
 		inline D3D12_GPU_DESCRIPTOR_HANDLE& GetCubeShadowSamplerView()
 		{
-			return m_cubeShadowSSV;
+			return m_cubeShadowSsv;
 		}
 		D3D12_GPU_DESCRIPTOR_HANDLE* GetDirDebugSrv(ID3D12GraphicsCommandList* const pCommandlist, const UINT i, const UINT lod);
 		inline D3D12_GPU_DESCRIPTOR_HANDLE& GetDirShadowSamplerView()
 		{
-			return m_dirShadowSSV;
+			return m_dirShadowSsv;
 		}
 		inline D3D12_RECT* GetScissorRect()
 		{
@@ -60,13 +60,13 @@ namespace wilson
 		FLOAT m_clear[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 		//D3D12
-		std::vector<ID3D12Resource*> m_cubeTexes;
-		std::vector<ID3D12Resource*> m_cubeDebugTexes;
-		std::vector<ID3D12Resource*> m_debugTexes;
-		std::vector<ID3D12Resource*> m_dirTexes;
-		std::vector<ID3D12Resource*> m_dirDebugTexes;
-		std::vector<ID3D12Resource*> m_spotTexes;
-		std::vector<ID3D12Resource*> m_spotDebugTexes;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_cubeTexes;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_cubeDebugTexes;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_debugTexes;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_dirTexes;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_dirDebugTexes;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_spotTexes;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_spotDebugTexes;
 
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_cubeDebugRtvs;
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_dirDebugRtvs;
@@ -84,8 +84,8 @@ namespace wilson
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_dirDsvs;
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_spotDsvs;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE m_cubeShadowSSV;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_dirShadowSSV;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_cubeShadowSsv;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_dirShadowSsv;
 
 		D3D12_VIEWPORT m_viewport;
 		D3D12_RECT m_rect = { 0, };

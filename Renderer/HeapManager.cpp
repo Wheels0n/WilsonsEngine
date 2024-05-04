@@ -185,7 +185,7 @@ namespace wilson
 
 		D3D12_RESOURCE_ALLOCATION_INFO info = pDevice->GetResourceAllocationInfo(0, 1, &texDesc);
 
-		HRESULT hr = pDevice->CreatePlacedResource(m_pTexHeap, m_curTexHeapOffset, &texDesc,
+		HRESULT hr = pDevice->CreatePlacedResource(m_pTexHeap.Get(), m_curTexHeapOffset, &texDesc,
 			state, pClearValue, IID_PPV_ARGS(ppTex));
 		assert(SUCCEEDED(hr));
 		m_curTexHeapOffset += CUSTUM_ALIGN(info.SizeInBytes,_64KB);
@@ -193,17 +193,6 @@ namespace wilson
 
 	HeapManager::HeapManager(ID3D12Device* const pDevice)
 	{
-		m_pVbHeap = nullptr;
-		m_pIbHeap = nullptr;
-		m_pCbHeap = nullptr;
-		m_pQueryHeap = nullptr;
-		m_pTexHeap = nullptr;
-		m_pRtvHeap = nullptr;
-		m_pDsvHeap = nullptr;
-		m_pSamplerHeap = nullptr;
-		m_pCbvSrvUavHeap = nullptr;
-		m_pDstSamplerHeap = nullptr;
-		m_pDstCbvSrvHeap = nullptr;
 
 		m_curVbHeapOffset = 0;
 		m_curIbHeapOffset = 0;
@@ -216,8 +205,7 @@ namespace wilson
 			m_curIbBlockOffset[i] = 0;
 			m_curCbBlockOffset[i] = 0;
 		}
-		m_pQueryResultBlock = nullptr;
-	
+
 		HRESULT hr;
 
 		D3D12_HEAP_DESC heapDesc = {};
@@ -231,33 +219,33 @@ namespace wilson
 		heapDesc.SizeInBytes = _VB_HEAP_SIZE;
 		heapDesc.Properties = heapProps;
 
-		hr = pDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(&m_pVbHeap));
+		hr = pDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(m_pVbHeap.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pVbHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("HeapManager::m_pVbHeap") - 1, "HeapManager::m_pVbHeap");
 
 		heapDesc.SizeInBytes = _IB_HEAP_SIZE;
-		hr = pDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(&m_pIbHeap));
+		hr = pDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(m_pIbHeap.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pIbHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("HeapManager::m_pIbHeap") - 1, "HeapManager::m_pIbHeap");
 
 		heapDesc.SizeInBytes = _CB_HEAP_SIZE;
-		hr = pDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(&m_pCbHeap));
+		hr = pDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(m_pCbHeap.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pCbHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("HeapManager::m_pCbHeap") - 1, "HeapManager::m_pCbHeap");
 
 		heapDesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
 		heapDesc.SizeInBytes = _TEX_HEAP_SIZE;
-		hr = pDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(&m_pTexHeap));
+		hr = pDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(m_pTexHeap.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pTexHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("HeapManager::m_pTexHeap") - 1, "HeapManager::m_pTexHeap");
 
 
 		heapDesc.SizeInBytes = _64KB;
-		hr = pDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(&m_pQueryHeap));
+		hr = pDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(m_pQueryHeap.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pQueryHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("HeapManager::m_pQueryHeap") - 1, "HeapManager::m_pQueryHeap");
@@ -280,8 +268,8 @@ namespace wilson
 		{
 			bufferDesc.Width = (_VB_HEAP_SIZE)/_HEAP_BLOCK_COUNT;
 			UINT64 offset = i * bufferDesc.Width;
-			hr = pDevice->CreatePlacedResource(m_pVbHeap, offset,
-				&bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pVbBlock[i]));
+			hr = pDevice->CreatePlacedResource(m_pVbHeap.Get(), offset,
+				&bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(m_pVbBlock[i].GetAddressOf()));
 			assert(SUCCEEDED(hr));
 			m_pVbBlock[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("HeapManager::m_pVbBlock[i]") - 1, "HeapManager::m_pVbBlock[i]");
@@ -289,8 +277,8 @@ namespace wilson
 			assert(SUCCEEDED(hr));
 
 			bufferDesc.Width = (_IB_HEAP_SIZE) / _HEAP_BLOCK_COUNT;
-			hr = pDevice->CreatePlacedResource(m_pIbHeap, i * bufferDesc.Width,
-				&bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_INDEX_BUFFER, nullptr, IID_PPV_ARGS(&m_pIbBlock[i]));
+			hr = pDevice->CreatePlacedResource(m_pIbHeap.Get(), i * bufferDesc.Width,
+				&bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_INDEX_BUFFER, nullptr, IID_PPV_ARGS(m_pIbBlock[i].GetAddressOf()));
 			assert(SUCCEEDED(hr));
 			m_pIbBlock[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("HeapManager::m_pIbBlock[i]") - 1, "HeapManager::m_pIbBlock[i]");
@@ -299,8 +287,8 @@ namespace wilson
 			assert(SUCCEEDED(hr));
 
 			bufferDesc.Width = (_CB_HEAP_SIZE) / _HEAP_BLOCK_COUNT;
-			hr = pDevice->CreatePlacedResource(m_pCbHeap, i* bufferDesc.Width,
-				&bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(&m_pCbBlock[i]));
+			hr = pDevice->CreatePlacedResource(m_pCbHeap.Get(), i* bufferDesc.Width,
+				&bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr, IID_PPV_ARGS(m_pCbBlock[i].GetAddressOf()));
 			assert(SUCCEEDED(hr));
 			m_pCbBlock[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("HeapManager::m_pCbBlock[i]") - 1, "HeapManager::m_pCbBlock[i]");
@@ -312,7 +300,7 @@ namespace wilson
 		//QueryBlock
 		{
 			bufferDesc.Width = _64KB;
-			hr = pDevice->CreatePlacedResource(m_pQueryHeap, 0,
+			hr = pDevice->CreatePlacedResource(m_pQueryHeap.Get(), 0,
 				&bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
 				nullptr, IID_PPV_ARGS(&m_pQueryResultBlock));
 			assert(SUCCEEDED(hr));
@@ -326,7 +314,7 @@ namespace wilson
 		rtvHeapDesc.NumDescriptors = _RTV_DSV_COUNT;
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		hr = pDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_pRtvHeap));
+		hr = pDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(m_pRtvHeap.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pRtvHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("HeapManager::m_pRtvHeap") - 1, "HeapManager::m_pRtvHeap");
@@ -336,7 +324,7 @@ namespace wilson
 		dsvHeapDesc.NumDescriptors = _RTV_DSV_COUNT;
 		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		hr = pDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_pDsvHeap));
+		hr = pDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(m_pDsvHeap.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pDsvHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("HeapManager::m_pDsvHeap") - 1, "HeapManager::m_pDsvHeap");
@@ -345,7 +333,7 @@ namespace wilson
 		cbvSrvHeapDesc.NumDescriptors = _CBV_SRV_COUNT;
 		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		cbvSrvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		hr = pDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(&m_pCbvSrvUavHeap));
+		hr = pDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(m_pCbvSrvUavHeap.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pCbvSrvUavHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("HeapManager::m_pCbvSrvUavHeap") - 1, "HeapManager::m_pCbvSrvUavHeap");
@@ -354,7 +342,7 @@ namespace wilson
 		samplerHeapDesc.NumDescriptors = _SAMPLER_COUNT;
 		samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		hr = pDevice->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_pSamplerHeap));
+		hr = pDevice->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(m_pSamplerHeap.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pSamplerHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("HeapManager::m_pSamplerHeap") - 1, "HeapManager::m_pSamplerHeap");
@@ -363,7 +351,7 @@ namespace wilson
 		cbvSrvHeapDesc.NumDescriptors = _CBV_SRV_COUNT;
 		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		cbvSrvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		hr = pDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(&m_pDstCbvSrvHeap));
+		hr = pDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(m_pDstCbvSrvHeap.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pDstCbvSrvHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("HeapManager::m_pDstCbvSrvHeap") - 1, "HeapManager::m_pDstCbvSrvHeap");
@@ -372,7 +360,7 @@ namespace wilson
 		samplerHeapDesc.NumDescriptors = _SAMPLER_COUNT;
 		samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		hr = pDevice->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_pDstSamplerHeap));
+		hr = pDevice->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(m_pDstSamplerHeap.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pDstSamplerHeap->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("HeapManager::m_pDstSamplerHeap") - 1, "HeapManager::m_pDstSamplerHeap");
@@ -395,97 +383,6 @@ namespace wilson
 	}
 	HeapManager::~HeapManager()
 	{	
-		for (int i = 0; i < _HEAP_BLOCK_COUNT; ++i)
-		{
-			if (m_pVbBlock[i] != nullptr)
-			{
-				m_pVbBlock[i]->Release();
-				m_pVbBlock[i] = nullptr;
-			}
-
-			if (m_pIbBlock[i] != nullptr)
-			{
-				m_pIbBlock[i]->Release();
-				m_pIbBlock[i] = nullptr;
-			}
-
-			if (m_pCbBlock[i] != nullptr)
-			{
-				m_pCbBlock[i]->Release();
-				m_pCbBlock[i] = nullptr;
-			}
-		}
-
-		if (m_pQueryResultBlock != nullptr)
-		{
-			m_pQueryResultBlock->Release();
-			m_pQueryResultBlock = nullptr;
-		}
-
-		if (m_pVbHeap != nullptr)
-		{
-			m_pVbHeap->Release();
-			m_pVbHeap = nullptr;			
-		}
-
-		if (m_pIbHeap != nullptr)
-		{
-			m_pIbHeap->Release();
-			m_pIbHeap = nullptr;
-		}
-
-		if (m_pCbHeap != nullptr)
-		{
-			m_pCbHeap->Release();
-			m_pCbHeap = nullptr;
-		}
-		if (m_pTexHeap != nullptr)
-		{
-			m_pTexHeap->Release();
-			m_pTexHeap = nullptr;
-		}
-
-		if (m_pQueryHeap != nullptr)
-		{
-			m_pQueryHeap->Release();
-			m_pQueryHeap = nullptr;
-		}
-
-		if (m_pRtvHeap != nullptr)
-		{
-			m_pRtvHeap->Release();
-			m_pRtvHeap = nullptr;
-		}
-
-		if (m_pDsvHeap != nullptr)
-		{
-			m_pDsvHeap->Release();
-			m_pDsvHeap = nullptr;
-		}
-
-		if (m_pSamplerHeap != nullptr)
-		{
-			m_pSamplerHeap->Release();
-			m_pSamplerHeap = nullptr;
-		}
-
-		if (m_pCbvSrvUavHeap != nullptr)
-		{
-			m_pCbvSrvUavHeap->Release();
-			m_pCbvSrvUavHeap = nullptr;
-		}
-
-		if (m_pDstSamplerHeap != nullptr)
-		{
-			m_pDstSamplerHeap->Release();
-			m_pDstSamplerHeap = nullptr;
-		}
-
-		if (m_pDstCbvSrvHeap != nullptr)
-		{
-			m_pDstCbvSrvHeap->Release();
-			m_pDstCbvSrvHeap = nullptr;
-		}
 
 	}
 }

@@ -42,7 +42,7 @@ namespace wilson
 	void Scene12::Draw()
 	{
 		const char* actions = "Remove";
-		if (ImGui::Begin("Scene11 Hierarchy"))
+		if (ImGui::Begin("Scene Hierarchy"))
 		{
 			if (ImGui::TreeNode(m_name.c_str()))
 			{
@@ -55,7 +55,7 @@ namespace wilson
 					{
 						Object12* pObject = m_entites[i]->GetpObject();
 						std::string objectName = pObject->GetName();
-						std::vector<Mesh12*>& pMeshes = pObject->GetMeshes();
+						std::vector< std::unique_ptr<Mesh12>>& pMeshes = pObject->GetMeshes();
 						UINT objectIdx = m_entites[i]->GetObjectIndex();
 						if (ImGui::TreeNode(objectName.c_str()))
 						{
@@ -95,7 +95,7 @@ namespace wilson
 								if (ImGui::Button(meshName.c_str()))
 								{
 									m_bObject = true;
-									m_pSelectedEntity = pMeshes[j];
+									m_pSelectedEntity = pMeshes[j].get();
 
 									m_pD3D12->PickSubMesh(objectIdx, j);
 									m_popUpID = popUpID;
@@ -414,10 +414,10 @@ namespace wilson
 				continue;
 			}
 			Object12* pObject = m_entites[i]->GetpObject();
-			std::vector<Mesh12*> pMeshes = pObject->GetMeshes();
+			std::vector<std::unique_ptr<Mesh12>>& pMeshes = pObject->GetMeshes();
 			for (int j = 0; j < pMeshes.size(); ++j)
 			{
-				Mesh12* pMesh = pMeshes[j];
+				Mesh12* pMesh = pMeshes[j].get();
 
 				XMMATRIX m_worldMat = pMesh->GetTransformMatrix(false);
 				m_worldMat = DirectX::XMMatrixTranspose(m_worldMat);

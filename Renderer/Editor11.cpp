@@ -17,39 +17,13 @@ namespace wilson {
 		m_pScene = new Scene11(pD3D11);
 		m_pViewport = new Viewport11(pD3D11, m_pScene->GetScene());
 		m_pSettings = new Settings11(m_pD3D11);
-		std::string str = "Scene11";
+		std::string str = "Scene";
 		m_pScene->SetCam(m_pD3D11->GetCam());
 		m_pScene->SetSceneName(str);
 	}
 	
 	Editor11::~Editor11()
 	{
-		if (m_pContentBrowser != nullptr)
-		{
-			delete m_pContentBrowser;
-			m_pContentBrowser = nullptr;
-		}
-
-		if (m_pViewport != nullptr)
-		{
-			delete m_pViewport;
-			m_pViewport = nullptr;
-		}
-	
-
-		if (m_pScene != nullptr)
-		{
-			delete m_pScene;
-			m_pScene = nullptr;
-		}
-		
-
-		if (m_pSettings != nullptr)
-		{	
-			delete m_pSettings;
-			m_pSettings = nullptr;
-		}
-		
 	}
 	void Editor11::Draw()
 	{

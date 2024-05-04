@@ -46,16 +46,14 @@ namespace wilson
 		m_pDevice = m_pD3D12->GetDevice();
 		m_pHeapManager= m_pD3D12->GetHeapManager();
 		m_pCommandList = m_pD3D12->GetCommandList();
-		m_pImporterCommandList = nullptr;
-		m_pImporterCommandAllocator = nullptr;
 
 		
-		HRESULT hr = m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_pImporterCommandAllocator));
+		HRESULT hr = m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_pImporterCommandAllocator.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pImporterCommandAllocator->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("Importer12::m_pImporterCommandAllocator") - 1, "Importer12::m_pImporterCommandAllocator");
 
-		hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pImporterCommandAllocator, nullptr, IID_PPV_ARGS(&m_pImporterCommandList));
+		hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pImporterCommandAllocator.Get(), nullptr, IID_PPV_ARGS(m_pImporterCommandList.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 		m_pImporterCommandList->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("D3D12::m_pImporterCommandList") - 1, "D3D12::m_pImporterCommandList");
@@ -765,7 +763,7 @@ namespace wilson
 								sizeof("Importer12:: pTex") - 1, "Importer12:: pTex");
 							
 							ID3D12Resource* pUploadCB = nullptr;
-							m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, pTex, &pUploadCB, m_pImporterCommandList);
+							m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, pTex, &pUploadCB, m_pImporterCommandList.Get());
 							
 							D3D12_RESOURCE_BARRIER copyDstToSrv = {};
 							copyDstToSrv.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -777,10 +775,10 @@ namespace wilson
 
 							m_pImporterCommandList->ResourceBarrier(1, &copyDstToSrv);
 							m_pImporterCommandList->Close();
-							m_pD3D12->ExecuteCommandLists(&m_pImporterCommandList, 1);
+							m_pD3D12->ExecuteCommandLists(m_pImporterCommandList.GetAddressOf(), 1);
 							pUploadCB->Release();
 							m_pImporterCommandAllocator->Reset();
-							m_pImporterCommandList->Reset(m_pImporterCommandAllocator, nullptr);
+							m_pImporterCommandList->Reset(m_pImporterCommandAllocator.Get(), nullptr);
 						}
 						
 						m_pTexs.push_back(pTex);
@@ -1378,18 +1376,6 @@ namespace wilson
 		{
 			delete m_pCurDir;
 			m_pCurDir = nullptr;
-		}
-
-		if (m_pImporterCommandAllocator != nullptr)
-		{
-			m_pImporterCommandAllocator->Release();
-			m_pImporterCommandAllocator = nullptr;
-		}
-
-		if (m_pImporterCommandList != nullptr)
-		{	
-			m_pImporterCommandList->Release();
-			m_pImporterCommandList = nullptr;
 		}
 		
 		m_fbxIOsettings->Destroy();

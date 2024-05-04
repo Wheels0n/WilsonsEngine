@@ -12,99 +12,99 @@ namespace wilson
 	public:
 		inline ID3D12RootSignature* GetAabbShaderRootSingnature()
 		{
-			return m_pAabbRootSignature;
+			return m_pAabbRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetBlurShaderRootSingnature()
 		{
-			return m_pBlurRootSignature;
+			return m_pBlurRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetBrdfRootSingnature()
 		{
-			return m_pBrdfRootSignature;
+			return m_pBrdfRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetCascadeDirShadowRootSingnature()
 		{
-			return m_pCasacadePassRootSignature;
+			return m_pCasacadePassRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetCubeShaderRootSingnature()
 		{
-			return m_pCubeRootsignature;
+			return m_pCubeRootsignature.Get();
 		}
 		inline ID3D12RootSignature* GetCubeShadowRootSingnature()
 		{
-			return m_pCubeShadowRootSignature;
+			return m_pCubeShadowRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetDeferredLightingShaderRootSingnature()
 		{
-			return m_pLightRootSignature;
+			return m_pLightRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetDeferredGeoShaderRootSingnature()
 		{
-			return m_pGeoRootSignature;
+			return m_pGeoRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetDiffuseIrradianceRootSingnature()
 		{
-			return m_pDiffuseIrradianceRootSignature;
+			return m_pDiffuseIrradianceRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetDownSampleRootSignature()
 		{
-			return m_pDownSampleRootSignature;
+			return m_pDownSampleRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetEquirect2CubeRootSingnature()
 		{
-			return m_pEquirect2cubeRootSignature;
+			return m_pEquirect2cubeRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetGenHiZpassRootSignature()
 		{
-			return m_pGenHiZpassRootSignature;
+			return m_pGenHiZpassRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetGenMipShaderRootSingnature()
 		{
-			return m_pGenMipMapRootsignature;
+			return m_pGenMipMapRootsignature.Get();
 		}
 		inline ID3D12RootSignature* GetHiZCullPassRootSignature()
 		{
-			return m_pHiZCullPassRootSignature;
+			return m_pHiZCullPassRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetOutlinerTestShaderRootSingnature()
 		{
-			return m_pOutlinerTestRootSignature;
+			return m_pOutlinerTestRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetPbrDeferredGeoShaderRootSingnature()
 		{
-			return m_pPbrGeoRootSignature;
+			return m_pPbrGeoRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetPbrDeferredLightingShaderRootSingnature()
 		{
-			return m_pPbrLightRootSignature;
+			return m_pPbrLightRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetPrefilterRootSingnature()
 		{
-			return m_pPrefilterRootSignature;
+			return m_pPrefilterRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetPostProcessShaderRootSingnature()
 		{
-			return m_pPostProcessRootSignature;
+			return m_pPostProcessRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetSkyBoxRootSingnature()
 		{
-			return m_pSkyboxRootSignature;
+			return m_pSkyboxRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetSpotShadowRootSingnature()
 		{
-			return m_pSpotShadowRootSignature;
+			return m_pSpotShadowRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetSsaoShaderRootSingnature()
 		{
-			return m_pSsaoRootSignature;
+			return m_pSsaoRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetSsaoBlurShaderRootSingnature()
 		{
-			return m_pSsaoBlurRootSignature;
+			return m_pSsaoBlurRootSignature.Get();
 		}
 		inline ID3D12RootSignature* GetZpassRootSignature()
 		{
-			return m_pZpassRootSignature;
+			return m_pZpassRootSignature.Get();
 		}
 
 		void SetAabbShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* const pPSODesc)
@@ -248,7 +248,7 @@ namespace wilson
 		}
 		void SetGenMipShader(D3D12_COMPUTE_PIPELINE_STATE_DESC* const pPSODesc)
 		{
-			D3D12_SHADER_BYTECODE csBytecode = { m_pGenMipCS->GetBufferPointer(), m_pGenMipCS->GetBufferSize() };
+			D3D12_SHADER_BYTECODE csBytecode = { m_pGenMipCs->GetBufferPointer(), m_pGenMipCs->GetBufferSize() };
 
 			pPSODesc->CS = csBytecode;
 		}
@@ -424,82 +424,82 @@ namespace wilson
 
 	private:
 		//D3D12
-		ID3DBlob* m_pAabbVs;
-		ID3DBlob* m_pCascadeDirVs;
-		ID3DBlob* m_pCubeShadowVs;
-		ID3DBlob* m_pForwardVs;
-		ID3DBlob* m_pGeometryVs;
-		ID3DBlob* m_pMatrixTransformVs;
-		ID3DBlob* m_pMatrixTransformInstancedVs;
-		ID3DBlob* m_pPBRGeometryVs;
-		ID3DBlob* m_pPBRGeometryNormalVs;
-		ID3DBlob* m_pPosOnlyVs;
-		ID3DBlob* m_pShadowVs;
-		ID3DBlob* m_pSkyBoxVs;
-		ID3DBlob* m_pSsaoVs;
-		ID3DBlob* m_pTexVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pAabbVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pCascadeDirVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pCubeShadowVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pForwardVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pGeometryVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pMatrixTransformVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pMatrixTransformInstancedVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPBRGeometryVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPBRGeometryNormalVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPosOnlyVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pShadowVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pSkyBoxVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pSsaoVs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pTexVs;
 
-		ID3DBlob* m_pCascadeDirGs;
-		ID3DBlob* m_pCubeShadowGs;
-		ID3DBlob* m_pEquirect2CubeGs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pCascadeDirGs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pCubeShadowGs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pEquirect2CubeGs;
 
-		ID3DBlob* m_pAabbPs;
-		ID3DBlob* m_pBlurPs;
-		ID3DBlob* m_pBrdfPs;
-		ID3DBlob* m_pCascadeDirPs;
-		ID3DBlob* m_pConstantPs;
-		ID3DBlob* m_pCubeShadowPs;
-		ID3DBlob* m_pDeferredPs;
-		ID3DBlob* m_pDiffuseIrradiancePs;
-		ID3DBlob* m_pDownSamplePs;
-		ID3DBlob* m_pEquirect2CubePs;
-		ID3DBlob* m_pForwardPs;
-		ID3DBlob* m_pGenHiZPs;
-		ID3DBlob* m_pGeometryPs;
-		ID3DBlob* m_pOutlinerTestPs;
-		ID3DBlob* m_pPbrDeferredPs;
-		ID3DBlob* m_pPbrGeometryPs;
-		ID3DBlob* m_pPbrGeometryEmissivePs;
-		ID3DBlob* m_pPbrGeometryNormalPs;
-		ID3DBlob* m_pPbrGeometryNormalHeightPs;
-		ID3DBlob* m_pPbrGeometryNormalHeightEmissivePs;
-		ID3DBlob* m_pPostProcessPs;
-		ID3DBlob* m_pPrefilterPs;
-		ID3DBlob* m_pShadowPs;
-		ID3DBlob* m_pSkyBoxPs;
-		ID3DBlob* m_pSsaoPs;
-		ID3DBlob* m_pSsaoBlurPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pAabbPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pBlurPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pBrdfPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pCascadeDirPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pConstantPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pCubeShadowPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pDeferredPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pDiffuseIrradiancePs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pDownSamplePs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pEquirect2CubePs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pForwardPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pGenHiZPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pGeometryPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pOutlinerTestPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrDeferredPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrGeometryPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrGeometryEmissivePs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrGeometryNormalPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrGeometryNormalHeightPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrGeometryNormalHeightEmissivePs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPostProcessPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPrefilterPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pShadowPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pSkyBoxPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pSsaoPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pSsaoBlurPs;
 
-		ID3DBlob* m_pGenMipCS;
-		ID3DBlob* m_pHiZCullCs;
-		ID3DBlob* m_pSsaoCs;
-		ID3DBlob* m_pSsaoBlurCs;
-		ID3DBlob* m_pPostProcessCs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pGenMipCs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pHiZCullCs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pSsaoCs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pSsaoBlurCs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPostProcessCs;
 
-		ID3D12RootSignature* m_pAabbRootSignature;
-		ID3D12RootSignature* m_pBlurRootSignature;
-		ID3D12RootSignature* m_pBrdfRootSignature;
-		ID3D12RootSignature* m_pCasacadePassRootSignature;
-		ID3D12RootSignature* m_pCubeRootsignature;
-		ID3D12RootSignature* m_pCubeShadowRootSignature;
-		ID3D12RootSignature* m_pDiffuseIrradianceRootSignature;
-		ID3D12RootSignature* m_pDownSampleRootSignature;
-		ID3D12RootSignature* m_pEquirect2cubeRootSignature;
-		ID3D12RootSignature* m_pGenHiZpassRootSignature;
-		ID3D12RootSignature* m_pGenMipMapRootsignature;
-		ID3D12RootSignature* m_pGeoRootSignature;
-		ID3D12RootSignature* m_pHiZCullPassRootSignature;
-		ID3D12RootSignature* m_pLightRootSignature;
-		ID3D12RootSignature* m_pOutlinerTestRootSignature;
-		ID3D12RootSignature* m_pPbrGeoRootSignature;
-		ID3D12RootSignature* m_pPbrLightRootSignature;
-		ID3D12RootSignature* m_pPostProcessRootSignature;
-		ID3D12RootSignature* m_pPrefilterRootSignature;
-		ID3D12RootSignature* m_pSkyboxRootSignature;
-		ID3D12RootSignature* m_pSpotShadowRootSignature;
-		ID3D12RootSignature* m_pSsaoRootSignature;
-		ID3D12RootSignature* m_pSsaoBlurRootSignature;
-		ID3D12RootSignature* m_pZpassRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pAabbRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pBlurRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pBrdfRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pCasacadePassRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pCubeRootsignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pCubeShadowRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pDiffuseIrradianceRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pDownSampleRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pEquirect2cubeRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pGenHiZpassRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pGenMipMapRootsignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pGeoRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pHiZCullPassRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pLightRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pOutlinerTestRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pPbrGeoRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pPbrLightRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pPostProcessRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pPrefilterRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pSkyboxRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pSpotShadowRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pSsaoRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pSsaoBlurRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_pZpassRootSignature;
 
 		D3D12_INPUT_LAYOUT_DESC m_deferredGeoLayout;
 		D3D12_INPUT_LAYOUT_DESC m_inputLayout;

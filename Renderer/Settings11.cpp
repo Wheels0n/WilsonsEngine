@@ -20,20 +20,20 @@ namespace wilson
 		HRESULT hr;
 		DirectX::ScratchImage image;
 		hr = DirectX::LoadFromWICFile(L"./Assets/Icons/sun-color-icon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
-		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), &m_icons[0]);
+		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), m_icons[0].GetAddressOf());
 		assert(SUCCEEDED(hr));
 		m_icons[0]->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("Settings11::SunIcon") - 1, "Settings11::SunIcon");
 
 
 		hr = DirectX::LoadFromWICFile(L"./Assets/Icons/light-bulb-color-icon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
-		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), &m_icons[1]);
+		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), m_icons[1].GetAddressOf());
 		assert(SUCCEEDED(hr));
 		m_icons[1]->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("Settings11::LightBulbIcon") - 1, "Settings11::LightBulbIcon");
 
 		hr = DirectX::LoadFromWICFile(L"./Assets/Icons/flashlight-icon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
-		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), &m_icons[2]);
+		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), m_icons[2].GetAddressOf());
 		assert(SUCCEEDED(hr));
 		m_icons[2]->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("Settings11::FlashLightIcon") - 1, "Settings11::FlashLightIcon");
@@ -127,7 +127,7 @@ namespace wilson
 
 		if (ImGui::Begin("Light11"))
 		{ 
-			ImGui::Image(m_icons[0], ImVec2(_ICON_SZ, _ICON_SZ));
+			ImGui::Image(m_icons[0].Get(), ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
 			ImGui::Text("DirectionalLight11");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
@@ -136,7 +136,7 @@ namespace wilson
 				ImGui::EndDragDropSource();
 			}
 
-			ImGui::Image(m_icons[1], ImVec2(_ICON_SZ, _ICON_SZ));
+			ImGui::Image(m_icons[1].Get(), ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
 			ImGui::Text("CubeLight11");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
@@ -145,7 +145,7 @@ namespace wilson
 				ImGui::EndDragDropSource();
 			}
 
-			ImGui::Image(m_icons[2], ImVec2(_ICON_SZ, _ICON_SZ));
+			ImGui::Image(m_icons[2].Get(), ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
 			ImGui::Text("SpotLight11");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
@@ -176,10 +176,6 @@ namespace wilson
 	
 	Settings11::~Settings11()
 	{
-		for (int i = 0; i < 3; ++i)
-		{
-			m_icons[i]->Release();
-			m_icons[i] = nullptr;
-		}
+
 	}
 }

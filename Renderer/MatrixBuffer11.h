@@ -14,7 +14,7 @@ namespace wilson
 	public:
 		inline ID3D11Buffer* GetMatrixBuffer() const
 		{
-			return m_pMatricesCb;
+			return m_pMatricesCb.Get();
 		};
 		inline void SetInvWorldMatrix(XMMATRIX* const invWorldMatrix)
 		{
@@ -51,8 +51,8 @@ namespace wilson
 		XMMATRIX m_projMat;
 		XMMATRIX m_viewMat;
 
-		ID3D11Buffer* m_pMatricesCb;
-		ID3D11Buffer* m_pProjMatCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pMatricesCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pProjMatCb;
 
 	};
 }

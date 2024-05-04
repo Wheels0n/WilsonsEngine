@@ -11,11 +11,11 @@ namespace wilson
 		void CreateTexture(const D3D12_RESOURCE_DESC& texDesc, const D3D12_RESOURCE_STATES state, ID3D12Resource** const ppTex, ID3D12Device* const pDevice);
 		inline ID3D12Resource* GetCbBlock(const UINT idx)
 		{
-			return m_pCbBlock[idx];
+			return m_pCbBlock[idx].Get();
 		}
 		inline ID3D12Heap* GetCbHeap()
 		{
-			return m_pCbHeap;
+			return m_pCbHeap.Get();
 		}
 		inline UINT64 GetCbHeapOffset()
 		{
@@ -33,7 +33,7 @@ namespace wilson
 		D3D12_GPU_DESCRIPTOR_HANDLE GetCbv(const UINT64 size, ID3D12Device* const pDevice);
 		inline ID3D12DescriptorHeap** GetCbvSrvUavHeap()
 		{
-			return &m_pCbvSrvUavHeap;
+			return m_pCbvSrvUavHeap.GetAddressOf();
 		};
 		inline D3D12_CPU_DESCRIPTOR_HANDLE GetCurCbvSrvCpuHandle()
 		{
@@ -79,7 +79,7 @@ namespace wilson
 		D3D12_CPU_DESCRIPTOR_HANDLE GetDsv(const D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc, ID3D12Resource* const pTex, ID3D12Device* const pDevice);
 		inline ID3D12DescriptorHeap** GetDsvHeap()
 		{
-			return &m_pDsvHeap;
+			return m_pDsvHeap.GetAddressOf();
 		};
 		inline UINT64 GetIbBlockOffset(const UINT idx)
 		{
@@ -92,7 +92,7 @@ namespace wilson
 		D3D12_INDEX_BUFFER_VIEW GetIbv(const UINT64 size, const UINT64 offset);
 		inline ID3D12Resource* GetQueryBlock()
 		{
-			return m_pQueryResultBlock;
+			return m_pQueryResultBlock.Get();
 		}
 		inline UINT64 GetQueryHeapOffset()
 		{
@@ -101,16 +101,16 @@ namespace wilson
 		D3D12_CPU_DESCRIPTOR_HANDLE GetRtv(const D3D12_RENDER_TARGET_VIEW_DESC rtvDesc, ID3D12Resource* const pTex, ID3D12Device* const pDevice);
 		inline ID3D12DescriptorHeap** GetRtvHeap()
 		{
-			return &m_pRtvHeap;
+			return m_pRtvHeap.GetAddressOf();
 		};
 		D3D12_GPU_DESCRIPTOR_HANDLE GetSrv(const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc, ID3D12Resource* const pTex, ID3D12Device* const pDevice);
 		inline ID3D12DescriptorHeap** GetSamplerHeap()
 		{
-			return &m_pSamplerHeap;
+			return m_pSamplerHeap.GetAddressOf();
 		};
 		inline ID3D12Heap* GetTexHeap()
 		{
-			return m_pTexHeap;
+			return m_pTexHeap.Get();
 		}
 		inline UINT64 GetTexHeapOffset()
 		{
@@ -180,23 +180,23 @@ namespace wilson
 		UINT8* m_pCurIbBlockMappedPtr[_HEAP_BLOCK_COUNT];
 		UINT8* m_pCurVbBlockMappedPtr[_HEAP_BLOCK_COUNT];
 
-		ID3D12Heap* m_pCbHeap;
-		ID3D12Heap* m_pIbHeap;
-		ID3D12Heap* m_pQueryHeap;
-		ID3D12Heap* m_pVbHeap;
-		ID3D12Heap* m_pTexHeap;
+		Microsoft::WRL::ComPtr<ID3D12Heap> m_pCbHeap;
+		Microsoft::WRL::ComPtr<ID3D12Heap> m_pIbHeap;
+		Microsoft::WRL::ComPtr<ID3D12Heap> m_pQueryHeap;
+		Microsoft::WRL::ComPtr<ID3D12Heap> m_pVbHeap;
+		Microsoft::WRL::ComPtr<ID3D12Heap> m_pTexHeap;
 
-		ID3D12Resource* m_pCbBlock[_HEAP_BLOCK_COUNT];
-		ID3D12Resource* m_pIbBlock[_HEAP_BLOCK_COUNT];
-		ID3D12Resource* m_pQueryResultBlock;
-		ID3D12Resource* m_pVbBlock[_HEAP_BLOCK_COUNT];
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pCbBlock[_HEAP_BLOCK_COUNT];
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pIbBlock[_HEAP_BLOCK_COUNT];
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pQueryResultBlock;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pVbBlock[_HEAP_BLOCK_COUNT];
 
-		ID3D12DescriptorHeap* m_pCbvSrvUavHeap;
-		ID3D12DescriptorHeap* m_pDstCbvSrvHeap;
-		ID3D12DescriptorHeap* m_pDstSamplerHeap;
-		ID3D12DescriptorHeap* m_pDsvHeap;
-		ID3D12DescriptorHeap* m_pRtvHeap;
-		ID3D12DescriptorHeap* m_pSamplerHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pCbvSrvUavHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pDstCbvSrvHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pDstSamplerHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pDsvHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pRtvHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_pSamplerHeap;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE m_curCbvSrvUavCpuHandle;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_curDstCbvSrvUavCpuHandle;

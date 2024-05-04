@@ -2,7 +2,7 @@
 #include<d3d11.h>
 #include "typedef.h"
 namespace wilson {
-
+	
 	class Frustum11;
 
 	class Camera11
@@ -93,8 +93,8 @@ namespace wilson {
 		DirectX::XMMATRIX m_projMat;// think of the frustum as the lens of our camera, for it controls our view
 		DirectX::XMMATRIX m_viewMat;
 
-		ID3D11Buffer* m_pCamPosCb;
-		ID3D11Buffer* m_pCascadeLevelCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pCamPosCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pCascadeLevelCb;
 
 		std::vector<float> m_shadowCascadeLevels;
 		float m_farZ;

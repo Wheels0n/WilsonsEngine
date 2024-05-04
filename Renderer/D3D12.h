@@ -37,7 +37,6 @@ namespace wilson
 		void DestroyHdr();
 		void DestroyBackBuffer();
 		void DrawObject(const ePass curPass, const UINT threadIndex, const UINT lightIdx);
-		void D3DMemoryLeakCheck();
 		void HWQueryForOcclusion(const UINT threadIdx);
 		void SsaoThread();
 		void WaitForGpu();
@@ -56,7 +55,7 @@ namespace wilson
 		void ExecuteCommandLists(ID3D12GraphicsCommandList** const ppCmdLists, const UINT cnt);
 		inline Camera12* GetCam() const
 		{
-			return m_pCam;
+			return m_pCam.get();
 		};
 		inline int GetClientHeight() const
 		{
@@ -68,11 +67,11 @@ namespace wilson
 		};
 		inline ID3D12GraphicsCommandList* GetCommandList() const
 		{
-			return m_pMainCommandList;
+			return m_pMainCommandList.Get();
 		};
 		inline ID3D12Device* GetDevice() const
 		{
-			return m_pDevice;
+			return m_pDevice.Get();
 		};
 		inline D3D12_GPU_DESCRIPTOR_HANDLE* GetDepthSrv()
 		{
@@ -82,17 +81,13 @@ namespace wilson
 		{
 			return &m_exposure;
 		}
-		inline Frustum12* GetFrustum() const
-		{
-			return m_pFrustum;
-		};
 		inline D3D12_GPU_DESCRIPTOR_HANDLE* GetpGbufferSrvs()
 		{
 			return m_GBufSrvs;
 		};
 		inline HeapManager* GetHeapManager()
 		{
-			return m_pHeapManager;
+			return m_pHeapManager.get();
 		}
 		inline BOOL* GetpbHeightOn()
 		{
@@ -134,7 +129,7 @@ namespace wilson
 		};
 		inline ShadowMap12* GetShadowMap() const
 		{
-			return m_pShadowMap;
+			return m_pShadowMap.get();
 		}
 		inline D3D12_GPU_DESCRIPTOR_HANDLE* GetSsaoBlurredSrv()
 		{
@@ -157,10 +152,6 @@ namespace wilson
 		void RemoveMesh(const int i, const int j);
 		void RemoveObject(const int i);
 		void RemoveLight(const int, Light12* cont);
-		inline void SetNewFrustum(Frustum12* const pFrustum)
-		{
-			m_pFrustum = pFrustum;
-		}
 		void UpdateDrawLists();
 		void UpdateScene();
 		void UploadTexThroughCB(const D3D12_RESOURCE_DESC texDesc, const UINT rowPitch,
@@ -191,86 +182,86 @@ namespace wilson
 
 		bool m_bVsyncOn;
 
-		ID3D12Debug* m_pDebugController;
-		ID3D12Device1* m_pDevice;
-		ID3D12CommandQueue* m_pMainCommandQueue;
-		ID3D12CommandQueue* m_pComputeCommandQueue;
-		IDXGISwapChain* m_pSwapChain;
-		ID3D12QueryHeap* m_pQueryHeap[_WORKER_THREAD_COUNT];
+		Microsoft::WRL::ComPtr<ID3D12Debug> m_pDebugController;
+		Microsoft::WRL::ComPtr<ID3D12Device1> m_pDevice;
+		Microsoft::WRL::ComPtr<ID3D12CommandQueue>m_pMainCommandQueue;
+		Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_pComputeCommandQueue;
+		Microsoft::WRL::ComPtr<IDXGISwapChain> m_pSwapChain;
+		Microsoft::WRL::ComPtr<ID3D12QueryHeap> m_pQueryHeap[_WORKER_THREAD_COUNT];
 	
 
-		ID3D12GraphicsCommandList* m_pBundles[static_cast<UINT>(ePass::cnt)];
-		ID3D12GraphicsCommandList* m_pCopyCommandList;
-		ID3D12GraphicsCommandList* m_pImporterCommandList;
-		ID3D12GraphicsCommandList* m_pMainCommandList;
-		ID3D12GraphicsCommandList* m_pPbrSetupCommandList;
-		ID3D12GraphicsCommandList* m_pSsaoCommandList;
-		ID3D12GraphicsCommandList* m_pWorkerCommandLists[_WORKER_THREAD_COUNT];
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pBundles[static_cast<UINT>(ePass::cnt)];
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pCopyCommandList;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pImporterCommandList;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pMainCommandList;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pPbrSetupCommandList;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pSsaoCommandList;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_pWorkerCommandLists[_WORKER_THREAD_COUNT];
 
-		ID3D12CommandAllocator* m_pBundleAllocators[static_cast<UINT>(ePass::cnt)];
-		ID3D12CommandAllocator* m_pCopyCommandAllocator;
-		ID3D12CommandAllocator* m_pImporterCommandAllocator;
-		ID3D12CommandAllocator* m_pMainCommandAllocator;
-		ID3D12CommandAllocator* m_pPbrSetupCommandAllocator;
-		ID3D12CommandAllocator* m_pSsaoCommandAllocator;
-		ID3D12CommandAllocator* m_pWorkerCommandAllocators[_WORKER_THREAD_COUNT];
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_pBundleAllocators[static_cast<UINT>(ePass::cnt)];
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_pCopyCommandAllocator;
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_pImporterCommandAllocator;
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_pMainCommandAllocator;
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_pPbrSetupCommandAllocator;
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_pSsaoCommandAllocator;
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_pWorkerCommandAllocators[_WORKER_THREAD_COUNT];
 
-		ID3D12Fence* m_pFence;
-		ID3D12Fence* m_pSsaoFence;
-		ID3D12Fence* m_pWorkerFences[_WORKER_THREAD_COUNT];
+		Microsoft::WRL::ComPtr<ID3D12Fence> m_pFence;
+		Microsoft::WRL::ComPtr<ID3D12Fence> m_pSsaoFence;
+		Microsoft::WRL::ComPtr<ID3D12Fence> m_pWorkerFences[_WORKER_THREAD_COUNT];
 
-		ID3D12PipelineState* m_pAabbPso;
-		ID3D12PipelineState* m_pBrdfPso;
-		ID3D12PipelineState* m_pCascadeDirShadowPso;
-		ID3D12PipelineState* m_pCubeShadowPso;
-		ID3D12PipelineState* m_pDiffuseIrradiancePso;
-		ID3D12PipelineState* m_pDownSamplePso;
-		ID3D12PipelineState* m_pEquirect2CubePso;
-		ID3D12PipelineState* m_pGenHiZPassPso;
-		ID3D12PipelineState* m_pGenMipmapPso;
-		ID3D12PipelineState* m_pHiZCullPassPso;
-		ID3D12PipelineState* m_pHWOcclusionQueryPso;
-		ID3D12PipelineState* m_pOutlinerTestPso;
-		ID3D12PipelineState* m_pOutlinerSetupPso;
-		ID3D12PipelineState* m_pPbrDeferredGeoPso;
-		ID3D12PipelineState* m_pPbrDeferredGeoEmissivePso;
-		ID3D12PipelineState* m_pPbrDeferredGeoNormalPso;
-		ID3D12PipelineState* m_pPbrDeferredGeoNormalHeightPso;
-		ID3D12PipelineState* m_pPbrDeferredGeoNormalHeightEmissivePso;
-		ID3D12PipelineState* m_pPbrDeferredLightingPso;
-		ID3D12PipelineState* m_pPostProcessPso;
-		ID3D12PipelineState* m_pPrefilterPso;
-		ID3D12PipelineState* m_pSkyBoxPso;
-		ID3D12PipelineState* m_pSpotShadowPso;
-		ID3D12PipelineState* m_pSsaoPso;
-		ID3D12PipelineState* m_pSsaoBlurPso;
-		ID3D12PipelineState* m_pZpassPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pAabbPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pBrdfPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pCascadeDirShadowPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pCubeShadowPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pDiffuseIrradiancePso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pDownSamplePso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pEquirect2CubePso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pGenHiZPassPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pGenMipmapPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pHiZCullPassPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pHWOcclusionQueryPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pOutlinerTestPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pOutlinerSetupPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredGeoPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredGeoEmissivePso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredGeoNormalPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredGeoNormalHeightPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredGeoNormalHeightEmissivePso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredLightingPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPostProcessPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPrefilterPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pSkyBoxPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pSpotShadowPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pSsaoPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pSsaoBlurPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pZpassPso;
 
-		ID3D12Resource* m_pBrdfTex;
-		ID3D12Resource* m_pBrightTex;
-		ID3D12Resource* m_pDiffIrradianceTex;
-		ID3D12Resource* m_pDownSampleTex;
-		ID3D12Resource* m_pGBufTexs[static_cast<UINT>(eGbuf::cnt)];
-		ID3D12Resource* m_pGenMipUavTex;
-		ID3D12Resource* m_pHdrTex;
-		ID3D12Resource* m_pHdrUploadCb;
-		ID3D12Resource* m_pHiZCullReadCb;
-		ID3D12Resource* m_pHiZCullListTex;
-		ID3D12Resource* m_pHiZTempTex;
-		ID3D12Resource* m_pNoiseTex;
-		ID3D12Resource* m_pNoiseUploadCb;
-		ID3D12Resource* m_pPingPongTex[2];
-		ID3D12Resource* m_pPrefilterTex;
-		ID3D12Resource* m_pQueryReadBuffers[_WORKER_THREAD_COUNT];
-		ID3D12Resource* m_pSceneTex;
-		ID3D12Resource* m_pSceneDepthTex;
-		ID3D12Resource* m_pScreenTexs[_BUFFER_COUNT];
-		ID3D12Resource* m_pScreenDepthTex;
-		ID3D12Resource* m_pSkyBoxTex;
-		ID3D12Resource* m_pSsaoTex;
-		ID3D12Resource* m_pSsaoBlurTex;
-		ID3D12Resource* m_pSsaoBlurDebugTex;
-		ID3D12Resource* m_pViewportTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pBrdfTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pBrightTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDiffIrradianceTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDownSampleTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pGBufTexs[static_cast<UINT>(eGbuf::cnt)];
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pGenMipUavTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHdrTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHdrUploadCb;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHiZCullReadCb;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHiZCullListTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHiZTempTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pNoiseTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pNoiseUploadCb;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pPingPongTex[2];
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pPrefilterTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pQueryReadBuffers[_WORKER_THREAD_COUNT];
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pSceneTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pSceneDepthTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pScreenTexs[_BUFFER_COUNT];
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pScreenDepthTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pSkyBoxTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pSsaoTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pSsaoBlurTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pSsaoBlurDebugTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pViewportTex;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE m_brdfRtv;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_brightRtv;
@@ -336,16 +327,15 @@ namespace wilson
 		D3D12_RECT m_prefilterRect;
 		D3D12_RECT m_scissorRect;
 
-		Camera12* m_pCam;
-		Frustum12* m_pFrustum;
+		std::unique_ptr<Camera12> m_pCam;
+		std::unique_ptr<HeapManager> m_pHeapManager;
+		std::unique_ptr<LightBuffer12> m_pLightCb;
+		std::unique_ptr<MatBuffer12> m_pMatricesCb;
+		std::unique_ptr<MatBuffer12> m_pOutlinerMatBuffer;
+		std::vector<std::unique_ptr<Object12>> m_pObjects;
+		std::unique_ptr<Shader12> m_pShader;
+		std::unique_ptr<ShadowMap12> m_pShadowMap;
 		static D3D12* g_pD3D12;
-		HeapManager* m_pHeapManager;
-		LightBuffer12* m_pLightCb;
-		MatBuffer12* m_pMatricesCb;
-		MatBuffer12* m_pOutlinerMatBuffer;
-		std::vector<Object12*> m_pObjects;
-		Shader12* m_pShader;
-		ShadowMap12* m_pShadowMap;
 		std::vector<Mesh12*>m_pTotalMeshes;
 		std::queue<Mesh12*>m_pHWOcclusionQueue[_WORKER_THREAD_COUNT];
 		std::queue<Mesh12*> m_pMeshQueue;

@@ -8,7 +8,7 @@ namespace wilson
 	class Object12
 	{
 	public:
-		inline std::vector<Mesh12*>& GetMeshes()
+		inline std::vector<std::unique_ptr<Mesh12>>& GetMeshes()
 		{
 			return m_pMeshes;
 		}
@@ -36,8 +36,8 @@ namespace wilson
 		eFileType             m_type;
 
 		std::vector<MaterialInfo> m_materials;
-		std::vector<Mesh12*>   m_pMeshes;
-		std::vector<ID3D12Resource*> m_pTexs;
+		std::vector<std::unique_ptr<Mesh12>>  m_pMeshes;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_pTexs;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_texSrvs;
 		std::unordered_map<std::string, int> m_matHash;
 		std::unordered_map<std::string, int> m_texHash;

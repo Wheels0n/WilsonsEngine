@@ -19,12 +19,12 @@ namespace wilson
 		~Settings12();
 	private:
 		//D3D12 
-		ID3D12Resource* m_pCubeLitIconTex;
-		ID3D12Resource* m_pCubeLitIconUploadCb;
-		ID3D12Resource* m_pDirLitIconTex;
-		ID3D12Resource* m_pDirLitIconUploadCb;
-		ID3D12Resource* m_pSpotLitIconTex;
-		ID3D12Resource* m_pSpotLitIconUploadCb;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pCubeLitIconTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pCubeLitIconUploadCb;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDirLitIconTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDirLitIconUploadCb;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pSpotLitIconTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pSpotLitIconUploadCb;
 
 		D3D12_GPU_DESCRIPTOR_HANDLE m_cubeLitIconSrv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_dirLitIconSrv;
@@ -32,7 +32,6 @@ namespace wilson
 
 		Camera12* m_pCam;
 		D3D12* m_pD3D12;
-		Frustum12* m_pFrustum;
 		FPS m_FPS;
 		Light12* m_pLight;
 

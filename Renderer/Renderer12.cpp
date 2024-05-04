@@ -5,14 +5,21 @@
 
 namespace wilson
 {
+#ifdef _DEBUG
 
+#include <dxgidebug.h>
+	DEFINE_GUID(DXGI_DEBUG_D3D12, 0x4b99317b, 0xac39, 0x4aa6, 0xbb, 0xb, 0xba, 0xa0, 0x47, 0x84, 0x79, 0x8f);
+
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxguid.lib")
+#endif
 	Renderer12::Renderer12(const UINT m_screenWidth, const UINT m_screenHeight, HWND hWnd)
 	{
 		m_pD3D12 = nullptr;
 		m_pCam = nullptr;
 		
 		m_eAPI = eAPI::DX12;
-		m_pD3D12 = new D3D12(m_screenWidth, m_screenHeight, g_bVSYNC_ENABLE, hWnd, g_bFULL_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
+		m_pD3D12 = std::make_unique<D3D12>(m_screenWidth, m_screenHeight, g_bVSYNC_ENABLE, hWnd, g_bFULL_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
 		m_pCam = m_pD3D12->GetCam();
 		
 	}
@@ -22,8 +29,23 @@ namespace wilson
 
 		if (m_pD3D12 != nullptr)
 		{
-			delete m_pD3D12;
-			m_pD3D12 = nullptr;
+			delete m_pD3D12.get();
+#ifdef _DEBUG
+			{
+				HMODULE dxgidebugDLL = GetModuleHandleW(L"dxgidebug.dll");
+				decltype(&DXGIGetDebugInterface) GetDebugInterface =
+					reinterpret_cast<decltype(&DXGIGetDebugInterface)>(GetProcAddress(dxgidebugDLL, "DXGIGetDebugInterface"));
+
+				IDXGIDebug* pDebug;
+				GetDebugInterface(IID_PPV_ARGS(&pDebug));
+
+				OutputDebugStringW(L"!!!D3D 메모리 누수 체크!!!\r\n");
+				pDebug->ReportLiveObjects(DXGI_DEBUG_D3D12, DXGI_DEBUG_RLO_DETAIL);
+				OutputDebugStringW(L"!!!반환되지 않은 IUnKnown 객체!!!\r\n");
+
+				pDebug->Release();
+			}
+#endif
 		}
 	}
 

@@ -6,9 +6,6 @@ namespace wilson
 	MatBuffer11::MatBuffer11(ID3D11Device* const pDevice, ID3D11DeviceContext* const pContext,
 		XMMATRIX* const pViewMat, XMMATRIX* const pProjMat)
 	{
-		m_pMatricesCb = nullptr;
-		m_pProjMatCb = nullptr;
-
 		m_worldMat = XMMatrixIdentity();
 		m_invWorldMat = m_worldMat;
 		m_lightSpaceMat = m_worldMat;
@@ -27,13 +24,13 @@ namespace wilson
 		cbufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		cbufferDesc.MiscFlags = 0;
 		cbufferDesc.StructureByteStride = 0;
-		hr = pDevice->CreateBuffer(&cbufferDesc, 0, &m_pMatricesCb);
+		hr = pDevice->CreateBuffer(&cbufferDesc, 0, m_pMatricesCb.GetAddressOf());
 		assert(SUCCEEDED(hr));
 		m_pMatricesCb->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("MatrixBuffer::m_pMatricesCb") - 1, "MatrixBuffer::m_pMatricesCb");
 
 		cbufferDesc.ByteWidth = sizeof(XMMATRIX);
-		hr = pDevice->CreateBuffer(&cbufferDesc, 0, &m_pProjMatCb);
+		hr = pDevice->CreateBuffer(&cbufferDesc, 0, m_pProjMatCb.GetAddressOf());
 		assert(SUCCEEDED(hr));
 		m_pProjMatCb->SetPrivateData(WKPDID_D3DDebugObjectName,
 			sizeof("MatrixBuffer::m_pProjMatCb") - 1, "MatrixBuffer::m_pProjMatCb");
@@ -43,17 +40,6 @@ namespace wilson
 
 	MatBuffer11::~MatBuffer11()
 	{
-		if (m_pMatricesCb != nullptr)
-		{
-			m_pMatricesCb->Release();
-			m_pMatricesCb = nullptr;
-		}
-
-		if (m_pProjMatCb != nullptr)
-		{
-			m_pProjMatCb->Release();
-			m_pProjMatCb = nullptr;
-		}
 
 	}
 
@@ -65,14 +51,14 @@ namespace wilson
 
 		//ROW-MAJOR(CPU) TO COL-MAJOR(GPU)
 		//write CPU data into GPU mem;
-		hr = pContext->Map(m_pMatricesCb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		hr = pContext->Map(m_pMatricesCb.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		assert(SUCCEEDED(hr));
 		pMatrices = reinterpret_cast<MatrixBuffer*>(mappedResource.pData);
 		pMatrices->worldMat = m_worldMat;
 		//pMatrices->m_viewMat = m_viewMat;
 		//pMatrices->m_projMat = m_projMat;
 		//pMatrices->m_extraMat = bSpotShadowPass ? m_lightSpaceMat : m_invWorldMat;
-		pContext->Unmap(m_pMatricesCb, 0);
+		pContext->Unmap(m_pMatricesCb.Get(), 0);
 
 		pContext->VSSetConstantBuffers(0, 1, &m_pMatricesCb);
 		return;
@@ -83,12 +69,12 @@ namespace wilson
 		HRESULT hr;
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		XMMATRIX* pMatrix;
-		hr = pContext->Map(m_pProjMatCb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		hr = pContext->Map(m_pProjMatCb.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		assert(SUCCEEDED(hr));
 		pMatrix = reinterpret_cast<XMMATRIX*>(mappedResource.pData);
 		*pMatrix = m_projMat;
 
-		pContext->Unmap(m_pProjMatCb, 0);
+		pContext->Unmap(m_pProjMatCb.Get(), 0);
 		pContext->PSSetConstantBuffers(1, 1, &m_pProjMatCb);
 		return;
 	}

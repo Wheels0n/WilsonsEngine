@@ -9,45 +9,17 @@ namespace wilson {
 	Editor12::Editor12(D3D12*const pD3D12)
 	{
 		m_pD3D12 = pD3D12;
-		m_pContentBrowser = nullptr;
-		m_pViewport = nullptr;
-		m_pSettings = nullptr;
-
-		m_pContentBrowser = new ContentBrowser12(m_pD3D12);
-		m_pScene = new Scene12(m_pD3D12);
-		m_pViewport = new Viewport12(m_pD3D12, m_pScene->GetScene());
-		m_pSettings = new Settings12(m_pD3D12);
-		std::string str = "Scene11";
-		m_pScene->SetCam(m_pD3D12->GetCam());
+		m_pContentBrowser = std::make_unique<ContentBrowser12>(pD3D12);
+		m_pScene = std::make_unique<Scene12>(pD3D12);
+		m_pViewport = std::make_unique<Viewport12>(pD3D12, m_pScene->GetScene());
+		m_pSettings = std::make_unique<Settings12>(pD3D12);
+		std::string str = "Scene";
+		m_pScene->SetCam(pD3D12->GetCam());
 		m_pScene->SetSceneName(str);
 	}
 	Editor12::~Editor12()
 	{
 
-		if (m_pContentBrowser != nullptr)
-		{
-			delete m_pContentBrowser;
-			m_pContentBrowser = nullptr;
-		}
-
-		if (m_pViewport != nullptr)
-		{
-			delete m_pViewport;
-			m_pViewport = nullptr;
-		}
-
-
-		if (m_pScene != nullptr)
-		{
-			delete m_pScene;
-			m_pScene = nullptr;
-		}
-
-		if (m_pSettings != nullptr)
-		{
-			delete m_pSettings;
-			m_pSettings = nullptr;
-		}
 	}
 	void Editor12::Draw()
 	{

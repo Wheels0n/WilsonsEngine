@@ -53,7 +53,7 @@ namespace wilson {
 
 		std::vector<Mesh11*> m_pMeshes;
 		std::vector<MaterialInfo>m_materialInfos;
-		std::vector<ID3D11ShaderResourceView*> m_pTexSrvs;
+		std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_pTexSrvs;
 		std::unordered_map<std::string, int> m_matHash;
 		std::unordered_map<std::string, int> m_texHash;
 		std::unordered_map<std::string, eTEX> m_texTypeHash;
@@ -74,8 +74,8 @@ namespace wilson {
 		unsigned int m_nVertex;
 		unsigned int m_nVertexVec;
 
-		ID3D11Device* m_pDevice;
-		ID3D11ShaderResourceView* m_pSrv;
+		Microsoft::WRL::ComPtr<ID3D11Device> m_pDevice;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pSrv;
 
 		FbxManager* m_fbxManager;
 		FbxImporter* m_fbxImporter;

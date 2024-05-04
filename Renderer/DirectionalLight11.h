@@ -32,6 +32,6 @@ namespace wilson
 		DirLightProperty m_dirLightProperty;
 		std::vector<DirectX::XMMATRIX> m_lightSpaceMat;
 
-		ID3D11Buffer* m_pMatriceCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pMatriceCb;
 	};
 }

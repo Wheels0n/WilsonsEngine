@@ -7,9 +7,6 @@
 namespace wilson {
 	Engine::Engine()
 	{
-		m_pRenderer = nullptr;
-		m_pEditor = nullptr;
-	
 		m_screenHeight = 0;
 		m_screenWidth = 0;
 		m_lastMouseX = 0;
@@ -25,13 +22,13 @@ namespace wilson {
 		GetClientRect(m_hWnd, &rc);
 		if (Renderer12::CheckDx12Support())
 		{
-			m_pRenderer = new Renderer12(rc.right - rc.left, rc.bottom - rc.top, m_hWnd);
-			m_pEditor = new Editor12(((Renderer12*)m_pRenderer)->GetD3D12());
+			m_pRenderer = std::make_unique<Renderer12>(rc.right - rc.left, rc.bottom - rc.top, m_hWnd);
+			m_pEditor = std::make_unique<Editor12>((reinterpret_cast<Renderer12*>(m_pRenderer.get()))->GetD3D12());
 		}
 		else
 		{
-			m_pRenderer = new Renderer11(rc.right - rc.left, rc.bottom - rc.top, m_hWnd);
-			m_pEditor = new Editor11(((Renderer11*)m_pRenderer)->GetD3D11());
+			m_pRenderer = std::make_unique<Renderer11>(rc.right - rc.left, rc.bottom - rc.top, m_hWnd);
+			m_pEditor = std::make_unique<Editor11>((reinterpret_cast<Renderer11*>(m_pRenderer.get()))->GetD3D11());
 		
 		}
 		
@@ -41,20 +38,6 @@ namespace wilson {
 	Engine::~Engine()
 	{
 	
-
-		if (m_pEditor != nullptr)
-		{
-			delete m_pEditor;
-			m_pEditor = nullptr;
-		}
-
-		if (m_pRenderer != nullptr)
-		{
-			delete m_pRenderer;
-			m_pRenderer = nullptr;
-		}
-
-
 		if (g_bFULL_SCREEN)
 		{
 			ChangeDisplaySettings(nullptr, 0);
@@ -68,8 +51,6 @@ namespace wilson {
 		m_hInstance = nullptr;
 
 		g_pEngineHandle = nullptr;
-
-
 	}
 
 	void Engine::Run()

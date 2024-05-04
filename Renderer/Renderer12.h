@@ -16,7 +16,7 @@ namespace wilson
 		void EndFrame();
 		inline D3D12* GetD3D12()
 		{
-			return m_pD3D12;
+			return m_pD3D12.get();
 		};
 		void Rotate(int dx, int dy);
 		void Translate(const DirectX::XMVECTOR);
@@ -28,6 +28,6 @@ namespace wilson
 		~Renderer12();
 	private:
 		Camera12* m_pCam;
-		D3D12* m_pD3D12;
+		std::unique_ptr<D3D12> m_pD3D12;
 	};
 }

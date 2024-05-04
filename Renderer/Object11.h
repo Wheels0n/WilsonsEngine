@@ -27,7 +27,8 @@ namespace wilson
 		void SetNumInstance(UINT n);
 		void ToggleInstancing();
 
-		Object11(const std::vector<Mesh11*> pModels, const std::vector<MaterialInfo> materials, const std::vector<ID3D11ShaderResourceView*> pTextures,
+		Object11(const std::vector<Mesh11*> pMeshes, const std::vector<MaterialInfo> materials, 
+			const std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> pTextures,
 			wchar_t* const name, const eFileType type,
 			const std::unordered_map<std::string, int> matHash,
 			const std::unordered_map<std::string, int> texHash );
@@ -38,7 +39,7 @@ namespace wilson
 
 		std::vector<MaterialInfo> m_materials;
 		std::vector<Mesh11*>   m_pMeshes;
-		std::vector<ID3D11ShaderResourceView*> m_texSrvs;
+		std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_texSrvs;
 		std::unordered_map<std::string, int> m_matHash;
 		std::unordered_map<std::string, int> m_texHash;
 

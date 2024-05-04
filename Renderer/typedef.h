@@ -1,5 +1,6 @@
 #pragma once
 #include <Windows.h>
+#include <wrl.h>
 #include <cwchar>
 #include <cmath>
 #include <cassert>

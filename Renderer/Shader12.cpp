@@ -8,244 +8,155 @@ namespace wilson
 	Shader12::Shader12(ID3D12Device* const pDevice)
 	{
 	
-		//Init D3D12Resource
-		{
-
-			m_pForwardVs = nullptr;
-			m_pForwardPs = nullptr;
-
-			m_pPosOnlyVs = nullptr;
-			m_pCascadeDirVs = nullptr;
-			m_pCascadeDirGs = nullptr;
-			m_pCascadeDirPs = nullptr;
-			m_pEquirect2CubeGs = nullptr;
-			m_pEquirect2CubePs = nullptr;
-			m_pDiffuseIrradiancePs = nullptr;
-			m_pPrefilterPs = nullptr;
-			m_pBrdfPs = nullptr;
-
-			m_pSkyBoxVs = nullptr;
-			m_pSkyBoxPs = nullptr;
-
-			m_pShadowVs = nullptr;
-			m_pShadowPs = nullptr;
-
-			m_pCubeShadowVs = nullptr;
-			m_pCubeShadowGs = nullptr;
-			m_pCubeShadowPs = nullptr;
-
-			m_pTexVs = nullptr;
-
-			m_pGeometryVs = nullptr;
-			m_pGeometryPs = nullptr;
-			m_pSsaoVs = nullptr;
-			m_pSsaoPs = nullptr;
-			m_pSsaoBlurPs = nullptr;
-			m_pDeferredPs = nullptr;
-
-			m_pPBRGeometryVs = nullptr;
-			m_pPBRGeometryNormalVs = nullptr;
-			m_pPbrGeometryPs = nullptr;
-			m_pPbrGeometryEmissivePs = nullptr;
-			m_pPbrGeometryNormalPs = nullptr;
-			m_pPbrGeometryNormalHeightPs = nullptr;
-			m_pPbrGeometryNormalHeightEmissivePs = nullptr;
-			m_pPbrDeferredPs = nullptr;
-
-			m_pMatrixTransformVs = nullptr;
-			m_pMatrixTransformInstancedVs = nullptr;
-			m_pConstantPs = nullptr;
-
-			m_pAabbVs = nullptr;
-			m_pAabbPs = nullptr;
-
-			m_pGenHiZPs = nullptr;
-			m_pOutlinerTestPs = nullptr;
-			m_pBlurPs = nullptr;
-			m_pPostProcessPs = nullptr;
-			m_pDownSamplePs = nullptr;
-
-			m_pGenMipCS = nullptr;
-			m_pSsaoCs = nullptr;
-			m_pSsaoBlurCs = nullptr;
-			m_pPostProcessCs = nullptr;
-			m_pHiZCullCs = nullptr;
-
-			m_pZpassRootSignature = nullptr;
-			m_pGenHiZpassRootSignature = nullptr;
-			m_pHiZCullPassRootSignature = nullptr;
-			m_pCasacadePassRootSignature = nullptr;
-			m_pSpotShadowRootSignature = nullptr;
-			m_pCubeShadowRootSignature = nullptr;
-			m_pSkyboxRootSignature = nullptr;
-			m_pPbrGeoRootSignature = nullptr;
-			m_pSsaoRootSignature = nullptr;
-			m_pSsaoBlurRootSignature = nullptr;
-			m_pPbrLightRootSignature = nullptr;
-			m_pOutlinerTestRootSignature = nullptr;
-			m_pPostProcessRootSignature = nullptr;
-			m_pPrefilterRootSignature = nullptr;
-			m_pBrdfRootSignature = nullptr;
-			m_pDiffuseIrradianceRootSignature = nullptr;
-			m_pEquirect2cubeRootSignature = nullptr;
-			m_pBlurRootSignature = nullptr;
-			m_pAabbRootSignature = nullptr;
-			m_pCubeRootsignature = nullptr;
-			m_pGeoRootSignature = nullptr;
-			m_pLightRootSignature = nullptr;
-			m_pGenMipMapRootsignature = nullptr;
-			m_pDownSampleRootSignature = nullptr;
-		}
-
 		//Compile .hlsl
 		{
 			HRESULT hr;
 			ID3DBlob* pErrorBlob;
-			hr = D3DCompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pForwardVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"VS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, m_pForwardVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &m_pForwardPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PS.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, m_pForwardPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PosOnlyVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pPosOnlyVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PosOnlyVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, m_pPosOnlyVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CascadeVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, &m_pCascadeDirVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CascadeVS.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0, m_pCascadeDirVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CascadeGS.hlsl", nullptr, nullptr, "main", "gs_5_0", 0, 0, &m_pCascadeDirGs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CascadeGS.hlsl", nullptr, nullptr, "main", "gs_5_0", 0, 0, m_pCascadeDirGs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CascadePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pCascadeDirPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CascadePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pCascadeDirPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"Equirectangular2CubeMapGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, &m_pEquirect2CubeGs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"Equirectangular2CubeMapGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, m_pEquirect2CubeGs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"Equirectangular2CubeMapPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pEquirect2CubePs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"Equirectangular2CubeMapPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pEquirect2CubePs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"DiffuseIrradiancePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDiffuseIrradiancePs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"DiffuseIrradiancePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pDiffuseIrradiancePs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PrefilterPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPrefilterPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PrefilterPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pPrefilterPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"BRDFPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pBrdfPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"BRDFPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pBrdfPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SkyBoxVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSkyBoxVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SkyBoxVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pSkyBoxVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SkyBoxPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSkyBoxPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SkyBoxPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pSkyBoxPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"ShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pShadowVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"ShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pShadowVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"ShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pShadowPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"ShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pShadowPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CubeShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadowVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pCubeShadowVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CubeShadowGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadowGs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowGS.hlsl", nullptr, nullptr, "main", "gs_5_0", D3DCOMPILE_DEBUG, 0, m_pCubeShadowGs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"CubeShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pCubeShadowPs, &pErrorBlob);
-			assert(SUCCEEDED(hr));
-
-
-			hr = D3DCompileFromFile(L"TexVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pTexVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"CubeShadowPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pCubeShadowPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 
-			hr = D3DCompileFromFile(L"GeometryVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pGeometryVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"TexVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pTexVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"GeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pGeometryPs, &pErrorBlob);
+
+			hr = D3DCompileFromFile(L"GeometryVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pGeometryVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SSAOVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSsaoVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"GeometryPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pGeometryPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SSAOPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSsaoPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SSAOVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pSsaoVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SSAOCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSsaoCs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SSAOPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pSsaoPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SSAOBlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pSsaoBlurPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SSAOCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, m_pSsaoCs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"SSAOBlurCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pSsaoBlurCs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SSAOBlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pSsaoBlurPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"DeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDeferredPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"SSAOBlurCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, m_pSsaoBlurCs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryVS.hlsli", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"DeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pDeferredPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryVS_Normal.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPBRGeometryNormalVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryVS.hlsli", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pPBRGeometryVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryPS.hlsli", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrGeometryPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryVS_Normal.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pPBRGeometryNormalVs.GetAddressOf(), &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
+			hr = D3DCompileFromFile(L"PBRGeometryPS.hlsli", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pPbrGeometryPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 		
-			hr = D3DCompileFromFile(L"PBRGeometryPS_Emissive.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrGeometryEmissivePs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Emissive.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pPbrGeometryEmissivePs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryPS_Normal.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrGeometryNormalPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Normal.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pPbrGeometryNormalPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Height.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrGeometryNormalHeightPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Height.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pPbrGeometryNormalHeightPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 			
-			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Height_Emissive.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrGeometryNormalHeightEmissivePs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Height_Emissive.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pPbrGeometryNormalHeightEmissivePs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 			
-			hr = D3DCompileFromFile(L"PBRDeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPbrDeferredPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PBRDeferredPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pPbrDeferredPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 
-			hr = D3DCompileFromFile(L"MatrixTransformVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pMatrixTransformVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"MatrixTransformVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pMatrixTransformVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
-			hr = D3DCompileFromFile(L"MatrixTransformInstancedVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pMatrixTransformInstancedVs, &pErrorBlob);
-			assert(SUCCEEDED(hr));
-
-			hr = D3DCompileFromFile(L"ConstantPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pConstantPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"MatrixTransformInstancedVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pMatrixTransformInstancedVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"AABBVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, &m_pAabbVs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"ConstantPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pConstantPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"AABBPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pAabbPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"AABBVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pAabbVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"DownSamplePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pDownSamplePs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"AABBPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pAabbPs.GetAddressOf(), &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
+			hr = D3DCompileFromFile(L"DownSamplePS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pDownSamplePs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 
-			hr = D3DCompileFromFile(L"OutlinerPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pOutlinerTestPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"OutlinerPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pOutlinerTestPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"BlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pBlurPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"BlurPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pBlurPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"FinPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pPostProcessPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"FinPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pPostProcessPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"Hierarchical-zGenPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, &m_pGenHiZPs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"Hierarchical-zGenPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pGenHiZPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"Hierarchical-zCullCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pHiZCullCs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"Hierarchical-zCullCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, m_pHiZCullCs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"PostProcessCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pPostProcessCs, &pErrorBlob);
+			hr = D3DCompileFromFile(L"PostProcessCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, m_pPostProcessCs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
-			hr = D3DCompileFromFile(L"GenMipCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, &m_pGenMipCS, &pErrorBlob);
+			hr = D3DCompileFromFile(L"GenMipCS.hlsl", nullptr, nullptr, "main", "cs_5_0", D3DCOMPILE_DEBUG, 0, m_pGenMipCs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 			if (pErrorBlob != nullptr)
@@ -425,7 +336,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&zPassRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pZpassRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pZpassRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pZpassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pZpassRootSignature") - 1, "Shader12::m_pZpassRootSignature");
@@ -465,7 +376,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&DownSampleRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pDownSampleRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pDownSampleRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pDownSampleRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pDownSampleRootSignature") - 1, "Shader12::m_pDownSampleRootSignature");
@@ -512,7 +423,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&genHiZPassRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pGenHiZpassRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pGenHiZpassRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pGenHiZpassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pGenHiZpassRootSignature") - 1, "Shader12::m_pGenHiZpassRootSignature");
@@ -568,7 +479,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&hiZCullPassRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pHiZCullPassRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pHiZCullPassRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pHiZCullPassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pHiZCullPassRootSignature") - 1, "Shader12::m_pHiZCullPassRootSignature");
@@ -613,7 +524,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&cascadedShadowRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pCasacadePassRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pCasacadePassRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pCasacadePassRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pCasacadePassRootSignature") - 1, "Shader12::m_pCasacadePassRootSignature");
@@ -670,7 +581,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&spotShadowRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSpotShadowRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pSpotShadowRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pSpotShadowRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pSpotShadowRootSignature") - 1, "Shader12::m_pSpotShadowRootSignature");
@@ -732,7 +643,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&cubeShadowRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pCubeShadowRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pCubeShadowRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pCubeShadowRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pCubeShadowRootSignature") - 1, "Shader12::m_pCubeShadowRootSignature");
@@ -790,7 +701,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&skyboxRootSignature, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSkyboxRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pSkyboxRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pSkyboxRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pSkyboxRootSignature") - 1, "Shader12::m_pSkyboxRootSignature");
@@ -866,7 +777,7 @@ namespace wilson
 				hr = D3D12SerializeVersionedRootSignature(&PbrGeometryRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
 
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPbrGeoRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pPbrGeoRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pPbrGeoRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pPbrGeoRootSignature") - 1, "Shader12::m_pPbrGeoRootSignature");
@@ -931,7 +842,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&ssaoRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSsaoRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pSsaoRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pSsaoRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pSsaoRootSignature") - 1, "Shader12::m_pSsaoRootSignature");
@@ -986,7 +897,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&ssaoBlurRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pSsaoBlurRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pSsaoBlurRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pSsaoBlurRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pSsaoBlurRootSignature") - 1, "Shader12::m_pSsaoBlurRootSignature");
@@ -1044,7 +955,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&PbrLightRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPbrLightRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pPbrLightRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pPbrLightRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pPbrLightRootSignature") - 1, "Shader12::m_pPbrLightRootSignature");
@@ -1076,7 +987,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&aabbRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pAabbRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pAabbRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pAabbRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pAabbRootSignature") - 1, "Shader12::m_pAabbRootSignature");
@@ -1132,7 +1043,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&outlinerTestRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pOutlinerTestRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pOutlinerTestRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pOutlinerTestRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pOutlinerTestRootSignature") - 1, "Shader12::m_pOutlinerTestRootSignature");
@@ -1191,7 +1102,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&PostProcessRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPostProcessRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pPostProcessRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pPostProcessRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pPostProcessRootSignature") - 1, "Shader12::m_pPostProcessRootSignature");
@@ -1208,7 +1119,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&emptyRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pBrdfRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pBrdfRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pBrdfRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pBrdfRootSignature") - 1, "Shader12::m_pBrdfRootSignature");
@@ -1263,7 +1174,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&diffuseIrradianceRootSignature, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pDiffuseIrradianceRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pDiffuseIrradianceRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pDiffuseIrradianceRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pDiffuseIrradianceRootSignature") - 1, "Shader12::m_pDiffuseIrradianceRootSignature");
@@ -1331,7 +1242,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&prefilterRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pPrefilterRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pPrefilterRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pPrefilterRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pPrefilterRootSignature") - 1, "Shader12::m_pPrefilterRootSignature");
@@ -1385,7 +1296,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&equirect2CubeRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pEquirect2cubeRootSignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pEquirect2cubeRootSignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pEquirect2cubeRootSignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12::m_pEquirect2cubeRootSignature") - 1, "Shader12::m_pEquirect2cubeRootSignature");
@@ -1440,7 +1351,7 @@ namespace wilson
 				ID3DBlob* error;
 				hr = D3D12SerializeVersionedRootSignature(&genMipRootSignatureDesc, &signature, &error);
 				assert(SUCCEEDED(hr));
-				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_pGenMipMapRootsignature));
+				hr = pDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_pGenMipMapRootsignature.GetAddressOf()));
 				assert(SUCCEEDED(hr));
 				m_pGenMipMapRootsignature->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Shader12:m_pGenMipMapRootsignature") - 1, "Shader12::m_pGenMipMapRootsignature");
@@ -1452,421 +1363,5 @@ namespace wilson
 
 	Shader12::~Shader12()
 	{
-
-		//Delete D3D12Resources
-		{
-			if (m_pForwardVs != nullptr)
-			{
-				m_pForwardVs->Release();
-				m_pForwardVs = nullptr;
-			}
-
-			if (m_pForwardPs != nullptr)
-			{
-				m_pForwardPs->Release();
-				m_pForwardPs = nullptr;
-			}
-
-			if (m_pSkyBoxVs != nullptr)
-			{
-				m_pSkyBoxVs->Release();
-				m_pSkyBoxVs = nullptr;
-			}
-
-			if (m_pSkyBoxPs != nullptr)
-			{
-				m_pSkyBoxPs->Release();
-				m_pSkyBoxPs = nullptr;
-			}
-
-
-
-			if (m_pShadowVs != nullptr)
-			{
-				m_pShadowVs->Release();
-				m_pShadowVs = nullptr;
-			}
-			if (m_pShadowPs != nullptr)
-			{
-				m_pShadowPs->Release();
-				m_pShadowPs = nullptr;
-			}
-
-
-
-			if (m_pPosOnlyVs != nullptr)
-			{
-				m_pPosOnlyVs->Release();
-				m_pPosOnlyVs = nullptr;
-			}
-			if (m_pEquirect2CubeGs != nullptr)
-			{
-				m_pEquirect2CubeGs->Release();
-				m_pEquirect2CubeGs = nullptr;
-			}
-			if (m_pEquirect2CubePs != nullptr)
-			{
-				m_pEquirect2CubePs->Release();
-				m_pEquirect2CubePs = nullptr;
-			}
-			if (m_pDiffuseIrradiancePs != nullptr)
-			{
-				m_pDiffuseIrradiancePs->Release();
-				m_pDiffuseIrradiancePs = nullptr;
-			}
-			if (m_pPrefilterPs != nullptr)
-			{
-				m_pPrefilterPs->Release();
-				m_pPrefilterPs = nullptr;
-			}
-			if (m_pBrdfPs != nullptr)
-			{
-				m_pBrdfPs->Release();
-				m_pBrdfPs = nullptr;
-			}
-			if (m_pCascadeDirVs != nullptr)
-			{
-				m_pCascadeDirVs->Release();
-				m_pCascadeDirVs = nullptr;
-			}
-
-			if (m_pCascadeDirGs != nullptr)
-			{
-				m_pCascadeDirGs->Release();
-				m_pCascadeDirGs = nullptr;
-			}
-
-			if (m_pCascadeDirPs != nullptr)
-			{
-				m_pCascadeDirPs->Release();
-				m_pCascadeDirPs = nullptr;
-			}
-
-			if (m_pCubeShadowVs != nullptr)
-			{
-				m_pCubeShadowVs->Release();
-				m_pCubeShadowVs = nullptr;
-			}
-
-			if (m_pCubeShadowGs != nullptr)
-			{
-				m_pCubeShadowGs->Release();
-				m_pCubeShadowGs = nullptr;
-			}
-
-			if (m_pCubeShadowPs != nullptr)
-			{
-				m_pCubeShadowPs->Release();
-				m_pCubeShadowPs = nullptr;
-			}
-
-			if (m_pTexVs != nullptr)
-			{
-				m_pTexVs->Release();
-				m_pTexVs = nullptr;
-			}
-
-			if (m_pGeometryVs != nullptr)
-			{
-				m_pGeometryVs->Release();
-				m_pGeometryVs = nullptr;
-			}
-			if (m_pGeometryPs != nullptr)
-			{
-				m_pGeometryPs->Release();
-				m_pGeometryPs = nullptr;
-			}
-
-			if (m_pSsaoVs != nullptr)
-			{
-				m_pSsaoVs->Release();
-				m_pSsaoVs = nullptr;
-			}
-
-			if (m_pSsaoPs != nullptr)
-			{
-				m_pSsaoPs->Release();
-				m_pSsaoPs = nullptr;
-			}
-			if (m_pSsaoBlurPs != nullptr)
-			{
-				m_pSsaoBlurPs->Release();
-				m_pSsaoBlurPs = nullptr;
-			}
-
-			if (m_pDeferredPs != nullptr)
-			{
-				m_pDeferredPs->Release();
-				m_pDeferredPs = nullptr;
-			}
-
-			if (m_pPBRGeometryVs != nullptr)
-			{
-				m_pPBRGeometryVs->Release();
-				m_pPBRGeometryVs = nullptr;
-			}
-			if (m_pPBRGeometryNormalVs != nullptr)
-			{
-				m_pPBRGeometryNormalVs->Release();
-				m_pPBRGeometryNormalVs = nullptr;
-			}
-			if (m_pPbrGeometryPs != nullptr)
-			{
-				m_pPbrGeometryPs->Release();
-				m_pPbrGeometryPs = nullptr;
-			}
-			if (m_pPbrGeometryEmissivePs != nullptr)
-			{
-				m_pPbrGeometryEmissivePs->Release();
-				m_pPbrGeometryEmissivePs = nullptr;
-			}
-			if (m_pPbrGeometryNormalPs != nullptr)
-			{
-				m_pPbrGeometryNormalPs->Release();
-				m_pPbrGeometryNormalPs = nullptr;
-			}
-			if (m_pPbrGeometryNormalHeightPs != nullptr)
-			{
-				m_pPbrGeometryNormalHeightPs->Release();
-				m_pPbrGeometryNormalHeightPs = nullptr;
-			}
-			if (m_pPbrGeometryNormalHeightEmissivePs != nullptr)
-			{
-				m_pPbrGeometryNormalHeightEmissivePs->Release();
-				m_pPbrGeometryNormalHeightEmissivePs = nullptr;
-			}
-			if (m_pPbrDeferredPs != nullptr)
-			{
-				m_pPbrDeferredPs->Release();
-				m_pPbrDeferredPs = nullptr;
-			}
-
-
-
-			if (m_pMatrixTransformVs != nullptr)
-			{
-				m_pMatrixTransformVs->Release();
-				m_pMatrixTransformVs = nullptr;
-			}
-
-			if (m_pMatrixTransformInstancedVs != nullptr)
-			{
-				m_pMatrixTransformInstancedVs->Release();
-				m_pMatrixTransformInstancedVs = nullptr;
-			}
-
-			if (m_pConstantPs != nullptr)
-			{
-				m_pConstantPs->Release();
-				m_pConstantPs = nullptr;
-			}
-
-			if (m_pOutlinerTestPs != nullptr)
-			{
-				m_pOutlinerTestPs->Release();
-				m_pOutlinerTestPs = nullptr;
-			}
-
-			if (m_pBlurPs != nullptr)
-			{
-				m_pBlurPs->Release();
-				m_pBlurPs = nullptr;
-			}
-
-			if (m_pPostProcessPs != nullptr)
-			{
-				m_pPostProcessPs->Release();
-				m_pPostProcessPs = nullptr;
-			}
-
-			if (m_pGenHiZPs != nullptr)
-			{
-				m_pGenHiZPs->Release();
-				m_pGenHiZPs = nullptr;
-			}
-
-			if (m_pDownSamplePs != nullptr)
-			{
-				m_pDownSamplePs->Release();
-				m_pDownSamplePs = nullptr;
-			}
-
-			if (m_pAabbVs != nullptr)
-			{
-				m_pAabbVs->Release();
-				m_pAabbVs = nullptr;
-			}
-			if (m_pAabbPs != nullptr)
-			{
-				m_pAabbPs->Release();
-				m_pAabbPs = nullptr;
-			}
-
-			if (m_pGenMipCS != nullptr)
-			{
-				m_pGenMipCS->Release();
-				m_pGenMipCS = nullptr;
-			}
-
-			if (m_pSsaoCs != nullptr)
-			{
-				m_pSsaoCs->Release();
-				m_pSsaoCs = nullptr;
-			}
-
-			if (m_pSsaoBlurCs != nullptr)
-			{
-				m_pSsaoBlurCs->Release();
-				m_pSsaoBlurCs = nullptr;
-			}
-
-			if (m_pPostProcessCs != nullptr)
-			{
-				m_pPostProcessCs->Release();
-				m_pPostProcessCs = nullptr;
-			}
-
-			if (m_pHiZCullCs != nullptr)
-			{
-				m_pHiZCullCs->Release();
-				m_pHiZCullCs = nullptr;
-			}
-
-			if (m_pZpassRootSignature != nullptr)
-			{
-				m_pZpassRootSignature->Release();
-				m_pZpassRootSignature = nullptr;
-			}
-
-			if (m_pGenHiZpassRootSignature != nullptr)
-			{
-				m_pGenHiZpassRootSignature->Release();
-				m_pGenHiZpassRootSignature = nullptr;
-			}
-
-			if (m_pCasacadePassRootSignature != nullptr)
-			{
-				m_pCasacadePassRootSignature->Release();
-				m_pCasacadePassRootSignature = nullptr;
-			}
-			if (m_pSpotShadowRootSignature != nullptr)
-			{
-				m_pSpotShadowRootSignature->Release();
-				m_pSpotShadowRootSignature = nullptr;
-			}
-			if (m_pCubeShadowRootSignature != nullptr)
-			{
-				m_pCubeShadowRootSignature->Release();
-				m_pCubeShadowRootSignature = nullptr;
-			}
-			if (m_pSkyboxRootSignature != nullptr)
-			{
-				m_pSkyboxRootSignature->Release();
-				m_pSkyboxRootSignature = nullptr;
-			}
-			if (m_pPbrGeoRootSignature != nullptr)
-			{
-				m_pPbrGeoRootSignature->Release();
-				m_pPbrGeoRootSignature = nullptr;
-			}
-			if (m_pSsaoRootSignature != nullptr)
-			{
-				m_pSsaoRootSignature->Release();
-				m_pSsaoRootSignature = nullptr;
-			}
-			if (m_pSsaoBlurRootSignature != nullptr)
-			{
-				m_pSsaoBlurRootSignature->Release();
-				m_pSsaoBlurRootSignature = nullptr;
-			}
-			if (m_pPbrLightRootSignature != nullptr)
-			{
-				m_pPbrLightRootSignature->Release();
-				m_pPbrLightRootSignature = nullptr;
-			}
-			if (m_pOutlinerTestRootSignature != nullptr)
-			{
-				m_pOutlinerTestRootSignature->Release();
-				m_pOutlinerTestRootSignature = nullptr;
-			}
-			if (m_pPostProcessRootSignature != nullptr)
-			{
-				m_pPostProcessRootSignature->Release();
-				m_pPostProcessRootSignature = nullptr;
-			}
-
-			if (m_pHiZCullPassRootSignature != nullptr)
-			{
-				m_pHiZCullPassRootSignature->Release();
-				m_pHiZCullPassRootSignature = nullptr;
-			}
-
-			if (m_pPrefilterRootSignature != nullptr)
-			{
-				m_pPrefilterRootSignature->Release();
-				m_pPrefilterRootSignature = nullptr;
-			}
-
-			if (m_pBrdfRootSignature != nullptr)
-			{
-				m_pBrdfRootSignature->Release();
-				m_pBrdfRootSignature = nullptr;
-			}
-
-			if (m_pDiffuseIrradianceRootSignature != nullptr)
-			{
-				m_pDiffuseIrradianceRootSignature->Release();
-				m_pDiffuseIrradianceRootSignature = nullptr;
-			}
-
-			if (m_pEquirect2cubeRootSignature != nullptr)
-			{
-				m_pEquirect2cubeRootSignature->Release();
-				m_pEquirect2cubeRootSignature = nullptr;
-			}
-
-			if (m_pBlurRootSignature != nullptr)
-			{
-				m_pBlurRootSignature->Release();
-				m_pBlurRootSignature = nullptr;
-			}
-
-			if (m_pAabbRootSignature != nullptr)
-			{
-				m_pAabbRootSignature->Release();
-				m_pAabbRootSignature = nullptr;
-			}
-
-			if (m_pCubeRootsignature != nullptr)
-			{
-				m_pCubeRootsignature->Release();
-				m_pCubeRootsignature = nullptr;
-			}
-
-			if (m_pGeoRootSignature != nullptr)
-			{
-				m_pGeoRootSignature->Release();
-				m_pGeoRootSignature = nullptr;
-			}
-
-			if (m_pLightRootSignature != nullptr)
-			{
-				m_pLightRootSignature->Release();
-				m_pLightRootSignature = nullptr;
-			}
-
-			if (m_pGenMipMapRootsignature != nullptr)
-			{
-				m_pGenMipMapRootsignature->Release();
-				m_pGenMipMapRootsignature = nullptr;
-			}
-
-			if (m_pDownSampleRootSignature != nullptr)
-			{
-				m_pDownSampleRootSignature->Release();
-				m_pDownSampleRootSignature = nullptr;
-			}
-		}
-
 	}
 }

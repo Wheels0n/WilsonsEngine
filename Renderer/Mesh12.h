@@ -73,7 +73,7 @@ namespace wilson {
 		}
 		inline MatBuffer12* GetMatBuffer() const
 		{
-			return m_pMatricesCb;
+			return m_pMatricesCb.get();
 		}
 		inline std::string GetName() const
 		{
@@ -109,7 +109,7 @@ namespace wilson {
 		}
 		inline Sphere* GetSphere() const
 		{
-			return m_pSphere;
+			return m_pSphere.get();
 		}
 		inline std::vector<unsigned int>& GetVertexDataPos()
 		{
@@ -153,8 +153,8 @@ namespace wilson {
 		std::string m_name;
 		std::vector<std::string>m_matNames;
 
-		VertexData* m_pVertexData;
-		unsigned long* m_pIndices;
+		std::unique_ptr<VertexData> m_pVertexData;
+		std::unique_ptr<unsigned long> m_pIndices;
 		unsigned int m_nIndex;
 		unsigned int m_nVertex;
 		std::vector<unsigned int> m_vertexDataPos;
@@ -166,7 +166,6 @@ namespace wilson {
 		std::vector<PerModel>m_perModels;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_nullSrvs;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_texSrvs;
-		std::vector<ID3D12Resource*> m_pTexs;
 		std::unordered_map<std::string, int> m_texHash;
 
 		DirectX::XMVECTOR m_angleVec;
@@ -178,10 +177,9 @@ namespace wilson {
 		DirectX::XMMATRIX m_trMat;
 		DirectX::XMMATRIX m_wMat;
 
-		AABB* m_pAABB;
-		Sphere* m_pSphere;
-		MatBuffer12* m_pMatricesCb;
-		HeapManager* m_pHeapManager;
+		std::unique_ptr<AABB> m_pAABB;
+		std::unique_ptr<Sphere> m_pSphere;
+		std::unique_ptr<MatBuffer12> m_pMatricesCb;
 
 	};
 

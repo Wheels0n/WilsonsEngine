@@ -42,7 +42,7 @@ namespace wilson
 		Light11(const UINT);
 		virtual ~Light11();
 	protected:
-		ID3D11Buffer* m_pLightCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pLightCb;
 
 		DirectX::XMVECTOR m_ambient;
 		DirectX::XMVECTOR m_diffuse;

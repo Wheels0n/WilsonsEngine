@@ -22,7 +22,6 @@ namespace wilson
 		m_pTexVecs = nullptr;
 		m_pVertexData = nullptr;
 		m_pIndices = nullptr;
-		m_pSrv = nullptr;
 
 		m_texTypeHash["Kd"] = eTEX::Kd;
 		m_texTypeHash["Ks"] = eTEX::Ks;
@@ -274,7 +273,7 @@ namespace wilson
 		indicesPos.push_back(m_nIndex);
 		std::wstring wobjName = std::wstring(objName.begin(), objName.end());
 		DirectX::XMVECTOR zeroV = DirectX::XMVectorZero();
-		m_pMesh = new Mesh11(m_pDevice, m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
+		m_pMesh = new Mesh11(m_pDevice.Get(), m_pVertexData, m_pIndices, vertexDataPos, indicesPos, (wchar_t*)wobjName.c_str(), matNames);
 		m_pMeshes.push_back(m_pMesh);
 		++m_nObject;
 
@@ -656,7 +655,6 @@ namespace wilson
 				if (texCount > 0)
 				{
 					HRESULT hr;
-					HRESULT hrr;
 					std::string relativePath(texture->GetRelativeFileName());
 					std::string path = texturesPath + relativePath;
 					std::string name = std::string(texture->GetName());
@@ -668,7 +666,7 @@ namespace wilson
 						DirectX::ScratchImage image;
 						if (strcmp(extension, "dds") == 0)
 						{
-							hrr = DirectX::LoadFromDDSFile(wPath.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
+							hr = DirectX::LoadFromDDSFile(wPath.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
 						}
 						else
 						{
@@ -693,11 +691,11 @@ namespace wilson
 							hr = DirectX::Compress(resizedImage.GetImages(), resizedImage.GetImageCount(), metadata, image.GetMetadata().format,
 								DirectX::TEX_COMPRESS_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, dstImage);
 							metadata = dstImage.GetMetadata();
-							hr = CreateShaderResourceView(pDevice, dstImage.GetImages(), dstImage.GetImageCount(), metadata, &m_pSrv);
+							hr = CreateShaderResourceView(pDevice, dstImage.GetImages(), dstImage.GetImageCount(), metadata, m_pSrv.GetAddressOf());
 						}
 						else
 						{
-							hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), metadata, &m_pSrv);
+							hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), metadata, m_pSrv.GetAddressOf());
 						}
 					
 						assert(SUCCEEDED(hr));
@@ -1069,7 +1067,7 @@ namespace wilson
 
 		
 		std::wstring wName(name.begin(), name.end());
-		m_pMesh = new Mesh11(m_pDevice, m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
+		m_pMesh = new Mesh11(m_pDevice.Get(), m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
 			(wchar_t*)wName.c_str(), matNames);
 		m_pMeshes.push_back(m_pMesh);
 	}

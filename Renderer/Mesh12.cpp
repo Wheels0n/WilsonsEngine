@@ -6,7 +6,7 @@ namespace wilson
 {
 	//Pos를 담는 변수들은 가장 끝 원소로 전체 크기를 담고 있음에 유의
 	Mesh12::Mesh12(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCommandList, HeapManager* pHeapManager,
-		VertexData* pVertices,
+		VertexData* pVertexData,
 		unsigned long* pIndices,
 		std::vector<unsigned int> vertexDataPos,
 		std::vector<unsigned int> indicesPos,
@@ -15,12 +15,11 @@ namespace wilson
 	{
 		HRESULT hr;
 		//Init Variables
-		//Init Variables
 		{
 			m_pDevice = pDevice;
 
-			m_pVertexData = pVertices;
-			m_pIndices = pIndices;
+			m_pVertexData.reset(pVertexData);
+			m_pIndices.reset(pIndices);
 			m_vertexDataPos = vertexDataPos;
 			m_indicesPos = indicesPos;
 			m_subIbVs.resize(indicesPos.size() - 1);
@@ -47,22 +46,22 @@ namespace wilson
 
 		//Gen MatBuffer12
 		DirectX::XMMATRIX iMat =  DirectX::XMMatrixIdentity();
-		m_pMatricesCb = new MatBuffer12(pDevice, pCommandList, pHeapManager, &iMat, &iMat);
+		m_pMatricesCb = std::make_unique<MatBuffer12>(pDevice, pCommandList, pHeapManager, &iMat, &iMat);
 		//Gen AABB
 		{
 			DirectX::XMFLOAT3 minAABB(FLT_MAX, FLT_MAX, FLT_MAX);
 			DirectX::XMFLOAT3 maxAABB(FLT_MIN, FLT_MIN, FLT_MIN);
 			for (UINT i = 0; i < m_nVertex; ++i)
 			{
-				minAABB.x = min(minAABB.x, m_pVertexData[i].position.x);
-				minAABB.y = min(minAABB.y, m_pVertexData[i].position.y);
-				minAABB.z = min(minAABB.z, m_pVertexData[i].position.z);
+				minAABB.x = min(minAABB.x, pVertexData[i].position.x);
+				minAABB.y = min(minAABB.y, pVertexData[i].position.y);
+				minAABB.z = min(minAABB.z, pVertexData[i].position.z);
 
-				maxAABB.x = max(maxAABB.x, m_pVertexData[i].position.x);
-				maxAABB.y = max(maxAABB.y, m_pVertexData[i].position.y);
-				maxAABB.z = max(maxAABB.z, m_pVertexData[i].position.z);
+				maxAABB.x = max(maxAABB.x, pVertexData[i].position.x);
+				maxAABB.y = max(maxAABB.y, pVertexData[i].position.y);
+				maxAABB.z = max(maxAABB.z, pVertexData[i].position.z);
 			}
-			m_pAABB = new AABB(minAABB, maxAABB);
+			m_pAABB = std::make_unique<AABB>(minAABB, maxAABB);
 
 			DirectX::XMFLOAT3 center((maxAABB.x + minAABB.x) * 0.5f,
 				(maxAABB.y + minAABB.y) * 0.5f, (maxAABB.z + minAABB.z) * 0.5f);
@@ -70,7 +69,7 @@ namespace wilson
 				(minAABB.y - maxAABB.y), (minAABB.z - maxAABB.z));
 			DirectX::XMVECTOR lenV = DirectX::XMLoadFloat3(&len);
 			lenV = DirectX::XMVector4Length(lenV);
-			m_pSphere = new Sphere(center, lenV.m128_f32[0]);
+			m_pSphere = std::make_unique<Sphere>(center, lenV.m128_f32[0]);
 		}
 		//Gen Name;
 		{
@@ -86,14 +85,14 @@ namespace wilson
 		//Gen VB
 		{	
 			const UINT64 vbSize= sizeof(VertexData) * m_nVertex;
-			pHeapManager->AllocateVertexData((UINT8*)m_pVertexData, vbSize);
+			pHeapManager->AllocateVertexData(reinterpret_cast<UINT8*>(pVertexData), vbSize);
 			m_vbV = pHeapManager->GetVbv(vbSize, sizeof(VertexData));
 		}
 
 		//Gen IB
 		{
 			const UINT ibSize = sizeof(UINT) * m_nIndex;
-			pHeapManager->AllocateIndexData((UINT8*)m_pIndices, ibSize);
+			pHeapManager->AllocateIndexData(reinterpret_cast<UINT8*>(pIndices), ibSize);
 
 			for (int i = 0; i < m_subIbVs.size(); ++i)
 			{
@@ -135,38 +134,6 @@ namespace wilson
 
 	Mesh12::~Mesh12()
 	{
-
-		if (m_pVertexData != nullptr)
-		{
-			delete m_pVertexData;
-			m_pVertexData = nullptr;
-		}
-
-		if (m_pIndices != nullptr)
-		{
-			delete m_pIndices;
-			m_pIndices = nullptr;
-		}
-		
-		m_texSrvs.clear();
-		m_texHash.clear();
-		m_matInfos.clear();
-		m_matNames.clear();
-		m_perModels.clear();
-
-		if (m_pMatricesCb != nullptr)
-		{
-			delete m_pMatricesCb;
-		}
-		if (m_pAABB != nullptr)
-		{
-			delete m_pAABB;
-		}
-		if (m_pSphere != nullptr)
-		{
-			delete m_pAABB;
-		}
-
 	}
 
 	void Mesh12::BindMaterial(const std::unordered_map<std::string, int>&  mathash, const std::vector<MaterialInfo>& matInfos,

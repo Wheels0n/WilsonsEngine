@@ -78,8 +78,8 @@ namespace wilson {
 		D3D12* m_pD3D12;
 		ID3D12Device* m_pDevice;
 		ID3D12GraphicsCommandList* m_pCommandList;
-		ID3D12GraphicsCommandList* m_pImporterCommandList;
-		ID3D12CommandAllocator* m_pImporterCommandAllocator;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>m_pImporterCommandList;
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>m_pImporterCommandAllocator;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_Srv;
 		HeapManager* m_pHeapManager;
 

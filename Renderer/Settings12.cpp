@@ -9,17 +9,9 @@ namespace wilson
 	Settings12::Settings12(D3D12*const pD3D12)
 	{
 		//D3D12
-		m_pDirLitIconTex=nullptr;
-		m_pCubeLitIconTex=nullptr;
-		m_pSpotLitIconTex=nullptr;
-		m_pDirLitIconUploadCb=nullptr;
-		m_pCubeLitIconUploadCb=nullptr;
-		m_pSpotLitIconUploadCb = nullptr;
-
 		m_FPS.Init();
 		m_pD3D12 = pD3D12;
 		m_pCam = m_pD3D12->GetCam();
-		m_pFrustum = m_pD3D12->GetFrustum();
 		m_pExposure = m_pD3D12->GetExposure();
 		m_pHeightScale = m_pD3D12->GetpHeightScale();
 		m_pbHeightOn = m_pD3D12->GetpbHeightOn();
@@ -59,11 +51,11 @@ namespace wilson
 				texDesc.SampleDesc.Quality = 0;
 
 				pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-					&m_pDirLitIconTex, pDevice);
+					m_pDirLitIconTex.GetAddressOf(), pDevice);
 				m_pDirLitIconTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pDirLitIconTex") - 1, "Settings12::m_pDirLitIconTex");
 				
-				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pDirLitIconTex, &m_pDirLitIconUploadCb, pCommandlist);
+				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pDirLitIconTex.Get(), m_pDirLitIconUploadCb.GetAddressOf(), pCommandlist);
 
 				//Gen SRV
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -74,7 +66,7 @@ namespace wilson
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-				m_dirLitIconSrv = pHeapManager->GetSrv(srvDesc, m_pDirLitIconTex, pDevice);
+				m_dirLitIconSrv = pHeapManager->GetSrv(srvDesc, m_pDirLitIconTex.Get(), pDevice);
 			}
 		}
 
@@ -104,11 +96,11 @@ namespace wilson
 				texDesc.SampleDesc.Quality = 0;
 
 				pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
-					&m_pCubeLitIconTex, pDevice);
+					m_pCubeLitIconTex.GetAddressOf(), pDevice);
 				m_pCubeLitIconTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pCubeLitIconTex") - 1, "Settings12::m_pCubeLitIconTex");
 
-				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pCubeLitIconTex, &m_pCubeLitIconUploadCb, pCommandlist);
+				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pCubeLitIconTex.Get(), m_pCubeLitIconUploadCb.GetAddressOf(), pCommandlist);
 
 				//Gen SRV
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -119,7 +111,7 @@ namespace wilson
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-				m_cubeLitIconSrv = pHeapManager->GetSrv(srvDesc, m_pCubeLitIconTex, pDevice);
+				m_cubeLitIconSrv = pHeapManager->GetSrv(srvDesc, m_pCubeLitIconTex.Get(), pDevice);
 			}
 		}
 
@@ -149,11 +141,11 @@ namespace wilson
 				texDesc.SampleDesc.Quality = 0;
 
 				pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
-					&m_pSpotLitIconTex, pDevice);
+					m_pSpotLitIconTex.GetAddressOf(), pDevice);
 				m_pSpotLitIconTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("Settings12::m_pSpotLitIconTex") - 1, "Settings12::m_pSpotLitIconTex");
 
-				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pSpotLitIconTex, &m_pSpotLitIconUploadCb, pCommandlist);
+				m_pD3D12->UploadTexThroughCB(texDesc, rowPitch, pData, m_pSpotLitIconTex.Get(), m_pSpotLitIconUploadCb.GetAddressOf(), pCommandlist);
 
 				//Gen SRV
 				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -164,7 +156,7 @@ namespace wilson
 				srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-				m_spotLitIconSrv = pHeapManager->GetSrv(srvDesc, m_pSpotLitIconTex, pDevice);
+				m_spotLitIconSrv = pHeapManager->GetSrv(srvDesc, m_pSpotLitIconTex.Get(), pDevice);
 			}
 		}
 
@@ -172,13 +164,14 @@ namespace wilson
 
 	void Settings12::Draw()
 	{
-		if (ImGui::Begin("Settings11", nullptr, ImGuiWindowFlags_MenuBar))
+		if (ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_MenuBar))
 		{
+			Frustum12* pFrustum = m_pCam->GetFrustum();
 			m_FPS.Frame();
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "FPS:%d", m_FPS.GetFps());
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "DrawCall:%d", m_pD3D12->GetNumDrawCall());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "InScene: %d", m_pFrustum->GetSubMeshesInScene());
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "InFrustum: %d", m_pFrustum->GetSubMeshesInFrustum());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "InScene: %d", pFrustum->GetSubMeshesInScene());
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "InFrustum: %d", pFrustum->GetSubMeshesInFrustum());
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "HiZPassed: %d", m_pD3D12->GetNumSubMeshHiZPassed());
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "NotOccluded: %d", m_pD3D12->GetNumSubMeshNotOccluded());
 			ImGui::Separator();
@@ -186,7 +179,7 @@ namespace wilson
 			ImGuiIO io = ImGui::GetIO();
 			ImGui::Text("Mouse Pos: %g, %g", io.MousePos.x, io.MousePos.y);
 			ImGui::Separator();
-			if (ImGui::TreeNode("Camera11"))
+			if (ImGui::TreeNode("Camera"))
 			{
 				using namespace DirectX;
 				static float DragFactor = 0.1f;
@@ -243,9 +236,6 @@ namespace wilson
 				{	
 					m_pCam->Update();
 					m_pCam->SetDirty(true);
-					delete m_pFrustum;
-					m_pFrustum = new Frustum12(m_pCam);
-					m_pD3D12->SetNewFrustum(m_pFrustum);
 				}
 				m_prevNearZ = *curNearZ;
 				m_prevFarZ = *curFarZ;
@@ -261,11 +251,11 @@ namespace wilson
 		}
 		ImGui::End();
 
-		if (ImGui::Begin("Light11"))
+		if (ImGui::Begin("Light"))
 		{
 			ImGui::Image((ImTextureID)m_dirLitIconSrv.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
-			ImGui::Text("DirectionalLight11");
+			ImGui::Text("DirectionalLight");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{
 				ImGui::SetDragDropPayload("dir", nullptr, 0, ImGuiCond_Once);
@@ -274,7 +264,7 @@ namespace wilson
 
 			ImGui::Image((ImTextureID)m_cubeLitIconSrv.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
-			ImGui::Text("CubeLight11");
+			ImGui::Text("CubeLight");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{
 				ImGui::SetDragDropPayload("pnt", nullptr, 0, ImGuiCond_Once);
@@ -283,7 +273,7 @@ namespace wilson
 
 			ImGui::Image((ImTextureID)m_spotLitIconSrv.ptr, ImVec2(_ICON_SZ, _ICON_SZ));
 			ImGui::SameLine(_PAD);
-			ImGui::Text("SpotLight11");
+			ImGui::Text("SpotLight");
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{
 				ImGui::SetDragDropPayload("spt", nullptr, 0, ImGuiCond_Once);
@@ -295,7 +285,7 @@ namespace wilson
 		ImGui::End();
 		if (ImGui::Begin("ON/OFF"))
 		{
-			if (ImGui::Button("ToggleParallaxMapping"))
+			if (ImGui::Button("ParallaxMapping"))
 			{
 				*m_pbHeightOn = !(*m_pbHeightOn);
 			}
@@ -320,41 +310,6 @@ namespace wilson
 	Settings12::~Settings12()
 	{
 
-		if (m_pDirLitIconTex != nullptr)
-		{
-			m_pDirLitIconTex->Release();
-			m_pDirLitIconTex = nullptr;
-		}
 		
-		if (m_pCubeLitIconTex != nullptr)
-		{
-			m_pCubeLitIconTex->Release();
-			m_pCubeLitIconTex = nullptr;
-		}
-
-		if (m_pSpotLitIconTex != nullptr)
-		{
-			m_pSpotLitIconTex->Release();
-			m_pSpotLitIconTex = nullptr;
-		}
-		
-		if (m_pDirLitIconUploadCb != nullptr)
-		{
-			m_pDirLitIconUploadCb->Release();
-			m_pDirLitIconUploadCb = nullptr;	
-		}
-
-		if (m_pCubeLitIconUploadCb != nullptr)
-		{
-			m_pCubeLitIconUploadCb->Release();
-			m_pCubeLitIconUploadCb = nullptr;
-		}
-
-		if (m_pSpotLitIconUploadCb != nullptr)
-		{
-			m_pSpotLitIconUploadCb->Release();
-			m_pSpotLitIconUploadCb = nullptr;
-		}
-
 	}
 }

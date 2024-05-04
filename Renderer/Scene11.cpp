@@ -6,7 +6,6 @@ namespace wilson
 	{
 		m_bObject = false;
 		m_pSceneHandler = this;
-		m_pShadowSrv = nullptr;
 		m_pSelectedEntity = nullptr;
 		m_pCam = nullptr;
 

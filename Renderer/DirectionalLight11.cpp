@@ -10,8 +10,6 @@ namespace wilson
         m_lightSpaceMat.resize(pCam->GetCascadeLevels().size());
         UpdateLightSpaceMatrices();
 
-        m_pMatriceCb = nullptr;
-
         {
             D3D11_BUFFER_DESC cbufferDesc = {};
             cbufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -21,7 +19,7 @@ namespace wilson
             cbufferDesc.MiscFlags = 0;
             cbufferDesc.StructureByteStride = 0;
 
-            HRESULT hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pLightCb);
+            HRESULT hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, m_pLightCb.GetAddressOf());
             assert(SUCCEEDED(hr));
             m_pLightCb->SetPrivateData(WKPDID_D3DDebugObjectName,
                 sizeof("DirectionalLight11::m_pLightCb") - 1, "DirectionalLight11::m_pLightCb");
@@ -29,7 +27,7 @@ namespace wilson
 
 
             cbufferDesc.ByteWidth = sizeof(DirectX::XMMATRIX) * m_pCam->GetCascadeLevels().size();
-            hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pMatriceCb);
+            hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, m_pMatriceCb.GetAddressOf());
             assert(SUCCEEDED(hr));
             m_pMatriceCb->SetPrivateData(WKPDID_D3DDebugObjectName,
                 sizeof("DirectionalLight11::m_pMatriceCb") - 1, "DirectionalLight11::m_pMatriceCb");
@@ -39,11 +37,7 @@ namespace wilson
 
     DirectionalLight11::~DirectionalLight11()
     {   
-        if (m_pMatriceCb != nullptr)
-        {
-            m_pMatriceCb->Release();
-            m_pMatriceCb = nullptr;
-        }
+ 
         Light11::~Light11();
     }
    
@@ -60,15 +54,15 @@ namespace wilson
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         DirectX::XMMATRIX* pMatrix;
         HRESULT hr;
-        hr = pContext->Map(m_pMatriceCb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+        hr = pContext->Map(m_pMatriceCb.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
         assert(SUCCEEDED(hr));
         pMatrix = reinterpret_cast<DirectX::XMMATRIX*>(mappedResource.pData);
         for (int i = 0; i < m_lightSpaceMat.size(); ++i)
         {
             pMatrix[i] = m_lightSpaceMat[i];
         }
-        pContext->Unmap(m_pMatriceCb, 0);
-        pContext->GSSetConstantBuffers(0, 1, &m_pMatriceCb);
+        pContext->Unmap(m_pMatriceCb.Get(), 0);
+        pContext->GSSetConstantBuffers(0, 1, m_pMatriceCb.GetAddressOf());
         return;
 
     }

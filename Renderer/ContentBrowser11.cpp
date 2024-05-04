@@ -8,40 +8,26 @@ namespace wilson {
 
 	ContentBrowser11::~ContentBrowser11()
 	{
-		if (m_pDirIconSRV != nullptr)
-		{
-			m_pDirIconSRV->Release();
-			m_pDirIconSRV = nullptr;
-		}
-
-		if (m_pFileIconSRV != nullptr)
-		{
-			m_pFileIconSRV->Release();
-			m_pFileIconSRV = nullptr;
-		}
-
 	}
 
 	ContentBrowser11::ContentBrowser11(ID3D11Device*const pDevice)
 	{	
-		m_pDirIconSRV = nullptr;
-		m_pFileIconSRV = nullptr;
 
 		HRESULT hr;
 		DirectX::ScratchImage image;
 		hr = DirectX::LoadFromWICFile(L"./Assets/Icons/folderIcon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 		assert(SUCCEEDED(hr));
-		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), &m_pDirIconSRV);
+		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), m_pDirIconSrv.GetAddressOf());
 		assert(SUCCEEDED(hr));
-		m_pDirIconSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("ContentBrowser11::m_pDirIconSRV") - 1, "ContentBrowser11::m_pDirIconSRV");
+		m_pDirIconSrv->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("ContentBrowser11::m_pDirIconSrv") - 1, "ContentBrowser11::m_pDirIconSrv");
 
 		hr = DirectX::LoadFromWICFile(L"./Assets/Icons/fileIcon.png", DirectX::WIC_FLAGS_NONE, nullptr, image);
 		assert(SUCCEEDED(hr));
-		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), &m_pFileIconSRV);
+		hr = CreateShaderResourceView(pDevice, image.GetImages(), image.GetImageCount(), image.GetMetadata(), m_pFileIconSrv.GetAddressOf());
 		assert(SUCCEEDED(hr));
-		m_pFileIconSRV->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("ContentBrowser11::m_pFileIconSRV") - 1, "ContentBrowser11::m_pFileIconSRV");
+		m_pFileIconSrv->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("ContentBrowser11::m_pFileIconSrv") - 1, "ContentBrowser11::m_pFileIconSrv");
 	}
 
 
@@ -72,7 +58,7 @@ namespace wilson {
 			ImGui::PushID(++id);//이미지가 다 같아서 구분 할 기준이 필요함
 
 			std::string fileName = item.path().filename().string();
-			void* pIcon11 = item.is_directory() ? m_pDirIconSRV : m_pFileIconSRV;
+			void* pIcon11 = item.is_directory() ? m_pDirIconSrv.Get() : m_pFileIconSrv.Get();
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 			ImGui::ImageButton(pIcon11, ImVec2(_ICON_SZ, _ICON_SZ));
 			

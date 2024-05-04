@@ -14,7 +14,7 @@ namespace wilson
         cbufferDesc.MiscFlags = 0;
         cbufferDesc.StructureByteStride = 0;
 
-        HRESULT result = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pLightCb);
+        HRESULT result = pDevice->CreateBuffer(&cbufferDesc, nullptr, m_pLightCb.GetAddressOf());
         if (FAILED(result))
         {
             OutputDebugStringA("SpotLight11::m_pLightCb::CreateBufferFailed");

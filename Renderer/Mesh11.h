@@ -12,7 +12,7 @@ namespace wilson {
 	public:
 
 		void BindMaterial(const std::unordered_map<std::string, int>& mathash, const std::vector<MaterialInfo>& matInfos,
-			const std::unordered_map<std::string, int>& texhash, const std::vector<ID3D11ShaderResourceView*>& textures);
+			const std::unordered_map<std::string, int>& texhash, const std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& textures);
 		inline AABB* GetAabb() const
 		{
 			return m_pAABB;
@@ -111,13 +111,13 @@ namespace wilson {
 		void CreateInstanceMatrices();
 
 	private:
-		ID3D11Device* m_pDevice;
+		Microsoft::WRL::ComPtr<ID3D11Device> m_pDevice;
 
-		ID3D11Buffer* m_pMaterialCb;
-		ID3D11Buffer* m_pIb;
-		ID3D11Buffer* m_pInstancePosCb;
-		ID3D11Buffer* m_pPerModelCb;
-		ID3D11Buffer* m_pVb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pMaterialCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pIb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pInstancePosCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pPerModelCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pVb;
 
 		std::string m_name;
 		std::vector<std::string>m_matNames;
@@ -134,7 +134,7 @@ namespace wilson {
 
 		std::vector<MaterialInfo> m_matInfos;
 		std::vector<PerModel>m_perModels;
-		std::vector<ID3D11ShaderResourceView*> m_texSrvs;
+		std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_texSrvs;
 		std::unordered_map<std::string, int> m_texHash;
 
 		DirectX::XMVECTOR m_angleVec;

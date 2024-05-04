@@ -4,8 +4,6 @@ namespace wilson
 {
 	Light11::Light11(const UINT idx)
 	{
-		m_pLightCb = nullptr;
-
 		m_ambient = m_ambient = DirectX::XMVectorSet(0.5f, 0.5f, 0.5f, 1.0f);
 		m_diffuse = m_ambient;
 		m_specular = m_ambient;
@@ -16,12 +14,6 @@ namespace wilson
 	}
 	Light11::~Light11()
 	{
-		if (m_pLightCb != nullptr)
-		{
-			m_pLightCb->Release();
-			m_pLightCb = nullptr;
-		}
-		
 	}
 
 }

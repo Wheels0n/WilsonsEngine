@@ -18,24 +18,23 @@ namespace wilson
 		m_pD3D11 = pD3D11;
 		m_pCam = pD3D11->GetCam();
 		m_pScene = pScene;
-		m_pImporter = new Importer11(m_pDevice);
+		m_pImporter = std::make_unique<Importer11>(m_pDevice.Get());
 
 	}
 
 	Viewport11::~Viewport11()
 	{
-		if (m_pImporter != nullptr)
-		{
-			delete m_pImporter;
-			m_pImporter = nullptr;
-		}
+
 	}
 
 	void Viewport11::Draw()
 	{	
 		m_pPostProcessSrv = m_pD3D11->GetPostProcessSrv();
 		m_pSsaoBlurredSrv = m_pD3D11->GetSsaoBlurredSrv();
-		m_ppGbufferSrvs = m_pD3D11->GetpGbufferSrvs();
+		for (int i = 0; i < static_cast<UINT>(eGbuf::cnt); ++i)
+		{
+			m_ppGbufferSrvs[i] = *(m_pD3D11->GetpGbufferSrvs()+i);
+		}
 		m_nGbuffer = m_pD3D11->GetNumGBuffer();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -49,7 +48,7 @@ namespace wilson
 			m_top = pos.y;
 			m_IsFocused = ImGui::IsWindowFocused();
 
-			ImGui::Image(reinterpret_cast<void*>(m_pPostProcessSrv), ImVec2(m_width, m_height));
+			ImGui::Image(reinterpret_cast<void*>(m_pPostProcessSrv.Get()), ImVec2(m_width, m_height));
 			if (ImGui::BeginDragDropTarget())
 			{
 				const ImGuiPayload* payLoad;
@@ -63,7 +62,7 @@ namespace wilson
 						if (i < 2)
 						{
 							const wchar_t* path = reinterpret_cast<const wchar_t*>(payLoad->Data);
-							m_pImporter->LoadObject(g_types[i], path, m_pDevice);
+							m_pImporter->LoadObject(g_types[i], path, m_pDevice.Get());
 							Object11* pObject = m_pImporter->GetpObject();
 
 							std::vector<Mesh11*> pMeshes = pObject->GetMeshes();
@@ -121,9 +120,9 @@ namespace wilson
 		{
 			for (int i = 0; i < m_nGbuffer; ++i)
 			{
-				ImGui::Image(reinterpret_cast<void*>(m_ppGbufferSrvs[i]), ImVec2(m_width, m_height));
+				ImGui::Image(reinterpret_cast<void*>(m_ppGbufferSrvs[i].Get()), ImVec2(m_width, m_height));
 			}
-			ImGui::Image(reinterpret_cast<void*>(m_pSsaoBlurredSrv), ImVec2(m_width, m_height));
+			ImGui::Image(reinterpret_cast<void*>(m_pSsaoBlurredSrv.Get()), ImVec2(m_width, m_height));
 			
 		}
 		ImGui::End();

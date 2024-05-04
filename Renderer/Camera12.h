@@ -3,7 +3,7 @@
 #include "typedef.h"
 namespace wilson {
 
-	class Frustum11;
+	class Frustum12;
 	class HeapManager;
 	class Camera12
 	{
@@ -32,6 +32,10 @@ namespace wilson {
 		{
 			return &m_fFOV;
 		}
+		inline Frustum12* GetFrustum() const
+		{
+			return m_pFrustum;
+		};
 		inline float* GetNearZ()
 		{
 			return &m_nearZ;
@@ -111,9 +115,9 @@ namespace wilson {
 
 		Camera12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager,
 			const UINT screenWidth, const UINT screenHeight, float ScreenFar, float ScreenNear);
-		~Camera12()=default;
+		~Camera12();
 	private:
-
+		Frustum12* m_pFrustum;
 
 		DirectX::XMVECTOR m_dir;
 		DirectX::XMVECTOR m_pos;

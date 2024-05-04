@@ -38,10 +38,10 @@ namespace wilson{
 	HINSTANCE m_hInstance;
 	HWND m_hWnd;
 
-	Editor* m_pEditor;
 	Timer m_timer;
 	ImGuiManager m_ImGuiManager;
-	Renderer* m_pRenderer;
+	std::unique_ptr<Renderer> m_pRenderer;
+	std::unique_ptr<Editor> m_pEditor;
  };
  static Engine* g_pEngineHandle = nullptr;
  static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);

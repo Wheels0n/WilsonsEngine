@@ -31,9 +31,6 @@ namespace wilson {
 		m_pAABB = nullptr;
 		m_pAABB = new AABB(minAABB, maxAABB);
 
-		m_pVb = nullptr;
-		m_pIb = nullptr;
-
 		int len=wcslen(pName);
 		wchar_t* lpName = new wchar_t[len+1];
 		wcscpy(lpName,pName);
@@ -58,8 +55,6 @@ namespace wilson {
 
 		m_instancedData = nullptr;
 		m_bInstanced = false;
-		m_pInstancePosCb = nullptr;
-		m_pPerModelCb = nullptr;
 
 		{
 			HRESULT hr;
@@ -80,7 +75,7 @@ namespace wilson {
 			vertexBD.MiscFlags = 0;
 			vertexBD.StructureByteStride = 0;
 
-			hr = pDevice->CreateBuffer(&vertexBD, &vertexData, &m_pVb);
+			hr = pDevice->CreateBuffer(&vertexBD, &vertexData, m_pVb.GetAddressOf());
 			assert(SUCCEEDED(hr));
 			m_pVb->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Mesh11::m_pVb") - 1, "Mesh11::m_pVb");
@@ -96,7 +91,7 @@ namespace wilson {
 			indexBD.MiscFlags = 0;
 			indexBD.StructureByteStride = 0;
 
-			hr = pDevice->CreateBuffer(&indexBD, &indexData, &m_pIb);
+			hr = pDevice->CreateBuffer(&indexBD, &indexData, m_pIb.GetAddressOf());
 			assert(SUCCEEDED(hr));
 			m_pIb->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Mesh11::m_pIb") - 1, "Mesh11::m_pIb");
@@ -109,7 +104,7 @@ namespace wilson {
 			materialBD.MiscFlags = 0;
 			materialBD.StructureByteStride = 0;
 
-			hr = pDevice->CreateBuffer(&materialBD, 0, &m_pMaterialCb);
+			hr = pDevice->CreateBuffer(&materialBD, 0, m_pMaterialCb.GetAddressOf());
 			assert(SUCCEEDED(hr));
 			m_pMaterialCb->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Mesh11::m_pMaterialCb") - 1, "Mesh11::m_pMaterialCb");
@@ -123,7 +118,7 @@ namespace wilson {
 			perModelBD.MiscFlags = 0;
 			perModelBD.StructureByteStride = 0;
 
-			hr = pDevice->CreateBuffer(&perModelBD, 0, &m_pPerModelCb);
+			hr = pDevice->CreateBuffer(&perModelBD, 0, m_pPerModelCb.GetAddressOf());
 			assert(SUCCEEDED(hr));
 			m_pPerModelCb->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Mesh11::m_pPerModelCb") - 1, "Mesh11::m_pPerModelCb");
@@ -133,17 +128,7 @@ namespace wilson {
 
 	Mesh11::~Mesh11()
 	{
-		if (m_pVertexData != nullptr)
-		{
-			delete m_pVertexData;
-			m_pVertexData = nullptr;
-		}
 
-		if (m_pIndices != nullptr)
-		{
-			delete m_pIndices;
-			m_pIndices = nullptr;
-		}
 		m_vertexDataPos.clear();
 		m_indicesPos.clear();
 		m_nVertexData.clear();
@@ -153,36 +138,6 @@ namespace wilson {
 		m_matInfos.clear();
 		m_matNames.clear();
 		m_perModels.clear();
-
-		if (m_pVb != nullptr)
-		{
-			m_pVb->Release();
-			m_pVb = nullptr;
-		}
-
-		if (m_pIb != nullptr)
-		{
-			m_pIb->Release();
-			m_pIb = nullptr;
-		}
-
-		if (m_pMaterialCb != nullptr)
-		{
-			m_pMaterialCb->Release();
-			m_pMaterialCb = nullptr;
-		}
-
-		if (m_pInstancePosCb != nullptr)
-		{
-			m_pInstancePosCb->Release();
-			m_pInstancePosCb = nullptr;
-		}
-
-		if (m_pPerModelCb != nullptr)
-		{
-			m_pPerModelCb->Release();
-			m_pPerModelCb = nullptr;
-		}
 
 		if (m_instancedData != nullptr)
 		{
@@ -223,11 +178,11 @@ namespace wilson {
 		D3D11_SUBRESOURCE_DATA instanceSubResource = { 0, };
 		instanceSubResource.pSysMem = m_instancedData;
 
-		m_pDevice->CreateBuffer(&instancePosBD, &instanceSubResource, &m_pInstancePosCb);
+		m_pDevice->CreateBuffer(&instancePosBD, &instanceSubResource, m_pInstancePosCb.GetAddressOf());
 
 	}
 	void Mesh11::BindMaterial(const std::unordered_map<std::string, int>& mathash, const std::vector<MaterialInfo>& matInfos,
-		const std::unordered_map<std::string, int>& texhash, const std::vector<ID3D11ShaderResourceView*>& textures)
+		const std::unordered_map<std::string, int>& texhash, const std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& textures)
 	{	
 		m_matInfos.reserve(m_matNames.size());
 		m_perModels.reserve(m_matNames.size());
@@ -299,15 +254,15 @@ namespace wilson {
 				CreateInstanceMatrices();
 			}
 
-			ID3D11Buffer* vbs[2] = { m_pVb, m_pInstancePosCb };
+			ID3D11Buffer* vbs[2] = { m_pVb.Get(), m_pInstancePosCb.Get() };
 			pContext->IASetVertexBuffers(0, 2, vbs, stride, &vOffset);
 		}
 		else
 		{
-			pContext->IASetVertexBuffers(0, 1, &m_pVb, stride, &vOffset);
+			pContext->IASetVertexBuffers(0, 1, m_pVb.GetAddressOf(), stride, &vOffset);
 		}
 		
-		pContext->IASetIndexBuffer(m_pIb, DXGI_FORMAT_R32_UINT, iOffset);
+		pContext->IASetIndexBuffer(m_pIb.Get(), DXGI_FORMAT_R32_UINT, iOffset);
 		
 		UINT texCnt = 0;
 		UINT idx = m_texHash[matInfo.diffuseMap];
@@ -357,7 +312,7 @@ namespace wilson {
 			}
 
 
-			hr = pContext->Map(m_pMaterialCb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			hr = pContext->Map(m_pMaterialCb.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 			assert(SUCCEEDED(hr));
 
 			pMaterial = reinterpret_cast<Material*>(mappedResource.pData);
@@ -365,11 +320,11 @@ namespace wilson {
 			pMaterial->diffuse = matInfo.material.diffuse;
 			pMaterial->specular = matInfo.material.specular;
 			pMaterial->reflect = matInfo.material.reflect;
-			pContext->Unmap(m_pMaterialCb, 0);
-			pContext->PSSetConstantBuffers(2, 1, &m_pMaterialCb);
+			pContext->Unmap(m_pMaterialCb.Get(), 0);
+			pContext->PSSetConstantBuffers(2, 1, m_pMaterialCb.GetAddressOf());
 
 
-			hr = pContext->Map(m_pPerModelCb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+			hr = pContext->Map(m_pPerModelCb.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 			assert(SUCCEEDED(hr));
 
 			pPerModel = reinterpret_cast<PerModel*>(mappedResource.pData);
@@ -378,9 +333,9 @@ namespace wilson {
 			pPerModel->hasAlpha = m_perModels[i].hasAlpha;
 			pPerModel->hasEmissive=m_perModels[i].hasEmissive;
 
-			pContext->Unmap(m_pPerModelCb, 0);
-			pContext->VSSetConstantBuffers(1, 1, &m_pPerModelCb);
-			pContext->PSSetConstantBuffers(1, 1, &m_pPerModelCb);
+			pContext->Unmap(m_pPerModelCb.Get(), 0);
+			pContext->VSSetConstantBuffers(1, 1, m_pPerModelCb.GetAddressOf());
+			pContext->PSSetConstantBuffers(1, 1, m_pPerModelCb.GetAddressOf());
 		}
 		return;
 	}

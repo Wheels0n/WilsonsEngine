@@ -23,11 +23,6 @@ namespace wilson {
 		m_viewMat = DirectX::XMMatrixTranspose(m_viewMat);
 		m_projMat = DirectX::XMMatrixTranspose(m_projMat);
 
-
-		m_pCamPosCb = nullptr;
-		m_pCascadeLevelCb = nullptr;
-
-
 		{
 			D3D11_BUFFER_DESC cbufferDesc = {};
 			cbufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -36,31 +31,21 @@ namespace wilson {
 			cbufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 			cbufferDesc.MiscFlags = 0;
 			cbufferDesc.StructureByteStride = 0;
-			HRESULT hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pCamPosCb);
+			HRESULT hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, m_pCamPosCb.GetAddressOf());
 			assert(SUCCEEDED(hr));
-			m_pCamPosCb->SetPrivateData(WKPDID_D3DDebugObjectName,
+			m_pCamPosCb.Get()->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Camera11::m_pCamPosCb") - 1, "Camera11::m_pCamPosCb");
 
 			cbufferDesc.ByteWidth = sizeof(DirectX::XMVECTOR) * _CASCADE_LEVELS;
-			hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, &m_pCascadeLevelCb);
+			hr = pDevice->CreateBuffer(&cbufferDesc, nullptr, m_pCascadeLevelCb.GetAddressOf());
 			assert(SUCCEEDED(hr));
-			m_pCascadeLevelCb->SetPrivateData(WKPDID_D3DDebugObjectName,
+			m_pCascadeLevelCb.Get()->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("Camera11::m_pCascadeLevelCb") - 1, "Camera11::m_pCascadeLevelCb");
 		}
 	}
 
 	Camera11::~Camera11()
 	{
-		if (m_pCamPosCb != nullptr)
-		{
-			m_pCamPosCb->Release();
-			m_pCamPosCb = nullptr;
-		}
-		if (m_pCascadeLevelCb != nullptr)
-		{
-			m_pCascadeLevelCb->Release();
-			m_pCascadeLevelCb = nullptr;
-		}
 		
 	}
 
@@ -133,7 +118,7 @@ namespace wilson {
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		DirectX::XMVECTOR* pFarZ;
 
-		hr = pContext->Map(m_pCascadeLevelCb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		hr = pContext->Map(m_pCascadeLevelCb.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		assert(SUCCEEDED(hr));
 		
 		pFarZ = reinterpret_cast<DirectX::XMVECTOR*>(mappedResource.pData);
@@ -142,7 +127,7 @@ namespace wilson {
 			pFarZ[i]= DirectX::XMVectorSet(0,0,m_shadowCascadeLevels[i],1.0f);
 		}
 		
-		pContext->Unmap(m_pCascadeLevelCb, 0);
+		pContext->Unmap(m_pCascadeLevelCb.Get(), 0);
 		pContext->PSSetConstantBuffers(1, 1, &m_pCascadeLevelCb);
 
 		return true;
@@ -154,12 +139,12 @@ namespace wilson {
 		D3D11_MAPPED_SUBRESOURCE mappedResource;
 		DirectX::XMVECTOR* pCamPos;
 
-		hr = pContext->Map(m_pCamPosCb, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		hr = pContext->Map(m_pCamPosCb.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		assert(SUCCEEDED(hr));
 
 		pCamPos = reinterpret_cast<DirectX::XMVECTOR*>(mappedResource.pData);
 		*pCamPos= m_pos;
-		pContext->Unmap(m_pCamPosCb, 0);
+		pContext->Unmap(m_pCamPosCb.Get(), 0);
 		pContext->PSSetConstantBuffers(0, 1, &m_pCamPosCb);
 
 		return true;

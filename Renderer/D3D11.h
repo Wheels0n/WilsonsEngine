@@ -44,11 +44,11 @@ namespace wilson
 		};
 		inline ID3D11Device* GetDevice() const
 		{
-			return m_pDevice;
+			return m_pDevice.Get();
 		};
 		inline ID3D11DeviceContext* GetDeviceContext() const
 		{
-			return m_pContext;
+			return m_pContext.Get();
 		};
 		inline float* GetExposure()
 		{
@@ -56,7 +56,7 @@ namespace wilson
 		}
 		inline ID3D11ShaderResourceView** GetpGbufferSrvs()
 		{
-			return &m_ppGbufferSrvs[0];
+			return m_ppGbufferSrvs[0].GetAddressOf();
 		};
 		inline float* GetpHeightScale()
 		{
@@ -78,7 +78,7 @@ namespace wilson
 		}
 		inline ID3D11ShaderResourceView* GetPostProcessSrv() const
 		{
-			return m_pViewportSrv;
+			return m_pViewportSrv.Get();
 		};
 		inline ShadowMap* GetShadowMap() const
 		{
@@ -86,11 +86,11 @@ namespace wilson
 		};
 		inline ID3D11ShaderResourceView* GetSsaoBlurredSrv() const
 		{
-			return m_pSsaoBlurDebugSrv;
+			return m_pSsaoBlurDebugSrv.Get();
 		};
 		inline IDXGISwapChain* GetSwapChain() const
 		{
-			return m_pSwapChain;
+			return m_pSwapChain.Get();
 		}
 		inline void PickSubMesh(const int i, const int j)
 		{
@@ -138,88 +138,88 @@ namespace wilson
 		bool m_bAabbGridOn;
 		bool m_bVsyncOn;
 	
-		ID3D11Device* m_pDevice;
-		ID3D11DeviceContext* m_pContext;
-		IDXGISwapChain* m_pSwapChain;
+		Microsoft::WRL::ComPtr<ID3D11Device> m_pDevice;
+		Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_pContext;
+		Microsoft::WRL::ComPtr<IDXGISwapChain> m_pSwapChain;
 
-		ID3D11Buffer* m_pAabbIb;
-		ID3D11Buffer* m_pAabbVb;
-		ID3D11Buffer* m_pBoolCb;
-		ID3D11Buffer* m_pColorCb;
-		ID3D11Buffer* m_pCubeIndices;
-		ID3D11Buffer* m_pCubeVertices;
-		ID3D11Buffer* m_pEquirect2CubeCb;
-		ID3D11Buffer* m_pExposureCb;
-		ID3D11Buffer* m_pHeightScaleCb;
-		ID3D11Buffer* m_pHeightOnOffCb;
-		ID3D11Buffer* m_pQuadIb;
-		ID3D11Buffer* m_pQuadVb;
-		ID3D11Buffer* m_pSsaoKernelCb; 
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pAabbIb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pAabbVb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pBoolCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pColorCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pCubeIndices;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pCubeVertices;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pEquirect2CubeCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pExposureCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pHeightScaleCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pHeightOnOffCb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pQuadIb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pQuadVb;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pSsaoKernelCb;
 
-		ID3D11Texture2D* m_pBrdfTex;
-		ID3D11Texture2D* m_pBrightTex;
-		ID3D11Texture2D* m_pDiffIrradianceTex;
-		ID3D11Texture2D* m_pGbufferTex[static_cast<int>(eGbuf::cnt)];
-		ID3D11Texture2D* m_pHdrTex;
-		ID3D11Texture2D* m_pNoiseTex;
-		ID3D11Texture2D* m_pSceneTex;
-		ID3D11Texture2D* m_pSceneDepthTex;
-		ID3D11Texture2D* m_pScreenDepthTex;
-		ID3D11Texture2D* m_pSkyBoxTex;
-		ID3D11Texture2D* m_pSsaoTex;
-		ID3D11Texture2D* m_pSsaoBlurTex;
-		ID3D11Texture2D* m_pSsaoBlurDebugTex;
-		ID3D11Texture2D* m_pPingPongTex[2];
-		ID3D11Texture2D* m_pPrefilterTex;
-		ID3D11Texture2D* m_pViewportTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pBrdfTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pBrightTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pDiffIrradianceTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pGbufferTex[static_cast<int>(eGbuf::cnt)];
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pHdrTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pNoiseTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pSceneTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pSceneDepthTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pScreenDepthTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pSkyBoxTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pSsaoTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pSsaoBlurTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pSsaoBlurDebugTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pPingPongTex[2];
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pPrefilterTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_pViewportTex;
 
-		ID3D11RenderTargetView* m_pBrdfRtv;
-		ID3D11RenderTargetView* m_pBrightRtv;
-		ID3D11RenderTargetView* m_pDiffIrradianceRtv;
-		ID3D11RenderTargetView* m_pGbufferRtvs[static_cast<int>(eGbuf::cnt)];
-		ID3D11RenderTargetView* m_pSceneRtv; 
-		ID3D11RenderTargetView* m_pScreenRtv;
-		ID3D11RenderTargetView* m_pSkyBoxRtv;
-		ID3D11RenderTargetView* m_pSsaoRtv;
-		ID3D11RenderTargetView* m_pSsaoBlurRtv; 
-		ID3D11RenderTargetView* m_pSsaoBlurDebugRtv;
-		ID3D11RenderTargetView* m_pPingPongRtvs[2];
-		ID3D11RenderTargetView* m_pPrefilterRtv;
-		ID3D11RenderTargetView* m_pViewportRtv;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pBrdfRtv;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pBrightRtv;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pDiffIrradianceRtv;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pGbufferRtvs[static_cast<int>(eGbuf::cnt)];
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pSceneRtv;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pScreenRtv;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pSkyBoxRtv;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pSsaoRtv;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pSsaoBlurRtv;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pSsaoBlurDebugRtv;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pPingPongRtvs[2];
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pPrefilterRtv;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_pViewportRtv;
 
-		ID3D11ShaderResourceView* m_pBrdfSrv;
-		ID3D11ShaderResourceView* m_pBrightSrv;
-		ID3D11ShaderResourceView* m_pDiffIrradianceSrv;
-		ID3D11ShaderResourceView* m_ppGbufferSrvs[static_cast<int>(eGbuf::cnt)];
-		ID3D11ShaderResourceView* m_pHdrSrv;
-		ID3D11ShaderResourceView* m_pNoiseSrv;
-		ID3D11ShaderResourceView* m_pSceneSrv;
-		ID3D11ShaderResourceView* m_pSkyBoxSrv;
-		ID3D11ShaderResourceView* m_pSsaoSrv;
-		ID3D11ShaderResourceView* m_pSsaoBlurSrv;
-		ID3D11ShaderResourceView* m_pSsaoBlurDebugSrv;
-		ID3D11ShaderResourceView* m_pPingPongSrvs[2];
-		ID3D11ShaderResourceView* m_pPrefilterSrv;
-		ID3D11ShaderResourceView* m_pViewportSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pBrdfSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pBrightSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pDiffIrradianceSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_ppGbufferSrvs[static_cast<int>(eGbuf::cnt)];
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pHdrSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pNoiseSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pSceneSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pSkyBoxSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pSsaoSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pSsaoBlurSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pSsaoBlurDebugSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pPingPongSrvs[2];
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pPrefilterSrv;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_pViewportSrv;
 
-		ID3D11DepthStencilState* m_pOutlinerTestDss;
-		ID3D11DepthStencilState* m_pOutlinerSetupDss;
-		ID3D11DepthStencilState* m_pSkyBoxDss;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pOutlinerTestDss;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pOutlinerSetupDss;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pSkyBoxDss;
 
-		ID3D11DepthStencilView* m_SceneDsv;
-		ID3D11DepthStencilView* m_ScreenDsv;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_SceneDsv;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_ScreenDsv;
 
-		ID3D11RasterizerState* m_pAabbRs;
-		ID3D11RasterizerState* m_pGeoRs;
-		ID3D11RasterizerState* m_pQuadRs;
-		ID3D11RasterizerState* m_pRs;
-		ID3D11RasterizerState* m_pSkyBoxRs;
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_pAabbRs;
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_pGeoRs;
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_pQuadRs;
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_pRs;
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_pSkyBoxRs;
 
-		ID3D11SamplerState* m_pWrapSs;
-		ID3D11SamplerState* m_pClampSs;
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pWrapSs;
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pClampSs;
 
-		ID3D11BlendState* m_pGBufferWriteBs;
-		ID3D11BlendState* m_pLightingPassBs;
+		Microsoft::WRL::ComPtr<ID3D11BlendState> m_pGBufferWriteBs;
+		Microsoft::WRL::ComPtr<ID3D11BlendState> m_pLightingPassBs;
 
 		D3D11_VIEWPORT m_viewport;
 		D3D11_VIEWPORT m_diffIrradViewport;
