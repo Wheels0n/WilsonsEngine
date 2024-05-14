@@ -239,7 +239,7 @@ namespace wilson {
 		bool bResult;
 
 		m_timer.Tick();
-		//Draw Scene11
+		//Draw Scene
 		m_pRenderer->BeginFrame();
 		//Set DockerSpace and MenuBar
 		m_ImGuiManager.Update();

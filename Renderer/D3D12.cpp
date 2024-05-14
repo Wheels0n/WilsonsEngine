@@ -26,7 +26,9 @@ namespace wilson
 			std::vector<std::unique_ptr<CubeLight12>>& CubeLights = m_pLightCb->GetCubeLights();
 			std::vector<std::unique_ptr<SpotLight12>>& spotLights = m_pLightCb->GetSpotLights();
 			UINT nLights[3] = { dirLights.size(), CubeLights.size(), spotLights.size() };
-			UINT nLightTotal = nLights[0] + nLights[1] + nLights[2];
+			UINT nLightTotal = nLights[static_cast<UINT>(eLIGHT_TYPE::DIR)]
+				+ nLights[static_cast<UINT>(eLIGHT_TYPE::CUBE)]
+				+ nLights[static_cast<UINT>(eLIGHT_TYPE::SPT)];
 			if (nLightTotal)
 			{
 				for (int i = 0; i < dirLights.size(); ++i)
@@ -179,39 +181,19 @@ namespace wilson
 
 	void D3D12::ResizeBackBuffer(const UINT newWidth, const UINT newHeight)
 	{
-		UINT fenceValue = m_fenceValue;
-		m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
-		if (m_pFence->GetCompletedValue() < fenceValue)
+		UINT fenceVal = m_fenceValue++;
+		m_pMainCommandQueue->Signal(m_pFence.Get(), fenceVal);
+		if (m_pFence->GetCompletedValue() < fenceVal)
 		{
-			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
+			m_pFence->SetEventOnCompletion(fenceVal, m_fenceEvent);
 			WaitForSingleObject(m_fenceEvent, INFINITE);
 		}
+		DestroyTexture();
+		DestroySceneDepthTex();
+		DestroyBackBuffer();
 
 		m_clientWidth = newWidth;
 		m_clientHeight = newHeight;
-
-		DestroyTexture();
-		DestroySceneDepthTex();
-		DestroyHdr();
-		DestroyBackBuffer();
-
-		m_pSwapChain->ResizeBuffers(_BUFFER_COUNT, m_clientWidth, m_clientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SWAP_EFFECT_FLIP_DISCARD);
-
-		HRESULT hr;
-		for (UINT i = 0; i < _BUFFER_COUNT; ++i)
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pHeapManager->GetCurRtvHandle();
-			hr = m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(m_pScreenTexs[i].GetAddressOf()));
-			assert(SUCCEEDED(hr));
-			m_pScreenTexs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12::m_pScreenTexs") - 1, "D3D12::m_pScreenTexs");
-
-			m_pDevice->CreateRenderTargetView(m_pScreenTexs[i].Get(), nullptr, rtvHandle);
-			m_screenRtvs[i] = rtvHandle;
-			m_pHeapManager->IncreaseRtvHandleOffset();
-
-		}
-
 
 		if (!CreateRtvSrv(m_clientWidth, m_clientHeight))
 		{
@@ -223,25 +205,55 @@ namespace wilson
 			OutputDebugStringA("D3D11::CreateDsv()onScreenFailed");
 		}
 
+		m_pSwapChain->ResizeBuffers(_BUFFER_COUNT, m_clientWidth, m_clientHeight, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SWAP_EFFECT_FLIP_DISCARD);
+
+		HRESULT hr;
+		for (UINT i = 0; i < _BUFFER_COUNT; ++i)
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_pHeapManager->GetCurRtvHandle();
+			hr = m_pSwapChain->GetBuffer(i, IID_PPV_ARGS(m_pScreenTexs[i].GetAddressOf()));
+			assert(SUCCEEDED(hr));
+			m_pDevice->CreateRenderTargetView(m_pScreenTexs[i].Get(), nullptr, rtvHandle);
+			m_screenRtvs[i] = rtvHandle;
+			m_pHeapManager->IncreaseRtvHandleOffset();
+			m_curFrame = 0;
+
+		}
+
+
 		m_viewport.Width = static_cast<float>(m_clientWidth);
 		m_viewport.Height = static_cast<float>(m_clientHeight);
 		m_scissorRect.right = m_clientWidth;
 		m_scissorRect.bottom = m_clientHeight;
 
-		bool result =
-			CreateEquirentangularMap(".\\Assets\\Models\\FBX\\Bistro_v5_2\\Bistro_v5_2\\san_giuseppe_bridge_4k.hdr");
-		if (result)
 		{
+			D3D12_RESOURCE_BARRIER barrier = 
+				CreateResourceBarrier(m_pHdrTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST);
+			m_pPbrSetupCommandList->ResourceBarrier(1, &barrier);
+
 			ConvertEquirectagular2Cube();
 			CreateDiffuseIrradianceMap();
 			CreatePrefileterMap();
 			CreateMipMap();
 			CreateBrdfMap();
+			UINT fenceValue = m_pbrSetupFenceValue++;
+			m_pPbrSetupCommandList->Close();
+			m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pPbrSetupCommandList.GetAddressOf()));
+			m_pMainCommandQueue->Signal(m_pPbrSetupFence.Get(), fenceValue);
+			if (m_pPbrSetupFence->GetCompletedValue() < fenceValue)
+			{
+				m_pPbrSetupFence->SetEventOnCompletion(fenceValue, m_pbrSetupEvent);
+				WaitForSingleObject(m_pbrSetupEvent, INFINITE);
+			}
+
+			m_pPbrSetupCommandAllocator->Reset();
+			m_pPbrSetupCommandList->Reset(m_pPbrSetupCommandAllocator.Get(), nullptr);
+			PopulateBundle();
 		}
 	}
 	void D3D12::WaitForGpu()
 	{
-		UINT fenceVal = m_fenceValue++;
+		UINT fenceVal = m_fenceValue;
 		m_pMainCommandQueue->Signal(m_pFence.Get(), fenceVal);
 		if (m_pFence->GetCompletedValue() < fenceVal)
 		{
@@ -249,22 +261,12 @@ namespace wilson
 			WaitForSingleObject(m_fenceEvent, INFINITE);
 		}
 
-		UINT ssaofenceVal = m_ssaoFenceValue++;
-		m_pComputeCommandQueue->Signal(m_pSsaoFence.Get(), ssaofenceVal);
-		if (m_pSsaoFence->GetCompletedValue() < ssaofenceVal)
-		{
-			m_pSsaoFence->SetEventOnCompletion(fenceVal, m_ssaoFenceEvent);
-			WaitForSingleObject(m_ssaoFenceEvent, INFINITE);
-		}
 	}
 	bool D3D12::CreateRtvSrv(const UINT width, const UINT height)
 	{
 		//SSAO, 위치, 법선, PBR 텍스쳐들은 DXGI_FORMAT_R16G16B16A16_FLOAT;
 		//Hi-Z는 깊이라서 d32
 		//그외는 DXGI_FORMAT_R8G8B8A8_UNORM;
-
-		DestroyTexture();
-
 		D3D12_RESOURCE_DESC	texDesc = {};
 		texDesc.Width = width;
 		texDesc.Height = height;
@@ -308,30 +310,12 @@ namespace wilson
 		m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE ,
 			m_pViewportTex.GetAddressOf(), m_pDevice.Get());
 		m_pViewportTex->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D12:::m_pViewportTex") - 1, "D3D12:::m_pViewportTex");
-
+			sizeof("D3D12::m_pViewportTex") - 1, "D3D12::m_pViewportTex");
 		m_viewportUav = m_pHeapManager->GetUav(uavDesc, m_pViewportTex.Get(), m_pDevice.Get());
 		m_viewportSrv = m_pHeapManager->GetSrv(srvDesc, m_pViewportTex.Get(), m_pDevice.Get());
 
 
 		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE ,
-			m_pBrightTex.GetAddressOf(), m_pDevice.Get());
-		m_pBrightTex->SetPrivateData(WKPDID_D3DDebugObjectName,
-			sizeof("D3D12:::m_pBrightTex") - 1, "D3D12:::m_pBrightTex");
-		m_brightRtv = m_pHeapManager->GetRtv(rtvDesc, m_pBrightTex.Get(), m_pDevice.Get());
-		m_brightSrv = m_pHeapManager->GetSrv(srvDesc, m_pBrightTex.Get(), m_pDevice.Get());
-
-		for (int i = 0; i < 2; ++i)
-		{
-			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE ,
-				m_pPingPongTex[i].GetAddressOf(), m_pDevice.Get());
-			m_pPingPongTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12:::m_pPingPongTex[i]") - 1, "D3D12:::m_pPingPongTex[i]");
-			m_pingPongRtvs[i] = m_pHeapManager->GetRtv(rtvDesc, m_pPingPongTex[i].Get(), m_pDevice.Get());
-			m_pingPongSrvs[i] = m_pHeapManager->GetSrv(srvDesc, m_pPingPongTex[i].Get(), m_pDevice.Get());
-		}
-
 		
 		for (int i = 0; i < static_cast<UINT>(eGbuf::cnt); ++i)
 		{	
@@ -350,12 +334,19 @@ namespace wilson
 			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE ,
 				m_pGBufTexs[i].GetAddressOf(), m_pDevice.Get());
 			m_pGBufTexs[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12:::m_pGBufTexs[i]") - 1, "D3D12:::m_pGBufTexs[i]");
-			
+				sizeof("D3D12::m_pGBufTexs[i]") - 1, "D3D12::m_pGBufTexs[i]");
+		
 			m_GBufRtvs[i] = m_pHeapManager->GetRtv(rtvDesc, m_pGBufTexs[i].Get(), m_pDevice.Get());
 			m_GBufSrvs[i] = m_pHeapManager->GetSrv(srvDesc, m_pGBufTexs[i].Get(), m_pDevice.Get());
 		}
-
+		//Create DepthDebugTex
+		texDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		rtvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_RENDER_TARGET,
+			m_pDepthDebugTex.GetAddressOf(), m_pDevice.Get());
+		m_pDepthDebugTex->SetPrivateData(WKPDID_D3DDebugObjectName,
+			sizeof("D3D12::m_pDepthDebugTex") - 1, "D3D12::m_pDepthDebugTex");
+		m_pDepthDebugRtv = m_pHeapManager->GetRtv(rtvDesc, m_pDepthDebugTex.Get(), m_pDevice.Get());
 
 		//HiZ
 		//fmaxf : 원래 밉맵은 가장 큰 변(side) 기준
@@ -524,8 +515,6 @@ namespace wilson
 	}
 	bool D3D12::CreateDsv(const UINT width, const UINT height)
 	{	
-		DestroySceneDepthTex();
-
 		D3D12_RESOURCE_DESC texDesc = {};
 		texDesc.Width = width;
 		texDesc.Height = height;
@@ -577,88 +566,73 @@ namespace wilson
 	{
 		if (m_pViewportTex != nullptr)
 		{
-			m_pViewportTex->Release();
+			m_pViewportTex.Reset();
 		}
-
 
 		if (m_pSceneTex != nullptr)
 		{
-			m_pSceneTex->Release();
+			m_pSceneTex.Reset();
 		}
 
 		if (m_pSsaoTex != nullptr)
 		{
-			m_pSsaoTex->Release();
+			m_pSsaoTex.Reset();
 		}
 
 		if (m_pDownSampleTex != nullptr)
 		{
-			m_pDownSampleTex->Release();
+			m_pDownSampleTex.Reset();
 		}
 		if (m_pHiZTempTex != nullptr)
 		{
-			m_pHiZTempTex->Release();
+			m_pHiZTempTex.Reset();
 		}
 
 		if (m_pHiZCullListTex != nullptr)
 		{
-			m_pHiZCullListTex->Release();
+			m_pHiZCullListTex.Reset();
 		}
 
 		if (m_pSsaoBlurTex != nullptr)
 		{
-			m_pSsaoBlurTex->Release();
+			m_pSsaoBlurTex.Reset();
 		}
 
 		if (m_pSsaoBlurDebugTex != nullptr)
 		{	
-			m_pSsaoBlurDebugTex->Release();
-		}
-
-		if (m_pBrightTex != nullptr)
-		{
-			m_pBrightTex->Release();
+			m_pSsaoBlurDebugTex.Reset();
 		}
 
 		if (m_pBrdfTex != nullptr)
 		{
-			m_pBrdfTex->Release();
+			m_pBrdfTex.Reset();
 		}
 
 		if (m_pSkyBoxTex != nullptr)
 		{
-			m_pSkyBoxTex->Release();
+			m_pSkyBoxTex.Reset();
 		}
 
 		if (m_pDiffIrradianceTex != nullptr)
 		{
-			m_pDiffIrradianceTex->Release();
+			m_pDiffIrradianceTex.Reset();
 		}
 
 		if (m_pPrefilterTex != nullptr)
 		{
-			m_pPrefilterTex->Release();
+			m_pPrefilterTex.Reset();
 		}
 
 		if (m_pGenMipUavTex != nullptr)
 		{
-			m_pGenMipUavTex->Release();
-		}
-
-		for (int i = 0; i < 2; ++i)
-		{	
-			if (m_pPingPongTex[i] != nullptr)
-			{	
-				m_pPingPongTex[i]->Release();
-			}
-			
+			m_pGenMipUavTex.Reset();
 		}
 
 		for (int i = 0; i < static_cast<UINT>(eGbuf::cnt); ++i)
 		{
 			if (m_pGBufTexs[i] != nullptr)
 			{
-				m_pGBufTexs[i]->Release();
+				m_pGBufTexs[i].Reset();
 			}
 
 		}
@@ -667,7 +641,7 @@ namespace wilson
 	{
 		if (m_pSceneDepthTex != nullptr)
 		{
-			m_pSceneDepthTex->Release();
+			m_pSceneDepthTex.Reset();
 		}
 
 	}
@@ -904,17 +878,17 @@ namespace wilson
 				m_pPbrSetupCommandList->ResourceBarrier(sizeof(barriers) / sizeof(D3D12_RESOURCE_BARRIER), barriers);
 				m_pPbrSetupCommandList->Close();
 
-
-				ID3D12CommandList* pCommandList[] = { m_pPbrSetupCommandList.Get() };
-				UINT fenceValue = m_fenceValue++;
-				m_pMainCommandQueue->ExecuteCommandLists(1, pCommandList);
-				m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
-				if (m_pFence->GetCompletedValue() < fenceValue)
+				//화면 크기 재설정 감안
+				UINT fenceValue = m_pbrSetupFenceValue++;
+				m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pPbrSetupCommandList.GetAddressOf()));
+				m_pMainCommandQueue->Signal(m_pPbrSetupFence.Get(), fenceValue);
+				if (m_pPbrSetupFence->GetCompletedValue() < fenceValue)
 				{
-					m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
-					WaitForSingleObject(m_fenceEvent, INFINITE);
+					m_pPbrSetupFence->SetEventOnCompletion(fenceValue, m_pbrSetupEvent);
+					WaitForSingleObject(m_pbrSetupEvent, INFINITE);
 				}
-				m_pPbrSetupCommandAllocator->Reset();
+			
+				m_pPbrSetupCommandAllocator->Reset();				
 				m_pPbrSetupCommandList->Reset(m_pPbrSetupCommandAllocator.Get(), nullptr);
 			}
 			
@@ -934,16 +908,14 @@ namespace wilson
 				m_pPbrSetupCommandList->ResourceBarrier(sizeof(barriers) / sizeof(D3D12_RESOURCE_BARRIER), barriers);
 				m_pPbrSetupCommandList->Close();
 
-				ID3D12CommandList* pCommandList[] = { m_pPbrSetupCommandList.Get() };
-				UINT fenceValue = m_fenceValue++;
-				m_pMainCommandQueue->ExecuteCommandLists(1, pCommandList);
-				m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
-				if (m_pFence->GetCompletedValue() < fenceValue)
+				UINT fenceValue = m_pbrSetupFenceValue++;
+				m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pPbrSetupCommandList.GetAddressOf()));
+				m_pMainCommandQueue->Signal(m_pPbrSetupFence.Get(), fenceValue);
+				if (m_pPbrSetupFence->GetCompletedValue() < fenceValue)
 				{
-					m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
-					WaitForSingleObject(m_fenceEvent, INFINITE);
+					m_pPbrSetupFence->SetEventOnCompletion(fenceValue, m_pbrSetupEvent);
+					WaitForSingleObject(m_pbrSetupEvent, INFINITE);
 				}
-
 				m_pPbrSetupCommandAllocator->Reset();
 				m_pPbrSetupCommandList->Reset(m_pPbrSetupCommandAllocator.Get(), nullptr);
 			}
@@ -993,14 +965,14 @@ namespace wilson
 	{
 		if (m_pScreenDepthTex != nullptr)
 		{
-			m_pScreenDepthTex->Release();
+			m_pScreenDepthTex.Reset();
 		}
 
 		for (int i = 0; i < _BUFFER_COUNT; ++i)
-		{
+		{	
 			if (m_pScreenTexs[i] != nullptr)
 			{
-				m_pScreenTexs[i]->Release();
+				m_pScreenTexs[i].Reset();
 			}
 		}
 		
@@ -1012,7 +984,7 @@ namespace wilson
 		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
 											*(m_pHeapManager->GetCbvSrvUavHeap()) };
 		std::vector<std::unique_ptr<DirectionalLight12>>& dirLights = m_pLightCb->GetDirLights();
-		std::vector<std::unique_ptr<CubeLight12>>& cubetLights = m_pLightCb->GetCubeLights();
+		std::vector<std::unique_ptr<CubeLight12>>& cubeLights = m_pLightCb->GetCubeLights();
 		std::vector<std::unique_ptr<SpotLight12>>& spotLights = m_pLightCb->GetSpotLights();
 
 		while (!m_pMeshQueue.empty())
@@ -1044,9 +1016,10 @@ namespace wilson
 					m_pWorkerCommandLists[threadIndex]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
 					m_pWorkerCommandLists[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 					m_pWorkerCommandLists[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWorkerCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(static_cast<UINT>(eZpassRP::psWrap), m_wrapSsv);
 					m_pWorkerCommandLists[threadIndex]->RSSetViewports(1, &m_viewport);
 					m_pWorkerCommandLists[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
-					m_pWorkerCommandLists[threadIndex]->OMSetRenderTargets(1, &m_sceneRtv, FALSE, &m_sceneDsv);
+					m_pWorkerCommandLists[threadIndex]->OMSetRenderTargets(1, &m_pDepthDebugRtv, FALSE, &m_sceneDsv);
 				}
 					break;
 				case wilson::ePass::cascadeDirShadowPass:
@@ -1086,8 +1059,8 @@ namespace wilson
 					m_pWorkerCommandLists[threadIndex]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 					m_pWorkerCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(static_cast<UINT>(eCubeShadowRP::psSampler), m_wrapSsv);
 					m_pShadowMap->BindCubeDsv(m_pWorkerCommandLists[threadIndex].Get(), lightIdx);
-					cubetLights[lightIdx]->UploadShadowMatrices(m_pWorkerCommandLists[threadIndex].Get());
-					cubetLights[lightIdx]->UploadLightPos(m_pWorkerCommandLists[threadIndex].Get());
+					cubeLights[lightIdx]->UploadShadowMatrices(m_pWorkerCommandLists[threadIndex].Get());
+					cubeLights[lightIdx]->UploadLightPos(m_pWorkerCommandLists[threadIndex].Get());
 				}
 					break;
 				case wilson::ePass::geoPass:
@@ -1109,9 +1082,9 @@ namespace wilson
 				default:
 					break;
 				}
-				int n =min(qLen, _OBJECT_PER_THREAD);
+				UINT n =min(qLen, _OBJECT_PER_THREAD);
 	
-				for (int i = 0; i < n; ++i)
+				for (UINT i = 0; i < n; ++i)
 				{	
 					worldMat = pMeshes[i]->GetTransformMatrix(false);
 					invWorldMat = pMeshes[i]->GetInverseWorldMatrix();
@@ -1132,6 +1105,8 @@ namespace wilson
 						pMatBuffer->UpdateCombinedMat(true);
 						pMatBuffer->UploadCombinedMat(m_pWorkerCommandLists[threadIndex].Get(), true);
 						break;
+					case wilson::ePass::cascadeDirShadowPass:
+					case wilson::ePass::cubeShadowPass:
 					case wilson::ePass::geoPass:
 						pMatBuffer->UpdateCombinedMat(false);
 						pMatBuffer->UploadMatBuffer(m_pWorkerCommandLists[threadIndex].Get());
@@ -1140,39 +1115,55 @@ namespace wilson
 						break;
 					}
 
-					if (curPass == ePass::geoPass)
+					if (curPass == ePass::geoPass||curPass==ePass::zPass)
 					{
 						for (int j = 0; j < pMeshes[i]->GetNumMaterial(); ++j)
 						{
 
 							{
 								PerModel perModel = *(pMeshes[i]->GetPerModel(j));
-								if (perModel.hasNormal)
+								if (curPass == ePass::geoPass)
 								{
-									if (m_bHeightOn)
+									if (perModel.hasNormal)
 									{
-										if (perModel.hasEmissive)
+										if (m_bHeightOn)
 										{
-											m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightEmissivePso.Get());
+											if (perModel.hasEmissive)
+											{
+												m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightEmissivePso.Get());
+											}
+											else
+											{
+												m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightPso.Get());
+											}
 										}
 										else
-										{
-											m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalHeightPso.Get());
+										{	
+											if (perModel.hasEmissive)
+											{
+												m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalEmissivePso.Get());
+											}
+											else
+											{
+												m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalPso.Get());
+											}
+											
 										}
 									}
 									else
 									{
-										m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pPbrDeferredGeoNormalPso.Get());
+										if (perModel.hasEmissive)
+										{
+											m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pPbrDeferredGeoEmissivePso.Get());
+										}
+										else
+										{
+											m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pPbrDeferredGeoPso.Get());
+										}
+										
 									}
 								}
-								else if (perModel.hasEmissive)
-								{
-									m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pPbrDeferredGeoEmissivePso.Get());
-								}
-								else
-								{
-									m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pPbrDeferredGeoPso.Get());
-								}
+								
 							}
 
 							pMeshes[i]->UploadBuffers(m_pWorkerCommandLists[threadIndex].Get(), j, curPass);
@@ -1302,6 +1293,100 @@ namespace wilson
 		}
 		
 	}
+	void D3D12::PopulateBundle()
+	{
+		UINT fenceValue = m_pbrSetupFenceValue++;
+		m_pPbrSetupCommandList->Close();
+		m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pPbrSetupCommandList.GetAddressOf()));
+		m_pMainCommandQueue->Signal(m_pPbrSetupFence.Get(), fenceValue);
+		if (m_pPbrSetupFence->GetCompletedValue() < fenceValue)
+		{
+			m_pPbrSetupFence->SetEventOnCompletion(fenceValue, m_pbrSetupEvent);
+			WaitForSingleObject(m_pbrSetupEvent, INFINITE);
+		}
+
+		m_pPbrSetupCommandAllocator->Reset();
+		m_pPbrSetupCommandList->Reset(m_pPbrSetupCommandAllocator.Get(), nullptr);
+		{
+			ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+											*(m_pHeapManager->GetCbvSrvUavHeap()) };
+
+			for (int i = 0; i < static_cast<UINT>(ePass::cnt); ++i)
+			{	
+				if ((i == static_cast<UINT>(ePass::zPass)) ||
+					(i == static_cast<UINT>(ePass::occlusionTestPass)) ||
+					(i == static_cast<UINT>(ePass::skyBoxPass)) ||
+					(i == static_cast<UINT>(ePass::lightingPass)) ||
+					(i == static_cast<UINT>(ePass::postProcess)))
+				{
+					m_pBundleAllocators[i]->Reset();
+					m_pBundles[i]->Reset(m_pBundleAllocators[i].Get(), nullptr);
+				}
+			}
+
+			m_pBundles[static_cast<UINT>(ePass::zPass)]->SetPipelineState(m_pZpassPso.Get());
+			m_pBundles[static_cast<UINT>(ePass::zPass)]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			m_pBundles[static_cast<UINT>(ePass::zPass)]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
+			m_pBundles[static_cast<UINT>(ePass::zPass)]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_pBundles[static_cast<UINT>(ePass::zPass)]->Close();
+
+
+			m_pBundles[static_cast<UINT>(ePass::occlusionTestPass)]->SetPipelineState(m_pHWOcclusionQueryPso.Get());
+			m_pBundles[static_cast<UINT>(ePass::occlusionTestPass)]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			m_pBundles[static_cast<UINT>(ePass::occlusionTestPass)]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
+			m_pBundles[static_cast<UINT>(ePass::occlusionTestPass)]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_pBundles[static_cast<UINT>(ePass::occlusionTestPass)]->Close();
+
+			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->SetPipelineState(m_pSkyBoxPso.Get());
+			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->SetGraphicsRootSignature(m_pShader->GetSkyBoxRootSingnature());
+			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(eSkyboxRP::psDiffuseMap), m_skyBoxSrv);
+			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(eSkyboxRP::psSampler), m_wrapSsv);
+			m_pMatricesCb->SetWorldMatrix(&m_idMat);
+			m_pMatricesCb->SetViewMatrix(m_pCam->GetViewMatrix());
+			m_pMatricesCb->SetProjMatrix(m_pCam->GetProjectionMatrix());
+			m_pMatricesCb->UpdateCombinedMat(false);
+			m_pMatricesCb->UploadCombinedMat(m_pBundles[static_cast<UINT>(ePass::skyBoxPass)].Get(), false);
+			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->IASetVertexBuffers(0, 1, &m_skyBoxVbv);
+			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->IASetIndexBuffer(&m_skyBoxIbv);
+			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->DrawIndexedInstanced(_CUBE_IDX_COUNT, 1, 0, 0, 0);
+			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->Close();
+
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetPipelineState(m_pPbrDeferredLightingPso.Get());
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootSignature(m_pShader->GetPbrDeferredLightingShaderRootSingnature());
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psPos), m_GBufSrvs[static_cast<UINT>(eGbuf::pos)]);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psNormal), m_GBufSrvs[static_cast<UINT>(eGbuf::normal)]);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psAlbedo), m_GBufSrvs[static_cast<UINT>(eGbuf::albedo)]);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psSpecular), m_GBufSrvs[static_cast<UINT>(eGbuf::specular)]);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psEmissive), m_GBufSrvs[static_cast<UINT>(eGbuf::emissive)]);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psAO), m_ssaoBlurSrv);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psIrradiance), m_diffIrradianceSrv);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psPrefilter), m_prefilterSrv);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psBrdf), m_brdfSrv);
+			m_pShadowMap->BindDirSrv(m_pBundles[static_cast<UINT>(ePass::lightingPass)].Get());
+			m_pShadowMap->BindSpotSrv(m_pBundles[static_cast<UINT>(ePass::lightingPass)].Get());
+			m_pShadowMap->BindCubeSrv(m_pBundles[static_cast<UINT>(ePass::lightingPass)].Get());
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psWrap), m_wrapSsv);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psCubeShadowSampler), m_pShadowMap->GetCubeShadowSamplerView());
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psShadowSampler), m_pShadowMap->GetDirShadowSamplerView());
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->IASetVertexBuffers(0, 1, &m_quadVbv);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->IASetIndexBuffer(&m_quadIbv);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->Close();
+
+			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetPipelineState(m_pPostProcessPso.Get());
+			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetComputeRootSignature(m_pShader->GetPostProcessShaderRootSingnature());
+			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetComputeRootDescriptorTable(static_cast<UINT>(ePostProcessRP::csExposure), m_exposureCbv);
+			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetComputeRootDescriptorTable(static_cast<UINT>(ePostProcessRP::csTex), m_sceneSrv);
+			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetComputeRootDescriptorTable(static_cast<UINT>(ePostProcessRP::csUav), m_viewportUav);
+			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetComputeRootDescriptorTable(static_cast<UINT>(ePostProcessRP::csSampler), m_wrapSsv);
+			m_pBundles[static_cast<UINT>(ePass::postProcess)]->Dispatch(ceil(m_clientWidth / static_cast<float>(8)), ceil(m_clientHeight / static_cast<float>(8)), 1);
+			m_pBundles[static_cast<UINT>(ePass::postProcess)]->Close();
+		}
+	}
 	void D3D12::UpdateDrawLists()
 	{
 		UINT nMesh = 0;
@@ -1324,7 +1409,9 @@ namespace wilson
 	}
 	void D3D12::AddObject(Object12* const pObject)
 	{
-		m_pObjects.push_back(std::unique_ptr<Object12>(pObject));
+		std::unique_ptr<Object12> uptr;
+		uptr.reset(pObject);
+		m_pObjects.push_back(std::move(uptr));
 		UpdateDrawLists();
 	}
 	void D3D12::RemoveObject(const int i)
@@ -1421,7 +1508,10 @@ namespace wilson
 			barriers[i] = CreateResourceBarrier(m_pGBufTexs[j].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		}
 
-		m_pMainCommandList->ResourceBarrier(nTex, &barriers[0]);
+		for (int i = 0; i < nTex; ++i)
+		{
+			m_pMainCommandList->ResourceBarrier(1, &barriers[i]);
+		}
 
 		m_pMainCommandList->ClearRenderTargetView(m_screenRtvs[m_curFrame], color, 0, nullptr);
 		m_pMainCommandList->ClearRenderTargetView(m_sceneRtv, color, 0, nullptr);
@@ -1438,7 +1528,9 @@ namespace wilson
 
 		PIXBeginEvent(m_pMainCommandList.Get(), 0, L"Init Shadow Textures and Set Barriers");
 		UINT nLights[] = { m_pLightCb->GetDirLightsSize(), m_pLightCb->GetCubeLightsSize(), m_pLightCb->GetSpotLightsSize() };
-		UINT nLightsTotal = nLights[0] + nLights[1] + nLights[2];
+		UINT nLightsTotal = nLights[static_cast<UINT>(eLIGHT_TYPE::DIR)] 
+			+ nLights[static_cast<UINT>(eLIGHT_TYPE::CUBE)] 
+			+ nLights[static_cast<UINT>(eLIGHT_TYPE::SPT)];
 		//Clear ShadowMap	
 		if (nLightsTotal)
 		{
@@ -1464,7 +1556,6 @@ namespace wilson
 		m_pMainCommandAllocator->Reset();
 		m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
 		
-		m_pCam->Update();
 		m_nDrawCall = 0;
 		UINT nfrustumCull=0;
 		UINT nPassed = 0;
@@ -1537,281 +1628,281 @@ namespace wilson
 		//OcclusionPass
 		{
 			
-			//Hi-Z Occlusion Pass
-			{
-				PIXBeginEvent(m_pMainCommandList.Get(), 0, L"Gen Hi-Z");
-				UINT mipLevels = 1 + (UINT)floorf(log2f(fmaxf(_SHADOWMAP_SIZE, _SHADOWMAP_SIZE)));
-				
-				//DownSample DepthMap
-				D3D12_RESOURCE_BARRIER downSampleZ[] =
-				{
-					CreateResourceBarrier(m_pSceneDepthTex.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-				};
-				m_pMainCommandList->ResourceBarrier(sizeof(downSampleZ) / sizeof(D3D12_RESOURCE_BARRIER), downSampleZ);
+			////Hi-Z Occlusion Pass
+			//{
+			//	PIXBeginEvent(m_pMainCommandList.Get(), 0, L"Gen Hi-Z");
+			//	UINT mipLevels = 1 + (UINT)floorf(log2f(fmaxf(_SHADOWMAP_SIZE, _SHADOWMAP_SIZE)));
+			//	
+			//	//DownSample DepthMap
+			//	D3D12_RESOURCE_BARRIER downSampleZ[] =
+			//	{
+			//		CreateResourceBarrier(m_pSceneDepthTex.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
+			//	};
+			//	m_pMainCommandList->ResourceBarrier(sizeof(downSampleZ) / sizeof(D3D12_RESOURCE_BARRIER), downSampleZ);
 
-				m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-				m_pMainCommandList->SetPipelineState(m_pDownSamplePso.Get());
-				m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetDownSampleRootSignature());
-				m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eDownSampleRP::psSampler), m_wrapSsv);
-				m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eDownSampleRP::depthMap), m_sceneDepthSrv);
-				m_pMainCommandList->IASetVertexBuffers(0, 1, &m_quadVbv);
-				m_pMainCommandList->IASetIndexBuffer(&m_quadIbv);
-				m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				m_pMainCommandList->RSSetViewports(1, m_pShadowMap->GetViewport());
-				m_pMainCommandList->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
-				m_pMainCommandList->OMSetRenderTargets(1, &m_downSampleRtv, FALSE, nullptr);
-				m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
-				//SetUp
-				{
-					D3D12_RESOURCE_BARRIER copyZ[] =
-					{
-						CreateResourceBarrier(m_pSceneDepthTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_DEPTH_WRITE),
-						CreateResourceBarrier(m_pDownSampleTex.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE),
-						CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST, 0)
-					};
-					m_pMainCommandList->ResourceBarrier(sizeof(copyZ) / sizeof(D3D12_RESOURCE_BARRIER), copyZ);
+			//	m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			//	m_pMainCommandList->SetPipelineState(m_pDownSamplePso.Get());
+			//	m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetDownSampleRootSignature());
+			//	m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eDownSampleRP::psSampler), m_wrapSsv);
+			//	m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eDownSampleRP::depthMap), m_sceneDepthSrv);
+			//	m_pMainCommandList->IASetVertexBuffers(0, 1, &m_quadVbv);
+			//	m_pMainCommandList->IASetIndexBuffer(&m_quadIbv);
+			//	m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			//	m_pMainCommandList->RSSetViewports(1, m_pShadowMap->GetViewport());
+			//	m_pMainCommandList->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
+			//	m_pMainCommandList->OMSetRenderTargets(1, &m_downSampleRtv, FALSE, nullptr);
+			//	m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
+			//	//SetUp
+			//	{
+			//		D3D12_RESOURCE_BARRIER copyZ[] =
+			//		{
+			//			CreateResourceBarrier(m_pSceneDepthTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_DEPTH_WRITE),
+			//			CreateResourceBarrier(m_pDownSampleTex.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE),
+			//			CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST, 0)
+			//		};
+			//		m_pMainCommandList->ResourceBarrier(sizeof(copyZ) / sizeof(D3D12_RESOURCE_BARRIER), copyZ);
 
-					UINT curWidth = _SHADOWMAP_SIZE;
-					UINT curHeight = _SHADOWMAP_SIZE;
+			//		UINT curWidth = _SHADOWMAP_SIZE;
+			//		UINT curHeight = _SHADOWMAP_SIZE;
 
-					D3D12_TEXTURE_COPY_LOCATION dst = {};
-					dst.pResource = m_pHiZTempTex.Get();
-					dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-					dst.SubresourceIndex = 0;
+			//		D3D12_TEXTURE_COPY_LOCATION dst = {};
+			//		dst.pResource = m_pHiZTempTex.Get();
+			//		dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			//		dst.SubresourceIndex = 0;
 
-					D3D12_TEXTURE_COPY_LOCATION src = {};
-					src.pResource = m_pDownSampleTex.Get();
-					src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-					src.SubresourceIndex = 0;
+			//		D3D12_TEXTURE_COPY_LOCATION src = {};
+			//		src.pResource = m_pDownSampleTex.Get();
+			//		src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			//		src.SubresourceIndex = 0;
 
-					m_pMainCommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+			//		m_pMainCommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
 
-					D3D12_RESOURCE_BARRIER afterCopyZ[] =
-					{
-						CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET,0),
-						CreateResourceBarrier(m_pDownSampleTex.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
-					};
+			//		D3D12_RESOURCE_BARRIER afterCopyZ[] =
+			//		{
+			//			CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET,0),
+			//			CreateResourceBarrier(m_pDownSampleTex.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
+			//		};
 
-					m_pMainCommandList->ResourceBarrier(sizeof(afterCopyZ) / sizeof(D3D12_RESOURCE_BARRIER), afterCopyZ);
+			//		m_pMainCommandList->ResourceBarrier(sizeof(afterCopyZ) / sizeof(D3D12_RESOURCE_BARRIER), afterCopyZ);
 
-					for (int i = 1; i < mipLevels; ++i)
-					{
-						m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-						m_pMainCommandList->SetPipelineState(m_pGenHiZPassPso.Get());
-						m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetGenHiZpassRootSignature());
-						m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psSampler), m_borderSsv);
-						m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psLastResoltion), m_resolutionCbv);
-						D3D12_RESOURCE_BARRIER mipPrep[] =
-						{
-							CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, i - 1),
-							CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, i)
-						};
-						m_pMainCommandList->ResourceBarrier(sizeof(mipPrep) / sizeof(D3D12_RESOURCE_BARRIER), mipPrep);
-						m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psLastMip), m_hiZTempSrvs[i - 1]);
+			//		for (int i = 1; i < mipLevels; ++i)
+			//		{
+			//			m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			//			m_pMainCommandList->SetPipelineState(m_pGenHiZPassPso.Get());
+			//			m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetGenHiZpassRootSignature());
+			//			m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psSampler), m_borderSsv);
+			//			m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psLastResoltion), m_resolutionCbv);
+			//			D3D12_RESOURCE_BARRIER mipPrep[] =
+			//			{
+			//				CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, i - 1),
+			//				CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, i)
+			//			};
+			//			m_pMainCommandList->ResourceBarrier(sizeof(mipPrep) / sizeof(D3D12_RESOURCE_BARRIER), mipPrep);
+			//			m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psLastMip), m_hiZTempSrvs[i - 1]);
 
-						UINT resolution[] = { curWidth, curHeight };
-						memcpy(m_pResolutionCbBegin, resolution, sizeof(UINT) * 2);
+			//			UINT resolution[] = { curWidth, curHeight };
+			//			memcpy(m_pResolutionCbBegin, resolution, sizeof(UINT) * 2);
 
-						D3D12_VIEWPORT viewPort = {};
-						viewPort.Width = max(curWidth / 2, 1);
-						viewPort.Height = max(curHeight / 2, 1);
+			//			D3D12_VIEWPORT viewPort = {};
+			//			viewPort.Width = max(curWidth / 2, 1);
+			//			viewPort.Height = max(curHeight / 2, 1);
 
-						D3D12_RECT scissorRect = {};
-						scissorRect.right = max(curWidth / 2, 1);
-						scissorRect.bottom = max(curHeight / 2, 1);
+			//			D3D12_RECT scissorRect = {};
+			//			scissorRect.right = max(curWidth / 2, 1);
+			//			scissorRect.bottom = max(curHeight / 2, 1);
 
-						m_pMainCommandList->IASetVertexBuffers(0, 1, &m_quadVbv);
-						m_pMainCommandList->IASetIndexBuffer(&m_quadIbv);
-						m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-						m_pMainCommandList->RSSetViewports(1, &viewPort);
-						m_pMainCommandList->RSSetScissorRects(1, &scissorRect);
-						m_pMainCommandList->OMSetRenderTargets(1, &m_hiZTempRtvs[i], FALSE, nullptr);
-						m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
-
-
-						m_pMainCommandList->Close();
-						m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pMainCommandList.GetAddressOf()));
-						UINT fenceValue = m_fenceValue++;
-						m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
-						if (m_pFence->GetCompletedValue() < fenceValue)
-						{
-							m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
-							WaitForSingleObject(m_fenceEvent, INFINITE);
-						}
-						m_pMainCommandAllocator->Reset();
-						m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
-						curWidth /= 2;
-						curHeight /= 2;
-					}
-					D3D12_RESOURCE_BARRIER mipPrep[] =
-					{
-						CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, mipLevels - 1),
-						CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
-					};
-					m_pMainCommandList->ResourceBarrier(sizeof(mipPrep) / sizeof(D3D12_RESOURCE_BARRIER), mipPrep);
-				}
-				PIXEndEvent(m_pMainCommandList.Get());
-				//Test
-				m_nHiZPassed = 0;
-				std::queue<Mesh12*> q;
-				PIXBeginEvent(m_pMainCommandList.Get(), 0, L"Hi-Z Culling");
-				while (!m_pMeshQueue.empty())
-				{
-					UINT nMeshes = min(m_pMeshQueue.size(), _4KB);
-					UINT8* pHiZCullMatrixCbBegin = m_pHiZCullMatrixCbBegin;
-
-					UINT resolution[] = { m_clientWidth, m_clientHeight };
-					memcpy(m_pResolutionCbBegin, resolution, sizeof(UINT) * 2);
-					XMMATRIX matrices[3] = {
-						*(m_pCam->GetViewMatrix()),
-						*(m_pCam->GetProjectionMatrix()),
-						*(m_pCam->GetViewProjectionMatrix())
-					};
-					memcpy(pHiZCullMatrixCbBegin, matrices, sizeof(XMMATRIX)*3);
-					pHiZCullMatrixCbBegin += sizeof(XMMATRIX) * 3;
-					memcpy(pHiZCullMatrixCbBegin, pFrustum->GetPlanes(), sizeof(XMVECTOR)*6);
-					pHiZCullMatrixCbBegin += sizeof(XMVECTOR) * 6;
-
-					XMVECTOR camInfo[3] =
-					{
-						*(m_pCam->GetPosition()),
-						m_pCam->GetUp(),
-						m_pCam->GetDir()
-					};
-					memcpy(pHiZCullMatrixCbBegin, camInfo, sizeof(XMVECTOR) * 3);
+			//			m_pMainCommandList->IASetVertexBuffers(0, 1, &m_quadVbv);
+			//			m_pMainCommandList->IASetIndexBuffer(&m_quadIbv);
+			//			m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			//			m_pMainCommandList->RSSetViewports(1, &viewPort);
+			//			m_pMainCommandList->RSSetScissorRects(1, &scissorRect);
+			//			m_pMainCommandList->OMSetRenderTargets(1, &m_hiZTempRtvs[i], FALSE, nullptr);
+			//			m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
 
 
+			//			m_pMainCommandList->Close();
+			//			m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pMainCommandList.GetAddressOf()));
+			//			UINT fenceValue = m_fenceValue++;
+			//			m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
+			//			if (m_pFence->GetCompletedValue() < fenceValue)
+			//			{
+			//				m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
+			//				WaitForSingleObject(m_fenceEvent, INFINITE);
+			//			}
+			//			m_pMainCommandAllocator->Reset();
+			//			m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
+			//			curWidth /= 2;
+			//			curHeight /= 2;
+			//		}
+			//		D3D12_RESOURCE_BARRIER mipPrep[] =
+			//		{
+			//			CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, mipLevels - 1),
+			//			CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
+			//		};
+			//		m_pMainCommandList->ResourceBarrier(sizeof(mipPrep) / sizeof(D3D12_RESOURCE_BARRIER), mipPrep);
+			//	}
+			//	PIXEndEvent(m_pMainCommandList.Get());
+			//	//Test
+			//	m_nHiZPassed = 0;
+			//	std::queue<Mesh12*> q;
+			//	PIXBeginEvent(m_pMainCommandList.Get(), 0, L"Hi-Z Culling");
+			//	while (!m_pMeshQueue.empty())
+			//	{
+			//		UINT nMeshes = min(m_pMeshQueue.size(), _4KB);
+			//		UINT8* pHiZCullMatrixCbBegin = m_pHiZCullMatrixCbBegin;
 
-					for (int i=0;i<nMeshes;++i)
-					{
-						Mesh12* pMesh = m_pMeshQueue.front();
-						m_pMeshQueue.pop();
+			//		UINT resolution[] = { m_clientWidth, m_clientHeight };
+			//		memcpy(m_pResolutionCbBegin, resolution, sizeof(UINT) * 2);
+			//		XMMATRIX matrices[3] = {
+			//			*(m_pCam->GetViewMatrix()),
+			//			*(m_pCam->GetProjectionMatrix()),
+			//			*(m_pCam->GetViewProjectionMatrix())
+			//		};
+			//		memcpy(pHiZCullMatrixCbBegin, matrices, sizeof(XMMATRIX)*3);
+			//		pHiZCullMatrixCbBegin += sizeof(XMMATRIX) * 3;
+			//		memcpy(pHiZCullMatrixCbBegin, pFrustum->GetPlanes(), sizeof(XMVECTOR)*6);
+			//		pHiZCullMatrixCbBegin += sizeof(XMVECTOR) * 6;
 
-						MatBuffer12* pMatrixBuffer = pMesh->GetMatBuffer();
-						MatrixBuffer matBuffer = pMatrixBuffer->GetMatrixBuffer();
-						
-						{
-							//상수버퍼체크
-							UINT8* pAABBCbBegin = m_pAabbCbBegin;
-							UINT8* pDepthCbBegin = m_pDepthCbBegin;
-							{
-								AABB aabb = pMesh->GetGlobalAABB();
-								XMFLOAT3* pVertices = aabb.GetVertices();
-								XMVECTOR v[8];
-								FLOAT depth = 1.0f;
-								DirectX::XMFLOAT2 minAABB(1,1);
-								DirectX::XMFLOAT2 maxAABB(0, 0);
-								DirectX::XMVECTOR minV = XMVectorSet(-1.0f, -1.0f, 0, 1);
-								DirectX::XMVECTOR maxV = XMVectorSet(1.0f, 1.0f, 1, 1);
-								for (int l = 0; l < 8; ++l)
-								{
-									XMFLOAT4 v4 = XMFLOAT4(pVertices[l].x, pVertices[l].y, pVertices[l].z, 1.0f);
-									v[l] = XMLoadFloat4(&v4);
-									v[l] = XMVector4Transform(v[l], XMMatrixTranspose(matBuffer.wvpMat));
-									v[l] = XMVectorScale(v[l], 1/v[l].m128_f32[3]);
-									v[l] = DirectX::XMVectorClamp(v[l], minV, maxV);
-									XMStoreFloat4(&v4, v[l]);
-									v4.x *= 0.5f;
-									v4.x += 0.5f;
-									v4.y *= -0.5f;
-									v4.y += 0.5f;
-									minAABB.x = min(minAABB.x, v4.x);
-									minAABB.y = min(minAABB.y, v4.y);
-									maxAABB.x = max(maxAABB.x, v4.x);
-									maxAABB.y = max(maxAABB.y, v4.y);
-									depth = min(depth, v4.z);
-								}
-								
-								XMFLOAT4 result(minAABB.x, minAABB.y, maxAABB.x, maxAABB.y);
-								memcpy(pAABBCbBegin, &result, sizeof(XMVECTOR));
-								memcpy(pDepthCbBegin, &depth, sizeof(FLOAT));
-								pAABBCbBegin += sizeof(XMVECTOR);
-								pDepthCbBegin += sizeof(FLOAT);
-							}
+			//		XMVECTOR camInfo[3] =
+			//		{
+			//			*(m_pCam->GetPosition()),
+			//			m_pCam->GetUp(),
+			//			m_pCam->GetDir()
+			//		};
+			//		memcpy(pHiZCullMatrixCbBegin, camInfo, sizeof(XMVECTOR) * 3);
 
-						}
-					}
-					m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-					m_pMainCommandList->SetPipelineState(m_pHiZCullPassPso.Get());
-					m_pMainCommandList->SetComputeRootSignature(m_pShader->GetHiZCullPassRootSignature());
-					m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csHiZ), m_hiZTempSrvs[mipLevels]);
-					m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csDst), m_hiZCullListUav);
-					m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csResolution), m_resolutionCbv);
-					m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csBound), m_aabbCbv);
-					m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csDepth), m_depthCbv);
-					m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csMatrix), m_hiZCullMatrixCbv);
-					m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csBorder), m_borderSsv);
-					m_pMainCommandList->Dispatch(64, 1, 1);
 
-					D3D12_RESOURCE_BARRIER fininshHiZ[] =
-					{
-						CreateResourceBarrier(m_pHiZCullListTex.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE)
-					};
-					m_pMainCommandList->ResourceBarrier(sizeof(fininshHiZ) / sizeof(D3D12_RESOURCE_BARRIER), fininshHiZ);
-					//ReadBackResult;
-					{
-						UINT len = sqrt(_HI_Z_CULL_COUNT);
-						D3D12_TEXTURE_COPY_LOCATION dst = {};
-						dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32_UINT;
-						dst.PlacedFootprint.Footprint.Width = len;
-						dst.PlacedFootprint.Footprint.RowPitch = CUSTUM_ALIGN(sizeof(UINT) * len, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-						dst.PlacedFootprint.Footprint.Height = len;
-						dst.PlacedFootprint.Footprint.Depth = 1;
 
-						dst.pResource = m_pHiZCullReadCb.Get();
-						dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			//		for (int i=0;i<nMeshes;++i)
+			//		{
+			//			Mesh12* pMesh = m_pMeshQueue.front();
+			//			m_pMeshQueue.pop();
 
-						D3D12_TEXTURE_COPY_LOCATION src = {};
-						src.pResource = m_pHiZCullListTex.Get();
-						src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-						src.SubresourceIndex = 0;
-						//직접 복사할것
-						m_pMainCommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
-					}
+			//			MatBuffer12* pMatrixBuffer = pMesh->GetMatBuffer();
+			//			MatrixBuffer matBuffer = pMatrixBuffer->GetMatrixBuffer();
+			//			
+			//			{
+			//				//상수버퍼체크
+			//				UINT8* pAABBCbBegin = m_pAabbCbBegin;
+			//				UINT8* pDepthCbBegin = m_pDepthCbBegin;
+			//				{
+			//					AABB aabb = pMesh->GetGlobalAABB();
+			//					XMFLOAT3* pVertices = aabb.GetVertices();
+			//					XMVECTOR v[8];
+			//					FLOAT depth = 1.0f;
+			//					DirectX::XMFLOAT2 minAABB(1,1);
+			//					DirectX::XMFLOAT2 maxAABB(0, 0);
+			//					DirectX::XMVECTOR minV = XMVectorSet(-1.0f, -1.0f, 0, 1);
+			//					DirectX::XMVECTOR maxV = XMVectorSet(1.0f, 1.0f, 1, 1);
+			//					for (int l = 0; l < 8; ++l)
+			//					{
+			//						XMFLOAT4 v4 = XMFLOAT4(pVertices[l].x, pVertices[l].y, pVertices[l].z, 1.0f);
+			//						v[l] = XMLoadFloat4(&v4);
+			//						v[l] = XMVector4Transform(v[l], XMMatrixTranspose(matBuffer.wvpMat));
+			//						v[l] = XMVectorScale(v[l], 1/v[l].m128_f32[3]);
+			//						v[l] = DirectX::XMVectorClamp(v[l], minV, maxV);
+			//						XMStoreFloat4(&v4, v[l]);
+			//						v4.x *= 0.5f;
+			//						v4.x += 0.5f;
+			//						v4.y *= -0.5f;
+			//						v4.y += 0.5f;
+			//						minAABB.x = min(minAABB.x, v4.x);
+			//						minAABB.y = min(minAABB.y, v4.y);
+			//						maxAABB.x = max(maxAABB.x, v4.x);
+			//						maxAABB.y = max(maxAABB.y, v4.y);
+			//						depth = min(depth, v4.z);
+			//					}
+			//					
+			//					XMFLOAT4 result(minAABB.x, minAABB.y, maxAABB.x, maxAABB.y);
+			//					memcpy(pAABBCbBegin, &result, sizeof(XMVECTOR));
+			//					memcpy(pDepthCbBegin, &depth, sizeof(FLOAT));
+			//					pAABBCbBegin += sizeof(XMVECTOR);
+			//					pDepthCbBegin += sizeof(FLOAT);
+			//				}
 
-					D3D12_RESOURCE_BARRIER finishReadBack[] =
-					{
-						CreateResourceBarrier(m_pHiZCullListTex.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
-					};
-					m_pMainCommandList->ResourceBarrier(sizeof(finishReadBack) / sizeof(D3D12_RESOURCE_BARRIER), finishReadBack);
+			//			}
+			//		}
+			//		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			//		m_pMainCommandList->SetPipelineState(m_pHiZCullPassPso.Get());
+			//		m_pMainCommandList->SetComputeRootSignature(m_pShader->GetHiZCullPassRootSignature());
+			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csHiZ), m_hiZTempSrvs[mipLevels]);
+			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csDst), m_hiZCullListUav);
+			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csResolution), m_resolutionCbv);
+			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csBound), m_aabbCbv);
+			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csDepth), m_depthCbv);
+			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csMatrix), m_hiZCullMatrixCbv);
+			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csBorder), m_borderSsv);
+			//		m_pMainCommandList->Dispatch(64, 1, 1);
 
-					m_pMainCommandList->Close();
-					m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pMainCommandList.GetAddressOf()));
-					UINT fenceValue = m_fenceValue++;
-					m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
-					if (m_pFence->GetCompletedValue() < fenceValue)
-					{
-						m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
-						WaitForSingleObject(m_fenceEvent, INFINITE);
-					}
-					m_pMainCommandAllocator->Reset();
-					m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
+			//		D3D12_RESOURCE_BARRIER fininshHiZ[] =
+			//		{
+			//			CreateResourceBarrier(m_pHiZCullListTex.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE)
+			//		};
+			//		m_pMainCommandList->ResourceBarrier(sizeof(fininshHiZ) / sizeof(D3D12_RESOURCE_BARRIER), fininshHiZ);
+			//		//ReadBackResult;
+			//		{
+			//			UINT len = sqrt(_HI_Z_CULL_COUNT);
+			//			D3D12_TEXTURE_COPY_LOCATION dst = {};
+			//			dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32_UINT;
+			//			dst.PlacedFootprint.Footprint.Width = len;
+			//			dst.PlacedFootprint.Footprint.RowPitch = CUSTUM_ALIGN(sizeof(UINT) * len, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+			//			dst.PlacedFootprint.Footprint.Height = len;
+			//			dst.PlacedFootprint.Footprint.Depth = 1;
 
-					UINT* pHiZCullReadCbBegin = reinterpret_cast<UINT*>(m_pHiZCullReadCbBegin);
+			//			dst.pResource = m_pHiZCullReadCb.Get();
+			//			dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
-					//Refresh queue
-					for (int j = 0; j < nMeshes; ++j)
-					{
-						Mesh12* pMesh = pMeshQueue.front();
-						pMeshQueue.pop();
-						UINT result = *(pHiZCullReadCbBegin + j);
-						if (result)
-						{
-							q.push(pMesh);
-						}
+			//			D3D12_TEXTURE_COPY_LOCATION src = {};
+			//			src.pResource = m_pHiZCullListTex.Get();
+			//			src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			//			src.SubresourceIndex = 0;
+			//			//직접 복사할것
+			//			m_pMainCommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+			//		}
 
-					}
-				
-				}
-				pMeshQueue = q;
-				m_pMeshQueue = pMeshQueue;
-				D3D12_RESOURCE_BARRIER finishHiZtest[] =
-				{
-					CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
-				};
-				m_pMainCommandList->ResourceBarrier(sizeof(finishHiZtest) / sizeof(D3D12_RESOURCE_BARRIER), finishHiZtest);
-				PIXEndEvent(m_pMainCommandList.Get());
-			}
+			//		D3D12_RESOURCE_BARRIER finishReadBack[] =
+			//		{
+			//			CreateResourceBarrier(m_pHiZCullListTex.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+			//		};
+			//		m_pMainCommandList->ResourceBarrier(sizeof(finishReadBack) / sizeof(D3D12_RESOURCE_BARRIER), finishReadBack);
+
+			//		m_pMainCommandList->Close();
+			//		m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pMainCommandList.GetAddressOf()));
+			//		UINT fenceValue = m_fenceValue++;
+			//		m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
+			//		if (m_pFence->GetCompletedValue() < fenceValue)
+			//		{
+			//			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
+			//			WaitForSingleObject(m_fenceEvent, INFINITE);
+			//		}
+			//		m_pMainCommandAllocator->Reset();
+			//		m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
+
+			//		UINT* pHiZCullReadCbBegin = reinterpret_cast<UINT*>(m_pHiZCullReadCbBegin);
+
+			//		//Refresh queue
+			//		for (int j = 0; j < nMeshes; ++j)
+			//		{
+			//			Mesh12* pMesh = pMeshQueue.front();
+			//			pMeshQueue.pop();
+			//			UINT result = *(pHiZCullReadCbBegin + j);
+			//			if (result)
+			//			{
+			//				q.push(pMesh);
+			//			}
+
+			//		}
+			//	
+			//	}
+			//	pMeshQueue = q;
+			//	m_pMeshQueue = pMeshQueue;
+			//	D3D12_RESOURCE_BARRIER finishHiZtest[] =
+			//	{
+			//		CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+			//	};
+			//	m_pMainCommandList->ResourceBarrier(sizeof(finishHiZtest) / sizeof(D3D12_RESOURCE_BARRIER), finishHiZtest);
+			//	PIXEndEvent(m_pMainCommandList.Get());
+			//}
 		
 		
 			//HW오클루전 테스트
@@ -1888,6 +1979,8 @@ namespace wilson
 			m_pMainCommandList->ExecuteBundle(m_pBundles[static_cast<UINT>(ePass::lightingPass)].Get());
 			m_pCam->UploadCamPos(m_pMainCommandList.Get(), false);
 			m_pCam->UploadCascadeLevels(m_pMainCommandList.Get());
+			m_pMatricesCb->SetViewMatrix(m_pCam->GetViewMatrix());
+			m_pMatricesCb->SetProjMatrix(m_pCam->GetProjectionMatrix());
 			m_pMatricesCb->UploadProjMat(m_pMainCommandList.Get(), false);
 			m_pMatricesCb->UploadViewMat(m_pMainCommandList.Get());
 			m_pLightCb->UpdateLightBuffer(m_pMainCommandList.Get());
@@ -1904,30 +1997,6 @@ namespace wilson
 		m_pMainCommandList->OMSetRenderTargets(1, &m_sceneRtv, TRUE, &m_sceneDsv);
 		m_pMainCommandList->ExecuteBundle(m_pBundles[static_cast<UINT>(ePass::skyBoxPass)].Get());
 
-
-		/*m_pMainCommandList->SetPipelineState(m_pAabbPso);
-		m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetAabbShaderRootSingnature());
-		m_pMainCommandList->IASetIndexBuffer(&m_aabbIbv);
-		m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		while (!pSubMeshQueue.empty())
-		{
-			SubMesh* pMesh = pSubMeshQueue.front();
-			pSubMeshQueue.pop();
-
-			MatBuffer12* pMatBuffer = pMesh->GetMatBuffer();
-			pMatBuffer->UploadCombinedMat(m_pMainCommandList, false);
-
-			std::vector<bool> bOccluded= pMesh->GetOcclusionResultVec();
-			for (int i = 0; i < bOccluded.size(); ++i)
-			{
-				if (bOccluded[i])
-				{
-					m_pMainCommandList->IASetVertexBuffers(0, 1, pMesh->GetAABBVBV(i));
-					m_pMainCommandList->DrawIndexedInstanced(24, 1, 0, 0, 0);
-				}
-				
-			}
-		}*/
 
 		D3D12_RESOURCE_BARRIER postProcessPassBarriers[] = {
 			CreateResourceBarrier(m_pSceneTex.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
@@ -2051,7 +2120,7 @@ namespace wilson
 
 	void D3D12::DrawScene()
 	{	
-		ID3D12CommandList* ppCommandList[] = { m_pPbrSetupCommandList.Get(), m_pMainCommandList.Get() };
+		ID3D12CommandList* ppCommandList[] = { m_pMainCommandList.Get() };
 		ImGuiIO& io = ImGui::GetIO();
 		ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
 											*(m_pHeapManager->GetCbvSrvUavHeap()) };
@@ -2062,13 +2131,12 @@ namespace wilson
 			CreateResourceBarrier(m_pScreenTexs[m_curFrame].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 		m_pMainCommandList->ResourceBarrier(1, &rtvToPresent);
 		m_pMainCommandList->Close();
-		m_pPbrSetupCommandList->Close();
 		m_pMainCommandQueue->ExecuteCommandLists(sizeof(ppCommandList) / sizeof(ID3D12CommandList*), ppCommandList);
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
 			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault(nullptr, reinterpret_cast<void*>(m_pMainCommandList.GetAddressOf()));
+			ImGui::RenderPlatformWindowsDefault(nullptr, reinterpret_cast<void*>(m_pMainCommandList.Get()));
 		}
 
 		UINT fenceValue = m_fenceValue++;
@@ -2081,9 +2149,6 @@ namespace wilson
 
 		m_pMainCommandAllocator->Reset();
 		m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
-
-		m_pPbrSetupCommandAllocator->Reset();
-		m_pPbrSetupCommandList->Reset(m_pPbrSetupCommandAllocator.Get(), nullptr);
 
 		if (m_bVsyncOn)
 		{
@@ -2391,7 +2456,7 @@ namespace wilson
 		//Gen RS
 		{
 			geoRDesc.AntialiasedLineEnable = false;
-			geoRDesc.CullMode = D3D12_CULL_MODE_NONE;
+			geoRDesc.CullMode = D3D12_CULL_MODE_BACK;
 			geoRDesc.DepthBias = 0.0f;
 			geoRDesc.DepthBiasClamp = 0.0f;
 			geoRDesc.DepthClipEnable = true;
@@ -2529,7 +2594,6 @@ namespace wilson
 			psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 			psoDesc.DepthStencilState = DepthTestOnlyDss;
 			m_pShader->SetHWOcclusionQueryShader(&psoDesc);
-			m_pShader->SetZpassShader(&psoDesc);
 			hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pHWOcclusionQueryPso));
 			assert(SUCCEEDED(hr));
 			m_pHWOcclusionQueryPso->SetPrivateData(WKPDID_D3DDebugObjectName,
@@ -2620,7 +2684,11 @@ namespace wilson
 			assert(SUCCEEDED(hr));
 			m_pPbrDeferredGeoNormalPso->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pPbrDeferredGeoNormalPso") - 1, "D3D12:::m_pPbrDeferredGeoNormalPso");
-
+			m_pShader->SetPbrDeferredGeoNormalEmissiveShader(&psoDesc);
+			hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPbrDeferredGeoNormalEmissivePso));
+			assert(SUCCEEDED(hr));
+			m_pPbrDeferredGeoNormalEmissivePso->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12:::m_pPbrDeferredGeoNormalEmissivePso") - 1, "D3D12:::m_pPbrDeferredGeoNormalEmissivePso");
 			m_pShader->SetPbrDeferredGeoNormalHeightShader(&psoDesc);
 			hr=m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pPbrDeferredGeoNormalHeightPso));
 			assert(SUCCEEDED(hr));
@@ -2772,6 +2840,15 @@ namespace wilson
 
 			m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 			assert(m_fenceEvent!=nullptr);
+
+			hr = m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_pPbrSetupFence.GetAddressOf()));
+			assert(SUCCEEDED(hr));
+			m_pPbrSetupFence->SetPrivateData(WKPDID_D3DDebugObjectName,
+				sizeof("D3D12::m_pPbrSetupFence") - 1, "D3D12::m_pPbrSetupFence");
+			m_pbrSetupFenceValue = 1;
+
+			m_pbrSetupEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+			assert(m_pbrSetupEvent != nullptr);
 
 			hr = m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_pSsaoFence.GetAddressOf()));
 			assert(SUCCEEDED(hr));
@@ -3180,6 +3257,7 @@ namespace wilson
 				CreatePrefileterMap();
 				CreateMipMap();
 				CreateBrdfMap();
+
 			}
 
 		}
@@ -3267,73 +3345,11 @@ namespace wilson
 		
 		m_workerMutex = CreateMutex(NULL, FALSE, NULL);
 
-		//Populate Bundle
+		for (int i = 0; i < static_cast<UINT>(ePass::cnt); ++i)
 		{
-			ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
-											*(m_pHeapManager->GetCbvSrvUavHeap()) };
-
-			m_pBundles[static_cast<UINT>(ePass::zPass)]->SetPipelineState(m_pZpassPso.Get());
-			m_pBundles[static_cast<UINT>(ePass::zPass)]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-			m_pBundles[static_cast<UINT>(ePass::zPass)]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
-			m_pBundles[static_cast<UINT>(ePass::zPass)]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			m_pBundles[static_cast<UINT>(ePass::zPass)]->Close();
-
-
-			m_pBundles[static_cast<UINT>(ePass::occlusionTestPass)]->SetPipelineState(m_pHWOcclusionQueryPso.Get());
-			m_pBundles[static_cast<UINT>(ePass::occlusionTestPass)]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-			m_pBundles[static_cast<UINT>(ePass::occlusionTestPass)]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
-			m_pBundles[static_cast<UINT>(ePass::occlusionTestPass)]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			m_pBundles[static_cast<UINT>(ePass::occlusionTestPass)]->Close();
-
-			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->SetPipelineState(m_pSkyBoxPso.Get());
-			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->SetGraphicsRootSignature(m_pShader->GetSkyBoxRootSingnature());
-			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(eSkyboxRP::psDiffuseMap), m_skyBoxSrv);
-			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(eSkyboxRP::psSampler), m_wrapSsv);
-			m_pMatricesCb->SetWorldMatrix(&m_idMat);
-			m_pMatricesCb->SetViewMatrix(m_pCam->GetViewMatrix());
-			m_pMatricesCb->SetProjMatrix(m_pCam->GetProjectionMatrix());
-			m_pMatricesCb->UpdateCombinedMat(false);
-			m_pMatricesCb->UploadCombinedMat(m_pBundles[static_cast<UINT>(ePass::skyBoxPass)].Get(), false);
-			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->IASetVertexBuffers(0, 1, &m_skyBoxVbv);
-			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->IASetIndexBuffer(&m_skyBoxIbv);
-			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->DrawIndexedInstanced(_CUBE_IDX_COUNT, 1, 0, 0, 0);
-			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->Close();
-
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetPipelineState(m_pPbrDeferredLightingPso.Get());
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootSignature(m_pShader->GetPbrDeferredLightingShaderRootSingnature());
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psPos), m_GBufSrvs[static_cast<UINT>(eGbuf::pos)]);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psNormal), m_GBufSrvs[static_cast<UINT>(eGbuf::normal)]);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psAlbedo), m_GBufSrvs[static_cast<UINT>(eGbuf::albedo)]);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psSpecular), m_GBufSrvs[static_cast<UINT>(eGbuf::specular)]);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psEmissive), m_GBufSrvs[static_cast<UINT>(eGbuf::emissive)]);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psAO), m_ssaoBlurSrv);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psIrradiance), m_diffIrradianceSrv);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psPrefilter), m_prefilterSrv);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psBrdf), m_brdfSrv);
-			m_pShadowMap->BindDirSrv(m_pBundles[static_cast<UINT>(ePass::lightingPass)].Get());
-			m_pShadowMap->BindSpotSrv(m_pBundles[static_cast<UINT>(ePass::lightingPass)].Get());
-			m_pShadowMap->BindCubeSrv(m_pBundles[static_cast<UINT>(ePass::lightingPass)].Get());
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psWrap), m_wrapSsv);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psCubeShadowSampler), m_pShadowMap->GetCubeShadowSamplerView());
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psShadowSampler), m_pShadowMap->GetDirShadowSamplerView());
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->IASetVertexBuffers(0, 1, &m_quadVbv);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->IASetIndexBuffer(&m_quadIbv);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			m_pBundles[static_cast<UINT>(ePass::lightingPass)]->Close();
-
-			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetPipelineState(m_pPostProcessPso.Get());
-			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetComputeRootSignature(m_pShader->GetPostProcessShaderRootSingnature());
-			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetComputeRootDescriptorTable(static_cast<UINT>(ePostProcessRP::csExposure), m_exposureCbv);
-			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetComputeRootDescriptorTable(static_cast<UINT>(ePostProcessRP::csTex), m_sceneSrv);
-			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetComputeRootDescriptorTable(static_cast<UINT>(ePostProcessRP::csUav), m_viewportUav);
-			m_pBundles[static_cast<UINT>(ePass::postProcess)]->SetComputeRootDescriptorTable(static_cast<UINT>(ePostProcessRP::csSampler), m_wrapSsv);
-			m_pBundles[static_cast<UINT>(ePass::postProcess)]->Dispatch(ceil(m_clientWidth / static_cast<float>(8)), ceil(m_clientHeight / static_cast<float>(8)), 1);
-			m_pBundles[static_cast<UINT>(ePass::postProcess)]->Close();
+			m_pBundles[i]->Close();
 		}
+		PopulateBundle();
 	}
 	D3D12::~D3D12()
 	{	

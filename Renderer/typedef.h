@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 #include <string>
+#include <iomanip>
+#include <sstream>
 #include <map>
 #include <queue>
 #include <unordered_map>
@@ -204,7 +206,15 @@ namespace wilson
 	};
 	constexpr UINT _MAX_INSTANCES = 50;
 	
-	//Shader11
+	//Shader12
+	enum class eZpassRP
+	{
+		vsMat,
+		psDiffuse,
+		psWrap,
+		cnt
+	};
+
 	enum class eDownSampleRP
 	{
 		depthMap,

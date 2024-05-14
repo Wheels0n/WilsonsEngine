@@ -189,14 +189,33 @@ namespace wilson
 	void Mesh12::UploadBuffers(ID3D12GraphicsCommandList* pCommandlist, UINT i, ePass curPass)
 	{
 		HRESULT hr;
+		MaterialInfo matInfo = m_matInfos[i];
 		//Upload CBV
-		if (curPass == ePass::geoPass)
+		switch (curPass)
+		{
+		case wilson::ePass::zPass:
+			pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psDiffuse), m_texSrvs[m_texHash[matInfo.diffuseMap]]);
+			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
+			pCommandlist->IASetIndexBuffer(&m_subIbVs[i]);
+			break;
+		case wilson::ePass::cubeShadowPass:
+		{
+			MaterialInfo matInfo = m_matInfos[i];
+			const UINT srvDescriptorSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			UINT texCnt = 0;
+			UINT idx = m_texHash[matInfo.diffuseMap];
+			UINT nIdx = 0;
+			pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(eCubeShadowRP::psDiffuseMap), m_texSrvs[idx]);
+			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
+			pCommandlist->IASetIndexBuffer(&m_ibV);
+		}
+			break;
+		case wilson::ePass::geoPass:
 		{
 			//SetVB&IB
 			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
 			pCommandlist->IASetIndexBuffer(&m_subIbVs[i]);
 
-			MaterialInfo matInfo = m_matInfos[i];
 			//Set SRV
 			{
 				const UINT srvDescriptorSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -250,21 +269,11 @@ namespace wilson
 
 			}
 		}
-		else if (curPass == ePass::cubeShadowPass)
-		{
-			MaterialInfo matInfo = m_matInfos[i];
-			const UINT srvDescriptorSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			UINT texCnt = 0;
-			UINT idx = m_texHash[matInfo.diffuseMap];
-			UINT nIdx = 0;
-			pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(eCubeShadowRP::psDiffuseMap), m_texSrvs[idx]);
+			break;
+		default:
 			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
 			pCommandlist->IASetIndexBuffer(&m_ibV);
-		}
-		else
-		{
-			pCommandlist->IASetVertexBuffers(0, 1, &m_vbV);
-			pCommandlist->IASetIndexBuffer(&m_ibV);
+			break;
 		}
 
 		return;

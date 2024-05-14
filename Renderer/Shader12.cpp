@@ -110,6 +110,9 @@ namespace wilson
 			hr = D3DCompileFromFile(L"PBRGeometryPS_Normal.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pPbrGeometryNormalPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
+			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Emissive.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pPbrGeometryNormalEmissivePs.GetAddressOf(), &pErrorBlob);
+			assert(SUCCEEDED(hr));
+
 			hr = D3DCompileFromFile(L"PBRGeometryPS_Nomral_Height.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pPbrGeometryNormalHeightPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 			
@@ -123,6 +126,8 @@ namespace wilson
 			hr = D3DCompileFromFile(L"MatrixTransformVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pMatrixTransformVs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 			hr = D3DCompileFromFile(L"MatrixTransformInstancedVS.hlsl", nullptr, nullptr, "main", "vs_5_0", D3DCOMPILE_DEBUG, 0, m_pMatrixTransformInstancedVs.GetAddressOf(), &pErrorBlob);
+			assert(SUCCEEDED(hr));
+			hr = D3DCompileFromFile(L"DepthOnlyPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pDepthOnlyPs.GetAddressOf(), &pErrorBlob);
 			assert(SUCCEEDED(hr));
 
 			hr = D3DCompileFromFile(L"ConstantPS.hlsl", nullptr, nullptr, "main", "ps_5_0", D3DCOMPILE_DEBUG, 0, m_pConstantPs.GetAddressOf(), &pErrorBlob);
@@ -309,23 +314,43 @@ namespace wilson
 			}
 			//Zpass
 			{
-				D3D12_DESCRIPTOR_RANGE1 zPassRanges[1] = {};
-				zPassRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-				zPassRanges[0].NumDescriptors = 1;
-				zPassRanges[0].BaseShaderRegister = 0;
-				zPassRanges[0].RegisterSpace = 0;
-				zPassRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				D3D12_DESCRIPTOR_RANGE1 zPassRanges[static_cast<UINT>(eZpassRP::cnt)] = {};
+				zPassRanges[static_cast<UINT>(eZpassRP::vsMat)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+				zPassRanges[static_cast<UINT>(eZpassRP::vsMat)].NumDescriptors = 1;
+				zPassRanges[static_cast<UINT>(eZpassRP::vsMat)].BaseShaderRegister = 0;
+				zPassRanges[static_cast<UINT>(eZpassRP::vsMat)].RegisterSpace = 0;
+				zPassRanges[static_cast<UINT>(eZpassRP::vsMat)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-				D3D12_ROOT_PARAMETER1 zPassRootParameter[1] = {};
+				zPassRanges[static_cast<UINT>(eZpassRP::psDiffuse)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				zPassRanges[static_cast<UINT>(eZpassRP::psDiffuse)].NumDescriptors = 1;
+				zPassRanges[static_cast<UINT>(eZpassRP::psDiffuse)].BaseShaderRegister = 0;
+				zPassRanges[static_cast<UINT>(eZpassRP::psDiffuse)].RegisterSpace = 0;
+				zPassRanges[static_cast<UINT>(eZpassRP::psDiffuse)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-				zPassRootParameter[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-				zPassRootParameter[0].DescriptorTable.NumDescriptorRanges = 1;
-				zPassRootParameter[0].DescriptorTable.pDescriptorRanges = &zPassRanges[0];
-				zPassRootParameter[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+				zPassRanges[static_cast<UINT>(eZpassRP::psWrap)].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+				zPassRanges[static_cast<UINT>(eZpassRP::psWrap)].NumDescriptors = 1;
+				zPassRanges[static_cast<UINT>(eZpassRP::psWrap)].BaseShaderRegister = 0;
+				zPassRanges[static_cast<UINT>(eZpassRP::psWrap)].RegisterSpace = 0;
+				zPassRanges[static_cast<UINT>(eZpassRP::psWrap)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+				D3D12_ROOT_PARAMETER1 zPassRootParameter[static_cast<UINT>(eZpassRP::cnt)] = {};
+
+				zPassRootParameter[static_cast<UINT>(eZpassRP::vsMat)].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				zPassRootParameter[static_cast<UINT>(eZpassRP::vsMat)].DescriptorTable.NumDescriptorRanges = 1;
+				zPassRootParameter[static_cast<UINT>(eZpassRP::vsMat)].DescriptorTable.pDescriptorRanges = &zPassRanges[static_cast<UINT>(eZpassRP::vsMat)];
+				zPassRootParameter[static_cast<UINT>(eZpassRP::vsMat)].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+				for (UINT i = static_cast<UINT>(eZpassRP::psDiffuse); i < static_cast<UINT>(eZpassRP::cnt); ++i)
+				{	
+					zPassRootParameter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+					zPassRootParameter[i].DescriptorTable.NumDescriptorRanges = 1;
+					zPassRootParameter[i].DescriptorTable.pDescriptorRanges = &zPassRanges[i];
+					zPassRootParameter[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				}
 
 				D3D12_VERSIONED_ROOT_SIGNATURE_DESC zPassRootSignatureDesc;
 				zPassRootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-				zPassRootSignatureDesc.Desc_1_1.NumParameters = 1;
+				zPassRootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(eZpassRP::cnt);
 				zPassRootSignatureDesc.Desc_1_1.pParameters = zPassRootParameter;
 				zPassRootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
 				zPassRootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
@@ -1331,7 +1356,7 @@ namespace wilson
 
 
 				D3D12_ROOT_PARAMETER1 genMipRootParmeter[static_cast<UINT>(eGenMipRP::cnt)] = {};
-				for (int i = static_cast<UINT>(eGenMipRP::csTex); i < static_cast<UINT>(eGenMipRP::cnt); ++i)
+				for (int i = 0; i < static_cast<UINT>(eGenMipRP::cnt); ++i)
 				{
 					genMipRootParmeter[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 					genMipRootParmeter[i].DescriptorTable.NumDescriptorRanges = 1;

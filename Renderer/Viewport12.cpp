@@ -85,17 +85,17 @@ namespace wilson
 							case 2:
 								lightIdx = m_pD3D12->GetNumLight(eLIGHT_TYPE::DIR);
 								pLight = new DirectionalLight12(pDevice, m_pD3D12->GetCommandList(), m_pHeapManager, lightIdx, m_pCam);
-								type = "DirectionalLight11";
+								type = "DirectionalLight";
 								break;
 							case 3:
 								lightIdx = m_pD3D12->GetNumLight(eLIGHT_TYPE::CUBE);
 								pLight = new CubeLight12(pDevice, m_pD3D12->GetCommandList(), m_pHeapManager, lightIdx);
-								type = "CubeLight11";
+								type = "CubeLight";
 								break;
 							case 4:
 								lightIdx = m_pD3D12->GetNumLight(eLIGHT_TYPE::SPT);
 								pLight = new SpotLight12(pDevice, m_pD3D12->GetCommandList(), m_pHeapManager, lightIdx);
-								type = "SpotLight11";
+								type = "SpotLight";
 							}
 							DirectX::XMFLOAT3* pPos = pLight->GetPos();
 							DirectX::XMStoreFloat3(pPos, pos);

@@ -4,7 +4,7 @@
 namespace wilson
 {
     constexpr float g_near = 1.0f;
-    constexpr float g_far = 150.0f;
+    constexpr float g_far = 1500.0f;
     constexpr float g_ratio = 1.0f;
     constexpr float g_FOV = DirectX::XMConvertToRadians(90.0f);
     DirectX::XMMATRIX CubeLight12::g_perspectiveMat =

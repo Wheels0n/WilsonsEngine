@@ -16,14 +16,19 @@ namespace wilson
 		m_matHash = matHash;
 		m_texHash = diffuseHash;
 
+		m_pTexs.resize(pTexs.size());
 		for (int i = 0; i < m_pTexs.size(); ++i)
 		{
 			m_pTexs[i] = Microsoft::WRL::ComPtr<ID3D12Resource>(pTexs[i]);
+			pTexs[i]->Release();
 		}
 
-		for (int i = 0; i < m_pMeshes.size(); ++i)
+		m_pMeshes.reserve(pMeshes.size());
+		for (int i = 0; i < pMeshes.size(); ++i)
 		{
-			m_pMeshes[i].reset(pMeshes[i]);
+			std::unique_ptr<Mesh12> uptr;
+			uptr.reset(pMeshes[i]);
+			m_pMeshes.push_back(std::move(uptr));
 			m_pMeshes[i]->BindMaterial(m_matHash, m_materials, m_texHash, m_texSrvs);
 		}
 	}

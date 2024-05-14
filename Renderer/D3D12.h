@@ -38,6 +38,7 @@ namespace wilson
 		void DestroyBackBuffer();
 		void DrawObject(const ePass curPass, const UINT threadIndex, const UINT lightIdx);
 		void HWQueryForOcclusion(const UINT threadIdx);
+		void PopulateBundle();
 		void SsaoThread();
 		void WaitForGpu();
 		void WorkerThread(const UINT threadIndex);
@@ -163,6 +164,7 @@ namespace wilson
 		~D3D12();
 	private:
 		HANDLE m_fenceEvent;
+		HANDLE m_pbrSetupEvent;
 		HANDLE m_ssaoBeginFrame;
 		HANDLE m_ssaoFenceEvent;
 		HANDLE m_ssaoEndFrame;
@@ -207,6 +209,7 @@ namespace wilson
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_pWorkerCommandAllocators[_WORKER_THREAD_COUNT];
 
 		Microsoft::WRL::ComPtr<ID3D12Fence> m_pFence;
+		Microsoft::WRL::ComPtr<ID3D12Fence> m_pPbrSetupFence;
 		Microsoft::WRL::ComPtr<ID3D12Fence> m_pSsaoFence;
 		Microsoft::WRL::ComPtr<ID3D12Fence> m_pWorkerFences[_WORKER_THREAD_COUNT];
 
@@ -226,6 +229,7 @@ namespace wilson
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredGeoPso;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredGeoEmissivePso;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredGeoNormalPso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredGeoNormalEmissivePso;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredGeoNormalHeightPso;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredGeoNormalHeightEmissivePso;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPbrDeferredLightingPso;
@@ -238,7 +242,7 @@ namespace wilson
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pZpassPso;
 
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pBrdfTex;
-		Microsoft::WRL::ComPtr<ID3D12Resource> m_pBrightTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDepthDebugTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDiffIrradianceTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDownSampleTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pGBufTexs[static_cast<UINT>(eGbuf::cnt)];
@@ -250,7 +254,6 @@ namespace wilson
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHiZTempTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pNoiseTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pNoiseUploadCb;
-		Microsoft::WRL::ComPtr<ID3D12Resource> m_pPingPongTex[2];
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pPrefilterTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pQueryReadBuffers[_WORKER_THREAD_COUNT];
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pSceneTex;
@@ -264,7 +267,7 @@ namespace wilson
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pViewportTex;
 
 		D3D12_CPU_DESCRIPTOR_HANDLE m_brdfRtv;
-		D3D12_CPU_DESCRIPTOR_HANDLE m_brightRtv;
+		D3D12_CPU_DESCRIPTOR_HANDLE m_pDepthDebugRtv;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_diffIrradianceRtv;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_downSampleRtv;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_GBufRtvs[static_cast<UINT>(eGbuf::cnt)];
@@ -274,14 +277,12 @@ namespace wilson
 		D3D12_CPU_DESCRIPTOR_HANDLE m_screenDsv;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_screenRtvs[_BUFFER_COUNT];
 		D3D12_CPU_DESCRIPTOR_HANDLE m_skyBoxRtv;
-		D3D12_CPU_DESCRIPTOR_HANDLE m_pingPongRtvs[2];
 		D3D12_CPU_DESCRIPTOR_HANDLE m_prefilterRtv;
 		
 
 		D3D12_GPU_DESCRIPTOR_HANDLE m_aabbCbv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_borderSsv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_brdfSrv;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_brightSrv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_clampSsv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_depthCbv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_diffIrradianceSrv;
@@ -294,7 +295,6 @@ namespace wilson
 		D3D12_GPU_DESCRIPTOR_HANDLE m_hiZCullMatrixCbv;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_hiZTempSrvs;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_noiseSrv;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_pingPongSrvs[2];
 		D3D12_GPU_DESCRIPTOR_HANDLE m_prefilterSrv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_resolutionCbv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_roughnessCbv;
@@ -373,6 +373,7 @@ namespace wilson
 		UINT m_nHWOcclusionPassed[_WORKER_THREAD_COUNT];
 		UINT m_nNotOccluded;
 		UINT m_nSsaoSample;
+		UINT m_pbrSetupFenceValue;
 		UINT m_queryResultOffsets[_WORKER_THREAD_COUNT];
 		UINT m_selectedMesh;
 		UINT m_selectedObject;

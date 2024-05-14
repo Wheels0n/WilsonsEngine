@@ -309,7 +309,7 @@ namespace wilson
 				}
 				else
 				{
-					Light12* pLight = (Light12*)m_pSelectedEntity;
+					Light12* pLight = reinterpret_cast<Light12*>(m_pSelectedEntity);
 					DrawLightControl(pLight);
 					switch (pLight->GetType())
 					{

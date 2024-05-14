@@ -163,7 +163,7 @@ namespace wilson
 	}
 
 	void HeapManager::CreateTexture(const D3D12_RESOURCE_DESC& texDesc, const D3D12_RESOURCE_STATES state, ID3D12Resource** const  ppTex, ID3D12Device* const  pDevice)
-	{
+	{	
 		D3D12_CLEAR_VALUE clearVal = {};
 		if (texDesc.Flags == D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
 		{

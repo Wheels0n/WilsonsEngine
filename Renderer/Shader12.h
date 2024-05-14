@@ -317,6 +317,17 @@ namespace wilson
 			pPSODesc->PS = psBytecode;
 
 		}
+		void SetPbrDeferredGeoNormalEmissiveShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* const pPSODesc)
+		{
+			D3D12_SHADER_BYTECODE vsBytecode = { m_pPBRGeometryNormalVs->GetBufferPointer(),m_pPBRGeometryNormalVs->GetBufferSize() };
+			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
+			D3D12_SHADER_BYTECODE psBytecode = { m_pPbrGeometryNormalEmissivePs->GetBufferPointer(),m_pPbrGeometryNormalEmissivePs->GetBufferSize() };
+
+			pPSODesc->VS = vsBytecode;
+			pPSODesc->GS = gsBytecode;
+			pPSODesc->PS = psBytecode;
+
+		}
 		void SetPbrDeferredGeoNormalHeightShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* const pPSODesc)
 		{
 			D3D12_SHADER_BYTECODE vsBytecode = { m_pPBRGeometryNormalVs->GetBufferPointer(),m_pPBRGeometryNormalVs->GetBufferSize() };
@@ -412,7 +423,7 @@ namespace wilson
 		{
 			D3D12_SHADER_BYTECODE vsBytecode = { m_pMatrixTransformVs->GetBufferPointer(),m_pMatrixTransformVs->GetBufferSize() };
 			D3D12_SHADER_BYTECODE gsBytecode = { nullptr, 0 };
-			D3D12_SHADER_BYTECODE psBytecode = { nullptr, 0 };
+			D3D12_SHADER_BYTECODE psBytecode = { m_pDepthOnlyPs->GetBufferPointer(), m_pDepthOnlyPs->GetBufferSize() };
 
 			pPSODesc->VS = vsBytecode;
 			pPSODesc->GS = gsBytecode;
@@ -450,6 +461,7 @@ namespace wilson
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pConstantPs;
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pCubeShadowPs;
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pDeferredPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pDepthOnlyPs;
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pDiffuseIrradiancePs;
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pDownSamplePs;
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pEquirect2CubePs;
@@ -461,6 +473,7 @@ namespace wilson
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrGeometryPs;
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrGeometryEmissivePs;
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrGeometryNormalPs;
+		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrGeometryNormalEmissivePs;
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrGeometryNormalHeightPs;
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pPbrGeometryNormalHeightEmissivePs;
 		Microsoft::WRL::ComPtr<ID3DBlob> m_pPostProcessPs;

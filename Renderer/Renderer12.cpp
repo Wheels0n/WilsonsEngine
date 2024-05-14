@@ -29,9 +29,9 @@ namespace wilson
 
 		if (m_pD3D12 != nullptr)
 		{
-			delete m_pD3D12.get();
 #ifdef _DEBUG
 			{
+				delete m_pD3D12.release();
 				HMODULE dxgidebugDLL = GetModuleHandleW(L"dxgidebug.dll");
 				decltype(&DXGIGetDebugInterface) GetDebugInterface =
 					reinterpret_cast<decltype(&DXGIGetDebugInterface)>(GetProcAddress(dxgidebugDLL, "DXGIGetDebugInterface"));
@@ -98,11 +98,13 @@ namespace wilson
 	void Renderer12::Translate(const XMVECTOR tr)
 	{
 		m_pCam->Translate(tr);
+		m_pCam->Update();
 	}
 
 	void Renderer12::Rotate(int dx, int dy)
 	{
 		m_pCam->Rotate(dx, dy);
+		m_pCam->Update();
 	}
 
 

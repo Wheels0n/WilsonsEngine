@@ -41,33 +41,33 @@ namespace wilson
 	{
 		UINT dirLightOffset = 0;
 		UINT len = sizeof(DirLightProperty);
-		UINT numOfLights = m_pDirLights.size();
+		UINT nLights = m_pDirLights.size();
 		for (int i = 0; i < m_pDirLights.size(); ++i)
 		{
 			memcpy(m_pLightPropertyCbBegin + dirLightOffset, m_pDirLights[i]->GetProperty(), len);
 			dirLightOffset += len;
 		}
 		dirLightOffset = len * _MAX_DIR_LIGHTS;
-		memcpy(m_pLightPropertyCbBegin + dirLightOffset, &numOfLights, sizeof(UINT));
+		memcpy(m_pLightPropertyCbBegin + dirLightOffset, &nLights, sizeof(UINT));
 		dirLightOffset += 16;//hlsl 16bytes align;
 
 
 		UINT pntLightOffset = dirLightOffset;
 		len = sizeof(CubeLightProperty);
-		numOfLights = m_pCubeLights.size();
+		nLights = m_pCubeLights.size();
 		for (int i = 0; i < m_pCubeLights.size(); ++i)
 		{
 			memcpy(m_pLightPropertyCbBegin + pntLightOffset, m_pCubeLights[i]->GetProperty(), len);
 			pntLightOffset += len;
 		}
 		pntLightOffset = dirLightOffset+len * _MAX_PNT_LIGHTS;
-		memcpy(m_pLightPropertyCbBegin + pntLightOffset, &numOfLights, sizeof(UINT));
+		memcpy(m_pLightPropertyCbBegin + pntLightOffset, &nLights, sizeof(UINT));
 		pntLightOffset += 16;
 		
 		
 		UINT sptLightOffset = pntLightOffset;
 		len = sizeof(SpotLightProperty);
-		numOfLights = m_pSpotLights.size();
+		nLights = m_pSpotLights.size();
 		for (int i = 0; i < m_pSpotLights.size(); ++i)
 		{
 			memcpy(m_pLightPropertyCbBegin + sptLightOffset, m_pSpotLights[i]->GetProperty(), len);
@@ -75,7 +75,7 @@ namespace wilson
 		}
 
 		sptLightOffset = pntLightOffset+len * _MAX_SPT_LIGHTS;
-		memcpy(m_pLightPropertyCbBegin + sptLightOffset, &numOfLights, sizeof(UINT));
+		memcpy(m_pLightPropertyCbBegin + sptLightOffset, &nLights, sizeof(UINT));
 
 		pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psLight), m_lightPropertyCbv);
 		return;
@@ -114,7 +114,7 @@ namespace wilson
 			}
 		}
 		
-		UINT cbSize = sizeof(DirLightMatrices);
+		UINT cbSize = sizeof(LightBufferProperty);
 		m_pLightPropertyCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
 		m_lightPropertyCbv = pHeapManager->GetCbv(cbSize, pDevice);
 		

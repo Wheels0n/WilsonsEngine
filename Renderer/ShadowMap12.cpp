@@ -259,17 +259,17 @@ namespace wilson
 
 	void ShadowMap12::ClearDsv(ID3D12GraphicsCommandList* const pCommandlist, const UINT nLights[])
 	{
-		for (int i = 0; i < nLights[0]; ++i)
+		for (int i = 0; i < nLights[static_cast<UINT>(eLIGHT_TYPE::DIR)]; ++i)
 		{
 			pCommandlist->ClearDepthStencilView(m_dirDsvs[i], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
 		}
 
-		for (int i = 0; i < nLights[1]; ++i)
+		for (int i = 0; i < nLights[static_cast<UINT>(eLIGHT_TYPE::CUBE)]; ++i)
 		{
 			pCommandlist->ClearDepthStencilView(m_cubeDsvs[i], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
 		}
 
-		for (int i = 0; i < nLights[2]; ++i)
+		for (int i = 0; i < nLights[static_cast<UINT>(eLIGHT_TYPE::SPT)]; ++i)
 		{
 			pCommandlist->ClearDepthStencilView(m_spotDsvs[i], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0.0f, 0, nullptr);
 		}
@@ -278,17 +278,17 @@ namespace wilson
 	void ShadowMap12::ClearRtv(ID3D12GraphicsCommandList* const pCommandlist, const UINT nLights[])
 	{	
 
-		for (int i = 0; i < nLights[0]; ++i)
+		for (int i = 0; i < nLights[static_cast<UINT>(eLIGHT_TYPE::DIR)]; ++i)
 		{
 			pCommandlist->ClearRenderTargetView(m_dirDebugRtvs[i], m_clear, 0, nullptr);
 		}
 
-		for (int i = 0; i < nLights[1]; ++i)
+		for (int i = 0; i < nLights[static_cast<UINT>(eLIGHT_TYPE::CUBE)]; ++i)
 		{
 			pCommandlist->ClearRenderTargetView(m_cubeDebugRtvs[i], m_clear, 0, nullptr);
 		}
 
-		for (int i = 0; i < nLights[2]; ++i)
+		for (int i = 0; i < nLights[static_cast<UINT>(eLIGHT_TYPE::SPT)]; ++i)
 		{
 			pCommandlist->ClearRenderTargetView(m_spotDebugRtvs[i], m_clear, 0, nullptr);
 		}

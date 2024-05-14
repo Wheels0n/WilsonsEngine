@@ -98,10 +98,10 @@ cbuffer SpotLightMatrices
 };
 
 
-static const float _SMAP_SIZE = 1024.0f;
+static const float _SMAP_SIZE = 512.0f;
 static const float _SMAP_DX = 1.0f / _SMAP_SIZE;
 static const float _PI = 3.14159265359;
-static const float _PNT_FARZ = 150.0f;
+static const float _PNT_FARZ = 1500.0f;
 float DistributionGGX(float3 normal, float3 h, float roughness)
 {
     float a = roughness * roughness;
@@ -245,14 +245,14 @@ float CalCubeShadowFactor(SamplerState cubeShadowSampler,
     };
     
     float percentLit = 0.0f;
-    float bias = 0.05f;
+    float bias = 0.015f;
     float curDepth = length(fragToLight);
     [unroll]
     for (int i = 0; i < 20; ++i)
     {
         float sampledDepth = cubeShadowMap.SampleLevel(cubeShadowSampler, fragToLight + offesets[i], 0).r;
         sampledDepth *= _PNT_FARZ;
-        if (sampledDepth > curDepth - bias)
+        if (sampledDepth >= curDepth - bias)
         {
             percentLit += 1.0f;
         }
@@ -295,7 +295,7 @@ out float3 L0)
     L0 = float3(0.0f, 0.0f, 0.0f);
     
     float distance = length(lightDir);
-    float att = 1.0f / (distance * distance);
+    float att = 1.0f / (1+distance*distance);
 	
     lightDir = normalize(lightDir);
     float3 h = normalize(viewDir + lightDir);

@@ -119,7 +119,7 @@ PixelOutputType main(PixelInputType input)
     output.specular.rgb = g_specularMap.SampleLevel(g_WrapSampler, texCoord, 1);
     output.specular.a = 1.0f;
     
-#ifdef HAS_EMSSIVE
+#ifdef HAS_EMISSIVE
      output.emissive.xyz = g_emissiveMap.Sample(g_WrapSampler, texCoord);
 #else
     output.emissive = float4(0.0f, 0.0f, 0.0f, 1.0f);
