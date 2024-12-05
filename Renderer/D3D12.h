@@ -37,6 +37,7 @@ namespace wilson
 		void DestroyHdr();
 		void DestroyBackBuffer();
 		void DrawObject(const ePass curPass, const UINT threadIndex, const UINT lightIdx);
+		void HiZCull(const UINT threadIndex);
 		void HWQueryForOcclusion(const UINT threadIdx);
 		void PopulateBundle();
 		void SsaoThread();
@@ -155,6 +156,9 @@ namespace wilson
 		void RemoveLight(const int, Light12* cont);
 		void UpdateDrawLists();
 		void UpdateScene();
+		void UpdateSSAOParemeters();
+		void UpdateParllexMappingParemeters();
+		void UpdateExposureParemeters();
 		void UploadTexThroughCB(const D3D12_RESOURCE_DESC texDesc, const UINT rowPitch,
 			const UINT8* pData, ID3D12Resource* const pDst, ID3D12Resource** const ppUploadCB, ID3D12GraphicsCommandList* const pCommandList);
 
@@ -172,6 +176,8 @@ namespace wilson
 		HANDLE m_threadHandles[_WORKER_THREAD_COUNT];
 		HANDLE m_workerBeginFrame[_WORKER_THREAD_COUNT];
 		HANDLE m_workerFinishZpass[_WORKER_THREAD_COUNT];
+		HANDLE m_workerBeginHiZpass[_WORKER_THREAD_COUNT];
+		HANDLE m_workerFinishHiZpass[_WORKER_THREAD_COUNT];
 		HANDLE m_workerBeginHWOcclusionTestPass[_WORKER_THREAD_COUNT];
 		HANDLE m_workerFinishHWOcclusionTestPass[_WORKER_THREAD_COUNT];
 		HANDLE m_workerBeginShadowPass[_WORKER_THREAD_COUNT];
@@ -217,8 +223,8 @@ namespace wilson
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pBrdfPso;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pCascadeDirShadowPso;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pCubeShadowPso;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pDiffuseIrradiancePso;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pDownSamplePso;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pDiffuseIrradiancePso;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pEquirect2CubePso;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pGenHiZPassPso;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pGenMipmapPso;
@@ -244,13 +250,12 @@ namespace wilson
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pBrdfTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDepthDebugTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDiffIrradianceTex;
-		Microsoft::WRL::ComPtr<ID3D12Resource> m_pDownSampleTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pGBufTexs[static_cast<UINT>(eGbuf::cnt)];
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pGenMipUavTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHdrTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHdrUploadCb;
-		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHiZCullReadCb;
-		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHiZCullListTex;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHiZCullReadCb[_WORKER_THREAD_COUNT];
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHiZCullListTex[_WORKER_THREAD_COUNT];
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pHiZTempTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pNoiseTex;
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_pNoiseUploadCb;
@@ -269,7 +274,6 @@ namespace wilson
 		D3D12_CPU_DESCRIPTOR_HANDLE m_brdfRtv;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_pDepthDebugRtv;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_diffIrradianceRtv;
-		D3D12_CPU_DESCRIPTOR_HANDLE m_downSampleRtv;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_GBufRtvs[static_cast<UINT>(eGbuf::cnt)];
 		std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_hiZTempRtvs;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_sceneDsv;
@@ -280,23 +284,23 @@ namespace wilson
 		D3D12_CPU_DESCRIPTOR_HANDLE m_prefilterRtv;
 		
 
-		D3D12_GPU_DESCRIPTOR_HANDLE m_aabbCbv;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_aabbCbv[_WORKER_THREAD_COUNT];
 		D3D12_GPU_DESCRIPTOR_HANDLE m_borderSsv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_brdfSrv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_clampSsv;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_depthCbv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_diffIrradianceSrv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_equirect2CubeCbv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_exposureCbv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_GBufSrvs[static_cast<UINT>(eGbuf::cnt)];
 		D3D12_GPU_DESCRIPTOR_HANDLE m_heightScaleCbv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_hdrSrv;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_hiZCullListUav;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_hiZCullMatrixCbv;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_hiZCullListUav[_WORKER_THREAD_COUNT];
+		D3D12_GPU_DESCRIPTOR_HANDLE m_hiZCullMatrixCbv[_WORKER_THREAD_COUNT];
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_hiZTempSrvs;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_noiseSrv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_prefilterSrv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_resolutionCbv;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_hi_zCbv[_HI_Z_TEX_COUNT];
 		D3D12_GPU_DESCRIPTOR_HANDLE m_roughnessCbv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_sceneSrv;
 		D3D12_GPU_DESCRIPTOR_HANDLE m_sceneDepthSrv;
@@ -320,9 +324,11 @@ namespace wilson
 		D3D12_INDEX_BUFFER_VIEW m_quadIbv;
 		D3D12_INDEX_BUFFER_VIEW m_skyBoxIbv;
 
+		std::vector<D3D12_VIEWPORT> m_hiZViewPorts;
 		D3D12_VIEWPORT m_viewport;
 		D3D12_VIEWPORT m_diffIrradViewport;
 		D3D12_VIEWPORT m_prefilterViewport;
+		std::vector<D3D12_RECT> m_hiZScissorRects;
 		D3D12_RECT m_diffIrradRect;
 		D3D12_RECT m_prefilterRect;
 		D3D12_RECT m_scissorRect;
@@ -330,15 +336,15 @@ namespace wilson
 		std::unique_ptr<Camera12> m_pCam;
 		std::unique_ptr<HeapManager> m_pHeapManager;
 		std::unique_ptr<LightBuffer12> m_pLightCb;
-		std::unique_ptr<MatBuffer12> m_pMatricesCb;
-		std::unique_ptr<MatBuffer12> m_pOutlinerMatBuffer;
+		std::unique_ptr<MatrixHandler12> m_pMatricesCb;
 		std::vector<std::unique_ptr<Object12>> m_pObjects;
 		std::unique_ptr<Shader12> m_pShader;
 		std::unique_ptr<ShadowMap12> m_pShadowMap;
 		static D3D12* g_pD3D12;
 		std::vector<Mesh12*>m_pTotalMeshes;
-		std::queue<Mesh12*>m_pHWOcclusionQueue[_WORKER_THREAD_COUNT];
-		std::queue<Mesh12*> m_pMeshQueue;
+		std::vector<Meshlet*>m_pHiZQueue[_WORKER_THREAD_COUNT];
+		std::vector<Meshlet*>m_pHWOcclusionQueue[_WORKER_THREAD_COUNT];
+		std::vector<Meshlet*> m_pMeshletQueue[static_cast<UINT>(ePass::cnt)];
 
 
 
@@ -351,19 +357,20 @@ namespace wilson
 		float m_ssaoBias;
 		float m_ssaoRadius;
 
-		UINT8* m_pAabbCbBegin;
-		UINT8* m_pDepthCbBegin;
+		UINT8* m_pAabbCbBegin[_WORKER_THREAD_COUNT];
 		UINT8* m_pEquirect2CubeCbBegin;
 		UINT8* m_pExposureCbBegin;
 		UINT8* m_pHeightScaleCbBegin;
-		UINT8* m_pHiZCullMatrixCbBegin;
-		UINT8* m_pHiZCullReadCbBegin;
+		UINT8* m_pHiZCullMatrixCbBegin[_WORKER_THREAD_COUNT];
+		UINT8* m_pHiZCullReadCbBegin[_WORKER_THREAD_COUNT];
+		UINT8* m_pHiZResolutionCbBegin[_HI_Z_TEX_COUNT];
 		UINT8* m_pQueryReadCbBegins[_WORKER_THREAD_COUNT];
 		UINT8* m_pResolutionCbBegin;
 		UINT8* m_pRoughnessCbBegin;
 		UINT8* m_pSsaoKernalCbBegin;
 		UINT8* m_pSsaoParametersCbBegin;
 	
+		UINT m_lastMeshletIdx;
 		UINT m_clientWidth;
 		UINT m_clientHeight;
 		UINT m_curFrame;

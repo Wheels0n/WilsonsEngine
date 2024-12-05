@@ -9,8 +9,35 @@
 namespace wilson {
 
 	class HeapManager;
-	class MatBuffer12;
+	class MatrixHandler12;
 	class SubMesh;
+	class Mesh12;
+	class Meshlet
+	{
+	public:
+		void AddTris(int t) { m_tris.push_back(t); };
+		void CreateIndices();
+		void CreateAABB(VertexData* pVertexData);
+
+		AABB* GetAABB() { return m_pAABB; };
+		int GetMeshletIdx() { return m_idx; };
+		int GetNumOfTri() { return m_tris.size(); };
+		std::vector<int>& GetIndices() { return m_indices; };
+		Mesh12* GetParentMesh() { return m_pParentMesh; };
+		
+
+		void SetMeshletIndex(int idx) { m_idx = idx; };
+		void SetParentMesh(Mesh12* pMesh) { m_pParentMesh = pMesh; };
+
+	private:
+		std::vector<int> m_tris;
+		std::vector<int> m_indices;
+
+		int m_idx;
+		AABB* m_pAABB;
+		Mesh12* m_pParentMesh;
+	};
+
 	class Mesh12
 	{
 	private: 
@@ -58,10 +85,13 @@ namespace wilson {
 		{
 			return &m_angleVec;
 		}
-		AABB GetGlobalAABB();
 		inline UINT GetIndexCount(UINT i)
 		{
-			return m_indicesPos[i + 1] - m_indicesPos[i];
+			return m_meshlets[i]->GetNumOfTri()*3;
+		}
+		inline UINT GetMeshLetCount()
+		{
+			return m_meshlets.size();
 		}
 		inline UINT GetIndexOffset(UINT i)
 		{
@@ -71,7 +101,7 @@ namespace wilson {
 		{
 			return m_invWMat;
 		}
-		inline MatBuffer12* GetMatBuffer() const
+		inline MatrixHandler12* GetMatBuffer() const
 		{
 			return m_pMatricesCb.get();
 		}
@@ -90,10 +120,6 @@ namespace wilson {
 		inline std::vector<unsigned int>& GetNumVertexData()
 		{
 			return m_nVertexData;
-		}
-		inline DirectX::XMMATRIX* GetOutlinerScaleMatrix()
-		{
-			return &m_outlinerScaleMat;
 		}
 		inline PerModel* GetPerModel(UINT i)
 		{
@@ -119,25 +145,31 @@ namespace wilson {
 		{
 			return m_indicesPos;
 		}
+		inline std::vector<Meshlet*>& GetMeshelets()
+		{
+			return m_meshlets;
+		}
 		D3D12_GPU_DESCRIPTOR_HANDLE* GetTextureSrv(const UINT matIndex, const eTexType texType);
 		inline UINT GetTotalIndexCount()
 		{
 			return m_nIndex;
 		}
-		inline DirectX::XMMATRIX GetTransformMatrix(const bool bOutliner)
+		inline DirectX::XMMATRIX& GetTransformMatrix(const bool bTransposed)
 		{
-			return bOutliner ? m_outlinerMat : m_wMat;
+			return bTransposed ? m_wtMat : m_wMat;
 		}
 		inline DirectX::XMMATRIX* GetTranslationMatrix()
 		{
 			return &m_trMat;
 		}
-		void SetVBandIB(ID3D12GraphicsCommandList* const pCommandList);
+
 		void UpdateWorldMatrix();
+		void UpdateAABB();
 		void UploadBuffers(ID3D12GraphicsCommandList* pCommandlist, UINT i, ePass curPass);
 
 		Mesh12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandList, HeapManager* const pHeapManager,
-			VertexData* const pVertices, unsigned long* const pIndices,
+			std::vector<Meshlet*> meshlets,
+			VertexData* const pVertices, unsigned long* const pIndices, 
 			const std::vector<unsigned int> vertexDataPos, const std::vector<unsigned int> indicesPos,
 			wchar_t* const pName, const std::vector<std::string> matNames);
 		Mesh12(const Mesh12&) = delete;
@@ -162,6 +194,7 @@ namespace wilson {
 		std::vector<unsigned int> m_nVertexData;
 		std::vector<unsigned int> m_nIndices;
 
+		std::vector<Meshlet*> m_meshlets;
 		std::vector<MaterialInfo> m_matInfos;
 		std::vector<PerModel>m_perModels;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> m_nullSrvs;
@@ -170,16 +203,15 @@ namespace wilson {
 
 		DirectX::XMVECTOR m_angleVec;
 		DirectX::XMMATRIX m_invWMat;
-		DirectX::XMMATRIX m_outlinerScaleMat;
-		DirectX::XMMATRIX m_outlinerMat;
 		DirectX::XMMATRIX m_rtMat;
 		DirectX::XMMATRIX m_scMat;
 		DirectX::XMMATRIX m_trMat;
 		DirectX::XMMATRIX m_wMat;
+		DirectX::XMMATRIX m_wtMat;
 
 		std::unique_ptr<AABB> m_pAABB;
 		std::unique_ptr<Sphere> m_pSphere;
-		std::unique_ptr<MatBuffer12> m_pMatricesCb;
+		std::unique_ptr<MatrixHandler12> m_pMatricesCb;
 
 	};
 

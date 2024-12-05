@@ -21,19 +21,20 @@ namespace wilson
 			return m_cubeVertices;
 		}
 
-		bool IsOnFrustum(const Plane* pPlanes, const DirectX::XMMATRIX transfrom) const;
-		AABB MultiplyWorldMatrix(const DirectX::XMMATRIX transform);
-
+		void UpdateAABB(const DirectX::XMMATRIX& transform);
+		bool IsOnFrustum(const DirectX::XMVECTOR* pPlanes) const;
+		
 		AABB() = default;
 		AABB(const DirectX::XMFLOAT3 minAABB, const DirectX::XMFLOAT3 maxAABB);
-		AABB(const DirectX::XMFLOAT4 center, const float il, const float ij, const float ik);
+		AABB(const DirectX::XMVECTOR& center, const DirectX::XMVECTOR& extent);
 		~AABB();
 		
 	private:
-		bool IsOnOrForwardPlane(const Plane& palne) const;
+		bool IsOnOrForwardPlane(const DirectX::XMVECTOR& palne) const;
 		void UpdateVertices();
 	public:
 	private:
+		DirectX::XMVECTOR m_localCenter;
 		DirectX::XMVECTOR m_center;
 		DirectX::XMFLOAT3 m_cubeVertices[8];
 		DirectX::XMVECTOR m_extent;

@@ -189,8 +189,8 @@ namespace wilson
 				float* curFarZ = m_pCam->GetFarZ();
 
 				ImGui::DragFloat("Speed", curSpeed, 0.1f, 10.0f);
-				ImGui::DragFloat("NearZ", curNearZ, 0.001f, 100.f);
-				ImGui::DragFloat("FarZ", curFarZ, 100.f, 10000.f);
+				ImGui::DragFloat("NearZ", curNearZ, 0.001f, 0.1f);
+				ImGui::DragFloat("FarZ", curFarZ, 100.f, 100.f);
 
 				XMVECTOR* curPosVec = m_pCam->GetPosition();
 				XMFLOAT4 posFloat;
@@ -294,8 +294,18 @@ namespace wilson
 		if (ImGui::Begin("Scale"))
 		{
 			ImGui::DragFloat("Exposure", m_pExposure, 0.01f, 0.1f, 5.0f);
-			ImGui::DragFloat("HeightScale", m_pHeightScale, 0.0001f, 0.0001f, 5.0f, "%.4f");
+			if (m_preExposure != *m_pExposure)
+			{
+				m_pD3D12->UpdateExposureParemeters();
+			}
+			m_preExposure = *m_pExposure;
 
+			ImGui::DragFloat("HeightScale", m_pHeightScale, 0.0001f, 0.0001f, 5.0f, "%.4f");
+			if (m_preHeightScale != *m_pHeightScale)
+			{
+				m_pD3D12->UpdateParllexMappingParemeters();
+			}
+			m_preHeightScale = *m_pHeightScale;
 		}
 		ImGui::End();
 		if (ImGui::Begin("SSAO"))
@@ -303,6 +313,14 @@ namespace wilson
 			ImGui::DragInt("SampleCount", reinterpret_cast<INT*>(m_pnSsaoSample), 1, 1, 64);
 			ImGui::DragFloat("Bias", m_pSsaoBias, 0.01f, 0.1f, 5.0f);
 			ImGui::DragFloat("Radius", m_pSsaoRadius, 0.01f, 0.1f, 5.0f);
+			if (m_preSsaoBias != *m_pSsaoBias || m_preSsaoRadius != *m_pSsaoRadius
+				|| m_prenSsaoSample != *m_pnSsaoSample)
+			{
+				m_pD3D12->UpdateSSAOParemeters();
+			}
+			m_preSsaoBias = *m_pSsaoBias;
+			m_preSsaoRadius = *m_pSsaoRadius;
+			m_prenSsaoSample = *m_pnSsaoSample;
 		}
 		ImGui::End();
 	}

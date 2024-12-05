@@ -1,64 +1,70 @@
 Texture2D<float> g_hi_zMap;
 RWTexture2D<uint> g_dst;
-cbuffer vp : register(b0)
-{   
-    matrix view;
-    matrix proj;
-    matrix vpMat;
-    float4 plane[6];
-    float4 vPos;
-    float4 vUp;
-    float4 vDir;
-};
 
-cbuffer resolution : register(b1)
+cbuffer resolution : register(b0)
 {
     uint width;
     uint height;
 };
 
-cbuffer BoundInfo : register(b2)
+cbuffer vertex : register(b1)
 {   
-    //Tex최소xy, 최대xy
-    float4 bound[4096];
+ 
+    float4 v[256][8];
 };
 
-cbuffer Depth : register(b3)
+cbuffer wvp : register(b2)
 {
-    //[0,1]
-    float depth[4096];
+ 
+    float4x4 wvp[256];
 };
 
 SamplerState g_border;
+void ToTexCoord(uint idx, out float2 minV, out float2 maxV, out float depth)
+{
+    depth = 1.0f;
+    minV = float2(1.0f, 1.0f);
+    maxV = float2(0.0f, 0.0f);
+    [rollout]
+    for (int i = 0; i < 8; ++i)
+    {
+        float4 ndc = mul(v[idx][i], wvp[idx]);
+        ndc /= ndc.w;
+        float2 texCoord = ndc.xy;
+        texCoord *= float2(0.5f, -0.5f);
+        texCoord += 0.5f;
+        clamp(texCoord.x, 0.0f, 1.0f);
+        clamp(texCoord.y, 0.0f, 1.0f);
+        minV = min(texCoord, minV);
+        maxV = max(texCoord, maxV);
+        depth = min(ndc.z, depth);
+    }
+   
+}
 
-[numthreads(64, 1, 1)]
+[numthreads(16, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID)
 {   
     uint idx = DTid.x;
-    uint2 dst = uint2(DTid.x % 64, DTid.x / 64);
+    uint2 dst = uint2(DTid.x % 16, DTid.x /16);
     
-    float2 sc = (bound[idx].zw - bound[idx].xy) * float2(width, height);
+    float2 minV = float2(1.0f, 1.0f);
+    float2 maxV = float2(0.0f, 0.0f);
+    float depth = 1.0f;
+    ToTexCoord(idx, minV, maxV, depth);
     
-    float lod = ceil(log2(max(sc.x, sc.y)));
-    clamp(lod, 0, log2(width));
-    float level_lower = max(lod - 1, 0);
-    float2 scale = exp2(-level_lower).xx;
-    float2 dims = float2(ceil(scale * bound[idx].zw) - floor(scale * bound[idx].xy));
-    if(dims.x<=2&&dims.y<=2)
-    {
-        lod = level_lower;
-    }
-
+    float2 sc = (maxV - minV) * float2(width, height);
     
+    float lod = ceil(log2(max(sc.x, sc.y)/2));
     float4 samples;
    
-    samples.x = g_hi_zMap.SampleLevel(g_border, bound[idx].xy, lod);
-    samples.y = g_hi_zMap.SampleLevel(g_border, bound[idx].xw, lod);
-    samples.z = g_hi_zMap.SampleLevel(g_border, bound[idx].zy, lod);
-    samples.w = g_hi_zMap.SampleLevel(g_border, bound[idx].zw, lod);
+    samples.x = g_hi_zMap.SampleLevel(g_border, float2(maxV.x, maxV.y), lod);
+    samples.y = g_hi_zMap.SampleLevel(g_border, float2(minV.x, maxV.y), lod);
+    samples.z = g_hi_zMap.SampleLevel(g_border, float2(maxV.x, minV.y), lod);
+    samples.w = g_hi_zMap.SampleLevel(g_border, float2(minV.x, minV.y), lod);
     
-    float minSampledDepth = max(max(samples.x, samples.y), max(samples.z, samples.w));
+    float maxSampledDepth = max(max(samples.x, samples.y), max(samples.z, samples.w));
     
-    g_dst[dst.xy] = depth[idx] > minSampledDepth ? 0 : 1;
+    g_dst[dst.xy] = depth > maxSampledDepth ? 0 : 1;
  
 }

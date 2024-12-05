@@ -468,11 +468,11 @@ namespace wilson
 				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csDst)].RegisterSpace = 0;
 				hiZCullPassRanges[static_cast<UINT>(eHiZCullRP::csDst)].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-				for (int i = static_cast<UINT>(eHiZCullRP::csMatrix); i < static_cast<UINT>(eHiZCullRP::csBorder); ++i)
+				for (int i = static_cast<UINT>(eHiZCullRP::csResolution); i < static_cast<UINT>(eHiZCullRP::csBorder); ++i)
 				{
 					hiZCullPassRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 					hiZCullPassRanges[i].NumDescriptors = 1;
-					hiZCullPassRanges[i].BaseShaderRegister = i - static_cast<UINT>(eHiZCullRP::csMatrix);
+					hiZCullPassRanges[i].BaseShaderRegister = i - static_cast<UINT>(eHiZCullRP::csResolution);
 					hiZCullPassRanges[i].RegisterSpace = 0;
 					hiZCullPassRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 				}

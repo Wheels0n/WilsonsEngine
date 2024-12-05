@@ -20,7 +20,7 @@ namespace wilson {
 		{
 			return m_dir;
 		}
-		inline bool GetDirty() const
+		inline bool GetDirtyBit() const
 		{
 			return bDirty;
 		}
@@ -72,9 +72,9 @@ namespace wilson {
 		{
 			return &m_viewMat;
 		}
-		inline DirectX::XMMATRIX* GetViewProjectionMatrix()
+		inline DirectX::XMMATRIX& GetViewProjectionMatrix()
 		{
-			return &m_vpMat;
+			return m_vpMat;
 		}
 
 		void Update();

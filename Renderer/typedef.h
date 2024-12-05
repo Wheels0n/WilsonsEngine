@@ -155,7 +155,7 @@ namespace wilson
 		DirectX::XMMATRIX viewMat;
 		DirectX::XMMATRIX invWorldMat;
 		DirectX::XMMATRIX invWVMat;
-		DirectX::XMMATRIX wvpMat;
+		DirectX::XMMATRIX wvpTransposedMat;
 	};
 
 	//Mesh
@@ -233,10 +233,9 @@ namespace wilson
 	{
 		csHiZ,
 		csDst,
-		csMatrix,
 		csResolution,
 		csBound,
-		csDepth,
+		csMatrix,
 		csBorder,
 		cnt
 
@@ -413,7 +412,7 @@ namespace wilson
 
 	//DirectX
 	constexpr UINT _WORKER_THREAD_COUNT= 4;
-	constexpr UINT _OBJECT_PER_THREAD = 10;
+	constexpr UINT _OBJECT_PER_THREAD = 100;
 	constexpr float _REFRESH_RATE = 75.f;
 	constexpr UINT  _BUFFER_COUNT = 2;
 	constexpr UINT _SHADOWMAP_SIZE = 512;
@@ -431,7 +430,8 @@ namespace wilson
 	constexpr UINT  _DIFFIRRAD_HEIGHT = 32;
 	constexpr UINT  _QUAD_IDX_COUNT = 6;
 	constexpr UINT  _CUBE_IDX_COUNT = 36;
-	constexpr UINT  _HI_Z_CULL_COUNT = 4096;
+	constexpr UINT  _HI_Z_CULL_COUNT = 256;
+	constexpr UINT  _HI_Z_TEX_COUNT = 9;
 
 	enum class ePass
 	{
@@ -440,6 +440,8 @@ namespace wilson
 		spotShadowPass,
 		cubeShadowPass,
 		occlusionTestPass,
+		hi_zPass,
+		HWOcclusionPass,
 		geoPass,
 		ssaoPass,
 		ssaoBlurPass,
@@ -474,8 +476,8 @@ namespace wilson
 	//Renderer11
 	constexpr bool g_bFULL_SCREEN = false;
 	constexpr bool g_bVSYNC_ENABLE = false;
-	constexpr float g_fSCREEN_FAR = 3000.0f;
-	constexpr float g_fSCREEN_NEAR = 0.01f;
+	constexpr float g_fSCREEN_FAR = 1000.0f;
+	constexpr float g_fSCREEN_NEAR = 0.1f;
 
 	enum class eAPI {
 		DX11,

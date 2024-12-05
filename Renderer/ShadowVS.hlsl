@@ -1,5 +1,7 @@
+
 cbuffer MatrixBuffer
 {
+    matrix g_wvpMat;
     matrix g_wvpLitMatrix;
 };
 

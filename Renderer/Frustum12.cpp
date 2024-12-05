@@ -7,7 +7,7 @@ namespace wilson {
 		m_subMeshesInFrustum = 0;
 		m_subMeshesInScene = 0;
 		
-		DirectX::XMMATRIX toNDC = *(pCam->GetViewProjectionMatrix());
+		DirectX::XMMATRIX toNDC = (pCam->GetViewProjectionMatrix());
 		toNDC = DirectX::XMMatrixTranspose(toNDC);
 
 		DirectX::XMFLOAT4X4 toNDC4;

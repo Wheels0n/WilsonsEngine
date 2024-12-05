@@ -1,8 +1,8 @@
-#include "MatrixBuffer12.h"
+﻿#include "MatrixBuffer12.h"
 #include "HeapManager.h"
 namespace wilson
 {
-	MatBuffer12::MatBuffer12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager,
+	MatrixHandler12::MatrixHandler12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager,
 		XMMATRIX* const pViewMat, XMMATRIX* const pProjMat)
 	{
 
@@ -14,11 +14,14 @@ namespace wilson
 		bDirty = false;
 
 		m_worldMat = XMMatrixIdentity();
+		m_matrixBuffer.worldMat = m_worldMat;
 		m_invWorldMat = m_worldMat;
+		m_matrixBuffer.invWorldMat= m_invWorldMat;
 		m_lightSpaceMat = m_worldMat;
 		m_extraMat = m_worldMat;
 
 		m_viewMat = *pViewMat;
+		m_matrixBuffer.viewMat = m_viewMat;
 		m_projMat = *pProjMat;
 
 		
@@ -40,38 +43,22 @@ namespace wilson
 	
 	}
 
-	MatBuffer12::~MatBuffer12()
+	MatrixHandler12::~MatrixHandler12()
 	{
 	}
 
-	void MatBuffer12::UploadMatBuffer(ID3D12GraphicsCommandList* const pCommandlist)
+	void MatrixHandler12::UploadMatBuffer(ID3D12GraphicsCommandList* const pCommandlist)
 	{	
-		if (bDirty)
-		{
-			XMMATRIX invWVMat = XMMatrixMultiply(XMMatrixTranspose(m_worldMat), XMMatrixTranspose(m_viewMat));
-			invWVMat = XMMatrixInverse(nullptr, invWVMat);
-			invWVMat = XMMatrixTranspose(invWVMat);
-			m_invWVMat= invWVMat;
-			bDirty = false;
-		}
-		
-
-		MatrixBuffer matBuffer;
-		matBuffer.worldMat = m_worldMat;
-		matBuffer.viewMat = m_viewMat;
-		matBuffer.invWorldMat = m_invWorldMat;
-		matBuffer.invWVMat = m_invWVMat;
-		matBuffer.wvpMat = m_wvpMat;
-
-
-		memcpy(m_pMatricesCbBegin, &matBuffer, sizeof(matBuffer));
 		pCommandlist->SetGraphicsRootDescriptorTable(0, m_matCbv);
 		return;
 	}
-
-	void MatBuffer12::UploadProjMat(ID3D12GraphicsCommandList* const pCommandlist, const bool bSsao)
-	{	
+	void MatrixHandler12::SetProjMatrix(XMMATRIX* const projMat)
+	{
+		m_projMat = *projMat;
 		memcpy(m_pProjMatCbBegin, &m_projMat, sizeof(XMMATRIX));
+	}
+	void MatrixHandler12::UploadProjMat(ID3D12GraphicsCommandList* const pCommandlist, const bool bSsao)
+	{	
 		if (bSsao)
 		{
 			pCommandlist->SetComputeRootDescriptorTable(static_cast<UINT>(eSsaoRP::csProj),  m_projMatCbv);
@@ -82,42 +69,57 @@ namespace wilson
 		}
 		return;
 	}
-	void MatBuffer12::UploadViewMat(ID3D12GraphicsCommandList* const pCommandlist)
+	void MatrixHandler12::SetViewMatrix(XMMATRIX* const viewMatrix)
 	{
+		m_viewMat = *viewMatrix;
+		m_matrixBuffer.viewMat = m_viewMat;
 		memcpy(m_pViewMatCbBegin, &m_viewMat, sizeof(XMMATRIX));
+	}
+	void MatrixHandler12::UploadViewMat(ID3D12GraphicsCommandList* const pCommandlist)
+	{
 		pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrLightRP::psViewMat), m_viewMatCbv);
 		
 	}
-	void MatBuffer12::UploadCombinedMat(ID3D12GraphicsCommandList* const pCommandlist, const bool bSpotShadowPass)
+	void MatrixHandler12::SetWorldMatrix(XMMATRIX* const worldMatrix)
 	{
-		const void* pSrc = bSpotShadowPass ? &m_wvpLitMat : &m_wvpMat;
-		memcpy(m_pCombinedMatCbBegin, pSrc, sizeof(XMMATRIX));
-		//Zpass, Skybox, SpotShadow, OutlinerTest Pass�� �̿�� 
+		m_worldMat = *worldMatrix;
+		m_matrixBuffer.worldMat = m_worldMat;
+	}
+	void MatrixHandler12::SetInvWorldMatrix(XMMATRIX* const invWorldMatrix)
+	{
+		m_invWorldMat = *invWorldMatrix;
+		m_matrixBuffer.invWorldMat = m_invWorldMat;
+	}
+	void MatrixHandler12::UploadCombinedMat(ID3D12GraphicsCommandList* const pCommandlist)
+	{
+		//Zpass, Skybox, SpotShadow, Pass¿¡ ÀÌ¿ëµÊ 
 		pCommandlist->SetGraphicsRootDescriptorTable(0, m_combinedMatCbv);
 		return;
 	}
-	void MatBuffer12::UpdateCombinedMat(const bool bSpotShadowPass)
+	void MatrixHandler12::UpdateCombinedMat(const bool bSpotShadowPass)
 	{
 		if (bSpotShadowPass)
 		{
 			m_wvpLitMat = XMMatrixMultiplyTranspose(XMMatrixTranspose(m_worldMat), XMMatrixTranspose(m_lightSpaceMat));
+			memcpy(m_pCombinedMatCbBegin + sizeof(XMMATRIX), &m_wvpLitMat, sizeof(XMMATRIX));
 		}
 		else
 		{
 			XMMATRIX wv = XMMatrixMultiply(XMMatrixTranspose(m_worldMat), XMMatrixTranspose(m_viewMat));
-			m_wvpMat = XMMatrixMultiplyTranspose(wv, XMMatrixTranspose(m_projMat));
+			m_wvpMat = XMMatrixMultiply(wv, XMMatrixTranspose(m_projMat));
+			m_wvpTransposedMat = XMMatrixTranspose(m_wvpMat);
+			memcpy(m_pCombinedMatCbBegin, &m_wvpTransposedMat, sizeof(XMMATRIX));
+			m_matrixBuffer.wvpTransposedMat = m_wvpTransposedMat;
 		}
 		
-	}
-	MatrixBuffer MatBuffer12::GetMatrixBuffer()
-	{
-		MatrixBuffer matrixBuffer;
-		matrixBuffer.worldMat = m_worldMat;
-		matrixBuffer.viewMat = m_viewMat;
-		matrixBuffer.invWorldMat = m_invWorldMat;
-		matrixBuffer.invWVMat = m_invWVMat;
-		matrixBuffer.wvpMat = m_wvpMat;
+		//비트로 어떤 행렬이 갱신되었는지 추적
+		{
+			XMMATRIX invWVMat = XMMatrixMultiply(XMMatrixTranspose(m_worldMat), XMMatrixTranspose(m_viewMat));
+			invWVMat = XMMatrixInverse(nullptr, invWVMat);
+			m_invWVMat = invWVMat;
+			memcpy(m_pMatricesCbBegin, &m_matrixBuffer, sizeof(MatrixBuffer));
+		}
 
-		return matrixBuffer;
 	}
+
 }

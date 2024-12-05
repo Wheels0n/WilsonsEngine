@@ -376,7 +376,7 @@ namespace wilson
 				OutputDebugStringA("D3D11::CreateDsv()onScreenFailed");
 			}
 
-			if (!CreateDsv(m_clientWidth, m_clientHeight, m_pSceneDepthTex.GetAddressOf(), m_SceneDsv.GetAddressOf()))
+			if (!CreateDsv(_SHADOWMAP_SIZE, _SHADOWMAP_SIZE, m_pSceneDepthTex.GetAddressOf(), m_SceneDsv.GetAddressOf()))
 			{
 				OutputDebugStringA("D3D11::CreateDsv()onSceneFailed");
 			}
@@ -1588,7 +1588,7 @@ namespace wilson
 						worldMat = pMeshes[j]->GetTransformMatrix(false);
 						invWorldMat = pMeshes[j]->GetInverseWorldMatrix();
 						AABB* aabb = pMeshes[j]->GetAabb();
-						if (aabb->IsOnFrustum(pPlanes, worldMat))
+						//if (aabb->IsOnFrustum(pPlanes, worldMat))
 						{	
 							nEntityDrawn++;
 							m_pMatricesCb->SetWorldMatrix(&worldMat);

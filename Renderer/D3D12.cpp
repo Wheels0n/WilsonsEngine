@@ -14,14 +14,11 @@ namespace wilson
 		{
 			//Zpass
 			WaitForSingleObject(m_workerBeginFrame[threadIndex], INFINITE);
-			PIXBeginEvent(m_pWorkerCommandLists[threadIndex].Get(), 0, L"Pre-Z Pass");
 			DrawObject(ePass::zPass, threadIndex, -1);
-			PIXEndEvent(m_pWorkerCommandLists[threadIndex].Get());
 			SetEvent(m_workerFinishZpass[threadIndex]);
 
 			//ShadowPass
 			WaitForSingleObject(m_workerBeginShadowPass[threadIndex], INFINITE);
-			PIXBeginEvent(m_pWorkerCommandLists[threadIndex].Get(), 0, L"ShadowPass");
 			std::vector<std::unique_ptr<DirectionalLight12>>& dirLights = m_pLightCb->GetDirLights();
 			std::vector<std::unique_ptr<CubeLight12>>& CubeLights = m_pLightCb->GetCubeLights();
 			std::vector<std::unique_ptr<SpotLight12>>& spotLights = m_pLightCb->GetSpotLights();
@@ -48,25 +45,23 @@ namespace wilson
 				}
 
 			}
-			PIXEndEvent(m_pWorkerCommandLists[threadIndex].Get());
 			SetEvent(m_workerFinishShadowPass[threadIndex]);
 
+			//HiZpass
+			WaitForSingleObject(m_workerBeginHiZpass[threadIndex], INFINITE);
+			HiZCull(threadIndex);
+			SetEvent(m_workerFinishHiZpass[threadIndex]);
+
 			//HWOcclusionTestPass
+			WaitForSingleObject(m_workerBeginHWOcclusionTestPass[threadIndex], INFINITE);
+			m_nHWOcclusionPassed[threadIndex] = 0;
+			HWQueryForOcclusion(threadIndex);
+			SetEvent(m_workerFinishHWOcclusionTestPass[threadIndex]);
 			
-			{
-				WaitForSingleObject(m_workerBeginHWOcclusionTestPass[threadIndex], INFINITE);
-				m_nHWOcclusionPassed[threadIndex] = 0;
-				PIXBeginEvent(m_pWorkerCommandLists[threadIndex].Get(), 0, L"HW Culling");
-				HWQueryForOcclusion(threadIndex);
-				PIXEndEvent(m_pWorkerCommandLists[threadIndex].Get());
-				SetEvent(m_workerFinishHWOcclusionTestPass[threadIndex]);
-			}
 
 			//PbrGeoPass
 			WaitForSingleObject(m_workerBeginDeferredGeoPass[threadIndex], INFINITE);
-			PIXBeginEvent(m_pWorkerCommandLists[threadIndex].Get(), 0, L"PbrGeo Pass");
 			DrawObject(ePass::geoPass, threadIndex, -1);
-			PIXEndEvent(m_pWorkerCommandLists[threadIndex].Get());
 			SetEvent(m_workerEndFrame[threadIndex]);
 		}
 		return;
@@ -85,13 +80,6 @@ namespace wilson
 
 			ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
 											*(m_pHeapManager->GetCbvSrvUavHeap()) };
-			//SSAO Pass
-			UINT8* pSSAOParametersCbBegin = m_pSsaoParametersCbBegin;
-			memcpy(pSSAOParametersCbBegin, &m_ssaoRadius, sizeof(FLOAT));
-			pSSAOParametersCbBegin += sizeof(FLOAT);
-			memcpy(pSSAOParametersCbBegin, &m_ssaoBias, sizeof(FLOAT));
-			pSSAOParametersCbBegin += sizeof(FLOAT);
-			memcpy(pSSAOParametersCbBegin, &m_nSsaoSample, sizeof(UINT));
 
 			m_pSsaoCommandList->SetPipelineState(m_pSsaoPso.Get());
 			m_pSsaoCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
@@ -105,7 +93,7 @@ namespace wilson
 			m_pSsaoCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eSsaoRP::csSamplePoints), m_ssaoKernelCbv);
 			m_pSsaoCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eSsaoRP::csParameters), m_ssaoParameterCbv);
 			m_pMatricesCb->UploadProjMat(m_pSsaoCommandList.Get(), true);
-			//8∫∏¥Ÿ ≥∑¿ª ∞ÊøÏ ∞®æ»
+			//8¬∫¬∏¬¥√ô ¬≥¬∑√Ä¬ª ¬∞√¶¬ø√¨ ¬∞¬®¬æ√à
 			m_pSsaoCommandList->Dispatch(ceil(m_clientWidth / static_cast<float>(16)), ceil(m_clientHeight / static_cast<float>(16)), 1);
 
 			//Blur SSAOTex
@@ -264,9 +252,9 @@ namespace wilson
 	}
 	bool D3D12::CreateRtvSrv(const UINT width, const UINT height)
 	{
-		//SSAO, ¿ßƒ°, π˝º±, PBR ≈ÿΩ∫√ƒµÈ¿∫ DXGI_FORMAT_R16G16B16A16_FLOAT;
-		//Hi-Z¥¬ ±Ì¿Ã∂Ûº≠ d32
-		//±◊ø‹¥¬ DXGI_FORMAT_R8G8B8A8_UNORM;
+		//SSAO, √Ä¬ß√Ñ¬°, ¬π√Ω¬º¬±, PBR √Ö√ò¬Ω¬∫√É√Ñ¬µ√©√Ä¬∫ DXGI_FORMAT_R16G16B16A16_FLOAT;
+		//Hi-Z¬¥√Ç ¬±√≠√Ä√å¬∂√≥¬º¬≠ d32
+		//¬±√ó¬ø√ú¬¥√Ç DXGI_FORMAT_R8G8B8A8_UNORM;
 		D3D12_RESOURCE_DESC	texDesc = {};
 		texDesc.Width = width;
 		texDesc.Height = height;
@@ -279,14 +267,13 @@ namespace wilson
 		texDesc.MipLevels = 1;
 		texDesc.SampleDesc.Count = 1;
 		texDesc.SampleDesc.Quality = 0;
-
+		
 		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 		rtvDesc.Texture2D.MipSlice = 0;
 		rtvDesc.Texture2D.PlaneSlice = 0;
 		rtvDesc.Format = texDesc.Format;
 		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-
-
+		
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Format = texDesc.Format;
@@ -316,7 +303,6 @@ namespace wilson
 
 
 		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		
 		for (int i = 0; i < static_cast<UINT>(eGbuf::cnt); ++i)
 		{	
 			if (i <static_cast<UINT>(eGbuf::albedo) || i >static_cast<UINT>(eGbuf::emissive))
@@ -348,50 +334,34 @@ namespace wilson
 			sizeof("D3D12::m_pDepthDebugTex") - 1, "D3D12::m_pDepthDebugTex");
 		m_pDepthDebugRtv = m_pHeapManager->GetRtv(rtvDesc, m_pDepthDebugTex.Get(), m_pDevice.Get());
 
-		//HiZ
-		//fmaxf : ø¯∑° π”∏ ¿∫ ∞°¿Â ≈´ ∫Ø(side) ±‚¡ÿ
-		//log2f : ≈ÿΩ∫√ƒ ≈©±‚∞° ¿˝π›æø ¡ŸæÓµÈæÓº≠
-		//+1    : ø¯∫ª ≈ÿΩ∫√ƒ±Ó¡ˆ π›øµ. ex)64, 32, 16, 8, 4, 2, 1
-
+		
 		{
 
-			UINT mipLevels = 1 + static_cast<UINT>(floorf(log2f(fmaxf(_SHADOWMAP_SIZE, _SHADOWMAP_SIZE))));
+			UINT mipLevels = 1 + static_cast<UINT>(floorf(log2f(fmaxf(_SHADOWMAP_SIZE, _SHADOWMAP_SIZE/2))));
 			m_hiZTempRtvs = std::vector<D3D12_CPU_DESCRIPTOR_HANDLE>(mipLevels);
 			m_hiZTempSrvs = std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>(mipLevels);
 
 			texDesc.MipLevels = mipLevels;
 			texDesc.Width = _SHADOWMAP_SIZE;
-			texDesc.Height = _SHADOWMAP_SIZE;
+			texDesc.Height = _SHADOWMAP_SIZE/2;
 			texDesc.Format = DXGI_FORMAT_R32_FLOAT;
 			rtvDesc.Format = DXGI_FORMAT_R32_FLOAT;
 			srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
 
-			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE ,
+			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_RENDER_TARGET,
 				m_pHiZTempTex.GetAddressOf(), m_pDevice.Get());
 			m_pHiZTempTex->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pHiZTempTex") - 1, "D3D12:::m_pHiZTempTex");
 
-			//π”∏ ª˝º∫øÎ 
 			for (int i = 0; i < mipLevels; ++i)
 			{
 				rtvDesc.Texture2D.MipSlice = i;
-				srvDesc.Texture2D.MostDetailedMip = i;
+				srvDesc.Texture2D.MostDetailedMip =i;
 				m_hiZTempRtvs[i] = m_pHeapManager->GetRtv(rtvDesc, m_pHiZTempTex.Get(), m_pDevice.Get());
 				m_hiZTempSrvs[i] = m_pHeapManager->GetSrv(srvDesc, m_pHiZTempTex.Get(), m_pDevice.Get());
 			}
-			//¥ŸøÓ ª˘«√∏µ øÎ
-			texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-			texDesc.MipLevels = 1;
-			rtvDesc.Texture2D.MipSlice = 0;
 
-			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_RENDER_TARGET,
-				m_pDownSampleTex.GetAddressOf(), m_pDevice.Get());
-			m_pDownSampleTex->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12::m_pDownSampleTex") - 1, "D3D12::m_pDownSampleTex");
-			m_downSampleRtv = m_pHeapManager->GetRtv(rtvDesc, m_pDownSampleTex.Get(), m_pDevice.Get());
-
-
-			//CullingøÎ
+			//Culling¬ø√´
 			texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 			srvDesc.Texture2D.MipLevels = mipLevels;
 			srvDesc.Texture2D.MostDetailedMip = 0;
@@ -402,13 +372,17 @@ namespace wilson
 			texDesc.Height = texDesc.Width;
 			texDesc.Format = DXGI_FORMAT_R32_UINT;
 			texDesc.MipLevels = 1;
-			m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-				m_pHiZCullListTex.GetAddressOf(), m_pDevice.Get());
-			m_pHiZCullListTex->SetPrivateData(WKPDID_D3DDebugObjectName,
-				sizeof("D3D12::m_pHiZCullListTex") - 1, "D3D12:::m_pHiZCullListTex");
-
 			uavDesc.Format = DXGI_FORMAT_R32_UINT;
-			m_hiZCullListUav = m_pHeapManager->GetUav(uavDesc, m_pHiZCullListTex.Get(), m_pDevice.Get());
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				m_pHeapManager->CreateTexture(texDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+					m_pHiZCullListTex[i].GetAddressOf(), m_pDevice.Get());
+				m_pHiZCullListTex[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
+					sizeof("D3D12::m_pHiZCullListTex") - 1, "D3D12:::m_pHiZCullListTex");
+
+				m_hiZCullListUav[i] = m_pHeapManager->GetUav(uavDesc, m_pHiZCullListTex[i].Get(), m_pDevice.Get());
+			}
+			
 		}
 		
 
@@ -579,18 +553,17 @@ namespace wilson
 			m_pSsaoTex.Reset();
 		}
 
-		if (m_pDownSampleTex != nullptr)
-		{
-			m_pDownSampleTex.Reset();
-		}
 		if (m_pHiZTempTex != nullptr)
 		{
 			m_pHiZTempTex.Reset();
 		}
 
-		if (m_pHiZCullListTex != nullptr)
+		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
-			m_pHiZCullListTex.Reset();
+			if (m_pHiZCullListTex[i] != nullptr)
+			{
+				m_pHiZCullListTex[i].Reset();
+			}
 		}
 
 		if (m_pSsaoBlurTex != nullptr)
@@ -717,7 +690,7 @@ namespace wilson
 			1.0F, 0.1f, 10.0f);
 		XMVECTOR eyePos = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 		XMMATRIX capView[6] =
-		{	//∫Ø»Øµ» ≈ÿΩ∫√ƒ∞° µ⁄¡˝«Ù¡Æ¿÷¿Ωø° ¿Ø¿«
+		{	//¬∫¬Ø√à¬Ø¬µ√à √Ö√ò¬Ω¬∫√É√Ñ¬∞¬° ¬µ√ö√Å√Ω√á√¥√Å¬Æ√Ä√ñ√Ä¬Ω¬ø¬° √Ä¬Ø√Ä√á
 			XMMatrixLookAtLH(eyePos, XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
 			XMMatrixLookAtLH(eyePos, XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)),
 			XMMatrixLookAtLH(eyePos, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f)),
@@ -878,7 +851,7 @@ namespace wilson
 				m_pPbrSetupCommandList->ResourceBarrier(sizeof(barriers) / sizeof(D3D12_RESOURCE_BARRIER), barriers);
 				m_pPbrSetupCommandList->Close();
 
-				//»≠∏È ≈©±‚ ¿Áº≥¡§ ∞®æ»
+				//√à¬≠¬∏√© √Ö¬©¬±√¢ √Ä√ß¬º¬≥√Å¬§ ¬∞¬®¬æ√à
 				UINT fenceValue = m_pbrSetupFenceValue++;
 				m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pPbrSetupCommandList.GetAddressOf()));
 				m_pMainCommandQueue->Signal(m_pPbrSetupFence.Get(), fenceValue);
@@ -987,24 +960,24 @@ namespace wilson
 		std::vector<std::unique_ptr<CubeLight12>>& cubeLights = m_pLightCb->GetCubeLights();
 		std::vector<std::unique_ptr<SpotLight12>>& spotLights = m_pLightCb->GetSpotLights();
 
-		while (!m_pMeshQueue.empty())
+		UINT pass = static_cast<UINT>(curPass);
+		while (!m_pMeshletQueue[pass].empty())
 		{
 			DWORD result =WaitForSingleObject(m_workerMutex, INFINITE);
 
 			if (result==WAIT_OBJECT_0)
 			{	
-				UINT qLen = 0;
-				Mesh12* pMeshes[_OBJECT_PER_THREAD] = {};
-				
-				qLen = m_pMeshQueue.size();
-				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
+				if (m_lastMeshletIdx == m_pMeshletQueue[pass].size())
 				{
-					pMeshes[i] = m_pMeshQueue.front();
-					m_pMeshQueue.pop();
+					ReleaseMutex(m_workerMutex);
+					break;
 				}
-				
-				
-				m_nDrawCall += min(qLen, _OBJECT_PER_THREAD);
+
+				UINT nMeshes =min(m_pMeshletQueue[pass].size()- m_lastMeshletIdx, _OBJECT_PER_THREAD);
+				UINT startMeshletIdx = m_lastMeshletIdx;
+				m_lastMeshletIdx += nMeshes;	
+				UINT lastMeshletIdx = m_lastMeshletIdx;
+				m_nDrawCall +=nMeshes;
 				//Set-up Status
 				
 				ReleaseMutex(m_workerMutex);
@@ -1075,40 +1048,41 @@ namespace wilson
 					m_pCam->UploadCamPos(m_pWorkerCommandLists[threadIndex].Get(), true);
 					m_pWorkerCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psSampler), m_wrapSsv);
 					m_pWorkerCommandLists[threadIndex]->OMSetRenderTargets(static_cast<UINT>(eGbuf::cnt), m_GBufRtvs, FALSE, &m_sceneDsv);
-					memcpy(m_pHeightScaleCbBegin, &m_heightScale, sizeof(float));
 					m_pWorkerCommandLists[threadIndex]->SetGraphicsRootDescriptorTable(static_cast<UINT>(ePbrGeoRP::psHeightScale), m_heightScaleCbv);
 				}
 					break;
 				default:
 					break;
 				}
-				UINT n =min(qLen, _OBJECT_PER_THREAD);
-	
-				for (UINT i = 0; i < n; ++i)
+			
+				for (UINT i = startMeshletIdx; i < lastMeshletIdx; ++i)
 				{	
-					worldMat = pMeshes[i]->GetTransformMatrix(false);
-					invWorldMat = pMeshes[i]->GetInverseWorldMatrix();
-					MatBuffer12* pMatBuffer = pMeshes[i]->GetMatBuffer();
-					pMatBuffer->SetWorldMatrix(&worldMat);
-					pMatBuffer->SetInvWorldMatrix(&invWorldMat);
-					pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
-					pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
-
+					Mesh12* pParentMesh = m_pMeshletQueue[pass][i]->GetParentMesh();
+					MatrixHandler12* pMatBuffer = pParentMesh->GetMatBuffer();
+					if (m_pCam->GetDirtyBit())
+					{
+						pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
+						pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
+						pMatBuffer->SetDirtyBit(true);
+					}
+					if (pMatBuffer->GetDirtyBit())
+					{
+						pMatBuffer->UpdateCombinedMat(false);
+						pMatBuffer->SetDirtyBit(false);
+					}
+				
 					switch (curPass)
 					{
 					case wilson::ePass::zPass:
-						pMatBuffer->UpdateCombinedMat(false);
-						pMatBuffer->UploadCombinedMat(m_pWorkerCommandLists[threadIndex].Get(), false);
+						pMatBuffer->UploadCombinedMat(m_pWorkerCommandLists[threadIndex].Get());
 						break;
 					case wilson::ePass::spotShadowPass:
 						pMatBuffer->SetLightSpaceMatrix(m_pLitMat);
-						pMatBuffer->UpdateCombinedMat(true);
-						pMatBuffer->UploadCombinedMat(m_pWorkerCommandLists[threadIndex].Get(), true);
+						pMatBuffer->UploadCombinedMat(m_pWorkerCommandLists[threadIndex].Get());
 						break;
 					case wilson::ePass::cascadeDirShadowPass:
 					case wilson::ePass::cubeShadowPass:
 					case wilson::ePass::geoPass:
-						pMatBuffer->UpdateCombinedMat(false);
 						pMatBuffer->UploadMatBuffer(m_pWorkerCommandLists[threadIndex].Get());
 						break;
 					default:
@@ -1117,11 +1091,11 @@ namespace wilson
 
 					if (curPass == ePass::geoPass||curPass==ePass::zPass)
 					{
-						for (int j = 0; j < pMeshes[i]->GetNumMaterial(); ++j)
+						int meshletIdx = m_pMeshletQueue[pass][i]->GetMeshletIdx();
 						{
-
+							
 							{
-								PerModel perModel = *(pMeshes[i]->GetPerModel(j));
+								PerModel perModel = *(pParentMesh->GetPerModel(0));
 								if (curPass == ePass::geoPass)
 								{
 									if (perModel.hasNormal)
@@ -1166,15 +1140,15 @@ namespace wilson
 								
 							}
 
-							pMeshes[i]->UploadBuffers(m_pWorkerCommandLists[threadIndex].Get(), j, curPass);
-							m_pWorkerCommandLists[threadIndex]->DrawIndexedInstanced(pMeshes[i]->GetIndexCount(j), 1,
+							pParentMesh->UploadBuffers(m_pWorkerCommandLists[threadIndex].Get(), meshletIdx, curPass);
+							m_pWorkerCommandLists[threadIndex]->DrawIndexedInstanced(pParentMesh->GetIndexCount(meshletIdx), 1,
 								0, 0, 0);
 						}
 					}
 					else
 					{
-						pMeshes[i]->UploadBuffers(m_pWorkerCommandLists[threadIndex].Get(), 0, curPass);
-						m_pWorkerCommandLists[threadIndex]->DrawIndexedInstanced(pMeshes[i]->GetTotalIndexCount(), 1,
+						pParentMesh->UploadBuffers(m_pWorkerCommandLists[threadIndex].Get(), 0, curPass);
+						m_pWorkerCommandLists[threadIndex]->DrawIndexedInstanced(pParentMesh->GetTotalIndexCount(), 1,
 							0, 0, 0);
 					}
 					
@@ -1197,34 +1171,180 @@ namespace wilson
 		
 
 	}
+	void D3D12::HiZCull(const UINT threadIndex)
+	{
+		//Hi-Z Occlusion Pass
+		{
+			UINT hi_zPass = static_cast<UINT>(ePass::hi_zPass);
+			UINT hwOcclusionPass = static_cast<UINT>(ePass::HWOcclusionPass);
+			UINT mipLevels = 1 + (UINT)floorf(log2f(fmaxf(_SHADOWMAP_SIZE, _SHADOWMAP_SIZE/2)));
+
+			ID3D12DescriptorHeap* ppHeaps[2] = { *(m_pHeapManager->GetSamplerHeap()),
+										*(m_pHeapManager->GetCbvSrvUavHeap()) };
+			XMMATRIX& vpMat = m_pCam->GetViewProjectionMatrix();
+			while (m_lastMeshletIdx < m_pMeshletQueue[hi_zPass].size())
+			{
+
+				DWORD result = WaitForSingleObject(m_workerMutex, INFINITE);
+
+				if (result == WAIT_OBJECT_0)
+				{
+					if (m_lastMeshletIdx == m_pMeshletQueue[hi_zPass].size())
+					{
+						ReleaseMutex(m_workerMutex);
+						break;
+					}
+
+					UINT nMeshes = min(m_pMeshletQueue[hi_zPass].size() - m_lastMeshletIdx, _HI_Z_CULL_COUNT);
+
+					UINT startMeshletIdx = m_lastMeshletIdx;
+					m_lastMeshletIdx += nMeshes;
+					UINT lastMeshletIdx = m_lastMeshletIdx;
+
+					m_pHiZQueue[threadIndex].reserve(nMeshes);
+					ReleaseMutex(m_workerMutex);
+
+					UINT8* pAABBCbBegin = m_pAabbCbBegin[threadIndex];
+					UINT8* pHiZCullMatrixCbBegin = m_pHiZCullMatrixCbBegin[threadIndex];
+
+
+					UINT threadGroupXCnt = sqrt(_HI_Z_CULL_COUNT);
+					std::vector<XMVECTOR> vertices(nMeshes * 8);
+					std::vector<XMMATRIX> matrices(nMeshes);
+					for (int i = startMeshletIdx; i < lastMeshletIdx; ++i)
+					{
+						Meshlet* pMeshlet = m_pMeshletQueue[hi_zPass][i];
+						Mesh12* pParentMesh = pMeshlet->GetParentMesh();
+						
+						UINT cbufferIdx = i - startMeshletIdx;
+						matrices[cbufferIdx] = vpMat;
+						{
+							{
+								AABB* aabb = pMeshlet->GetAABB();
+								XMFLOAT3* pVertices = aabb->GetVertices();
+								for (int j = 0; j < 8; ++j)
+								{
+									int idx = cbufferIdx * 8 + j;
+									vertices[idx] =
+										XMVectorSet(pVertices[j].x, pVertices[j].y, pVertices[j].z, 1.0f);
+								}
+							}
+						}
+					}
+
+					memcpy(pAABBCbBegin, &vertices[0], sizeof(XMVECTOR) * 8 * nMeshes);
+					memcpy(pHiZCullMatrixCbBegin, &matrices[0], sizeof(XMMATRIX) * nMeshes);
+					m_pWorkerCommandLists[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+					m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pHiZCullPassPso.Get());
+					m_pWorkerCommandLists[threadIndex]->SetComputeRootSignature(m_pShader->GetHiZCullPassRootSignature());
+					m_pWorkerCommandLists[threadIndex]->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csHiZ), m_hiZTempSrvs[mipLevels]);
+					m_pWorkerCommandLists[threadIndex]->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csDst), m_hiZCullListUav[threadIndex]);
+					m_pWorkerCommandLists[threadIndex]->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csResolution), m_resolutionCbv);
+					m_pWorkerCommandLists[threadIndex]->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csBound), m_aabbCbv[threadIndex]);
+					m_pWorkerCommandLists[threadIndex]->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csMatrix), m_hiZCullMatrixCbv[threadIndex]);
+					m_pWorkerCommandLists[threadIndex]->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csBorder), m_borderSsv);
+					m_pWorkerCommandLists[threadIndex]->Dispatch(threadGroupXCnt, 1, 1);
+
+					D3D12_RESOURCE_BARRIER fininshHiZ[] =
+					{
+						CreateResourceBarrier(m_pHiZCullListTex[threadIndex].Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE)
+					};
+					m_pWorkerCommandLists[threadIndex]->ResourceBarrier(sizeof(fininshHiZ) / sizeof(D3D12_RESOURCE_BARRIER), fininshHiZ);
+					//ReadBackResult;
+					{
+						UINT len = sqrt(_HI_Z_CULL_COUNT);
+						D3D12_TEXTURE_COPY_LOCATION dst = {};
+						dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32_UINT;
+						dst.PlacedFootprint.Footprint.Width = len;
+						dst.PlacedFootprint.Footprint.RowPitch = CUSTUM_ALIGN(sizeof(UINT) * len, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+						dst.PlacedFootprint.Footprint.Height = len;
+						dst.PlacedFootprint.Footprint.Depth = 1;
+
+						dst.pResource = m_pHiZCullReadCb[threadIndex].Get();
+						dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+
+						D3D12_TEXTURE_COPY_LOCATION src = {};
+						src.pResource = m_pHiZCullListTex[threadIndex].Get();
+						src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+						src.SubresourceIndex = 0;
+						//√Å√∑√Å¬¢ ¬∫¬π¬ª√ß√á√í¬∞√ç
+						m_pWorkerCommandLists[threadIndex]->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+					}
+					//TODO:READÍ∏∞Îã§Î¶∞Îã§Í≥† Î£®ÌîÑÍ∞Ä Î©àÏ∂∞ÏÑ† ÏïàÎêå
+					D3D12_RESOURCE_BARRIER finishReadBack[] =
+					{
+						CreateResourceBarrier(m_pHiZCullListTex[threadIndex].Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+					};
+					m_pWorkerCommandLists[threadIndex]->ResourceBarrier(sizeof(finishReadBack) / sizeof(D3D12_RESOURCE_BARRIER), finishReadBack);
+
+					m_pWorkerCommandLists[threadIndex]->Close();
+					m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pWorkerCommandLists[threadIndex].GetAddressOf()));
+
+					UINT fenceValue = m_workerFenceValues[threadIndex]++;
+					m_pMainCommandQueue->Signal(m_pWorkerFences[threadIndex].Get(), fenceValue);
+					if (m_pWorkerFences[threadIndex]->GetCompletedValue() < fenceValue)
+					{
+						m_pWorkerFences[threadIndex]->SetEventOnCompletion(fenceValue, m_workerFenceEvents[threadIndex]);
+						WaitForSingleObject(m_workerFenceEvents[threadIndex], INFINITE);
+					}
+
+					m_pWorkerCommandAllocators[threadIndex]->Reset();
+					m_pWorkerCommandLists[threadIndex]->Reset(m_pWorkerCommandAllocators[threadIndex].Get(), nullptr);
+
+					UINT* pHiZCullReadCbBegin = reinterpret_cast<UINT*>(m_pHiZCullReadCbBegin[threadIndex]);
+
+					//Refresh queue
+					for (int j = 0; j < nMeshes; ++j)
+					{
+						//4096ÏúºÎ°ú ÌñàÎçòÏù¥Ïú†Í∞Ä ÏµúÏÜå 256Î∞îÏù¥Ìä∏Î°ú cbÏ†ïÎ†¨Ïù¥ÎêòÏñ¥ÏÑú ÏòÄÏùå. Ï†ïÎ†¨Í∞êÏïà
+						int y= j / threadGroupXCnt;
+						int x = j % threadGroupXCnt;
+						int offset = y * 64 + x;
+						UINT result = *(pHiZCullReadCbBegin + offset);
+						Meshlet* pMeshlet = m_pMeshletQueue[hi_zPass][startMeshletIdx + j];
+						if (result)
+						{
+							m_pHiZQueue[threadIndex].push_back(pMeshlet);
+						}
+					}
+
+				}
+			}
+		}
+	}
 
 	void D3D12::HWQueryForOcclusion(const UINT threadIndex)
 	{	
 		ID3D12DescriptorHeap* ppHeaps[] = { *(m_pHeapManager->GetSamplerHeap()),
 											*(m_pHeapManager->GetCbvSrvUavHeap()) };
-		while (!m_pMeshQueue.empty())
+		UINT pass = static_cast<UINT>(ePass::HWOcclusionPass);
+		while (!m_pMeshletQueue[pass].empty())
 		{
 			DWORD result = WaitForSingleObject(m_workerMutex, INFINITE);
 
 			if (result == WAIT_OBJECT_0)
 			{
-				Mesh12* pMeshes[_OBJECT_PER_THREAD];
-				UINT qLen = m_pMeshQueue.size();
-				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
+				if (m_lastMeshletIdx == m_pMeshletQueue[pass].size())
 				{
-					pMeshes[i] = m_pMeshQueue.front();
-					m_pMeshQueue.pop();
+					ReleaseMutex(m_workerMutex);
+					break;
 				}
-				//Set-up Status
+				UINT nMeshes = min(m_pMeshletQueue[pass].size() - m_lastMeshletIdx, _OBJECT_PER_THREAD);
+
+				UINT startMeshletIdx = m_lastMeshletIdx;
+				m_lastMeshletIdx += nMeshes;
+				UINT lastMeshletIdx = m_lastMeshletIdx;
+				m_nDrawCall += nMeshes;
+				
 				ReleaseMutex(m_workerMutex);
 				UINT nQuery = 0;
-				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
+				for (UINT i = startMeshletIdx; i < lastMeshletIdx; ++i)
 				{
-
-					XMMATRIX worldMat = pMeshes[i]->GetTransformMatrix(false);
-					XMMATRIX invWorldMat = pMeshes[i]->GetInverseWorldMatrix();
-					MatBuffer12* pMatBuffer = pMeshes[i]->GetMatBuffer();
-					//m_pHWOcclusionQueryPso¥¬ DSS∏∏ Zpass∂˚ ¥Ÿ∏ß
+					Mesh12* pParentMesh = m_pMeshletQueue[pass][i]->GetParentMesh();
+					int meshletIdx = m_pMeshletQueue[pass][i]->GetMeshletIdx();
+					
+					MatrixHandler12* pMatBuffer = pParentMesh->GetMatBuffer();
+					//m_pHWOcclusionQueryPso¬¥√Ç DSS¬∏¬∏ Zpass¬∂√ª ¬¥√ô¬∏¬ß
 					m_pWorkerCommandLists[threadIndex]->SetPipelineState(m_pHWOcclusionQueryPso.Get());
 					m_pWorkerCommandLists[threadIndex]->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
 					m_pWorkerCommandLists[threadIndex]->SetGraphicsRootSignature(m_pShader->GetZpassRootSignature());
@@ -1233,17 +1353,11 @@ namespace wilson
 					m_pWorkerCommandLists[threadIndex]->RSSetScissorRects(1, &m_scissorRect);
 					m_pWorkerCommandLists[threadIndex]->OMSetRenderTargets(1, &m_sceneRtv, FALSE, &m_sceneDsv);
 
-					pMatBuffer->SetWorldMatrix(&worldMat);
-					pMatBuffer->SetInvWorldMatrix(&invWorldMat);
-					pMatBuffer->SetViewMatrix(m_pCam->GetViewMatrix());
-					pMatBuffer->SetProjMatrix(m_pCam->GetProjectionMatrix());
+					pMatBuffer->UploadCombinedMat(m_pWorkerCommandLists[threadIndex].Get());
 
-					pMatBuffer->UpdateCombinedMat(false);
-					pMatBuffer->UploadCombinedMat(m_pWorkerCommandLists[threadIndex].Get(), false);
-
-					pMeshes[i]->UploadBuffers(m_pWorkerCommandLists[threadIndex].Get(), 0, ePass::occlusionTestPass);
+					pParentMesh->UploadBuffers(m_pWorkerCommandLists[threadIndex].Get(), meshletIdx, ePass::occlusionTestPass);
 					m_pWorkerCommandLists[threadIndex]->BeginQuery(m_pQueryHeap[threadIndex].Get(), D3D12_QUERY_TYPE_OCCLUSION, nQuery);
-					m_pWorkerCommandLists[threadIndex]->DrawIndexedInstanced(pMeshes[i]->GetTotalIndexCount(), 1,
+					m_pWorkerCommandLists[threadIndex]->DrawIndexedInstanced(pParentMesh->GetIndexCount(meshletIdx), 1,
 						0, 0, 0);
 					m_pWorkerCommandLists[threadIndex]->EndQuery(m_pQueryHeap[threadIndex].Get(), D3D12_QUERY_TYPE_OCCLUSION, nQuery++);
 				}
@@ -1258,7 +1372,7 @@ namespace wilson
 				};
 				m_pWorkerCommandLists[threadIndex]->ResourceBarrier(1, &copyDstToSrc);
 				m_pWorkerCommandLists[threadIndex]->CopyBufferRegion(m_pQueryReadBuffers[threadIndex].Get(), 0, pQueryBlock, m_queryResultOffsets[threadIndex],
-					sizeof(UINT64) * min(qLen, _OBJECT_PER_THREAD));
+					sizeof(UINT64) * min(nMeshes, _OBJECT_PER_THREAD));
 
 				D3D12_RESOURCE_BARRIER copySrcToDst =
 				{
@@ -1278,14 +1392,14 @@ namespace wilson
 				m_pWorkerCommandAllocators[threadIndex]->Reset();
 				m_pWorkerCommandLists[threadIndex]->Reset(m_pWorkerCommandAllocators[threadIndex].Get(), nullptr);
 
-
-				for (int i = 0; i < min(qLen, _OBJECT_PER_THREAD); ++i)
+				m_pHWOcclusionQueue[threadIndex].reserve(nMeshes);
+				for (int i = 0; i < nMeshes; ++i)
 				{
 					UINT64 result = *(reinterpret_cast<UINT64*>(m_pQueryReadCbBegins[threadIndex]) + i);
 
 					if (result)
 					{
-						m_pHWOcclusionQueue[threadIndex].push(pMeshes[i]);
+						m_pHWOcclusionQueue[threadIndex].push_back(m_pMeshletQueue[pass][i+startMeshletIdx]);
 					}
 				}
 
@@ -1346,7 +1460,7 @@ namespace wilson
 			m_pMatricesCb->SetViewMatrix(m_pCam->GetViewMatrix());
 			m_pMatricesCb->SetProjMatrix(m_pCam->GetProjectionMatrix());
 			m_pMatricesCb->UpdateCombinedMat(false);
-			m_pMatricesCb->UploadCombinedMat(m_pBundles[static_cast<UINT>(ePass::skyBoxPass)].Get(), false);
+			m_pMatricesCb->UploadCombinedMat(m_pBundles[static_cast<UINT>(ePass::skyBoxPass)].Get());
 			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->IASetVertexBuffers(0, 1, &m_skyBoxVbv);
 			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->IASetIndexBuffer(&m_skyBoxIbv);
 			m_pBundles[static_cast<UINT>(ePass::skyBoxPass)]->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -1395,17 +1509,17 @@ namespace wilson
 			std::vector<std::unique_ptr<Mesh12>>& pMeshes = m_pObjects[i]->GetMeshes();
 			nMesh += pMeshes.size();
 		}
-		std::vector<Mesh12*> drawLists;
-		drawLists.reserve(nMesh);
+		std::vector<Mesh12*> meshes;
+		meshes.reserve(nMesh);
 		for (int i = 0; i < m_pObjects.size(); ++i)
 		{
 			std::vector<std::unique_ptr<Mesh12>>& pMeshes = m_pObjects[i]->GetMeshes();
 			for (int j = 0; j < pMeshes.size(); ++j)
 			{
-				drawLists.push_back(pMeshes[j].get());
+				meshes.push_back(pMeshes[j].get());
 			}
 		}
-		m_pTotalMeshes = drawLists;
+		m_pTotalMeshes = meshes;
 	}
 	void D3D12::AddObject(Object12* const pObject)
 	{
@@ -1508,10 +1622,9 @@ namespace wilson
 			barriers[i] = CreateResourceBarrier(m_pGBufTexs[j].Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		}
 
-		for (int i = 0; i < nTex; ++i)
-		{
-			m_pMainCommandList->ResourceBarrier(1, &barriers[i]);
-		}
+		
+		m_pMainCommandList->ResourceBarrier(nTex, &barriers[0]);
+		
 
 		m_pMainCommandList->ClearRenderTargetView(m_screenRtvs[m_curFrame], color, 0, nullptr);
 		m_pMainCommandList->ClearRenderTargetView(m_sceneRtv, color, 0, nullptr);
@@ -1526,7 +1639,7 @@ namespace wilson
 		PIXEndEvent(m_pMainCommandList.Get());
 
 
-		PIXBeginEvent(m_pMainCommandList.Get(), 0, L"Init Shadow Textures and Set Barriers");
+		PIXBeginEvent(m_pMainCommandList.Get(),0,L"Init Shadow Textures and Set Barriers");
 		UINT nLights[] = { m_pLightCb->GetDirLightsSize(), m_pLightCb->GetCubeLightsSize(), m_pLightCb->GetSpotLightsSize() };
 		UINT nLightsTotal = nLights[static_cast<UINT>(eLIGHT_TYPE::DIR)] 
 			+ nLights[static_cast<UINT>(eLIGHT_TYPE::CUBE)] 
@@ -1543,11 +1656,45 @@ namespace wilson
 			m_pShadowMap->ClearDsv(m_pMainCommandList.Get(), nLights);
 		}
 		PIXEndEvent(m_pMainCommandList.Get());
-		m_pMainCommandList->Close();
+		
 
+		m_pMainCommandList->Close();
 		m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pMainCommandList.GetAddressOf()));
+
 		UINT fenceValue = m_fenceValue++;
 		m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
+		
+		m_nDrawCall = 0;
+		UINT nfrustumCull=0;
+		UINT nPassed = 0;
+		
+		Frustum12* pFrustum =m_pCam->GetFrustum();
+		XMVECTOR* pPlanes = pFrustum->GetPlanes();
+		UINT totalMeshlet = 0;
+		for (int i = 0; i < m_pTotalMeshes.size(); ++i)
+		{
+			std::vector<Meshlet*>& pMeshlets = m_pTotalMeshes[i]->GetMeshelets();
+			UINT nMeshlet = pMeshlets.size();
+			totalMeshlet += nMeshlet;
+			m_pMeshletQueue[static_cast<UINT>(ePass::zPass)].reserve(nMeshlet);
+			m_pMeshletQueue[static_cast<UINT>(ePass::hi_zPass)].reserve(nMeshlet);
+			for (int j = 0; j < pMeshlets.size(); ++j)
+			{
+				Meshlet* pMeshlet = pMeshlets[j];
+				AABB* aabb = pMeshlet->GetAABB();
+
+				bool result = aabb->IsOnFrustum(pPlanes);
+				if (result)
+				{
+					m_pMeshletQueue[static_cast<UINT>(ePass::zPass)].push_back(pMeshlet);
+					m_pMeshletQueue[static_cast<UINT>(ePass::hi_zPass)].push_back(pMeshlet);
+				}
+			}
+		
+		}
+		pFrustum->SetSubMeshesInScene(totalMeshlet);
+		pFrustum->SetSubMeshesInFrustum(m_pMeshletQueue[static_cast<UINT>(ePass::zPass)].size());
+		
 		if (m_pFence->GetCompletedValue() < fenceValue)
 		{
 			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
@@ -1555,388 +1702,340 @@ namespace wilson
 		}
 		m_pMainCommandAllocator->Reset();
 		m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
-		
-		m_nDrawCall = 0;
-		UINT nfrustumCull=0;
-		UINT nPassed = 0;
-		//¿¸√º ∞≥√º ºˆ ∞ªΩ≈ π◊ «¡∑ØΩ∫≈“ ƒ√∏µ
-		Frustum12* pFrustum =m_pCam->GetFrustum();
-		XMVECTOR* pPlanes = pFrustum->GetPlanes();
-		for (int i = 0; i < m_pTotalMeshes.size(); ++i)
-		{
-			XMMATRIX w = m_pTotalMeshes[i]->GetTransformMatrix(false);
-			w = XMMatrixTranspose(w);
 
-			Sphere* pSphere = m_pTotalMeshes[i]->GetSphere();
-			XMFLOAT3 center = pSphere->GetCenter();
-			XMFLOAT4 center4 = XMFLOAT4(center.x, center.y, center.z, 1.0f);
-			XMVECTOR centerV = XMLoadFloat4(&center4);
-			centerV = XMVector4Transform(centerV, w);
-			XMStoreFloat3(&center, centerV);
-
-			float r = pSphere->GetRadius();
-
-			bool result = true;
-			for (int j = 0; j < 6; ++j)
-			{
-				float dot = XMVectorGetX(
-					XMPlaneDotCoord(pPlanes[j],
-						XMVectorSet(center.x, center.y, center.z, 1.0f)));
-				if (dot < -r / 2)
-				{
-					result = false;
-					break;
-				}
-			}
-			if (result)
-			{
-				m_pMeshQueue.push(m_pTotalMeshes[i]);
-			}
-		}
-		pFrustum->SetSubMeshesInScene(m_pTotalMeshes.size());
-		pFrustum->SetSubMeshesInFrustum(m_pMeshQueue.size());
-		std::queue<Mesh12*> pMeshQueue = m_pMeshQueue;
 		//Zpass
+
+		HANDLE m_handles[_WORKER_THREAD_COUNT];
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
+			PIXBeginEvent(m_pWorkerCommandLists[i].Get(), 0, L"ZPass");
 			SetEvent(m_workerBeginFrame[i]);
+			m_handles[i] = m_workerFinishZpass[i];
 		}
 		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_workerFinishZpass, TRUE, INFINITE);
-		PIXEndEvent(m_pMainCommandList.Get());
+		{
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				PIXEndEvent(m_pWorkerCommandLists[i].Get());
+				m_pWorkerCommandLists[i]->Close();
+			}
 
+			m_pMainCommandQueue->ExecuteCommandLists(_WORKER_THREAD_COUNT,
+				reinterpret_cast<ID3D12CommandList**>(m_pWorkerCommandLists[0].GetAddressOf()));
+
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				UINT fenceValue = m_workerFenceValues[i]++;
+				m_pMainCommandQueue->Signal(m_pWorkerFences[i].Get(), fenceValue);
+				if (m_pWorkerFences[i]->GetCompletedValue() < fenceValue)
+				{
+					m_pWorkerFences[i]->SetEventOnCompletion(fenceValue, m_workerFenceEvents[i]);
+					WaitForSingleObject(m_workerFenceEvents[i], INFINITE);
+				}
+
+				HRESULT hr = m_pWorkerCommandAllocators[i]->Reset();
+				assert(SUCCEEDED(hr));
+				m_pWorkerCommandLists[i]->Reset(m_pWorkerCommandAllocators[i].Get(), nullptr);
+			}
+		}
+
+		m_pMeshletQueue[static_cast<UINT>(ePass::zPass)].clear();
+		m_lastMeshletIdx = 0;
 		//ShadowPass 
-		m_pMeshQueue =pMeshQueue;
-		HANDLE m_handles[_WORKER_THREAD_COUNT] ;
+		
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
+			PIXBeginEvent(m_pWorkerCommandLists[i].Get(), 0, L"ShadowPass");
 			SetEvent(m_workerBeginShadowPass[i]);
 			m_handles[i] = m_workerFinishShadowPass[i];
 
 		}
 		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_handles, TRUE, INFINITE);
+		{
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				PIXEndEvent(m_pWorkerCommandLists[i].Get());
+				m_pWorkerCommandLists[i]->Close();
+			}
+
+			m_pMainCommandQueue->ExecuteCommandLists(_WORKER_THREAD_COUNT,
+				reinterpret_cast<ID3D12CommandList**>(m_pWorkerCommandLists[0].GetAddressOf()));
+
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				UINT fenceValue = m_workerFenceValues[i]++;
+				m_pMainCommandQueue->Signal(m_pWorkerFences[i].Get(), fenceValue);
+				if (m_pWorkerFences[i]->GetCompletedValue() < fenceValue)
+				{
+					m_pWorkerFences[i]->SetEventOnCompletion(fenceValue, m_workerFenceEvents[i]);
+					WaitForSingleObject(m_workerFenceEvents[i], INFINITE);
+				}
+
+				HRESULT hr = m_pWorkerCommandAllocators[i]->Reset();
+				assert(SUCCEEDED(hr));
+				m_pWorkerCommandLists[i]->Reset(m_pWorkerCommandAllocators[i].Get(), nullptr);
+			}
+		}
+		
 
 
-		if (nLightsTotal) 
+
+		m_lastMeshletIdx = 0;
+		if (nLightsTotal)
 		{
 			m_pShadowMap->SetResourceBarrier(m_pMainCommandList.Get(), nLights,
 				D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
 			m_pShadowMap->SetResourceBarrier(m_pMainCommandList.Get(), nLights,
 				D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, false);
 		}
-	
-		m_pMeshQueue = pMeshQueue;
-		//OcclusionPass
+
+		//Set-Up HiZPass
+		UINT mipLevels = 1 + (UINT)floorf(log2f(fmaxf(_SHADOWMAP_SIZE, _SHADOWMAP_SIZE/2)));
 		{
-			
-			////Hi-Z Occlusion Pass
-			//{
-			//	PIXBeginEvent(m_pMainCommandList.Get(), 0, L"Gen Hi-Z");
-			//	UINT mipLevels = 1 + (UINT)floorf(log2f(fmaxf(_SHADOWMAP_SIZE, _SHADOWMAP_SIZE)));
-			//	
-			//	//DownSample DepthMap
-			//	D3D12_RESOURCE_BARRIER downSampleZ[] =
-			//	{
-			//		CreateResourceBarrier(m_pSceneDepthTex.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-			//	};
-			//	m_pMainCommandList->ResourceBarrier(sizeof(downSampleZ) / sizeof(D3D12_RESOURCE_BARRIER), downSampleZ);
+			PIXBeginEvent(m_pMainCommandList.Get(), 0, L"Gen Hi-Z");
 
-			//	m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-			//	m_pMainCommandList->SetPipelineState(m_pDownSamplePso.Get());
-			//	m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetDownSampleRootSignature());
-			//	m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eDownSampleRP::psSampler), m_wrapSsv);
-			//	m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eDownSampleRP::depthMap), m_sceneDepthSrv);
-			//	m_pMainCommandList->IASetVertexBuffers(0, 1, &m_quadVbv);
-			//	m_pMainCommandList->IASetIndexBuffer(&m_quadIbv);
-			//	m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			//	m_pMainCommandList->RSSetViewports(1, m_pShadowMap->GetViewport());
-			//	m_pMainCommandList->RSSetScissorRects(1, m_pShadowMap->GetScissorRect());
-			//	m_pMainCommandList->OMSetRenderTargets(1, &m_downSampleRtv, FALSE, nullptr);
-			//	m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
-			//	//SetUp
-			//	{
-			//		D3D12_RESOURCE_BARRIER copyZ[] =
-			//		{
-			//			CreateResourceBarrier(m_pSceneDepthTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_DEPTH_WRITE),
-			//			CreateResourceBarrier(m_pDownSampleTex.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE),
-			//			CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST, 0)
-			//		};
-			//		m_pMainCommandList->ResourceBarrier(sizeof(copyZ) / sizeof(D3D12_RESOURCE_BARRIER), copyZ);
+			D3D12_VIEWPORT viewPort = {};
+			viewPort.Width = _SHADOWMAP_SIZE;
+			viewPort.Height = _SHADOWMAP_SIZE/2;
 
-			//		UINT curWidth = _SHADOWMAP_SIZE;
-			//		UINT curHeight = _SHADOWMAP_SIZE;
-
-			//		D3D12_TEXTURE_COPY_LOCATION dst = {};
-			//		dst.pResource = m_pHiZTempTex.Get();
-			//		dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-			//		dst.SubresourceIndex = 0;
-
-			//		D3D12_TEXTURE_COPY_LOCATION src = {};
-			//		src.pResource = m_pDownSampleTex.Get();
-			//		src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-			//		src.SubresourceIndex = 0;
-
-			//		m_pMainCommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
-
-			//		D3D12_RESOURCE_BARRIER afterCopyZ[] =
-			//		{
-			//			CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET,0),
-			//			CreateResourceBarrier(m_pDownSampleTex.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
-			//		};
-
-			//		m_pMainCommandList->ResourceBarrier(sizeof(afterCopyZ) / sizeof(D3D12_RESOURCE_BARRIER), afterCopyZ);
-
-			//		for (int i = 1; i < mipLevels; ++i)
-			//		{
-			//			m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-			//			m_pMainCommandList->SetPipelineState(m_pGenHiZPassPso.Get());
-			//			m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetGenHiZpassRootSignature());
-			//			m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psSampler), m_borderSsv);
-			//			m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psLastResoltion), m_resolutionCbv);
-			//			D3D12_RESOURCE_BARRIER mipPrep[] =
-			//			{
-			//				CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, i - 1),
-			//				CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, i)
-			//			};
-			//			m_pMainCommandList->ResourceBarrier(sizeof(mipPrep) / sizeof(D3D12_RESOURCE_BARRIER), mipPrep);
-			//			m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psLastMip), m_hiZTempSrvs[i - 1]);
-
-			//			UINT resolution[] = { curWidth, curHeight };
-			//			memcpy(m_pResolutionCbBegin, resolution, sizeof(UINT) * 2);
-
-			//			D3D12_VIEWPORT viewPort = {};
-			//			viewPort.Width = max(curWidth / 2, 1);
-			//			viewPort.Height = max(curHeight / 2, 1);
-
-			//			D3D12_RECT scissorRect = {};
-			//			scissorRect.right = max(curWidth / 2, 1);
-			//			scissorRect.bottom = max(curHeight / 2, 1);
-
-			//			m_pMainCommandList->IASetVertexBuffers(0, 1, &m_quadVbv);
-			//			m_pMainCommandList->IASetIndexBuffer(&m_quadIbv);
-			//			m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			//			m_pMainCommandList->RSSetViewports(1, &viewPort);
-			//			m_pMainCommandList->RSSetScissorRects(1, &scissorRect);
-			//			m_pMainCommandList->OMSetRenderTargets(1, &m_hiZTempRtvs[i], FALSE, nullptr);
-			//			m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
-
-
-			//			m_pMainCommandList->Close();
-			//			m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pMainCommandList.GetAddressOf()));
-			//			UINT fenceValue = m_fenceValue++;
-			//			m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
-			//			if (m_pFence->GetCompletedValue() < fenceValue)
-			//			{
-			//				m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
-			//				WaitForSingleObject(m_fenceEvent, INFINITE);
-			//			}
-			//			m_pMainCommandAllocator->Reset();
-			//			m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
-			//			curWidth /= 2;
-			//			curHeight /= 2;
-			//		}
-			//		D3D12_RESOURCE_BARRIER mipPrep[] =
-			//		{
-			//			CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, mipLevels - 1),
-			//			CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
-			//		};
-			//		m_pMainCommandList->ResourceBarrier(sizeof(mipPrep) / sizeof(D3D12_RESOURCE_BARRIER), mipPrep);
-			//	}
-			//	PIXEndEvent(m_pMainCommandList.Get());
-			//	//Test
-			//	m_nHiZPassed = 0;
-			//	std::queue<Mesh12*> q;
-			//	PIXBeginEvent(m_pMainCommandList.Get(), 0, L"Hi-Z Culling");
-			//	while (!m_pMeshQueue.empty())
-			//	{
-			//		UINT nMeshes = min(m_pMeshQueue.size(), _4KB);
-			//		UINT8* pHiZCullMatrixCbBegin = m_pHiZCullMatrixCbBegin;
-
-			//		UINT resolution[] = { m_clientWidth, m_clientHeight };
-			//		memcpy(m_pResolutionCbBegin, resolution, sizeof(UINT) * 2);
-			//		XMMATRIX matrices[3] = {
-			//			*(m_pCam->GetViewMatrix()),
-			//			*(m_pCam->GetProjectionMatrix()),
-			//			*(m_pCam->GetViewProjectionMatrix())
-			//		};
-			//		memcpy(pHiZCullMatrixCbBegin, matrices, sizeof(XMMATRIX)*3);
-			//		pHiZCullMatrixCbBegin += sizeof(XMMATRIX) * 3;
-			//		memcpy(pHiZCullMatrixCbBegin, pFrustum->GetPlanes(), sizeof(XMVECTOR)*6);
-			//		pHiZCullMatrixCbBegin += sizeof(XMVECTOR) * 6;
-
-			//		XMVECTOR camInfo[3] =
-			//		{
-			//			*(m_pCam->GetPosition()),
-			//			m_pCam->GetUp(),
-			//			m_pCam->GetDir()
-			//		};
-			//		memcpy(pHiZCullMatrixCbBegin, camInfo, sizeof(XMVECTOR) * 3);
-
-
-
-			//		for (int i=0;i<nMeshes;++i)
-			//		{
-			//			Mesh12* pMesh = m_pMeshQueue.front();
-			//			m_pMeshQueue.pop();
-
-			//			MatBuffer12* pMatrixBuffer = pMesh->GetMatBuffer();
-			//			MatrixBuffer matBuffer = pMatrixBuffer->GetMatrixBuffer();
-			//			
-			//			{
-			//				//ªÛºˆπˆ∆€√º≈©
-			//				UINT8* pAABBCbBegin = m_pAabbCbBegin;
-			//				UINT8* pDepthCbBegin = m_pDepthCbBegin;
-			//				{
-			//					AABB aabb = pMesh->GetGlobalAABB();
-			//					XMFLOAT3* pVertices = aabb.GetVertices();
-			//					XMVECTOR v[8];
-			//					FLOAT depth = 1.0f;
-			//					DirectX::XMFLOAT2 minAABB(1,1);
-			//					DirectX::XMFLOAT2 maxAABB(0, 0);
-			//					DirectX::XMVECTOR minV = XMVectorSet(-1.0f, -1.0f, 0, 1);
-			//					DirectX::XMVECTOR maxV = XMVectorSet(1.0f, 1.0f, 1, 1);
-			//					for (int l = 0; l < 8; ++l)
-			//					{
-			//						XMFLOAT4 v4 = XMFLOAT4(pVertices[l].x, pVertices[l].y, pVertices[l].z, 1.0f);
-			//						v[l] = XMLoadFloat4(&v4);
-			//						v[l] = XMVector4Transform(v[l], XMMatrixTranspose(matBuffer.wvpMat));
-			//						v[l] = XMVectorScale(v[l], 1/v[l].m128_f32[3]);
-			//						v[l] = DirectX::XMVectorClamp(v[l], minV, maxV);
-			//						XMStoreFloat4(&v4, v[l]);
-			//						v4.x *= 0.5f;
-			//						v4.x += 0.5f;
-			//						v4.y *= -0.5f;
-			//						v4.y += 0.5f;
-			//						minAABB.x = min(minAABB.x, v4.x);
-			//						minAABB.y = min(minAABB.y, v4.y);
-			//						maxAABB.x = max(maxAABB.x, v4.x);
-			//						maxAABB.y = max(maxAABB.y, v4.y);
-			//						depth = min(depth, v4.z);
-			//					}
-			//					
-			//					XMFLOAT4 result(minAABB.x, minAABB.y, maxAABB.x, maxAABB.y);
-			//					memcpy(pAABBCbBegin, &result, sizeof(XMVECTOR));
-			//					memcpy(pDepthCbBegin, &depth, sizeof(FLOAT));
-			//					pAABBCbBegin += sizeof(XMVECTOR);
-			//					pDepthCbBegin += sizeof(FLOAT);
-			//				}
-
-			//			}
-			//		}
-			//		m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
-			//		m_pMainCommandList->SetPipelineState(m_pHiZCullPassPso.Get());
-			//		m_pMainCommandList->SetComputeRootSignature(m_pShader->GetHiZCullPassRootSignature());
-			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csHiZ), m_hiZTempSrvs[mipLevels]);
-			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csDst), m_hiZCullListUav);
-			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csResolution), m_resolutionCbv);
-			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csBound), m_aabbCbv);
-			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csDepth), m_depthCbv);
-			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csMatrix), m_hiZCullMatrixCbv);
-			//		m_pMainCommandList->SetComputeRootDescriptorTable(static_cast<UINT>(eHiZCullRP::csBorder), m_borderSsv);
-			//		m_pMainCommandList->Dispatch(64, 1, 1);
-
-			//		D3D12_RESOURCE_BARRIER fininshHiZ[] =
-			//		{
-			//			CreateResourceBarrier(m_pHiZCullListTex.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE)
-			//		};
-			//		m_pMainCommandList->ResourceBarrier(sizeof(fininshHiZ) / sizeof(D3D12_RESOURCE_BARRIER), fininshHiZ);
-			//		//ReadBackResult;
-			//		{
-			//			UINT len = sqrt(_HI_Z_CULL_COUNT);
-			//			D3D12_TEXTURE_COPY_LOCATION dst = {};
-			//			dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32_UINT;
-			//			dst.PlacedFootprint.Footprint.Width = len;
-			//			dst.PlacedFootprint.Footprint.RowPitch = CUSTUM_ALIGN(sizeof(UINT) * len, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-			//			dst.PlacedFootprint.Footprint.Height = len;
-			//			dst.PlacedFootprint.Footprint.Depth = 1;
-
-			//			dst.pResource = m_pHiZCullReadCb.Get();
-			//			dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-
-			//			D3D12_TEXTURE_COPY_LOCATION src = {};
-			//			src.pResource = m_pHiZCullListTex.Get();
-			//			src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-			//			src.SubresourceIndex = 0;
-			//			//¡˜¡¢ ∫πªÁ«“∞Õ
-			//			m_pMainCommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
-			//		}
-
-			//		D3D12_RESOURCE_BARRIER finishReadBack[] =
-			//		{
-			//			CreateResourceBarrier(m_pHiZCullListTex.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
-			//		};
-			//		m_pMainCommandList->ResourceBarrier(sizeof(finishReadBack) / sizeof(D3D12_RESOURCE_BARRIER), finishReadBack);
-
-			//		m_pMainCommandList->Close();
-			//		m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pMainCommandList.GetAddressOf()));
-			//		UINT fenceValue = m_fenceValue++;
-			//		m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
-			//		if (m_pFence->GetCompletedValue() < fenceValue)
-			//		{
-			//			m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
-			//			WaitForSingleObject(m_fenceEvent, INFINITE);
-			//		}
-			//		m_pMainCommandAllocator->Reset();
-			//		m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
-
-			//		UINT* pHiZCullReadCbBegin = reinterpret_cast<UINT*>(m_pHiZCullReadCbBegin);
-
-			//		//Refresh queue
-			//		for (int j = 0; j < nMeshes; ++j)
-			//		{
-			//			Mesh12* pMesh = pMeshQueue.front();
-			//			pMeshQueue.pop();
-			//			UINT result = *(pHiZCullReadCbBegin + j);
-			//			if (result)
-			//			{
-			//				q.push(pMesh);
-			//			}
-
-			//		}
-			//	
-			//	}
-			//	pMeshQueue = q;
-			//	m_pMeshQueue = pMeshQueue;
-			//	D3D12_RESOURCE_BARRIER finishHiZtest[] =
-			//	{
-			//		CreateResourceBarrier(m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
-			//	};
-			//	m_pMainCommandList->ResourceBarrier(sizeof(finishHiZtest) / sizeof(D3D12_RESOURCE_BARRIER), finishHiZtest);
-			//	PIXEndEvent(m_pMainCommandList.Get());
-			//}
-		
-		
-			//HWø¿≈¨∑Á¿¸ ≈◊Ω∫∆Æ
-			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			D3D12_RECT scissorRect = {};
+			scissorRect.right = _SHADOWMAP_SIZE;
+			scissorRect.bottom = _SHADOWMAP_SIZE/2;
+			//DownSample DepthMap
+			D3D12_RESOURCE_BARRIER prepDownSampleZ[] =
 			{
-				SetEvent(m_workerBeginHWOcclusionTestPass[i]);
-				m_handles[i] = m_workerFinishHWOcclusionTestPass[i];
+				CreateResourceBarrier(m_pSceneDepthTex.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
+			};
+			m_pMainCommandList->ResourceBarrier(sizeof(prepDownSampleZ) / sizeof(D3D12_RESOURCE_BARRIER), prepDownSampleZ);
 
-			}
-			WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_handles, TRUE, INFINITE);
+			m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+			m_pMainCommandList->SetPipelineState(m_pDownSamplePso.Get());
+			m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetDownSampleRootSignature());
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eDownSampleRP::psSampler), m_wrapSsv);
+			m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eDownSampleRP::depthMap), m_sceneDepthSrv);
+			m_pMainCommandList->IASetVertexBuffers(0, 1, &m_quadVbv);
+			m_pMainCommandList->IASetIndexBuffer(&m_quadIbv);
+			m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_pMainCommandList->RSSetViewports(1, &viewPort);
+			m_pMainCommandList->RSSetScissorRects(1, &scissorRect);
+			m_pMainCommandList->OMSetRenderTargets(1, &m_hiZTempRtvs[0], FALSE, nullptr);
+			m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
 
-			m_nNotOccluded = 0;
-			std::queue<Mesh12*> q;
-			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			D3D12_RESOURCE_BARRIER endDownSampleZ[] =
 			{
-				m_nNotOccluded += m_pHWOcclusionQueue[i].size();
-				while (!m_pHWOcclusionQueue[i].empty())
+				CreateResourceBarrier(m_pSceneDepthTex.Get(),D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE),
+				CreateResourceBarrier(m_pHiZTempTex.Get(),D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,0),
+			};
+			m_pMainCommandList->ResourceBarrier(sizeof(endDownSampleZ) / sizeof(D3D12_RESOURCE_BARRIER), endDownSampleZ);
+			//SetUp
+			{
+				m_pMainCommandList->SetPipelineState(m_pGenHiZPassPso.Get());
+				m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetGenHiZpassRootSignature());
+				m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psSampler), m_borderSsv);
+				for (int i = 1; i < mipLevels; ++i)
 				{
-					Mesh12* pMesh = m_pHWOcclusionQueue[i].front();
-					m_pHWOcclusionQueue[i].pop();
-					q.push(pMesh);
+					m_pMainCommandList->RSSetViewports(1, &m_hiZViewPorts[i]);
+					m_pMainCommandList->RSSetScissorRects(1, &m_hiZScissorRects[i]);
+					m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psLastMip), m_hiZTempSrvs[i - 1]);
+					m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psLastResoltion), m_hi_zCbv[i - 1]);
+					m_pMainCommandList->OMSetRenderTargets(1, &m_hiZTempRtvs[i], FALSE, nullptr);
+					m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
+					D3D12_RESOURCE_BARRIER prepMip[] =
+					{
+						CreateResourceBarrier(m_pHiZTempTex.Get(),D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,i - 1),
+						CreateResourceBarrier(m_pHiZTempTex.Get(),D3D12_RESOURCE_STATE_RENDER_TARGET,
+							i + 1 == mipLevels ? D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE : D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,i),
+					};
+
+					m_pMainCommandList->ResourceBarrier(sizeof(prepMip) / sizeof(D3D12_RESOURCE_BARRIER), prepMip);
 				}
 
+				m_pMainCommandList->Close();
+				m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pMainCommandList.GetAddressOf()));
+				UINT fenceValue = m_fenceValue++;
+				m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
+				if (m_pFence->GetCompletedValue() < fenceValue)
+				{
+					m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
+					WaitForSingleObject(m_fenceEvent, INFINITE);
+				}
+				m_pMainCommandAllocator->Reset();
+				m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
+
 			}
-			m_pMeshQueue = q;
-		}
+			m_nHiZPassed = 0;
+			PIXEndEvent(m_pMainCommandList.Get());
 		
+		}
+
+		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+		{
+			PIXBeginEvent(m_pWorkerCommandLists[i].Get(), 0, L"Hi_ZTest");
+			SetEvent(m_workerBeginHiZpass[i]);
+			m_handles[i] = m_workerFinishHiZpass[i];
+		}
+		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_handles, TRUE, INFINITE);
+		{
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				PIXEndEvent(m_pWorkerCommandLists[i].Get());
+				m_pWorkerCommandLists[i]->Close();
+			}
+
+			m_pMainCommandQueue->ExecuteCommandLists(_WORKER_THREAD_COUNT,
+				reinterpret_cast<ID3D12CommandList**>(m_pWorkerCommandLists[0].GetAddressOf()));
+
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				UINT fenceValue = m_workerFenceValues[i]++;
+				m_pMainCommandQueue->Signal(m_pWorkerFences[i].Get(), fenceValue);
+				if (m_pWorkerFences[i]->GetCompletedValue() < fenceValue)
+				{
+					m_pWorkerFences[i]->SetEventOnCompletion(fenceValue, m_workerFenceEvents[i]);
+					WaitForSingleObject(m_workerFenceEvents[i], INFINITE);
+				}
+
+				HRESULT hr = m_pWorkerCommandAllocators[i]->Reset();
+				assert(SUCCEEDED(hr));
+				m_pWorkerCommandLists[i]->Reset(m_pWorkerCommandAllocators[i].Get(), nullptr);
+			}
+		}
+		//Set-Up HWOcclusion Pass
+		{
+			m_lastMeshletIdx = 0;
+			std::vector<D3D12_RESOURCE_BARRIER> finishHiZtest;
+			finishHiZtest.reserve(mipLevels);
+			for (int i = 0; i < mipLevels; ++i)
+			{
+				finishHiZtest.push_back(
+					CreateResourceBarrier(
+						m_pHiZTempTex.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+						D3D12_RESOURCE_STATE_RENDER_TARGET, i));
+			}
+
+			m_pMainCommandList->ResourceBarrier(finishHiZtest.size(), &finishHiZtest[0]);
+			
+
+			m_pMainCommandList->Close();
+			m_pMainCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(m_pMainCommandList.GetAddressOf()));
+
+			UINT fenceValue = m_fenceValue++;
+			m_pMainCommandQueue->Signal(m_pFence.Get(), fenceValue);
+			
+			UINT hwOcclusionPass = static_cast<UINT>(ePass::HWOcclusionPass);
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				UINT nHiZPassed= m_pHiZQueue[i].size();
+				m_nHiZPassed+= nHiZPassed;
+				m_pMeshletQueue[hwOcclusionPass].reserve(nHiZPassed);
+				for (int j = 0; j < m_pHiZQueue[i].size(); ++j)
+				{
+					Meshlet* pMesh = m_pHiZQueue[i][j];
+					m_pMeshletQueue[hwOcclusionPass].push_back(pMesh);
+				}
+				m_pHiZQueue[i].clear();
+			}
+
+
+			if (m_pFence->GetCompletedValue() < fenceValue)
+			{
+				m_pFence->SetEventOnCompletion(fenceValue, m_fenceEvent);
+				WaitForSingleObject(m_fenceEvent, INFINITE);
+			}
+			m_pMainCommandAllocator->Reset();
+			m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
+
+			m_pMeshletQueue[static_cast<UINT>(ePass::hi_zPass)].clear();
+			m_lastMeshletIdx = 0;
+		}
+		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+		{
+			PIXBeginEvent(m_pWorkerCommandLists[i].Get(), 0, L"HWOcclusion");
+			SetEvent(m_workerBeginHWOcclusionTestPass[i]);
+			m_handles[i] = m_workerFinishHWOcclusionTestPass[i];
+
+		}
+		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_handles, TRUE, INFINITE);
+		{
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				PIXEndEvent(m_pWorkerCommandLists[i].Get());
+				m_pWorkerCommandLists[i]->Close();
+			}
+
+			m_pMainCommandQueue->ExecuteCommandLists(_WORKER_THREAD_COUNT,
+				reinterpret_cast<ID3D12CommandList**>(m_pWorkerCommandLists[0].GetAddressOf()));
+
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				UINT fenceValue = m_workerFenceValues[i]++;
+				m_pMainCommandQueue->Signal(m_pWorkerFences[i].Get(), fenceValue);
+				if (m_pWorkerFences[i]->GetCompletedValue() < fenceValue)
+				{
+					m_pWorkerFences[i]->SetEventOnCompletion(fenceValue, m_workerFenceEvents[i]);
+					WaitForSingleObject(m_workerFenceEvents[i], INFINITE);
+				}
+
+				HRESULT hr = m_pWorkerCommandAllocators[i]->Reset();
+				assert(SUCCEEDED(hr));
+				m_pWorkerCommandLists[i]->Reset(m_pWorkerCommandAllocators[i].Get(), nullptr);
+			}
+		}
+
+		m_pMeshletQueue[static_cast<UINT>(ePass::HWOcclusionPass)].clear();
+		m_nNotOccluded = 0;
+		UINT geoPass = static_cast<UINT>(ePass::geoPass);
+		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+		{
+			UINT nMeshlets = m_pHWOcclusionQueue[i].size();
+			m_nNotOccluded += nMeshlets;
+			m_pMeshletQueue[geoPass].reserve(nMeshlets);
+			for (int j = 0; j < m_pHWOcclusionQueue[i].size(); ++j)
+			{
+				Meshlet* pMesh = m_pHWOcclusionQueue[i][j];
+				m_pMeshletQueue[geoPass].push_back(pMesh);
+			}
+			m_pHWOcclusionQueue[i].clear();
+
+		}
+		m_lastMeshletIdx = 0;
+
 		//Draw PbrGeo
 		for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 		{
+			PIXBeginEvent(m_pWorkerCommandLists[i].Get(), 0, L"PBRGeo");
 			SetEvent(m_workerBeginDeferredGeoPass[i]);
 		}
+
 		WaitForMultipleObjects(_WORKER_THREAD_COUNT, m_workerEndFrame, TRUE, INFINITE);
-		
+		{
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				PIXEndEvent(m_pWorkerCommandLists[i].Get());
+				m_pWorkerCommandLists[i]->Close();
+			}
+
+			m_pMainCommandQueue->ExecuteCommandLists(_WORKER_THREAD_COUNT,
+				reinterpret_cast<ID3D12CommandList**>(m_pWorkerCommandLists[0].GetAddressOf()));
+
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				UINT fenceValue = m_workerFenceValues[i]++;
+				m_pMainCommandQueue->Signal(m_pWorkerFences[i].Get(), fenceValue);
+				if (m_pWorkerFences[i]->GetCompletedValue() < fenceValue)
+				{
+					m_pWorkerFences[i]->SetEventOnCompletion(fenceValue, m_workerFenceEvents[i]);
+					WaitForSingleObject(m_workerFenceEvents[i], INFINITE);
+				}
+
+				HRESULT hr = m_pWorkerCommandAllocators[i]->Reset();
+				assert(SUCCEEDED(hr));
+				m_pWorkerCommandLists[i]->Reset(m_pWorkerCommandAllocators[i].Get(), nullptr);
+			}
+		}
+		m_pMeshletQueue[static_cast<UINT>(ePass::geoPass)].clear();
+		m_lastMeshletIdx = 0;
+
 		D3D12_RESOURCE_BARRIER PbrGeoPass_barriers[static_cast<UINT>(eGbuf::cnt)];
 		for (int i = 0; i < static_cast<UINT>(eGbuf::cnt); ++i)
 		{
@@ -1957,6 +2056,7 @@ namespace wilson
 		}
 		m_pMainCommandAllocator->Reset();
 		m_pMainCommandList->Reset(m_pMainCommandAllocator.Get(), nullptr);
+
 
 		SetEvent(m_ssaoBeginFrame);
 		WaitForSingleObject(m_ssaoEndFrame, INFINITE);
@@ -1979,8 +2079,6 @@ namespace wilson
 			m_pMainCommandList->ExecuteBundle(m_pBundles[static_cast<UINT>(ePass::lightingPass)].Get());
 			m_pCam->UploadCamPos(m_pMainCommandList.Get(), false);
 			m_pCam->UploadCascadeLevels(m_pMainCommandList.Get());
-			m_pMatricesCb->SetViewMatrix(m_pCam->GetViewMatrix());
-			m_pMatricesCb->SetProjMatrix(m_pCam->GetProjectionMatrix());
 			m_pMatricesCb->UploadProjMat(m_pMainCommandList.Get(), false);
 			m_pMatricesCb->UploadViewMat(m_pMainCommandList.Get());
 			m_pLightCb->UpdateLightBuffer(m_pMainCommandList.Get());
@@ -1996,7 +2094,7 @@ namespace wilson
 		PIXBeginEvent(m_pMainCommandList.Get(), 0, L"DrawSkyBox");
 		m_pMainCommandList->OMSetRenderTargets(1, &m_sceneRtv, TRUE, &m_sceneDsv);
 		m_pMainCommandList->ExecuteBundle(m_pBundles[static_cast<UINT>(ePass::skyBoxPass)].Get());
-
+		m_pCam->SetDirty(false);
 
 		D3D12_RESOURCE_BARRIER postProcessPassBarriers[] = {
 			CreateResourceBarrier(m_pSceneTex.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
@@ -2005,7 +2103,7 @@ namespace wilson
 		PIXEndEvent(m_pMainCommandList.Get());
 		//PostProcess
 		PIXBeginEvent(m_pMainCommandList.Get(), 0, L"PostProcess");
-		memcpy(m_pExposureCbBegin, &m_exposure, sizeof(float));
+
 		m_pMainCommandList->ExecuteBundle(m_pBundles[static_cast<UINT>(ePass::postProcess)].Get());
 		PIXEndEvent(m_pMainCommandList.Get());
 		//DrawUI
@@ -2018,6 +2116,27 @@ namespace wilson
 		m_pMainCommandList->ResourceBarrier(2, uiPassBarriers);
 		m_pMainCommandList->OMSetRenderTargets(1, &m_screenRtvs[m_curFrame], FALSE, &m_screenDsv);
 		return;
+}
+
+void D3D12::UpdateSSAOParemeters()
+{
+	//SSAO Pass
+	UINT8* pSSAOParametersCbBegin = m_pSsaoParametersCbBegin;
+	memcpy(pSSAOParametersCbBegin, &m_ssaoRadius, sizeof(FLOAT));
+	pSSAOParametersCbBegin += sizeof(FLOAT);
+	memcpy(pSSAOParametersCbBegin, &m_ssaoBias, sizeof(FLOAT));
+	pSSAOParametersCbBegin += sizeof(FLOAT);
+	memcpy(pSSAOParametersCbBegin, &m_nSsaoSample, sizeof(UINT));
+}
+
+void D3D12::UpdateParllexMappingParemeters()
+{
+	memcpy(m_pHeightScaleCbBegin, &m_heightScale, sizeof(float));
+}
+
+void D3D12::UpdateExposureParemeters()
+{
+	memcpy(m_pExposureCbBegin, &m_exposure, sizeof(float));
 }
 
 	void D3D12::CreateUploadBuffer(ID3D12Resource** const ppUploadCB, const UINT64 uploadPitch, const UINT64 uploadSize)
@@ -2067,7 +2186,7 @@ namespace wilson
 	
 	UINT rowPitch = rp;
 	UINT height = texDesc.Height;
-	//4x4¥‹¿ß∂Ûº≠ ∞®æ»«ÿ¡‡æﬂ«‘. +3¿∫ 4¿«πËºˆ∑Œ ≥™¥≤∂≥æÓ¡ˆ∞‘ «œ±‚ ¿ß«‘.
+	//4x4¬¥√ú√Ä¬ß¬∂√≥¬º¬≠ ¬∞¬®¬æ√à√á√ò√Å√†¬æ√ü√á√î. +3√Ä¬∫ 4√Ä√á¬π√®¬º√∂¬∑√é ¬≥¬™¬¥¬≤¬∂¬≥¬æ√Æ√Å√∂¬∞√î √á√è¬±√¢ √Ä¬ß√á√î.
 	if (DirectX::IsCompressed(texDesc.Format))
 	{	
 		height = (height + 3) / 4;
@@ -2097,7 +2216,7 @@ namespace wilson
 	D3D12_RANGE readRange = { 0, };
 	hr = (*ppUploadCB)->Map(0, &readRange, reinterpret_cast<void**>(&pUploadCbPtr));
 	assert(SUCCEEDED(hr));
-	//Padding ãöπÆø° memcpy«—¡Ÿ∑Œ √≥∏Æ ∫“∞°
+	//Padding ‚Äπ≈°¬π¬Æ¬ø¬° memcpy√á√ë√Å√ô¬∑√é √É¬≥¬∏¬Æ ¬∫√í¬∞¬°
 	for (UINT64 y = 0; y < height; ++y)
 	{
 		memcpy((void*)(pUploadCbPtr + y * uploadPitch),
@@ -2163,7 +2282,8 @@ namespace wilson
 	}
 
 	D3D12::D3D12(const UINT screenWidth, const UINT screenHeight, bool bVsync, HWND hWnd, bool bFullscreen,
-		float fScreenFar, float fScreenNear) :m_selectedObject(-1), m_exposure(1.0f), m_nSsaoSample(64), m_ssaoBias(0.025f), m_ssaoRadius(0.5f)
+		float fScreenFar, float fScreenNear) :m_selectedObject(-1), m_exposure(1.0f), m_nSsaoSample(64), m_ssaoBias(0.025f), m_ssaoRadius(0.5f),
+		m_lastMeshletIdx(0)
 	{  
 		g_pD3D12 = this;
 
@@ -2171,7 +2291,6 @@ namespace wilson
 		m_pCam = nullptr;
 		m_pLightCb = nullptr;
 		m_pMatricesCb = nullptr;
-		m_pOutlinerMatBuffer = nullptr;
 		m_pShader = nullptr;
 		m_pShadowMap = nullptr;
 
@@ -2407,9 +2526,8 @@ namespace wilson
 			m_pCam = std::make_unique<Camera12>(m_pDevice.Get(), m_pMainCommandList.Get(), m_pHeapManager.get(), screenWidth, screenHeight, fScreenFar, fScreenNear);
 			XMMATRIX* m_projMat = m_pCam->GetProjectionMatrix();
 			XMMATRIX* m_viewMat = m_pCam->GetViewMatrix();
-			m_pMatricesCb = std::make_unique<MatBuffer12>(m_pDevice.Get(), m_pMainCommandList.Get(), m_pHeapManager.get(), m_viewMat, m_projMat);
-			m_pOutlinerMatBuffer = std::make_unique<MatBuffer12>(m_pDevice.Get(), m_pMainCommandList.Get(), m_pHeapManager.get(), m_viewMat, m_projMat);
-
+			m_pMatricesCb = std::make_unique<MatrixHandler12>(m_pDevice.Get(), m_pMainCommandList.Get(), m_pHeapManager.get(), m_viewMat, m_projMat);
+	
 			m_pLightCb = std::make_unique<LightBuffer12>(m_pDevice.Get(), m_pMainCommandList.Get(), m_pHeapManager.get());
 
 			m_pShadowMap = std::make_unique<ShadowMap12>(m_pDevice.Get(), m_pMainCommandList.Get(),
@@ -2447,6 +2565,31 @@ namespace wilson
 			m_prefilterRect = m_scissorRect;
 			m_prefilterRect.right = m_prefilterViewport.Width;
 			m_prefilterRect.bottom = m_prefilterViewport.Height;
+
+			UINT curWidth = _SHADOWMAP_SIZE;
+			UINT curHeight = _SHADOWMAP_SIZE/2;
+			UINT mipLevels = 1 + (UINT)floorf(log2f(fmaxf(_SHADOWMAP_SIZE, _SHADOWMAP_SIZE/2)));
+			m_hiZViewPorts.resize(mipLevels + 1);
+			m_hiZScissorRects.resize(mipLevels + 1);
+			for (int i = 0; i < mipLevels; ++i)
+			{
+				D3D12_VIEWPORT viewPort = {};
+				viewPort.Width = curWidth;
+				viewPort.Height = curHeight;
+
+				D3D12_RECT scissorRect = {};
+				scissorRect.right = curWidth;
+				scissorRect.bottom = curHeight;
+
+				m_hiZViewPorts[i] = viewPort;
+				m_hiZScissorRects[i] = scissorRect;
+
+				curWidth /= 2;
+				curHeight/=2;
+				curWidth = max(1, curWidth);
+				curHeight = max(1, curHeight);
+
+			}
 		}
 
 		D3D12_RASTERIZER_DESC geoRDesc = {};
@@ -2534,7 +2677,7 @@ namespace wilson
 			DepthTestOnlyDss.DepthEnable = TRUE;
 			DepthTestOnlyDss.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 			DepthTestOnlyDss.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-			//psoø° º≥¡§, com ∞≥√º∞° æ∆¥‘.
+			//pso¬ø¬° ¬º¬≥√Å¬§, com ¬∞¬≥√É¬º¬∞¬° ¬æ√Ü¬¥√î.
 
 			outlinerSetupDss.DepthEnable = true;
 			outlinerSetupDss.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
@@ -2565,13 +2708,13 @@ namespace wilson
 			psoDesc.RasterizerState = quadRDesc;
 			psoDesc.BlendState = defaultBS;
 			psoDesc.DepthStencilState = defaultDss;
-			psoDesc.SampleMask = UINT_MAX; //BlendDesc¿« ±◊∞Õ,  ∞Ì¡§
+			psoDesc.SampleMask = UINT_MAX; //BlendDesc√Ä√á ¬±√ó¬∞√ç,  ¬∞√≠√Å¬§
 			psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 			psoDesc.NumRenderTargets = 1;
 			psoDesc.RTVFormats[0] =DXGI_FORMAT_R32_FLOAT;
 			psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
-			psoDesc.SampleDesc.Count = 1; //AA±‚¥… √ﬂ∞° ¿¸±Ó¡¯ ∞Ì¡§
+			psoDesc.SampleDesc.Count = 1; //AA¬±√¢¬¥√â √É√ü¬∞¬° √Ä√º¬±√Æ√Å√∏ ¬∞√≠√Å¬§
 
 			psoDesc.pRootSignature = m_pShader->GetZpassRootSignature();
 			m_pShader->SetTexInputlayout(&psoDesc);
@@ -2700,7 +2843,7 @@ namespace wilson
 			m_pPbrDeferredGeoNormalHeightEmissivePso->SetPrivateData(WKPDID_D3DDebugObjectName,
 				sizeof("D3D12:::m_pPbrDeferredGeoNormalHeightEmissivePso") - 1, "D3D12:::m_pPbrDeferredGeoNormalHeightEmissivePso");
 			
-			//GeoPassø°º≠ picking «— ∏µ®∏∏  Stencil∞™¿ª √≥∏Æ«ÿ¡÷±‚ ãöπÆø° psoø°º≠ DSS∏∏ πŸ≤„¡‹. 
+			//GeoPass¬ø¬°¬º¬≠ picking √á√ë ¬∏√∞¬µ¬®¬∏¬∏  Stencil¬∞¬™√Ä¬ª √É¬≥¬∏¬Æ√á√ò√Å√ñ¬±√¢ ‚Äπ≈°¬π¬Æ¬ø¬° pso¬ø¬°¬º¬≠ DSS¬∏¬∏ ¬π√ô¬≤√£√Å√ú. 
 			psoDesc.DepthStencilState = outlinerSetupDss;
 			hr=m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pOutlinerSetupPso));
 			assert(SUCCEEDED(hr));
@@ -2946,14 +3089,19 @@ namespace wilson
 			cbufferDesc.SampleDesc.Count = 1;
 			cbufferDesc.SampleDesc.Quality = 0;		
 		
-			
-			UINT cbSize = (sizeof(DirectX::XMVECTOR)) * _HI_Z_CULL_COUNT;
-			m_pAabbCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
-			m_aabbCbv = m_pHeapManager->GetCbv(cbSize, m_pDevice.Get());
-			
-			cbSize = sizeof(XMMATRIX) * 3 + sizeof(XMVECTOR) * 9;
-			m_pHiZCullMatrixCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
-			m_hiZCullMatrixCbv = m_pHeapManager->GetCbv(cbSize, m_pDevice.Get());
+
+			UINT cbSize = 0;
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
+			{
+				cbSize = (sizeof(DirectX::XMVECTOR)) * _HI_Z_CULL_COUNT * 8;
+				m_pAabbCbBegin[i] = m_pHeapManager->GetCbMappedPtr(cbSize);
+				m_aabbCbv[i] = m_pHeapManager->GetCbv(cbSize, m_pDevice.Get());
+
+
+				cbSize = sizeof(XMMATRIX) * _HI_Z_CULL_COUNT;
+				m_pHiZCullMatrixCbBegin[i] = m_pHeapManager->GetCbMappedPtr(cbSize);
+				m_hiZCullMatrixCbv[i] = m_pHeapManager->GetCbv(cbSize, m_pDevice.Get());
+			}
 			
 			cbSize = sizeof(DirectX::XMVECTOR);
 			m_pRoughnessCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
@@ -2978,14 +3126,26 @@ namespace wilson
 			cbSize = sizeof(XMMATRIX) * 6;
 			m_pEquirect2CubeCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
 			m_equirect2CubeCbv = m_pHeapManager->GetCbv(cbSize, m_pDevice.Get());
-
+		
 			cbSize = sizeof(UINT) * 2;
 			m_pResolutionCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
 			m_resolutionCbv = m_pHeapManager->GetCbv(cbSize, m_pDevice.Get());
 
-			cbSize = sizeof(FLOAT) * _HI_Z_CULL_COUNT;
-			m_pDepthCbBegin = m_pHeapManager->GetCbMappedPtr(cbSize);
-			m_depthCbv = m_pHeapManager->GetCbv(cbSize, m_pDevice.Get());
+			cbSize = sizeof(UINT) * 4;
+			UINT lastWidth = _SHADOWMAP_SIZE;
+			UINT lastHeight = _SHADOWMAP_SIZE/2;
+			for (int i = 0; i < _HI_Z_TEX_COUNT; ++i)
+			{
+				m_pHiZResolutionCbBegin[i] = m_pHeapManager->GetCbMappedPtr(cbSize);
+				m_hi_zCbv[i] = m_pHeapManager->GetCbv(cbSize, m_pDevice.Get());
+				
+				UINT lastMipInfo[4] = { lastWidth,lastHeight,i,0 };
+				memcpy(m_pHiZResolutionCbBegin[i], lastMipInfo, cbSize);
+				lastWidth /= 2;
+				lastHeight /= 2;
+				lastWidth = max(1, lastWidth);
+				lastHeight = max(1, lastHeight);
+			}
 
 			D3D12_RESOURCE_BARRIER readTocopyDst =
 				CreateResourceBarrier(m_pHeapManager->GetQueryBlock(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST);
@@ -3016,7 +3176,7 @@ namespace wilson
 				}
 				
 			}
-			
+			for (int i = 0; i < _WORKER_THREAD_COUNT; ++i)
 			{
 				cbufferDesc.Width = CUSTUM_ALIGN(_HI_Z_CULL_COUNT * sizeof(UINT), _64KB);
 
@@ -3024,15 +3184,15 @@ namespace wilson
 				D3D12_GPU_DESCRIPTOR_HANDLE cbvGpuHandle = m_pHeapManager->GetCurCbvSrvGpuHandle();
 
 				hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-					&cbufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(m_pHiZCullReadCb.GetAddressOf()));
+					&cbufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(m_pHiZCullReadCb[i].GetAddressOf()));
 				assert(SUCCEEDED(hr));
-				m_pHiZCullReadCb->SetPrivateData(WKPDID_D3DDebugObjectName,
+				m_pHiZCullReadCb[i]->SetPrivateData(WKPDID_D3DDebugObjectName,
 					sizeof("D3D12::m_pHiZCullReadCb") - 1, "D3D12::m_pHiZCullReadCb");
 
 				m_pHeapManager->IncreaseCbvSrvHandleOffset();
 
 				readRange.End = cbufferDesc.Width;
-				hr = m_pHiZCullReadCb->Map(0, &readRange, reinterpret_cast<void**>(&m_pHiZCullReadCbBegin));
+				hr = m_pHiZCullReadCb[i]->Map(0, &readRange, reinterpret_cast<void**>(&m_pHiZCullReadCbBegin[i]));
 				assert(SUCCEEDED(hr));
 			}
 			
@@ -3040,7 +3200,7 @@ namespace wilson
 		//GenSSAOResources
 		{	
 
-			//≥Î¿Ã¡Ó∏∏ CRV_SRV_HEAP µ˚∑Œ ∞¸∏Æ
+			//¬≥√´√Ä√å√Å√Æ¬∏¬∏ CRV_SRV_HEAP ¬µ√ª¬∑√é ¬∞√º¬∏¬Æ
 			D3D12_HEAP_PROPERTIES heapProps = {};
 			heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
 			heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -3175,7 +3335,7 @@ namespace wilson
 			m_pHeapManager->AllocateVertexData(reinterpret_cast<UINT8*>(vertices), skyVbSize);
 			m_skyBoxVbv = m_pHeapManager->GetVbv(skyVbSize, sizeof(XMFLOAT3));
 
-			//Ω√∞ËπÊ«‚ ∞®¿∫ ∏È¿Ã  frontface
+			//¬Ω√É¬∞√®¬π√¶√á√¢ ¬∞¬®√Ä¬∫ ¬∏√©√Ä√å  frontface
 			unsigned long indices[] = {
 				//front
 				0,2,1,
@@ -3259,7 +3419,8 @@ namespace wilson
 				CreateBrdfMap();
 
 			}
-
+			UINT resolution[] = { _SHADOWMAP_SIZE,  _SHADOWMAP_SIZE/2 };
+			memcpy(m_pResolutionCbBegin, resolution, sizeof(UINT) * 2);
 		}
 
 
@@ -3278,9 +3439,9 @@ namespace wilson
 			m_ssaoThreadHandle = reinterpret_cast<HANDLE>(_beginthreadex(
 				nullptr,
 				0,
-				&WrapperSsaoThreadFun,		 //ª˝º∫Ω√ »£√‚«‘ºˆ
-				nullptr,                 //¿¸¥ﬁ ¿Œ¿⁄
-				0,							//¡ÔΩ√ Ω««‡
+				&WrapperSsaoThreadFun,		 //¬ª√Ω¬º¬∫¬Ω√É √à¬£√É√¢√á√î¬º√∂
+				nullptr,                 //√Ä√º¬¥√û √Ä√é√Ä√ö
+				0,							//√Å√Ø¬Ω√É ¬Ω√á√á√†
 				nullptr));
 		}
 		
@@ -3292,6 +3453,18 @@ namespace wilson
 				FALSE,
 				NULL);
 			m_workerFinishZpass[i] = CreateEvent(
+				NULL,
+				FALSE,
+				FALSE,
+				NULL);
+
+			m_workerBeginHiZpass[i] = CreateEvent(
+				NULL,
+				FALSE,
+				FALSE,
+				NULL);
+
+			m_workerFinishHiZpass[i] = CreateEvent(
 				NULL,
 				FALSE,
 				FALSE,
@@ -3337,9 +3510,9 @@ namespace wilson
 			m_threadHandles[i] = reinterpret_cast<HANDLE>(_beginthreadex(
 				nullptr,
 				0,
-				&WrapperWorkerThreadFun,		 //ª˝º∫Ω√ »£√‚«‘ºˆ
-				reinterpret_cast<LPVOID>(&m_workerThreadIdx[i]),//¿¸¥ﬁ ¿Œ¿⁄
-				0,							//¡ÔΩ√ Ω««‡
+				&WrapperWorkerThreadFun,		 //¬ª√Ω¬º¬∫¬Ω√É √à¬£√É√¢√á√î¬º√∂
+				reinterpret_cast<LPVOID>(&m_workerThreadIdx[i]),//√Ä√º¬¥√û √Ä√é√Ä√ö
+				0,							//√Å√Ø¬Ω√É ¬Ω√á√á√†
 				nullptr ));
 		}
 		

@@ -905,21 +905,32 @@ namespace wilson
 		}
 		vertexDataPos.push_back(m_nVertex);
 		indicesPos.push_back(m_nIndex);
+		
 		m_pIndices = new unsigned long[m_nIndex];
 		m_pVertexData = new VertexData[m_nVertex];
 		FbxVector4 tan;
-
+		
+		
 		int idx = -1;
 		int idxCnt = 0;
 		int vCnt = 0;
+		std::unordered_map<int, std::vector<int>> vToTri;
+		std::vector<std::vector<int>> triInfo;
+		//정점 데이터 파싱
+		//FBX데이터에서는 정점 번호로 바로 가져옴. 근데 저장할떄는 정점이 겹쳐도  
+		//TBN계산떄문에 그냥 VCnt로 마구잡이로 넣었었음
+		//삼각형idx+offset으로 index 설정. 정점데이터는 나오는 순서대로 그냥 집어넣기
 		for (int j = 0; j < pMesh->GetPolygonCount(); ++j)
 		{
 			int verticesCnt = pMesh->GetPolygonSize(j);
-
+			std::vector<int> v;
 			for (int k = 0; k < verticesCnt; ++k)
-			{
+			{ 
 				//인덱스를 참조하여 나온 정점데이터를 순서대로 저장하니까, 인덱스버퍼는 오름차순이 된다. 
 				int polygonV = pMesh->GetPolygonVertex(j, k);
+				vToTri[polygonV].push_back(j);
+				v.push_back(polygonV);
+
 				m_pIndices[idxCnt] = idxCnt;
 				++idxCnt;
 
@@ -1159,12 +1170,81 @@ namespace wilson
 					m_pVertexData[vCnt - i].tangent.z = tan.mData[2];
 				}
 			}
+			triInfo.push_back(v);
+		}
+		//Meshlet 생성
+		//1.정점을 q에서 pop.
+		//2.소속된 삼각형 배열을 돌며 방문한적 없다면
+		//현 MeshLet에 추가하고 나머지 정점들을 q에 push
+		//3. MeshLet이 가득차면 재시작
+		//4. 모든 삼각형이 처리될떄까지 반복
+		//당장은 머티리얼 무시.오버드로우를 막기위해서라도 
+		//머티리얼을 실시간으로 합치고 UV좌표를 다시 계산해야하는 기능을 추가해야한다.
+		//삼각형 단위로 사용 머티리얼이 달라 질수도 있기 때문
+		
+		std::queue<int> q;
+		std::vector<Meshlet*> meshLets;
+		std::unordered_set<int> visited;
+		Meshlet* mshlt=new Meshlet;
+		int tri = -1;
+
+		for (int i = 0; i < pMesh->GetPolygonCount(); ++i)
+		{
+			if(visited.find(i) != visited.end())
+			{
+				continue;
+			}
+
+			q.push(triInfo[i][0]);
+			q.push(triInfo[i][1]);
+			q.push(triInfo[i][2]);
+			while (!q.empty())
+			{
+				int cur = q.front();
+				q.pop();
+
+				for (int j = 0; j < vToTri[cur].size(); ++j)
+				{
+					tri = vToTri[cur][j];
+					if (visited.find(tri) == visited.end())
+					{
+						visited.insert(tri);
+						if (mshlt->GetNumOfTri() == 85)
+						{
+							meshLets.push_back(mshlt);
+							mshlt = new Meshlet;
+							q = std::queue<int>();
+						}
+
+						mshlt->AddTris(tri);
+						for (int k = 0; k < 3; ++k)
+						{
+							int next = triInfo[tri][k];
+							if (cur != next)
+							{
+								q.push(next);
+							}
+
+						}
+					}
+				}
+			}
+			if (mshlt->GetNumOfTri())
+			{
+				meshLets.push_back(mshlt);
+				mshlt = new Meshlet;
+			}
 		}
 
+		int sum = 0;
+		for (int i = 0; i < meshLets.size(); ++i)
+		{
+			sum += meshLets[i]->GetNumOfTri();
+		}
 
 		std::wstring wName(name.begin(), name.end());
 		m_pMesh = new Mesh12(m_pDevice, m_pCommandList, m_pHeapManager,
-			m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
+			meshLets, m_pVertexData, m_pIndices, vertexDataPos, indicesPos,
 			(wchar_t*)wName.c_str(), matNames);
 		m_pMeshes.push_back(m_pMesh);
 	}

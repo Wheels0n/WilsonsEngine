@@ -236,13 +236,143 @@ LOD를 가져와야 할 수도 있다.
 정말 미친척하고 정점 8개 단위로 끊었는데도 제대로 컬링이 안된다.
 동차클립공간인데 절댓값1이넘는게 보인다
 
+## HLSL float 정렬
+
+depth를 담는 상수버퍼를 보았다. 4096개를 담아서 아래의 반복문으로 처리했는데  
+1024개만 -nan으로 표기되고 나머지는 0으로 남아있었다. float은 4byte인데 상수버퍼는  
+16단위다.
+
+```c++
+for (int i = 0; i < _4KB; ++i)
+{
+        pDepthCbBegin[i] = -1;
+}
+```
+
+![PIX 상수 버퍼](pix%20상수버퍼.JPG)  
+![PIX 상수 버퍼](pix%20상수버퍼_2.JPG)  
+![PIX 상수 버퍼](pix%20상수버퍼_3.JPG)  
+상수버퍼 탭에서 보면 float 원소 단위로 보여주지만 정작 쉐이더 디버거로 보면 4\*idx한 값을
+보고 있다. 지금 경우 인덱스가 400이니 1600의 값을 가리 킨다. 너무 헷갈리니 float4로 선언  
+해야겠다. 이제 컬링도 어느 정도 정상적으로 된다.
+
+## HI-Z 맵 생성 방식 방식 변경~~하려다가 취소~~
+
+그래서 다른 생성 방식을 찾았다. 어떤 텍스쳐 좌표가 원본(레벨 0)의 어느 텍셀들을 가리킨다면  
+ 이 텍셀들은 같은 좌표가 가르키는 더 높은 레벨의 밉맵의 텍셀 값으로 고려 되어야 한 다는 것이다.  
+이 방식으로 더 높은 레벨의 밉맵들은 절대로 같은 좌표가 가르키는 원본 텍셀보다 높은 값을 내지  
+ 않는다.(MIN으로 줄여나가니까) 어떤 방식이던 이전 밉맵이 필요하고 그리고 나서는 바로 RTV->SRV  
+ 배리어가 불가피하다.
+
+짝수 레벨 차원(원본의 길이가 2의 제곱으로 이루어진 경우)는 쉽다. 1차원으로 예를 들자면  
+레벨N 밉맵의 텍셀i를 구하려면 N-1레벨의 min(2i,2i+1)로 계산한다.
+
+허나 홀수 레벨 차원이라면 복잡하다. 레벨 N의 각 텍셀은 레벨 N-1의 세 텍셀들과 겹친다.
+min(2i, 2i+1, 2i+2)로 계산한다.
+
+2차원의 경우 가로세로 모두 짝수라면 레벨N-1의 2X2이 레벨N의 한 텍셀을 가리키고,  
+하나만 홀수라면 레벨N-1의 2X3 또는 3x2가 레벨N의 한 텍셀을, 모두 홀수라면 가로 세로로
+공유되는 구석 텍셀이 고려 되어야하므로 3x3이 레벨N의 한 텍셀을 나타낸다.
+
+어차피 더 작은 정사각형 z버퍼에 그릴 것이라서 간소화 했다.
+
+```
+struct PixelInputType
+{
+    float4 position : SV_POSITION;
+    float2 tex : TEXTURE;
+};
+
+Texture2D g_depthBuffer;
+SamplerState g_border;
+
+cbuffer lastGenInfo
+{
+    uint lastWidth;
+    uint lastHeight;
+    uint lastLevel;
+};
+
+float main(PixelInputType input) : SV_Target
+{
+    //GLSL의 gl_fragCoord == SV_Position
+    //
+    //texelFetch 정규화된 값대신에 텍스쳐 크기 범위 내의 정수 값을 받음.
+    //필터링 없음
+    //hlsl의 Load==texelFetch
+    int2 thisLevelTexCoord = int2(input.position.xy);
+    int2 lastLevelTexCoord = 2 * thisLevelTexCoord;
+
+    float4 texels;
+    texels.x = g_depthBuffer.Load(int3(lastLevelTexCoord, lastLevel));
+    texels.y = g_depthBuffer.Load(int3(lastLevelTexCoord + int2(1,0), lastLevel));
+    texels.z = g_depthBuffer.Load(int3(lastLevelTexCoord + int2(1, 1), lastLevel));
+    texels.w = g_depthBuffer.Load(int3(lastLevelTexCoord + int2(0, 1), lastLevel));
+    float maxZ = max(max(texels.x, texels.y), max(texels.z, texels.w));
+
+    return maxZ;
+}
+
+```
+
+## 중복되는 명령어 제거
+
+```c++
+m_pMainCommandList->SetDescriptorHeaps(sizeof(ppHeaps) / sizeof(ID3D12DescriptorHeap*), ppHeaps);
+m_pMainCommandList->SetPipelineState(m_pGenHiZPassPso.Get());
+m_pMainCommandList->SetGraphicsRootSignature(m_pShader->GetGenHiZpassRootSignature());
+m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psSampler), m_borderSsv);
+m_pMainCommandList->IASetVertexBuffers(0, 1, &m_quadVbv);
+m_pMainCommandList->IASetIndexBuffer(&m_quadIbv);
+m_pMainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+for (int i = 1; i < mipLevels; ++i)
+{
+            m_pMainCommandList->RSSetViewports(1, &viewPorts[i]);
+            m_pMainCommandList->RSSetScissorRects(1, &scissorRects[i]);
+            m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psLastMip), m_hiZTempSrvs[i-1]);
+            m_pMainCommandList->SetGraphicsRootDescriptorTable(static_cast<UINT>(eGenHiZRP::psLastResoltion), m_hi_zCbv[i-1]);
+            m_pMainCommandList->OMSetRenderTargets(1, &m_hiZTempRtvs[i], FALSE, nullptr);
+            m_pMainCommandList->DrawIndexedInstanced(_QUAD_IDX_COUNT, 1, 0, 0, 0);
+            D3D12_RESOURCE_BARRIER prepMip[] =
+            {
+                CreateResourceBarrier(m_pHiZTempTex.Get(),D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,i-1),
+                CreateResourceBarrier(m_pHiZTempTex.Get(),D3D12_RESOURCE_STATE_RENDER_TARGET,
+                    i+1==mipLevels? D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE:D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,i),
+            };
+
+            m_pMainCommandList->ResourceBarrier(sizeof(prepMip) / sizeof(D3D12_RESOURCE_BARRIER), prepMip);
+}
+```
+
+명령어 기록시에 pso, 힙, IA단계 설정같이 안 바뀌는 건 한번만하도록 변경했다. 그리고  
+HI_Z 텍스쳐는 최대한 batch 한다고 이전 밉은 바로 CS단계 준비를, 지금 밉은 SRV로 전환한다.
+
+## 행렬 변환을 CS로
+
+생각보다 결과를 읽어 오는 것보다 배열을 돌면서 행렬변환과 PUSH_BACK을 하는 게 시간을 많이 잡아 먹는 다.
+문제는 Dispatch 시작하기 까지 1ms나 걸린다는 것이다. 그래서 정점 8개와 행렬을 CB로 넣고 CS에서 연산을
+했다.
+
+0.5ms대로 줄었지만 여러번 하기에는 오버헤드가 심하다. 워커스레드로 일감을 분배하는 수 밖에 없다.
+55us초 만큼의 갭은 있지만 내가 원하던 만큼 노는 구간은 줄이였다.
+
+## 깊이 버퍼 선형화
+
+아무리해봐도 메쉬와 카메라 간 거리 100이상 차이 나면 그떄부터 HW쿼리보다 훨씬 못하다. HW쿼리가 100개만 남기면
+지금의 HZB 컬링은 250개 정도만 남긴다... 가만 생각해보니 기본적으로 깊이 버퍼는 비선형적이다.
+
 ### 기타 변경 사항
 
--모델 클래스에 부분이 아닌 전체 인덱스를 담는 IBV 변수 선언  
--pix를 통한 디버깅을 용이하게 하기 위해 #include <pix3.h>선언  
--PbrGeo패스아니면 머티리얼마다 따로 그리지말고 통째로 그리도록 변경  
--깊이버퍼를 hi-z컬링용으로 쓰기 위해 mipLevel을 10개정도 늘림.
--hi-z패스용 border샘플러 추가
+- 모델 클래스에 부분이 아닌 전체 인덱스를 담는 IBV 변수 선언
+- pix를 통한 디버깅을 용이하게 하기 위해 #include <pix3.h>선언
+- PbrGeo패스아니면 머티리얼마다 따로 그리지말고 통째로 그리도록 변경
+- 깊이버퍼를 hi-z컬링용으로 쓰기 위해 mipLevel을 10개정도 늘림.
+- hi-z패스용 border샘플러 추가
+- hi-z텍스쳐에 크기를 맞춰 넣기위해 쓴 다운 샘플 텍스쳐 선언 삭제
+- hi-z텍스쳐로의 텍스쳐 복사 코드 삭제
+- hi-z를 바로 rendertarget으로 설정하여 배리어 삭제
+- hi-z 상수버퍼는 초기화 작업시에 memcpy하도록 변경
+- 그림자 패스를 기다리는 것을 hw컬링 직전으로 옮김
 
 #### 참조
 
@@ -253,3 +383,5 @@ LOD를 가져와야 할 수도 있다.
 [DX12-Hi-z 컬링 - 유영천](https://www.slideshare.net/dgtman/hierachical-z-map-occlusion-culling)
 [밉맵 설명](https://www.3dgep.com/learning-directx-12-4/#Compute_Shaders)  
 [hi-z맵 CS+구](https://www.nickdarnell.com/hierarchical-z-buffer-occlusion-culling/)
+[HI-Z맵 생성](https://miketuritzin.com/post/hierarchical-depth-buffers/)
+[glsl/texelFetch](https://www.occasoftware.com/blog/texelfetch-and-unity)

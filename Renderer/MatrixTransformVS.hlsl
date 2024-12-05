@@ -13,6 +13,7 @@ struct PixelInputType
 cbuffer MatrixBuffer
 {
     matrix g_wvpMat;
+    matrix g_wvpLitMatrix;
 };
 
 PixelInputType main(VertexInputType input) 

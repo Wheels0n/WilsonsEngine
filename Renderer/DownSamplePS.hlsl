@@ -7,8 +7,9 @@ struct PixelInputType
     float2 tex : TEXTURE;
 };
 
+
 float main(PixelInputType input) : SV_TARGET
 {
-
     return g_fullScreenDepth.Sample(g_WrapSampler, input.tex);
+
 }

@@ -360,36 +360,15 @@ namespace wilson {
 		DirectX::XMVECTOR forward = DirectX::XMVectorScale(transform.r[2], extents.z);
 
 
-		DirectX::XMVECTOR x = DirectX::XMVectorSet(1.0, 0.0f, 0.0f, 0.f);
-		DirectX::XMVECTOR y = DirectX::XMVectorSet(0.0, 1.0f, 0.0f, 0.f);
-		DirectX::XMVECTOR z = DirectX::XMVectorSet(0.0, 0.0f, 1.0f, 0.f);
+		DirectX::XMVECTOR unit = DirectX::XMVectorSet(1.0, 1.0f, 1.0f, 0.f);
 
-		float dotRight;
-		float dotUp;
-		float dotForward;
-
-		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(x, right));
-		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(x, up));
-		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(x, up));
-
-		const float newli = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
-
-		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(y, right));
-		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(y, up));
-		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(y, up));
-
-		const float newlj = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
-
-		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(z, right));
-		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(z, up));
-		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(z, up));
-
-		const float newlk = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
+		DirectX::XMVECTOR dotRight = DirectX::XMVectorMultiply(unit, right);
+		DirectX::XMVECTOR dotUp = DirectX::XMVectorMultiply(unit, up);
+		DirectX::XMVECTOR dotForward = DirectX::XMVectorMultiply(unit, forward);
+		DirectX::XMVECTOR extent = DirectX::XMVectorAdd(dotRight, DirectX::XMVectorAdd(dotUp, dotForward));
 
 
-		const AABB globalAABB(globalCenter, newli, newlj, newlk);
-
-
+		const AABB globalAABB(globalCenterV, extent);
 		return globalAABB;
 	}
 

@@ -7,17 +7,17 @@ namespace wilson
 	{	
 		DirectX::XMFLOAT4 center((minAABB.x + maxAABB.x) * 0.5f, (minAABB.y + maxAABB.y) * 0.5f, (minAABB.z + maxAABB.z) * 0.5f, 1.0f);
 		m_center = DirectX::XMLoadFloat4(&center);
+		m_localCenter = m_center;
 
 		DirectX::XMFLOAT3 extents((maxAABB.x-center.x), (maxAABB.y-center.y) , (maxAABB.z-center.z));
 		m_extent = DirectX::XMLoadFloat3(&extents);
 		UpdateVertices();
 	}
-	AABB::AABB(const DirectX::XMFLOAT4 center, const float il, const float ij, const float ik)
+	AABB::AABB(const DirectX::XMVECTOR& center, const DirectX::XMVECTOR& extent)
 	{	
 
-		m_center = DirectX::XMLoadFloat4(&center);
-		DirectX::XMFLOAT3 extents(il, ij, ik);
-		m_extent = DirectX::XMLoadFloat3(&extents);
+		m_center = center;
+		m_extent = extent;
 		UpdateVertices();
 
 	}
@@ -42,116 +42,50 @@ namespace wilson
 		m_cubeVertices[6] = { center.x + extents.x, center.y + extents.y, center.z + extents.z };//우 상 후
 		m_cubeVertices[7] = { center.x + extents.x, center.y + extents.y, center.z - extents.z };//우상 전
 	}
-	bool AABB::IsOnOrForwardPlane(const Plane& plane) const
+	bool AABB::IsOnOrForwardPlane(const DirectX::XMVECTOR& plane) const
 	{	
-		DirectX::XMFLOAT3 extents;
-		DirectX::XMStoreFloat3(&extents, m_extent);
-		DirectX::XMFLOAT3 norm;
-		DirectX::XMStoreFloat3(&norm, plane.norm);
 
+		DirectX::XMVECTOR norm = DirectX::XMVectorAbs(plane);
+		DirectX::XMVECTOR normExtentDot = DirectX::XMVector3Dot(m_extent, norm);
+		const float r = normExtentDot.m128_f32[0];
 
-		const float r = extents.x * std::abs(norm.x) + extents.y * std::abs(norm.y) +
-			extents.z * std::abs(norm.z);
-
-		DirectX::XMVECTOR dot = DirectX::XMVector3Dot(plane.norm, m_center);
-		float signedDistanceToPlane = dot.m128_f32[0] - plane.d;
-		return -r <=signedDistanceToPlane;
+		DirectX::XMVECTOR centerPlaneDot = DirectX::XMVector3Dot(plane, m_center);
+		float signedDistanceToPlane =centerPlaneDot.m128_f32[0] - plane.m128_f32[3];
+		return r <=abs(signedDistanceToPlane);
 	}
-	bool AABB::IsOnFrustum(const Plane* pPlanes, const DirectX::XMMATRIX transform) const
-	{	
-
-		DirectX::XMVECTOR globalCenterV = DirectX::XMVector4Transform(m_center, DirectX::XMMatrixTranspose(transform));
-		DirectX::XMFLOAT4 globalCenter;
-		DirectX::XMStoreFloat4(&globalCenter, globalCenterV);
+	void AABB::UpdateAABB(const DirectX::XMMATRIX& transform)
+	{
+		DirectX::XMVECTOR centerV = DirectX::XMVector4Transform(m_localCenter, transform);
 
 		DirectX::XMFLOAT3 extents;
 		DirectX::XMStoreFloat3(&extents, m_extent);
-		
-		
+
 		DirectX::XMVECTOR right = DirectX::XMVectorScale(transform.r[0], extents.x);
 		DirectX::XMVECTOR up = DirectX::XMVectorScale(transform.r[1], extents.y);
 		DirectX::XMVECTOR forward = DirectX::XMVectorScale(transform.r[2], -extents.z);
 
 
-		DirectX::XMVECTOR x = DirectX::XMVectorSet(1.0, 0.0f, 0.0f, 0.f);
-		DirectX::XMVECTOR y = DirectX::XMVectorSet(0.0, 1.0f, 0.0f, 0.f);
-		DirectX::XMVECTOR z = DirectX::XMVectorSet(0.0, 0.0f, 1.0f, 0.f);
-		
-		float dotRight;
-		float dotUp;
-		float dotForward;
+		DirectX::XMVECTOR unit = DirectX::XMVectorSet(1.0, 1.0f, 1.0f, 0.f);
 
-		DirectX::XMStoreFloat(&dotRight,DirectX::XMVector3Dot(x, right));
-		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(x, up));
-		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(x, forward));
+		DirectX::XMVECTOR dotRight = DirectX::XMVectorMultiply(unit, right);
+		DirectX::XMVECTOR dotUp = DirectX::XMVectorMultiply(unit, up);
+		DirectX::XMVECTOR dotForward = DirectX::XMVectorMultiply(unit, forward);
+		DirectX::XMVECTOR extent = DirectX::XMVectorAdd(dotRight, DirectX::XMVectorAdd(dotUp, dotForward));
 
-		const float newli = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
+		m_center = centerV;
+		m_extent = extent;
+		UpdateVertices();
 
-		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(y, right));
-		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(y, up));
-		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(y, forward));
-
-		const float newlj = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
-
-		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(z, right));
-		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(z, up));
-		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(z, forward));
-
-		const float newlk = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
-
-
-		const AABB globalAABB(globalCenter, newli, newlj, newlk);
+	}
+	bool AABB::IsOnFrustum(const DirectX::XMVECTOR* pPlanes) const
+	{
 
 		return (
-			globalAABB.IsOnOrForwardPlane(pPlanes[0])&&
-			globalAABB.IsOnOrForwardPlane(pPlanes[1])&&
-			globalAABB.IsOnOrForwardPlane(pPlanes[2])&&
-			globalAABB.IsOnOrForwardPlane(pPlanes[3])&&
-			globalAABB.IsOnOrForwardPlane(pPlanes[4])&&
-			globalAABB.IsOnOrForwardPlane(pPlanes[5]));
-	}
-	AABB AABB::MultiplyWorldMatrix(const DirectX::XMMATRIX transform)
-	{
-		DirectX::XMVECTOR globalCenterV = DirectX::XMVector4Transform(m_center, DirectX::XMMatrixTranspose(transform));
-		DirectX::XMFLOAT4 globalCenter;
-		DirectX::XMStoreFloat4(&globalCenter, globalCenterV);
-
-		DirectX::XMFLOAT3 extents;
-		DirectX::XMStoreFloat3(&extents, m_extent);
-
-
-		DirectX::XMVECTOR right = DirectX::XMVectorScale(transform.r[0], extents.x);
-		DirectX::XMVECTOR up = DirectX::XMVectorScale(transform.r[1], extents.y);
-		DirectX::XMVECTOR forward = DirectX::XMVectorScale(transform.r[2], -extents.z);
-
-
-		DirectX::XMVECTOR x = DirectX::XMVectorSet(1.0, 0.0f, 0.0f, 0.f);
-		DirectX::XMVECTOR y = DirectX::XMVectorSet(0.0, 1.0f, 0.0f, 0.f);
-		DirectX::XMVECTOR z = DirectX::XMVectorSet(0.0, 0.0f, 1.0f, 0.f);
-
-		float dotRight;
-		float dotUp;
-		float dotForward;
-
-		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(x, right));
-		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(x, up));
-		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(x, forward));
-
-		const float newli = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
-
-		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(y, right));
-		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(y, up));
-		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(y, forward));
-
-		const float newlj = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
-
-		DirectX::XMStoreFloat(&dotRight, DirectX::XMVector3Dot(z, right));
-		DirectX::XMStoreFloat(&dotUp, DirectX::XMVector3Dot(z, up));
-		DirectX::XMStoreFloat(&dotForward, DirectX::XMVector3Dot(z, forward));
-
-		const float newlk = std::abs(dotRight) + std::abs(dotUp) + std::abs(dotForward);
-
-
-		return AABB(globalCenter, newli, newlj, newlk);
+			IsOnOrForwardPlane(pPlanes[0])&&
+			IsOnOrForwardPlane(pPlanes[1])&&
+			IsOnOrForwardPlane(pPlanes[2])&&
+			IsOnOrForwardPlane(pPlanes[3])&&
+			IsOnOrForwardPlane(pPlanes[4])&&
+			IsOnOrForwardPlane(pPlanes[5]));
 	}
 }

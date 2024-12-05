@@ -46,6 +46,11 @@ namespace wilson
 		XMFLOAT3 m_prevAngleFloat;
 		float m_prevFarZ;
 		float m_prevNearZ;
+		float m_preExposure;
+		float m_preHeightScale;
+		float m_preSsaoBias;
+		float m_preSsaoRadius;
+		UINT m_prenSsaoSample;
 	};
 }
 

@@ -219,13 +219,6 @@ namespace wilson
 								DirectX::XMMATRIX sc = DirectX::XMMatrixScalingFromVector(xv);
 								*scMat = sc;
 
-								xv = DirectX::XMVectorSet(scale[0] * 1.01f, scale[1] * 1.01f, scale[2] * 1.01f, 1.0f);
-								DirectX::XMMATRIX outlinerMat = DirectX::XMMatrixScalingFromVector(xv);
-								prevOutlinerMat = pMesh->GetOutlinerScaleMatrix();
-								if (prevOutlinerMat != nullptr)
-								{
-									*prevOutlinerMat = outlinerMat;
-								}
 								break;
 							}
 						}
@@ -289,9 +282,10 @@ namespace wilson
 					if (bDirty)
 					{
 						pMesh->UpdateWorldMatrix();
-						MatBuffer12* pMatBuffer = pMesh->GetMatBuffer();
-						pMatBuffer->SetDirtyBit();
-						XMMATRIX w = pMesh->GetTransformMatrix(false);
+						pMesh->UpdateAABB();
+						MatrixHandler12* pMatBuffer = pMesh->GetMatBuffer();
+						pMatBuffer->SetDirtyBit(true);
+						XMMATRIX& w = pMesh->GetTransformMatrix(true);
 						pMatBuffer->SetWorldMatrix(&w);
 					}
 
@@ -420,7 +414,6 @@ namespace wilson
 				Mesh12* pMesh = pMeshes[j].get();
 
 				XMMATRIX m_worldMat = pMesh->GetTransformMatrix(false);
-				m_worldMat = DirectX::XMMatrixTranspose(m_worldMat);
 				XMMATRIX invWorldMat = XMMatrixInverse(nullptr, m_worldMat);
 				XMMATRIX toLocal = XMMatrixMultiply(invViewMat, invWorldMat);
 

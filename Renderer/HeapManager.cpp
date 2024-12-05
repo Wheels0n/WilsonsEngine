@@ -173,6 +173,9 @@ namespace wilson
 		else
 		{
 			clearVal.Format = texDesc.Format;
+			clearVal.Color[0] = 0.0f;
+			clearVal.Color[1] = 0.0f;
+			clearVal.Color[2] = 0.0f;
 			clearVal.Color[3] = 1.0f;
 		}
 

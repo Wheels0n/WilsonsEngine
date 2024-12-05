@@ -10,51 +10,47 @@ using namespace DirectX;
 namespace wilson
 {	
 	class HeapManager;
-	class MatBuffer12
+	class MatrixHandler12
 	{
 	public:
 
-		inline XMMATRIX GetWVPMatrix()
+		inline XMMATRIX& GetWVPMatrix()
 		{
 			return m_wvpMat;
 		}
-		MatrixBuffer GetMatrixBuffer();
-		inline void SetDirtyBit()
+		MatrixBuffer& GetMatrixBuffer()
 		{
-			bDirty = true;
+			return m_matrixBuffer;
 		}
-		inline void SetInvWorldMatrix(XMMATRIX* const invWorldMatrix)
+		inline bool GetDirtyBit()
 		{
-			m_invWorldMat = *invWorldMatrix;
+			return bDirty;
+		}
+		inline void SetDirtyBit(bool dirty)
+		{
+			bDirty = dirty;
 		}
 		inline void SetLightSpaceMatrix(XMMATRIX* const plightSpaceMat)
 		{
 			m_lightSpaceMat = *plightSpaceMat;
 		}
-		inline void SetProjMatrix(XMMATRIX* const projMat)
-		{
-			m_projMat = *projMat;
-		}
-		inline void SetViewMatrix(XMMATRIX* const viewMatrix)
-		{
-			m_viewMat = *viewMatrix;
-		}
-		inline void SetWorldMatrix(XMMATRIX* const worldMatrix)
-		{
-			m_worldMat = *worldMatrix;
-		}
+		void SetWorldMatrix(XMMATRIX* const worldMatrix);
+		void SetInvWorldMatrix(XMMATRIX* const invWorldMatrix);
+		void SetViewMatrix(XMMATRIX* const viewMatrix);
+		void SetProjMatrix(XMMATRIX* const projMat);
 		void UpdateCombinedMat(const bool bSpotShadowPass);
-		void UploadCombinedMat(ID3D12GraphicsCommandList* const pCommandlist, const bool bSpotShadowPass);
+		void UploadCombinedMat(ID3D12GraphicsCommandList* const pCommandlist);
 		void UploadMatBuffer(ID3D12GraphicsCommandList* const pCommandlist);
 		void UploadProjMat(ID3D12GraphicsCommandList* const pCommandlist, const bool bSsao);
 		void UploadViewMat(ID3D12GraphicsCommandList* const pCommandlist);
 
-		MatBuffer12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager,
+		MatrixHandler12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager,
 			XMMATRIX* const pViewMat, XMMATRIX* const pProjMat);
-		~MatBuffer12();
+		~MatrixHandler12();
 
 	private:
 		bool bDirty;
+		MatrixBuffer m_matrixBuffer;
 
 		XMMATRIX m_extraMat;
 		XMMATRIX m_invWorldMat;
@@ -65,6 +61,7 @@ namespace wilson
 		XMMATRIX m_worldMat;
 		XMMATRIX m_wvMat;
 		XMMATRIX m_wvpMat;
+		XMMATRIX m_wvpTransposedMat;
 		XMMATRIX m_wvpLitMat;
 
 		D3D12_GPU_DESCRIPTOR_HANDLE m_combinedMatCbv;
