@@ -5,22 +5,22 @@
 #include "ContentBrowser12.h"
 #include "Viewport12.h"
 #include "Settings12.h"
-namespace wilson {
-	Editor12::Editor12(D3D12*const pD3D12)
-	{
-		m_pD3D12 = pD3D12;
-		m_pContentBrowser = std::make_unique<ContentBrowser12>(pD3D12);
-		m_pScene = std::make_unique<Scene12>(pD3D12);
-		m_pViewport = std::make_unique<Viewport12>(pD3D12, m_pScene->GetScene());
-		m_pSettings = std::make_unique<Settings12>(pD3D12);
-		std::string str = "Scene";
-		m_pScene->SetCam(pD3D12->GetCam());
-		m_pScene->SetSceneName(str);
-	}
-	Editor12::~Editor12()
-	{
+#include "Engine.h"
 
+namespace wilson {
+	using namespace std;
+
+	Editor12::Editor12(shared_ptr<D3D12> pD3D12)
+	{
+		m_pContentBrowser = make_shared<ContentBrowser12>(pD3D12);
+		m_pScene = make_shared<Scene12>(pD3D12);
+		m_pViewport = make_shared<Viewport12>(pD3D12, m_pScene);
+		m_pSettings = make_shared<Settings12>(pD3D12);
+	
+		m_pScene->SetCam(pD3D12->GetCam());
+		pD3D12->SetScene(m_pScene);
 	}
+
 	void Editor12::Draw()
 	{
 		m_pContentBrowser->List();
@@ -32,6 +32,7 @@ namespace wilson {
 	void Editor12::Pick()
 	{
 		ImGuiIO io = ImGui::GetIO();
+		
 		int x = io.MousePos.x;
 		int y = io.MousePos.y;
 		if (!CheckRange(x, y))
@@ -39,8 +40,8 @@ namespace wilson {
 			return;
 		}
 
-		UINT width = m_pD3D12->GetClientWidth();
-		UINT height = m_pD3D12->GetClientHeight();
+		UINT width = io.DisplaySize.x;
+		UINT height = io.DisplaySize.y;
 
 		float ndcX = m_pViewport->GetNDCX(x);
 		float ndcY = m_pViewport->GetNDCY(y);
@@ -50,7 +51,7 @@ namespace wilson {
 
 		m_pScene->Pick(mappedX, mappedY, width, height);
 	}
-	bool Editor12::CheckRange(int x, int y)
+	BOOL Editor12::CheckRange(int x, int y)
 	{
 		return m_pViewport->CheckRange(x, y);
 	}

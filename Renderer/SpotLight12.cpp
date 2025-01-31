@@ -1,53 +1,54 @@
 #include "SpotLight12.h"
 #include "HeapManager.h"
+
 namespace wilson
 {
 
-    SpotLight12::SpotLight12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager, const UINT idx)
-        :Light12(idx)
+    SpotLight12::SpotLight12(const UINT idx)
+        :Light12(idx), m_cutoff(_DEFAULT_CUTOFF), m_outerCutoff(_DEFAULT_OUTER_CUTOFF)
     {
-       
-    }
-    void SpotLight12::UpdateViewMat()
-    {
-        DirectX::XMVECTOR dir = XMLoadFloat3(&m_direction);
-        dir = DirectX::XMVector3Normalize(dir);
+        m_pCompositeMatrices = make_shared<CompositeMatrices>();
+        m_pWVPMatrices = make_shared<WVPMatrices>();
 
-        DirectX::XMVECTOR pos = XMLoadFloat3(&m_position);
-        DirectX::XMVECTOR target = DirectX::XMVectorAdd(pos, dir);
-        DirectX::XMFLOAT3 target3;
-        DirectX::XMStoreFloat3(&target3, target);
-
-        m_viewMat = DirectX::XMMatrixLookAtLH(
-            DirectX::XMLoadFloat3(&m_position),
-            DirectX::XMLoadFloat3(&target3),
-            DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-        UpdateLitMat();
+        m_spotLightMatrixKey = g_pHeapManager->AllocateCb(sizeof(XMMATRIX));
     }
-    void SpotLight12::UpdateProjMat()
+    SpotLight12::~SpotLight12()
     {
-        m_perspectiveMat = DirectX::XMMatrixPerspectiveFovLH(
-            DirectX::XMConvertToRadians(m_outerCutoff * 2.0f), 1.0f, _S_NEAR, _S_FAR);
-        UpdateLitMat();
+        Light12::~Light12();
+    }
+    XMMATRIX* SpotLight12::GetSpotLightSpaceMatrix()
+    {
+        return &m_pCompositeMatrices->vpMat;
     }
 
-    void SpotLight12::UpdateLitMat()
+    void SpotLight12::UpdateViewMatrix()
     {
-        m_lightSpaceMat = DirectX::XMMatrixMultiplyTranspose(m_viewMat, m_perspectiveMat);
+        XMVECTOR dir = XMLoadFloat3(&m_pProperty->direction);
+        dir = XMVector3Normalize(dir);
+
+        XMVECTOR pos    = XMLoadFloat3(&m_pProperty->position);
+        XMVECTOR target = XMVectorAdd(pos, dir);
+
+        m_pWVPMatrices->vMat = XMMatrixLookAtLH(
+            pos,
+            target,
+            XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+        UpdateSpotLightMatrix();
+    }
+    void SpotLight12::UpdateProjMatrix()
+    {
+        m_pWVPMatrices->pMat = XMMatrixPerspectiveFovLH(
+            XMConvertToRadians(m_outerCutoff * 2.0f), 1.0f, _S_NEAR, _S_FAR);
+        UpdateSpotLightMatrix();
+    }
+    void SpotLight12::UpdateSpotLightMatrix()
+    {
+        m_pCompositeMatrices->vpMat = XMMatrixMultiplyTranspose(m_pWVPMatrices->vMat, m_pWVPMatrices->pMat);
+        g_pHeapManager->CopyDataToCb(m_spotLightMatrixKey, sizeof(XMMATRIX), &m_pCompositeMatrices->vpMat);
     }
 
-    void SpotLight12::UpdateProperty()
+    void SpotLight12::UploadSpotLightMatrix(ComPtr<ID3D12GraphicsCommandList> pCmdList)
     {
-        m_spotLightProperty.ambient = m_ambient;
-        m_spotLightProperty.attenuation = m_attenuation;
-        m_spotLightProperty.diffuse = m_diffuse;
-        m_spotLightProperty.direction = m_direction;
-        m_spotLightProperty.position = m_position;
-        m_spotLightProperty.range = m_range;
-        m_spotLightProperty.specular = m_specular;
-        m_spotLightProperty.cutoff = DirectX::XMScalarCos(DirectX::XMConvertToRadians(m_cutoff));
-        m_spotLightProperty.outerCutoff = DirectX::XMScalarCos(DirectX::XMConvertToRadians(m_outerCutoff));
-
+        g_pHeapManager->UploadGraphicsCb(m_spotLightMatrixKey, 1, pCmdList);
     }
-
 }

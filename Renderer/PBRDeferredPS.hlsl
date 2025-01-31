@@ -8,27 +8,7 @@ struct PixelOutput
     float4 mainColor : SV_Target0;
 };
 
-struct DirectionalLight
-{
-    float4 ambient;
-    float4 diffuse;
-    float4 specular;
-    float3 direction;
-    float pad;
-};
-struct CubeLight
-{
-    float4 ambient;
-    float4 diffuse;
-    float4 specular;
-
-    float3 position;
-    float range;
-
-    float3 att;
-    float pad;
-};
-struct SpotLight
+struct Light
 {
     float4 ambient;
     float4 diffuse;
@@ -53,12 +33,12 @@ Texture2D g_AOTex : register(t5);
 TextureCube g_irradianceMap : register(t6);
 TextureCube g_prefilterMap : register(t7);
 Texture2D g_brdfLUT : register(t8);
-Texture2DArray g_dirShadowMaps[1];
-Texture2D spotShadowMaps[1];
-TextureCube CubeShadowMaps[1];
-SamplerState g_WrapSampler : register(s0);
-SamplerState g_cubeShadowSampler : register(s1);
-SamplerComparisonState g_shadowSampler : register(s2);
+Texture2DArray          g_dirShadowMaps[1];
+Texture2D               spotShadowMaps[1];
+TextureCube             CubeShadowMaps[1];
+SamplerState            g_clampSampler : register(s0);
+SamplerState            g_cubeShadowSampler : register(s1);
+SamplerComparisonState  g_shadowSampler : register(s2);
 
 cbuffer CamBuffer : register(b0)
 {
@@ -78,11 +58,11 @@ cbuffer ViewMat : register(b3)
 };
 cbuffer Light : register(b4)
 {
-    DirectionalLight g_DirLight[5];
+    Light g_DirLight[5];
     uint g_dirCnt;
-    CubeLight g_CubeLight[24];
+    Light g_CubeLight[24];
     uint g_cubeCnt;
-    SpotLight g_SpotLight[10];
+    Light g_SpotLight[10];
     uint g_sptCnt;
     uint padding;
 };
@@ -262,7 +242,7 @@ float CalCubeShadowFactor(SamplerState cubeShadowSampler,
     return percentLit;
 
 }
-void CalDirectionalLight(DirectionalLight L, float3 normal, float3 viewDir,
+void CalDirectionalLight(Light L, float3 normal, float3 viewDir,
 float3 albedo, float metalness, float roughness, float3 F0, float3 lightDir,
 out float3 L0)
 { 
@@ -278,7 +258,7 @@ out float3 L0)
     float3 F = FresnelSchlick(max(dot(h, viewDir), 0.0f), F0);
     
     float3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(normal, viewDir), 0.0f) * max(dot(normal, lightDir), 0.0f) + 0.0001;
+    float denominator = 4.0 * max(dot(normal, viewDir), 0.0f) * max(dot(normal, lightDir), 0.0f) + 1e-6;
     float3 specular = numerator / denominator;
     
     float3 kS = F;
@@ -288,7 +268,7 @@ out float3 L0)
     float NdotL = max(dot(normal, lightDir), 0.0f);
     L0 += (kD * albedo / _PI + specular) * radiance * NdotL;
 }
-void CalCubeLight(CubeLight L, float3 lightDir, float3 normal, float3 viewDir,
+void CalCubeLight(Light L, float3 lightDir, float3 normal, float3 viewDir,
 float3 albedo, float metalness, float roughness, float3 F0,
 out float3 L0)
 {
@@ -318,7 +298,7 @@ out float3 L0)
     L0 += (kD * albedo / _PI + specular) * radiance * NdotL;
     
 }
-void CalSpotLight(SpotLight L, float3 lightDir, float3 normal, float3 viewDir, 
+void CalSpotLight(Light L, float3 lightDir, float3 normal, float3 viewDir, 
 float3 albedo, float metalness, float roughness, float3 F0,
 out float3 L0)
 {   
@@ -355,15 +335,15 @@ out float3 L0)
 PixelOutput main(PixelInput input)
 {
     PixelOutput output;
-    float4 wPos = g_posTex.Sample(g_WrapSampler, input.tex);
-    float4 normal = g_normalTex.Sample(g_WrapSampler, input.tex);
-    float4 albedo = g_abeldoTex.Sample(g_WrapSampler, input.tex);
-    float4 spec = g_specualrTex.Sample(g_WrapSampler, input.tex);
-    float4 emissive = g_emissiveTex.Sample(g_WrapSampler, input.tex);
+    float4 wPos = g_posTex.Sample(g_clampSampler, input.tex);
+    float4 normal = g_normalTex.Sample(g_clampSampler, input.tex);
+    float4 albedo = g_abeldoTex.Sample(g_clampSampler, input.tex);
+    float4 spec = g_specualrTex.Sample(g_clampSampler, input.tex);
+    float4 emissive = g_emissiveTex.Sample(g_clampSampler, input.tex);
     float4 vPos = mul(wPos, g_viewjMat);
  
     
-    float ao = g_AOTex.Sample(g_WrapSampler, input.tex).r;
+    float ao = g_AOTex.Sample(g_clampSampler, input.tex).r;
     float roughness = spec.g;
     float metalness =spec.b;
     
@@ -433,13 +413,13 @@ PixelOutput main(PixelInput input)
     float3 kS = FresnelSchlickRoughness(max(dot(normal.xyz, viewDir.xyz), 0.0f), F0, roughness);
     float3 kD = 1.0f - kS;
     kD *= 1.0f - metalness;
-    float3 irradiance = g_irradianceMap.Sample(g_WrapSampler, normal.xyz);
+    float3 irradiance = g_irradianceMap.Sample(g_clampSampler, normal.xyz);
     float3 diffuse = irradiance * albedo.xyz;
    
     const float MAX_REFLECTION_LOD = 4.0f;
     float3 prefilteredColor = g_prefilterMap.SampleLevel(g_cubeShadowSampler, reflection, roughness * MAX_REFLECTION_LOD).rgb;
     float2 brdfUV = float2(max(dot(normal.xyz, viewDir), 0.0f),1.0f-roughness);
-    float2 brdf = g_brdfLUT.Sample(g_WrapSampler, brdfUV).rg;
+    float2 brdf = g_brdfLUT.Sample(g_clampSampler, brdfUV).rg;
     float3 specular = prefilteredColor * (kS * brdf.x + brdf.y);
     //마지막 후처리에서 계산
     float3 ambient = (kD * diffuse + specular) * 0.4f * ao;

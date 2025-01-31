@@ -1,60 +1,44 @@
 #include "Frustum12.h"
 
 namespace wilson {
-
-	Frustum12::Frustum12(Camera12* const pCam)
+	using namespace DirectX;
+	Frustum12::Frustum12(Camera12* pCam)
+		:m_nMeshletInFrustum(0), m_nMeshletInScene(0)
 	{
-		m_subMeshesInFrustum = 0;
-		m_subMeshesInScene = 0;
+		XMMATRIX& toNDC = (pCam->GetViewProjectionMatrix());
 		
-		DirectX::XMMATRIX toNDC = (pCam->GetViewProjectionMatrix());
-		toNDC = DirectX::XMMatrixTranspose(toNDC);
+		//col4= z, col3 = Az+B, col2 = y, col1 = x
 
-		DirectX::XMFLOAT4X4 toNDC4;
-		XMStoreFloat4x4(&toNDC4, toNDC);
+		m_planes[0] = toNDC.r[2];
+		m_planes[1] = XMVectorSubtract(toNDC.r[3], toNDC.r[2]);
+		m_planes[2] = XMVectorAdd(toNDC.r[3], toNDC.r[0]);
+		m_planes[3] = XMVectorSubtract(toNDC.r[3], toNDC.r[0]);
+		m_planes[4] = XMVectorSubtract(toNDC.r[3], toNDC.r[1]);
+		m_planes[5] = XMVectorAdd(toNDC.r[3], toNDC.r[1]);
 
-		//col4= z, col3 = Az+B, col2 = y, col1 = x 평면방정식 참고
-		float x = (float)(toNDC4._13);
-		float y = (float)(toNDC4._23);
-		float z = (float)(toNDC4._33);
-		float w = (float)(toNDC4._43);
-		m_planes[0] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[0] = DirectX::XMPlaneNormalize(m_planes[0]);
-
-		x = (float)(toNDC4._14 - toNDC4._13);
-		y = (float)(toNDC4._24 - toNDC4._23);
-		z = (float)(toNDC4._34 - toNDC4._33);
-		w = (float)(toNDC4._44 - toNDC4._43);
-		m_planes[1] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[1] = DirectX::XMPlaneNormalize(m_planes[1]);
-
-		x = (float)(toNDC4._14 + toNDC4._11);
-		y = (float)(toNDC4._24 + toNDC4._21);
-		z = (float)(toNDC4._34 + toNDC4._31);
-		w = (float)(toNDC4._44 + toNDC4._41);
-		m_planes[2] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[2] = DirectX::XMPlaneNormalize(m_planes[2]);
-
-		x = (float)(toNDC4._14 - toNDC4._11);
-		y = (float)(toNDC4._24 - toNDC4._21);
-		z = (float)(toNDC4._34 - toNDC4._31);
-		w = (float)(toNDC4._44 - toNDC4._41);
-		m_planes[3] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[3] = DirectX::XMPlaneNormalize(m_planes[3]);
-
-		x = (float)(toNDC4._14 - toNDC4._12);
-		y = (float)(toNDC4._24 - toNDC4._22);
-		z = (float)(toNDC4._34 - toNDC4._32);
-		w = (float)(toNDC4._44 - toNDC4._42);
-		m_planes[4] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[4] = DirectX::XMPlaneNormalize(m_planes[4]);
-
-		x = (float)(toNDC4._14 + toNDC4._12);
-		y = (float)(toNDC4._24 + toNDC4._22);
-		z = (float)(toNDC4._34 + toNDC4._32);
-		w = (float)(toNDC4._44 + toNDC4._42);
-		m_planes[5] = DirectX::XMVectorSet(x, y, z, w);
-		m_planes[5] = DirectX::XMPlaneNormalize(m_planes[5]);
+		for (int i = 0; i < 6; ++i)
+		{
+			m_planes[i]= XMPlaneNormalize(m_planes[i]);
+		}
 	}
-
+	XMVECTOR* Frustum12::GetPlanes()
+	{
+		return m_planes;
+	}
+	UINT Frustum12::GetNumOfMeshletInFrustum()
+	{
+		return m_nMeshletInFrustum;
+	}
+	UINT Frustum12::GetNumOfMeshletInScene()
+	{
+		return m_nMeshletInScene;
+	}
+	void Frustum12::SetNumOfMeshletInFrustum(const UINT cnt)
+	{
+		m_nMeshletInFrustum = cnt;
+	}
+	void Frustum12::SetNumOfMeshletInScene(const UINT cnt)
+	{
+		m_nMeshletInScene = cnt;
+	}
 }

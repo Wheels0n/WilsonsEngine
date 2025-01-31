@@ -3,49 +3,34 @@
 #include "typedef.h"
 namespace wilson
 {
+	using namespace std;
+	using namespace DirectX;
+	using namespace Microsoft::WRL;
 	class HeapManager;
 	class CubeLight12 :public Light12
 	{
-	public:
-		void CreateShadowMatrices();
-		inline DirectX::XMFLOAT3* GetAttenuation()
-		{
-			return &m_attenuation;
-		}
-		inline CubeLightProperty* GetProperty()
-		{
-			return &m_cubeLightProperty;
-		}
-		inline float* GetRange()
-		{
-			return &m_range;
-		}
-		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::CUBE; };
-		void UpdateProperty();
-		void UploadLightPos(ID3D12GraphicsCommandList* const);
-		void UploadShadowMatrices(ID3D12GraphicsCommandList* const);
+		public:
+			eLIGHT_TYPE				GetType() { return eLIGHT_TYPE::CUBE; };
 
-		CubeLight12() = default;
-		CubeLight12(ID3D12Device* const, ID3D12GraphicsCommandList* const, HeapManager* const, const UINT idx);
-		CubeLight12(const CubeLight12&)=default;
-		~CubeLight12();
+			void					UpdateLightPos();
+			void					UpdateCubeMatrices();
 
-	private:
-		CubeLightProperty m_cubeLightProperty;
+			void					UploadLightPos(ComPtr<ID3D12GraphicsCommandList>);
+			void					UploadCubeLightMatrices(ComPtr<ID3D12GraphicsCommandList>);
 
-		D3D12_GPU_DESCRIPTOR_HANDLE m_matriceCbv;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_posCbv;
+									CubeLight12(const UINT idx);
+									CubeLight12(const CubeLight12&)=default;
+									~CubeLight12();
 
-		DirectX::XMFLOAT3 m_attenuation;
-		float m_range;
+		private:
+			UINT					m_cubeLightMatricesKey;
+			UINT					m_cubeLightPosKey;
 
-		std::vector<DirectX::XMMATRIX> m_cubeMats;
-		static DirectX::XMMATRIX g_perspectiveMat;
+			vector<XMMATRIX>		m_cubeMatrices;
 
-		static std::vector<DirectX::XMVECTOR> g_dirVectors;
-		static std::vector<DirectX::XMVECTOR> g_upVectors;
+			static XMMATRIX			g_perspective;
+			static vector<XMVECTOR> g_dirVectors;
+			static vector<XMVECTOR> g_upVectors;
 
-		UINT8* m_pMatricesCbBegin;
-		UINT8* m_pPosCbBegin;
 	};
 }

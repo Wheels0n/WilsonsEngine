@@ -9,59 +9,39 @@
 #include "typedef.h"
 namespace wilson
 {
+	using namespace std;
+	using namespace DirectX;
 	class Viewport12
 	{
-	public:
-		bool CheckRange(const int, const int);
-		void Draw();
-		inline int GetHeight() const
-		{
-			return m_height;
-		};
-		inline float GetNDCX(const int);
-		inline float GetNDCY(const int);
-		inline int GetWidth() const
-		{
-			return m_width;
-		};
-		inline int GetX() const
-		{
-			return m_left;
-		};
-		inline int GetY() const
-		{
-			return m_top;
-		};
-		void Resize();
+		public:
+			BOOL							CheckRange(const int, const int);
+		
+			int								GetX();
+			int								GetY();
+			float							GetNDCX(const int);
+			float							GetNDCY(const int);
 
-		Viewport12() = default;
-		Viewport12(D3D12* const, Scene12* const);
-		Viewport12(const Viewport12&) = delete;
-		~Viewport12();
-	private:
-		XMVECTOR CalEntityPos();
-	private:
-		bool m_IsFocused;
+			void							Draw();
+			void							Resize();
 
-		UINT m_width;
-		UINT m_height;
-		UINT m_nGbuffer;
+											Viewport12(shared_ptr<D3D12>, shared_ptr<Scene12>);
+											Viewport12(const Viewport12&) = delete;
+											~Viewport12()=default;
+		private:
+			XMVECTOR						CalEntityPos();
+		private:
+			BOOL							m_IsFocused;
 
-		int m_left;
-		int m_top;
+			UINT							m_width;
+			UINT							m_height;
 
-		Camera12* m_pCam;
-		D3D12* m_pD3D12;
-		HeapManager* m_pHeapManager;
-		std::unique_ptr<Importer12>m_pImporter;
-		Scene12* m_pScene;
+			int								m_left;
+			int								m_top;
 
-		D3D12_GPU_DESCRIPTOR_HANDLE* m_pGbufferSrvs;
-		D3D12_GPU_DESCRIPTOR_HANDLE* m_pPostProcessSrv;
-		D3D12_GPU_DESCRIPTOR_HANDLE* m_pSceneDepthSrv;
-		D3D12_GPU_DESCRIPTOR_HANDLE* m_pSsaoBlurredSrv;
-
-		ID3D12Device* m_pDevice;
+			shared_ptr<D3D12>				m_pD3D12;
+			shared_ptr<Camera12>			m_pCam;
+			shared_ptr<Importer12>			m_pImporter;
+			shared_ptr<Scene12>				m_pScene;
 	};
 }
 

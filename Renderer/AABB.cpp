@@ -1,91 +1,96 @@
-#include "Mesh11.h"
+
 #include "AABB.h"
 
 namespace wilson
 {
-	AABB::AABB(const DirectX::XMFLOAT3 minAABB, const DirectX::XMFLOAT3 maxAABB)
+	using namespace DirectX;
+	AABB::AABB(const XMFLOAT3 minAABB, const XMFLOAT3 maxAABB)
 	{	
-		DirectX::XMFLOAT4 center((minAABB.x + maxAABB.x) * 0.5f, (minAABB.y + maxAABB.y) * 0.5f, (minAABB.z + maxAABB.z) * 0.5f, 1.0f);
-		m_center = DirectX::XMLoadFloat4(&center);
+		XMFLOAT4 center((minAABB.x + maxAABB.x) * 0.5f, (minAABB.y + maxAABB.y) * 0.5f, (minAABB.z + maxAABB.z) * 0.5f, 1.0f);
+		m_center = XMLoadFloat4(&center);
 		m_localCenter = m_center;
 
-		DirectX::XMFLOAT3 extents((maxAABB.x-center.x), (maxAABB.y-center.y) , (maxAABB.z-center.z));
-		m_extent = DirectX::XMLoadFloat3(&extents);
-		UpdateVertices();
+		XMFLOAT3 extents((maxAABB.x-center.x), (maxAABB.y-center.y) , (maxAABB.z-center.z));
+		m_extent = XMLoadFloat3(&extents);
+		UpdateBound();
 	}
-	AABB::AABB(const DirectX::XMVECTOR& center, const DirectX::XMVECTOR& extent)
+	AABB::AABB(const XMVECTOR& center, const XMVECTOR& extent)
+		:m_center(center), m_extent(extent)
 	{	
-
-		m_center = center;
-		m_extent = extent;
-		UpdateVertices();
-
+		UpdateBound();
 	}
-	AABB::~AABB()
+	XMVECTOR AABB::GetCenter()
 	{
-
+		return m_center;
 	}
-	void AABB::UpdateVertices()
+	XMVECTOR AABB::GetExtent()
 	{
-		DirectX::XMFLOAT3 center;
-		DirectX::XMStoreFloat3(&center, m_center);
-
-		DirectX::XMFLOAT3 extents;
-		DirectX::XMStoreFloat3(&extents, m_extent);
-		m_cubeVertices[0] = { center.x - extents.x, center.y - extents.y, center.z - extents.z }; //좌, 하, 전 
-		m_cubeVertices[1] = { center.x - extents.x, center.y - extents.y, center.z + extents.z };//좌 하 후
-		m_cubeVertices[2] = { center.x + extents.x, center.y - extents.y, center.z + extents.z };//우 하 후
-		m_cubeVertices[3] = { center.x + extents.x, center.y - extents.y, center.z - extents.z };//우 하 전
-
-		m_cubeVertices[4] = { center.x - extents.x, center.y + extents.y, center.z - extents.z };//좌 상 전
-		m_cubeVertices[5] = { center.x - extents.x, center.y + extents.y, center.z + extents.z };//좌 상 후
-		m_cubeVertices[6] = { center.x + extents.x, center.y + extents.y, center.z + extents.z };//우 상 후
-		m_cubeVertices[7] = { center.x + extents.x, center.y + extents.y, center.z - extents.z };//우상 전
+		return m_extent;
 	}
-	bool AABB::IsOnOrForwardPlane(const DirectX::XMVECTOR& plane) const
-	{	
-
-		DirectX::XMVECTOR norm = DirectX::XMVectorAbs(plane);
-		DirectX::XMVECTOR normExtentDot = DirectX::XMVector3Dot(m_extent, norm);
-		const float r = normExtentDot.m128_f32[0];
-
-		DirectX::XMVECTOR centerPlaneDot = DirectX::XMVector3Dot(plane, m_center);
-		float signedDistanceToPlane =centerPlaneDot.m128_f32[0] - plane.m128_f32[3];
-		return r <=abs(signedDistanceToPlane);
-	}
-	void AABB::UpdateAABB(const DirectX::XMMATRIX& transform)
+	XMFLOAT3* AABB::GetBound()
 	{
-		DirectX::XMVECTOR centerV = DirectX::XMVector4Transform(m_localCenter, transform);
+		return m_bound;
+	}
+	void AABB::UpdateAABB(const XMMATRIX& transform)
+	{
+		XMVECTOR centerV = XMVector4Transform(m_localCenter, transform);
 
-		DirectX::XMFLOAT3 extents;
-		DirectX::XMStoreFloat3(&extents, m_extent);
+		XMFLOAT3 extents;
+		XMStoreFloat3(&extents, m_extent);
 
-		DirectX::XMVECTOR right = DirectX::XMVectorScale(transform.r[0], extents.x);
-		DirectX::XMVECTOR up = DirectX::XMVectorScale(transform.r[1], extents.y);
-		DirectX::XMVECTOR forward = DirectX::XMVectorScale(transform.r[2], -extents.z);
+		XMVECTOR right = XMVectorScale(transform.r[0], extents.x);
+		XMVECTOR up = XMVectorScale(transform.r[1], extents.y);
+		XMVECTOR forward = XMVectorScale(transform.r[2], -extents.z);
 
 
-		DirectX::XMVECTOR unit = DirectX::XMVectorSet(1.0, 1.0f, 1.0f, 0.f);
+		XMVECTOR unit = XMVectorSet(1.0, 1.0f, 1.0f, 0.f);
 
-		DirectX::XMVECTOR dotRight = DirectX::XMVectorMultiply(unit, right);
-		DirectX::XMVECTOR dotUp = DirectX::XMVectorMultiply(unit, up);
-		DirectX::XMVECTOR dotForward = DirectX::XMVectorMultiply(unit, forward);
-		DirectX::XMVECTOR extent = DirectX::XMVectorAdd(dotRight, DirectX::XMVectorAdd(dotUp, dotForward));
+		XMVECTOR dotRight   = XMVectorMultiply(unit, right);
+		XMVECTOR dotUp      = XMVectorMultiply(unit, up);
+		XMVECTOR dotForward = XMVectorMultiply(unit, forward);
+		XMVECTOR extent     = XMVectorAdd(dotRight, DirectX::XMVectorAdd(dotUp, dotForward));
 
 		m_center = centerV;
 		m_extent = extent;
-		UpdateVertices();
+		UpdateBound();
 
 	}
-	bool AABB::IsOnFrustum(const DirectX::XMVECTOR* pPlanes) const
+	void AABB::UpdateBound()
 	{
+		XMFLOAT3 center;
+		XMStoreFloat3(&center, m_center);
 
+		XMFLOAT3 extents;
+		XMStoreFloat3(&extents, m_extent);
+		m_bound[0] = { center.x - extents.x, center.y - extents.y, center.z - extents.z }; //좌, 하, 전 
+		m_bound[1] = { center.x - extents.x, center.y - extents.y, center.z + extents.z };//좌 하 후
+		m_bound[2] = { center.x + extents.x, center.y - extents.y, center.z + extents.z };//우 하 후
+		m_bound[3] = { center.x + extents.x, center.y - extents.y, center.z - extents.z };//우 하 전
+
+		m_bound[4] = { center.x - extents.x, center.y + extents.y, center.z - extents.z };//좌 상 전
+		m_bound[5] = { center.x - extents.x, center.y + extents.y, center.z + extents.z };//좌 상 후
+		m_bound[6] = { center.x + extents.x, center.y + extents.y, center.z + extents.z };//우 상 후
+		m_bound[7] = { center.x + extents.x, center.y + extents.y, center.z - extents.z };//우상 전
+	}
+	BOOL AABB::IsOnFrustum(const XMVECTOR* pPlanes)
+	{
 		return (
-			IsOnOrForwardPlane(pPlanes[0])&&
-			IsOnOrForwardPlane(pPlanes[1])&&
-			IsOnOrForwardPlane(pPlanes[2])&&
-			IsOnOrForwardPlane(pPlanes[3])&&
-			IsOnOrForwardPlane(pPlanes[4])&&
+			IsOnOrForwardPlane(pPlanes[0]) &&
+			IsOnOrForwardPlane(pPlanes[1]) &&
+			IsOnOrForwardPlane(pPlanes[2]) &&
+			IsOnOrForwardPlane(pPlanes[3]) &&
+			IsOnOrForwardPlane(pPlanes[4]) &&
 			IsOnOrForwardPlane(pPlanes[5]));
+	}
+	BOOL AABB::IsOnOrForwardPlane(const XMVECTOR& plane)
+	{	
+
+		XMVECTOR norm = XMVectorAbs(plane);
+		XMVECTOR normExtentDot = XMVector3Dot(m_extent, norm);
+		const FLOAT r = normExtentDot.m128_f32[0];
+
+		XMVECTOR centerPlaneDot = XMVector3Dot(plane, m_center);
+		FLOAT signedDistanceToPlane =centerPlaneDot.m128_f32[0] - plane.m128_f32[3];
+		return r <=abs(signedDistanceToPlane);
 	}
 }

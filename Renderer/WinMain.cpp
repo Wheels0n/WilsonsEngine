@@ -1,20 +1,14 @@
 #pragma once
 #include "Engine.h"
 
+using namespace wilson;
 int CALLBACK WinMain(HINSTANCE hInstance,
 	HINSTANCE hPreInstance,
 	LPSTR lpCmdLine,
 	int   nCmdShow)
 {
-	wilson::Engine* g_pEngine;
-	bool g_bResult;
-
-	g_pEngine = new wilson::Engine;
-
-	g_pEngine->Run();
-
-	delete g_pEngine;
-	g_pEngine = nullptr;
+	unique_ptr<Engine> pEngine = std::make_unique<Engine>();
+	pEngine->Run();
 
 	return 0;
 }

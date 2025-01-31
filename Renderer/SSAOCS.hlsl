@@ -29,7 +29,7 @@ void main(uint3 DTid : SV_DispatchThreadID, uint3 groupId : SV_GroupID, uint3 gr
 {   
     float2 size;
     g_Dst.GetDimensions(size.x, size.y);
-    float2 uv = (DTid.xy + 0.5) / (size - 1);
+    float2 uv = (DTid.xy / size);
     
     float4 vPos = g_vPosTex.SampleLevel(g_clampSampler, uv, 0);
     if (dot(vPos.xyz, vPos.xyz) == 0)

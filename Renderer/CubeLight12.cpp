@@ -3,91 +3,73 @@
 #include "HeapManager.h"
 namespace wilson
 {
-    constexpr float g_near = 1.0f;
-    constexpr float g_far = 1500.0f;
-    constexpr float g_ratio = 1.0f;
-    constexpr float g_FOV = DirectX::XMConvertToRadians(90.0f);
-    DirectX::XMMATRIX CubeLight12::g_perspectiveMat =
-        DirectX::XMMatrixPerspectiveFovLH(g_FOV, g_ratio, g_near, g_far);
-    std::vector<DirectX::XMVECTOR> CubeLight12::g_upVectors = {
-        DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
-        DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
-        DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f),
-        DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
-        DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
-        DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+    using namespace std;
+    using namespace DirectX;
+
+    constexpr float g_cube_near = 1.0f;
+    constexpr float g_cube_far = 1500.0f;
+    constexpr float g_cube_ratio = 1.0f;
+    constexpr float g_cube_fov = XMConvertToRadians(90.0f);
+    XMMATRIX CubeLight12::g_perspective =
+        XMMatrixPerspectiveFovLH(g_cube_fov, g_cube_ratio, g_cube_near, g_cube_far);
+    vector<XMVECTOR> CubeLight12::g_upVectors = {
+        XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
+        XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
+        XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f),
+        XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
+        XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
+        XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
     };
-    std::vector<DirectX::XMVECTOR> CubeLight12::g_dirVectors = {
-        DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f),
-        DirectX::XMVectorSet(-1.0f,0.0f, 0.0f, 0.0f),
-        DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
-        DirectX::XMVectorSet(0.0f,-1.0f, 0.0f, 0.0f),
-        DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
-        DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f),
+    vector<XMVECTOR> CubeLight12::g_dirVectors = {
+        XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f),
+        XMVectorSet(-1.0f,0.0f, 0.0f, 0.0f),
+        XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
+        XMVectorSet(0.0f,-1.0f, 0.0f, 0.0f),
+        XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
+        XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f),
     };
 
-
-    void CubeLight12::UpdateProperty()
+    void CubeLight12::UpdateLightPos()
     {
-        m_cubeLightProperty.ambient = m_ambient;
-        m_cubeLightProperty.attenuation = m_attenuation;
-        m_cubeLightProperty.diffuse = m_diffuse;
-        m_cubeLightProperty.position = m_position;
-        m_cubeLightProperty.range = m_range;
-        m_cubeLightProperty.specular = m_specular;
+        XMFLOAT3 pos3 = m_pProperty->position;
+        XMVECTOR pos = XMVectorSet(pos3.x, pos3.y, pos3.z, g_cube_far);
+        g_pHeapManager->CopyDataToCb(m_cubeLightPosKey, sizeof(XMVECTOR), &pos);
     }
-    void CubeLight12::CreateShadowMatrices()
+    void CubeLight12::UpdateCubeMatrices()
     {
-        DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&m_position);
-
-        //우,좌,상,하,앞,뒤 순
-        for (int i = 0; i < 6; ++i)
+        XMVECTOR pos = XMLoadFloat3(&m_pProperty->position);
+        for (int i = 0; i < _CUBE_FACES; ++i)
         {
-            DirectX::XMMATRIX viewMat =
-                DirectX::XMMatrixLookAtLH(pos, DirectX::XMVectorAdd(pos, g_dirVectors[i]), g_upVectors[i]);
-            m_cubeMats[i] = DirectX::XMMatrixMultiplyTranspose(viewMat, g_perspectiveMat);
-        }
-    }
-   
-    void CubeLight12::UploadShadowMatrices(ID3D12GraphicsCommandList* const pCommandlist)
-    {
-        std::vector<DirectX::XMMATRIX> matrices(6);
-        for (int i = 0; i < 6; ++i)
-        {
-            matrices[i] = m_cubeMats[i];
+            XMMATRIX viewMat =
+                XMMatrixLookAtLH(pos, XMVectorAdd(pos, g_dirVectors[i]), g_upVectors[i]);
+            m_cubeMatrices[i] = XMMatrixMultiplyTranspose(viewMat, g_perspective);
         }
 
-        memcpy(m_pMatricesCbBegin, &matrices[0], sizeof(DirectX::XMMATRIX) * 6);
-        pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(eCubeShadowRP::gsMat) , m_matriceCbv);
+        g_pHeapManager->CopyDataToCb(m_cubeLightMatricesKey, sizeof(XMMATRIX) * _CUBE_FACES, &m_cubeMatrices[0]);
+    }
+    void CubeLight12::UploadCubeLightMatrices(ComPtr<ID3D12GraphicsCommandList> pCmdList)
+    {
+        g_pHeapManager->UploadGraphicsCb(m_cubeLightMatricesKey, E_TO_UINT(eCubeShadowRP::gsMat), pCmdList);
         return;
     }
-   
-    void CubeLight12::UploadLightPos(ID3D12GraphicsCommandList* const pCommandlist)
+    void CubeLight12::UploadLightPos(ComPtr<ID3D12GraphicsCommandList> pCmdList)
     {
-        DirectX::XMVECTOR pos = DirectX::XMVectorSet(m_position.x, m_position.y, m_position.z, g_far);
-
-        memcpy(m_pPosCbBegin, &pos, sizeof(DirectX::XMVECTOR));
-        pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(eCubeShadowRP::psLightPos), m_posCbv);
+        g_pHeapManager->UploadGraphicsCb(m_cubeLightPosKey, E_TO_UINT(eCubeShadowRP::psLightPos), pCmdList);
         return;
     }
 
 
-    CubeLight12::CubeLight12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager, const UINT idx)
+    CubeLight12::CubeLight12(const UINT idx)
         :Light12(idx)
     {
-        m_pMatricesCbBegin = nullptr;
-        m_pPosCbBegin = nullptr;
-
-        UINT cbSize = sizeof(DirectX::XMMATRIX) * 7;
-        m_pMatricesCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-        m_matriceCbv = pHeapManager->GetCbv(cbSize, pDevice);
+        UINT cbSize                 = sizeof(XMMATRIX) * (_CUBE_FACES);
+        m_cubeLightMatricesKey      = g_pHeapManager->AllocateCb(cbSize);
                 
-        cbSize = sizeof(DirectX::XMVECTOR);
-        m_pPosCbBegin= pHeapManager->GetCbMappedPtr(cbSize);
-        m_posCbv = pHeapManager->GetCbv(cbSize, pDevice);
+        cbSize                      = sizeof(XMVECTOR);
+        m_cubeLightPosKey           =  g_pHeapManager->AllocateCb(cbSize);
  
-        m_cubeMats.resize(6);
-        CreateShadowMatrices();
+        m_cubeMatrices.resize(_CUBE_FACES);
+        UpdateCubeMatrices();
     }
 
     CubeLight12::~CubeLight12()

@@ -1,33 +1,29 @@
 #pragma once
 
-#include "Frustum11.h"
 #include "typedef.h"
 
 namespace wilson
 {
-	struct VertexData;
+	using namespace DirectX;
+	struct VertexInfo;
 	class Sphere
 	{
 	public:
-		inline DirectX::XMFLOAT3 GetCenter()
-		{
-			return m_center;
-		}
-		inline float GetRadius()
-		{
-			return m_radius;
-		}
-		bool IsOnFrustum(const Plane* pPlanes, const DirectX::XMMATRIX transfrom) const;
+		XMVECTOR					GetCenter();
+		FLOAT						GetRadius();
 
-		Sphere(const DirectX::XMFLOAT3 center, const float r) :
-			m_center{ center }, m_radius{ r } {};
-		~Sphere()=default;
+		void						UpdateSphere(const XMMATRIX& transform);
+		BOOL						IsOnFrustum(const XMVECTOR* pPlanes);
+
+									Sphere(const XMVECTOR& center, const FLOAT r);
+									~Sphere() = default;
 
 	private:
-		bool IsOnOrForwardPlane(const Plane& plane) const;
+		BOOL						IsOnOrForwardPlane(const XMVECTOR& plane);
 	private:
-		DirectX::XMFLOAT3 m_center;
-		float m_radius;
+		XMVECTOR					m_localCenter;
+		XMVECTOR					m_center;
+		FLOAT						m_radius;
 	};
 
 }

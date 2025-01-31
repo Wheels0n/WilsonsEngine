@@ -1,47 +1,50 @@
-#include "Sphere.h"
+﻿#include "Sphere.h"
 namespace wilson
 {
-	bool Sphere::IsOnFrustum(const Plane* pPlanes, const DirectX::XMMATRIX transfrom) const
+	using namespace DirectX;
+	Sphere::Sphere(const XMVECTOR& center, const FLOAT r)
+		: m_localCenter{ center },m_center {center}, m_radius{ r }
 	{
-
-		DirectX::XMFLOAT3 x;
-		DirectX::XMStoreFloat3(&x, transfrom.r[0]);
-		DirectX::XMFLOAT3 y;
-		DirectX::XMStoreFloat3(&y, transfrom.r[1]);
-		DirectX::XMFLOAT3 z;
-		DirectX::XMStoreFloat3(&z, transfrom.r[2]);
-		DirectX::XMVECTOR xV = DirectX::XMLoadFloat3(&x);
-		DirectX::XMVECTOR yV = DirectX::XMLoadFloat3(&y);
-		DirectX::XMVECTOR zV = DirectX::XMLoadFloat3(&z);
-
-		const DirectX::XMFLOAT3 globalScale = DirectX::XMFLOAT3{
-			DirectX::XMVector4Length(xV).m128_f32[0],
-			DirectX::XMVector4Length(yV).m128_f32[0],
-			DirectX::XMVector4Length(zV).m128_f32[0],
-		};
-		const float maxScale = max(max(globalScale.x, globalScale.y), globalScale.z);
-
-		DirectX::XMFLOAT4 center4 = DirectX::XMFLOAT4{ m_center.x, m_center.y, m_center.z, 1.0f };
-		const DirectX::XMVECTOR globalCenterV =
-			DirectX::XMVector4Transform(DirectX::XMLoadFloat4(&center4), DirectX::XMMatrixTranspose(transfrom));
-		DirectX::XMFLOAT3 center3;
-		DirectX::XMStoreFloat3(&center3, globalCenterV);
-
-		Sphere globalSphere(center3, m_radius * maxScale * 0.5f);
-
-		return globalSphere.IsOnOrForwardPlane(pPlanes[0]) &&
-			globalSphere.IsOnOrForwardPlane(pPlanes[1]) &&
-			globalSphere.IsOnOrForwardPlane(pPlanes[2]) &&
-			globalSphere.IsOnOrForwardPlane(pPlanes[3]) &&
-			globalSphere.IsOnOrForwardPlane(pPlanes[4]) &&
-			globalSphere.IsOnOrForwardPlane(pPlanes[5]);
+	};
+	XMVECTOR Sphere::GetCenter()
+	{
+		return m_center;
 	}
-
-	bool Sphere::IsOnOrForwardPlane(const Plane& plane) const
+	FLOAT Sphere::GetRadius()
 	{
-		DirectX::XMVECTOR centerV = DirectX::XMLoadFloat3(&m_center);
-		DirectX::XMVECTOR dot = DirectX::XMVector3Dot(plane.norm, centerV);
-		float signedDistanceToPlane = dot.m128_f32[0] - plane.d;
+		return m_radius;
+	}
+	void Sphere::UpdateSphere(const XMMATRIX& transform)
+	{
+
+		XMVECTOR xV = transform.r[0];
+		XMVECTOR yV = transform.r[1];
+		XMVECTOR zV = transform.r[2];
+
+		const XMFLOAT3 globalScale = XMFLOAT3{
+			XMVector4Length(xV).m128_f32[0],
+			XMVector4Length(yV).m128_f32[0],
+			XMVector4Length(zV).m128_f32[0],
+		};
+		float maxScale = max(max(globalScale.x, globalScale.y), globalScale.z);
+		maxScale *= 0.5f;
+		m_localCenter = XMVector4Transform(m_center, transform);
+		m_radius *= maxScale;
+	}
+	BOOL Sphere::IsOnFrustum(const XMVECTOR* pPlanes)
+	{
+		return (
+			IsOnOrForwardPlane(pPlanes[0]) &&
+			IsOnOrForwardPlane(pPlanes[1]) &&
+			IsOnOrForwardPlane(pPlanes[2]) &&
+			IsOnOrForwardPlane(pPlanes[3]) &&
+			IsOnOrForwardPlane(pPlanes[4]) &&
+			IsOnOrForwardPlane(pPlanes[5]));
+	}
+	BOOL Sphere::IsOnOrForwardPlane(const XMVECTOR& plane)
+	{
+		XMVECTOR dot = XMVector3Dot(plane, m_center);
+		float signedDistanceToPlane = dot.m128_f32[0] - plane.m128_f32[3];
 		return signedDistanceToPlane > -m_radius;
 	}
 }

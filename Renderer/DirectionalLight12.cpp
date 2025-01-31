@@ -4,19 +4,12 @@
 namespace wilson
 {
  
-    DirectionalLight12::DirectionalLight12(ID3D12Device* const pDevice, ID3D12GraphicsCommandList* const pCommandlist, HeapManager* const pHeapManager,
-        const UINT idx, Camera12* const pCam)
-        :Light12(idx)
+    DirectionalLight12::DirectionalLight12(const UINT idx, shared_ptr<Camera12> pCam)
+        :Light12(idx), m_pCam(pCam)
     {
-        m_pCam = pCam;
-        m_lightSpaceMat.resize(pCam->GetCascadeLevels().size());
-        UpdateLightSpaceMatrices();
-
-        m_pMatricesCbBegin = nullptr;
-
-        UINT cbSize = sizeof(DirectX::XMMATRIX) * _CASCADE_LEVELS;
-        m_pMatricesCbBegin = pHeapManager->GetCbMappedPtr(cbSize);
-        m_matriceCbv = pHeapManager->GetCbv(cbSize, pDevice);
+        m_dirLightMatrices.resize(_CASCADE_LEVELS);
+        m_matricesKey = g_pHeapManager->AllocateCb(sizeof(XMMATRIX) * _CASCADE_LEVELS);
+        UpdateDirLightMatrices();
 
     }
     DirectionalLight12::~DirectionalLight12()
@@ -24,56 +17,44 @@ namespace wilson
         Light12::~Light12();
     }
 
-    void DirectionalLight12::UpdateProperty()
+    vector<XMMATRIX>& DirectionalLight12::GetDirLightMatrix()
     {
-        m_dirLightProperty.ambient = m_ambient;
-        m_dirLightProperty.diffuse = m_diffuse;
-        m_dirLightProperty.specular = m_specular;
-        m_dirLightProperty.direction = m_direction;
+        return m_dirLightMatrices;
     }
 
-
-    void DirectionalLight12::UploadShadowMatrices(ID3D12GraphicsCommandList* const pCommandlist)
+    void DirectionalLight12::UploadDirLightMatrices(ComPtr<ID3D12GraphicsCommandList> pCmdList)
     {
-        std::vector<DirectX::XMMATRIX> matrices(m_lightSpaceMat.size());
-        for (int i = 0; i < m_lightSpaceMat.size(); ++i)
-        {
-            matrices[i] = m_lightSpaceMat[i];
-        }
-
-        memcpy(m_pMatricesCbBegin, &matrices[0], sizeof(DirectX::XMMATRIX) * m_lightSpaceMat.size());
-   
-        pCommandlist->SetGraphicsRootDescriptorTable(static_cast<UINT>(eCascadeShadowRP::gsMat), m_matriceCbv);
+        g_pHeapManager->UploadGraphicsCb(m_matricesKey, E_TO_UINT(eCascadeShadowRP::gsMat), pCmdList);
         return;
-
     }
-    void DirectionalLight12::UpdateLightSpaceMatrices()
+    void DirectionalLight12::UpdateDirLightMatrices()
     {
         const float nearZ = *m_pCam->GetNearZ();
         const float farZ = *m_pCam->GetFarZ();
-        std::vector<float> shadowCacadeLevels = m_pCam->GetCascadeLevels();
+        vector<float>& shadowCacadeLevels = m_pCam->GetCascadeLevels();
         for (UINT i = 0; i < shadowCacadeLevels.size(); ++i)
         {
             if (i == 0)
             {
-                m_lightSpaceMat[i] = UpdateLightSpaceMat(nearZ, shadowCacadeLevels[i]);
+                m_dirLightMatrices[i] = UpdateDirLightMatrix(nearZ, shadowCacadeLevels[i]);
             }
             else if (i < shadowCacadeLevels.size() - 1)
             {
-                m_lightSpaceMat[i] = UpdateLightSpaceMat(shadowCacadeLevels[i - 1], shadowCacadeLevels[i]);
+                m_dirLightMatrices[i] = UpdateDirLightMatrix(shadowCacadeLevels[i - 1], shadowCacadeLevels[i]);
             }
             else
             {
-                m_lightSpaceMat[i] = UpdateLightSpaceMat(shadowCacadeLevels[i - 1], farZ);
+                m_dirLightMatrices[i] = UpdateDirLightMatrix(shadowCacadeLevels[i - 1], farZ);
             }
         }
+        g_pHeapManager->CopyDataToCb(m_matricesKey, sizeof(XMMATRIX) * _CASCADE_LEVELS, &m_dirLightMatrices[0]);
     }
 
-    std::vector<DirectX::XMVECTOR> DirectionalLight12::GetFrustumCornersWorldSpace(const DirectX::XMMATRIX viewMat, const DirectX::XMMATRIX projMat)
+    vector<XMVECTOR> DirectionalLight12::GetFrustumCornersWorldSpace(const XMMATRIX& viewMat, const XMMATRIX& projMat)
     {
-        DirectX::XMMATRIX viewProMat = DirectX::XMMatrixMultiply(viewMat, projMat);
-        DirectX::XMMATRIX invVPMat = DirectX::XMMatrixInverse(nullptr, viewProMat);
-        std::vector<DirectX::XMVECTOR> corners;
+        XMMATRIX viewProMat = XMMatrixMultiply(viewMat, projMat);
+        XMMATRIX invVPMat = XMMatrixInverse(nullptr, viewProMat);
+        vector<XMVECTOR> corners;
         corners.reserve(8);
         for (UINT x = 0; x < 2; ++x)
         {
@@ -81,9 +62,9 @@ namespace wilson
             {
                 for (UINT z = 0; z < 2; ++z)
                 {
-                    DirectX::XMVECTOR corner = DirectX::XMVectorSet(2.0f * x - 1.0f, 2.0f * y - 1.0f, z, 1.0f);
-                    corner = DirectX::XMVector4Transform(corner, invVPMat);
-                    corner = DirectX::XMVectorScale(corner, 1 / corner.m128_f32[3]);
+                    XMVECTOR corner = XMVectorSet(2.0f * x - 1.0f, 2.0f * y - 1.0f, z, 1.0f);
+                    corner = XMVector4Transform(corner, invVPMat);
+                    corner = XMVectorScale(corner, 1 / corner.m128_f32[3]);
                     corners.push_back(corner);
                 }
             }
@@ -91,54 +72,52 @@ namespace wilson
         return corners;
     }
 
-    DirectX::XMMATRIX DirectionalLight12::UpdateLightSpaceMat(const float nearZ, const float farZ)
+    XMMATRIX DirectionalLight12::UpdateDirLightMatrix(const FLOAT nearZ, const FLOAT farZ)
     {
         const float fovY = *(m_pCam->GetFovY());
         const float ratio = m_pCam->GetAspect();
 
         //Gen subFrustum
-        DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH(fovY, ratio, nearZ, farZ);
-        DirectX::XMMATRIX view = *(m_pCam->GetViewMatrix());
-        view = DirectX::XMMatrixTranspose(view);
+        XMMATRIX proj = XMMatrixPerspectiveFovLH(fovY, ratio, nearZ, farZ);
+        XMMATRIX view = *(m_pCam->GetViewMatrix());
 
-        const std::vector<DirectX::XMVECTOR> corners = GetFrustumCornersWorldSpace(view, proj);
+        const vector<XMVECTOR> corners = GetFrustumCornersWorldSpace(view, proj);
 
-        DirectX::XMVECTOR center = DirectX::XMVectorZero();
+        XMVECTOR center = XMVectorZero();
         for (UINT i = 0; i < corners.size(); ++i)
         {
-            center = DirectX::XMVectorAdd(center, corners[i]);
+            center = XMVectorAdd(center, corners[i]);
         }
-        center = DirectX::XMVectorScale(center, (float)1 / corners.size());
-        DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-        DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&m_direction);
-        pos = DirectX::XMVector4Normalize(pos);
-        pos = DirectX::XMVectorSubtract(center, pos);
+        center = XMVectorScale(center, (float)1 / corners.size());
+        XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+        XMVECTOR pos = XMLoadFloat3(&m_pProperty->direction);
+        pos = XMVector4Normalize(pos);
+        pos = XMVectorSubtract(center, pos);
 
-        const DirectX::XMMATRIX lightView = DirectX::XMMatrixLookAtLH(pos, center, up);
+        const XMMATRIX lightView = XMMatrixLookAtLH(pos, center, up);
 
-        float minX = FLT_MAX;
-        float maxX = FLT_MIN;
-        float minY = FLT_MAX;
-        float maxY = FLT_MIN;
-        float minZ = FLT_MAX;
-        float maxZ = FLT_MIN;
+
+        XMVECTOR minV = XMVectorSet(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
+        XMVECTOR maxV = XMVectorSet(FLT_MIN, FLT_MIN, FLT_MIN, FLT_MIN);
+
 
         for (UINT i = 0; i < corners.size(); ++i)
         {
-            const DirectX::XMVECTOR vec = DirectX::XMVector4Transform(corners[i], lightView);
-            minX = min(minX, vec.m128_f32[0]);
-            maxX = max(maxX, vec.m128_f32[0]);
-            minY = min(minY, vec.m128_f32[1]);
-            maxY = max(maxY, vec.m128_f32[1]);
-            minZ = min(minZ, vec.m128_f32[2]);
-            maxZ = max(maxZ, vec.m128_f32[2]);
-
+            const XMVECTOR vec = XMVector4Transform(corners[i], lightView);
+            minV = XMVectorMin(vec, minV);
+            maxV = XMVectorMax(vec, maxV);
         }
+        XMFLOAT4 min4;
+        XMFLOAT4 max4;
 
-        const DirectX::XMMATRIX lightProj =
-            DirectX::XMMatrixOrthographicOffCenterLH(minX, maxX, minY, maxY, minZ, maxZ);
+        XMStoreFloat4(&min4, minV);
+        XMStoreFloat4(&max4, maxV);
 
-        return DirectX::XMMatrixMultiplyTranspose(lightView, lightProj);
+
+        const XMMATRIX lightProj =
+            XMMatrixOrthographicOffCenterLH(min4.x, max4.x, min4.y, max4.y, min4.z, max4.z);
+
+        return XMMatrixMultiplyTranspose(lightView, lightProj);
     }
 
 

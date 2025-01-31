@@ -15,11 +15,9 @@ namespace wilson
 #endif
 	Renderer12::Renderer12(const UINT m_screenWidth, const UINT m_screenHeight, HWND hWnd)
 	{
-		m_pD3D12 = nullptr;
-		m_pCam = nullptr;
-		
-		m_eAPI = eAPI::DX12;
-		m_pD3D12 = std::make_unique<D3D12>(m_screenWidth, m_screenHeight, g_bVSYNC_ENABLE, hWnd, g_bFULL_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
+		m_pD3D12 = std::make_shared<D3D12>
+			(m_screenWidth, m_screenHeight, g_bVSYNC_ENABLE, hWnd, g_bFULL_SCREEN, g_fSCREEN_FAR, g_fSCREEN_NEAR);
+		m_pD3D12->BeginWorkers();
 		m_pCam = m_pD3D12->GetCam();
 		
 	}
@@ -29,9 +27,10 @@ namespace wilson
 
 		if (m_pD3D12 != nullptr)
 		{
+			m_pD3D12->EndWorkers();
+			m_pD3D12 = nullptr;
 #ifdef _DEBUG
 			{
-				delete m_pD3D12.release();
 				HMODULE dxgidebugDLL = GetModuleHandleW(L"dxgidebug.dll");
 				decltype(&DXGIGetDebugInterface) GetDebugInterface =
 					reinterpret_cast<decltype(&DXGIGetDebugInterface)>(GetProcAddress(dxgidebugDLL, "DXGIGetDebugInterface"));
@@ -39,9 +38,9 @@ namespace wilson
 				IDXGIDebug* pDebug;
 				GetDebugInterface(IID_PPV_ARGS(&pDebug));
 
-				OutputDebugStringW(L"!!!D3D 메모리 누수 체크!!!\r\n");
+				OutputDebugStringW(L"!!!WARNGING!!! \r\n");
 				pDebug->ReportLiveObjects(DXGI_DEBUG_D3D12, DXGI_DEBUG_RLO_DETAIL);
-				OutputDebugStringW(L"!!!반환되지 않은 IUnKnown 객체!!!\r\n");
+				OutputDebugStringW(L"!!!RESOURCE NOT RELEASED!!!\r\n");
 
 				pDebug->Release();
 			}
@@ -49,12 +48,12 @@ namespace wilson
 		}
 	}
 
-	bool Renderer12::CheckDx12Support()
+	BOOL Renderer12::CheckDx12Support()
 	{
 		IDXGIFactory1* pFactory;
 		if (CreateDXGIFactory1(IID_PPV_ARGS(&pFactory)) != S_OK)
 		{
-			OutputDebugStringW(L"Renderer11::pFactory::Failed To Creaete DXGIFactory");
+			OutputDebugStringW(L"Failed To Creaete DXGIFactory");
 			throw std::exception();
 		}
 		else
@@ -90,6 +89,11 @@ namespace wilson
 		m_pD3D12->DrawScene();
 	}
 
+	shared_ptr<D3D12> Renderer12::GetD3D12()
+	{
+		return m_pD3D12;
+	}
+
 	void Renderer12::UpdateResolution(const UINT newWidth, const UINT newHeight)
 	{
 		m_pD3D12->ResizeBackBuffer(newWidth, newHeight);
@@ -98,14 +102,13 @@ namespace wilson
 	void Renderer12::Translate(const XMVECTOR tr)
 	{
 		m_pCam->Translate(tr);
-		m_pCam->Update();
+		m_pCam->UpdateMatrices();
 	}
 
 	void Renderer12::Rotate(int dx, int dy)
 	{
 		m_pCam->Rotate(dx, dy);
-		m_pCam->Update();
+		m_pCam->UpdateMatrices();
 	}
-
 
 }

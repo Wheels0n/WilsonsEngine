@@ -5,45 +5,55 @@
 
 #include "../ImGui/imgui_impl_win32.h"
 #include "ImGuiManager.h"
-#include"resource.h"
-#include"Timer.h"
+#include "resource.h"
+#include "Timer.h"
+
 namespace wilson{
- class Editor;
- class Renderer;
 
- class Engine
- {
- public:
-	void Run();
+	constexpr UINT _DEFAULT_SCREEN_WITDH = 1600;
+	constexpr UINT _DEFAULT_SCREEN_HEIGHT = 800;
 
-	LRESULT CALLBACK MsgHandler(HWND, UINT, WPARAM, LPARAM);
+	using namespace std;
 
-	Engine();
-	Engine(Engine&) = delete;
-	~Engine();
- private:
-	bool Frame();
-	void InitWindows(UINT&, UINT&);
+	 class Editor12;
+	 class Renderer12;
+	 class InputHandler;
+	 class Engine
+	 {
+	 public:
+		 UINT GetScreenWidth() { return m_screenWidth; };
+		 UINT GetScreenHeight() { return m_screenHeight; };
 
- private:
-	UINT m_screenHeight;
-	UINT m_screenWidth;
+		void InitWindows(UINT& screenWidth, UINT& screenHeight);
+		void Run();
 
-	int m_curMouseX;
-	int m_curMouseY;
-	int m_lastMouseX;
-	int m_lastMouseY;
+		LRESULT MsgHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-	LPCWSTR m_appName;
-	HINSTANCE m_hInstance;
-	HWND m_hWnd;
+		Engine();
+		Engine(Engine&) = delete;
+		~Engine();
+	 private:
+		bool Frame();
+			
+	 private:
+		 int m_curMouseX;
+		 int m_curMouseY;
+		 int m_lastMouseX;
+		 int m_lastMouseY;
+		UINT m_screenWidth;
+		UINT m_screenHeight;
 
-	Timer m_timer;
-	ImGuiManager m_ImGuiManager;
-	std::unique_ptr<Renderer> m_pRenderer;
-	std::unique_ptr<Editor> m_pEditor;
- };
- static Engine* g_pEngineHandle = nullptr;
- static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+		LPCWSTR m_appName;
+		HINSTANCE m_hInstance;
+		HWND m_hWnd;
+
+		Timer m_timer;
+		ImGuiManager m_ImGuiManager;
+		shared_ptr<Renderer12> m_pRenderer;
+		shared_ptr<Editor12> m_pEditor;
+	 };
+	 extern Engine* g_pEngineHandle;
+	 static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 }
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

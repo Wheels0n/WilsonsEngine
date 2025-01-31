@@ -7,67 +7,42 @@
 
 namespace wilson
 {
+	using namespace std;
+	
 	class Entity12
 	{
-	public:
-		//EntityIdx는 현 클래스에서 접근 할 용도. 
-		//나머지 lightIdx, objectlIdx는 d3d12클래스에서 접근할 용도.
-		inline void DecreaseEntityIndex()
-		{
-			--m_entityIdx;
-		}
-		inline void DecreaseLightIndex()
-		{
-			--m_lightIdx;
-		}
-		inline void DecreaseObjectIndex()
-		{
-			--m_objectIdx;
-		}
-		inline int GetEntityIndex() const
-		{
-			return m_entityIdx;
-		}
-		inline Light12* GetLight()
-		{
-			return m_pLight;
-		}
-		inline int GetLightIndex() const
-		{
-			return m_lightIdx;
-		}
-		inline std::string GetName()
-		{
-			return m_name;
-		}
-		inline Object12* GetpObject() const
-		{
-			return m_pObject;
-		}
-		inline int GetObjectIndex() const
-		{
-			return m_objectIdx;
-		}
-		inline bool IsObject()
-		{
-			return m_bObject;
-		}
+		public:
+			void						DecreaseEntityIndex();
+			void						DecreaseLightIndex();
+			void						DecreaseMeshIndex();
 
-		Entity12(const std::string, const UINT, Object12* const, const UINT);
-		Entity12(const std::string, const UINT, Light12* const, const UINT);
-		Entity12(const Entity12&) = default;
-		~Entity12() = default;
-	private:
-		bool m_bObject;
-		std::string m_name;
+			BOOL						HasMesh();
+			BOOL						HasLight();
+
+			int							GetEntityIndex();
+			int							GetMeshIndex();
+			int							GetLightIndex();
+			string&						GetName();
+
+			shared_ptr<Light12>			GetLight();
+			shared_ptr<Mesh12>			GetMesh();
+
+										Entity12(const string&, const UINT, shared_ptr<Mesh12>, const UINT);
+										Entity12(const string&, const UINT, shared_ptr<Light12>, const UINT);
+										Entity12(const Entity12&) = default;
+										~Entity12() = default;
+		private:
+			BOOL						m_hasMesh;
+			BOOL						m_hasLight;
+
+			string						m_name;
 		
-		int m_entityIdx;
-		int m_lightIdx;
-		int m_objectIdx;
+			int							m_entityIdx;
+			int							m_lightIdx;
+			int							m_meshIdx;
 
-		Light12* m_pLight;
-		Object12* m_pObject;
-		Mesh12* m_pSelectedMesh;
+			shared_ptr<Light12>			m_pLight;
+			shared_ptr<Mesh12>			m_pMesh;
 	};
 }
 

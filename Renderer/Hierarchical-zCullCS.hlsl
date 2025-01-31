@@ -33,8 +33,8 @@ void ToTexCoord(uint idx, out float2 minV, out float2 maxV, out float depth)
         float2 texCoord = ndc.xy;
         texCoord *= float2(0.5f, -0.5f);
         texCoord += 0.5f;
-        clamp(texCoord.x, 0.0f, 1.0f);
-        clamp(texCoord.y, 0.0f, 1.0f);
+        texCoord.x = clamp(texCoord.x, 0.0f, 1.0f);
+        texCoord.y = clamp(texCoord.y, 0.0f, 1.0f);
         minV = min(texCoord, minV);
         maxV = max(texCoord, maxV);
         depth = min(ndc.z, depth);

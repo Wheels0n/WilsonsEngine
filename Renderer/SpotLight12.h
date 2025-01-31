@@ -4,58 +4,36 @@
 #include"typedef.h"
 namespace wilson
 {
+	using namespace std;
+	using namespace DirectX;
+	using namespace Microsoft::WRL;
+
 	class HeapManager;
 	class SpotLight12 :public Light12
 	{
 	public:
-		inline DirectX::XMFLOAT3* GetAttenuation()
-		{
-			return &m_attenuation;
-		}
-		inline float* GetCutoff()
-		{
-			return &m_cutoff;
-		}
-		inline DirectX::XMFLOAT3* GetDirection()
-		{
-			return &m_direction;
-		}
-		inline DirectX::XMMATRIX* GetLightSpaceMat()
-		{
-			return &m_lightSpaceMat;
-		}
-		inline float* GetOuterCutoff()
-		{
-			return &m_outerCutoff;
-		}
-		inline SpotLightProperty* GetProperty()
-		{
-			return &m_spotLightProperty;
-		}
-		inline float* GetRange()
-		{
-			return &m_range;
-		}
-		eLIGHT_TYPE GetType() { return eLIGHT_TYPE::SPT; };
-		void UpdateLitMat();
-		void UpdateProjMat();
-		void UpdateProperty();
-		void UpdateViewMat();
 
-		SpotLight12() = default;
-		SpotLight12(ID3D12Device* const, ID3D12GraphicsCommandList* const, HeapManager* const, const UINT);
-		SpotLight12(const SpotLight12&) = default;
-		~SpotLight12() { Light12::~Light12(); };
+		XMMATRIX*						GetSpotLightSpaceMatrix();
+		eLIGHT_TYPE						GetType() { return eLIGHT_TYPE::SPT; };
+		FLOAT&							GetCutOff() { return m_cutoff; };
+		FLOAT&							GetOuterCutOff() { return m_outerCutoff; };
+
+		void							UpdateViewMatrix();
+		void							UpdateProjMatrix();
+		void							UpdateSpotLightMatrix();
+
+		void							UploadSpotLightMatrix(ComPtr<ID3D12GraphicsCommandList> pCmdList);
+
+										SpotLight12(const UINT);
+										SpotLight12(const SpotLight12&) = default;
+										~SpotLight12();
 	private:
-		SpotLightProperty m_spotLightProperty;
+		FLOAT							m_cutoff;
+		FLOAT							m_outerCutoff;
 
-		float m_cutoff;
-		float m_outerCutoff;
-		float m_range;
-
-		DirectX::XMFLOAT3 m_attenuation;
-		DirectX::XMMATRIX m_lightSpaceMat;
-		DirectX::XMMATRIX m_perspectiveMat;
-		DirectX::XMMATRIX m_viewMat;
+		UINT							m_spotLightMatrixKey;
+		XMFLOAT3						m_attenuation;
+		shared_ptr<WVPMatrices>			m_pWVPMatrices;
+		shared_ptr<CompositeMatrices>	m_pCompositeMatrices;
 	};
 }
