@@ -4,7 +4,7 @@ DX12를 이용한 렌더링 엔진
 ![Capture](https://github.com/Wheels0n/WilsonsEngine/assets/96295807/1f91b757-2dfd-4bc8-9323-1ab62e46471f)
 
 [12 버전](https://youtu.be/IimETRc8OGs)  
-[11 버전](https://youtu.be/wbYEyiZzkSE)
+
 ##
 - [x] 카메라
 - [x] 블린퐁
